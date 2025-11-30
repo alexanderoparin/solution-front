@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { Form, Input, Button, Card, Typography, message } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
@@ -10,23 +11,20 @@ import type { LoginRequest } from '../types/api'
 const { Title, Text } = Typography
 
 export default function Login() {
+  const navigate = useNavigate()
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const setAuth = useAuthStore((state) => state.setAuth)
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
     onSuccess: (data) => {
-      console.log('Login response:', data)
-      console.log('isTemporaryPassword:', data.isTemporaryPassword)
-      
       setAuth(data.token, data.email, data.userId, data.role)
       
       if (data.isTemporaryPassword) {
-        console.log('Показываем модальное окно смены пароля')
         setShowChangePasswordModal(true)
       } else {
         message.success('Вход выполнен успешно')
-        // TODO: Редирект на дашборд
+        navigate('/analytics')
       }
     },
     onError: (error: any) => {
@@ -119,7 +117,7 @@ export default function Login() {
         onSuccess={() => {
           setShowChangePasswordModal(false)
           message.success('Пароль успешно изменен')
-          // TODO: Редирект на дашборд
+          navigate('/analytics')
         }}
         onCancel={() => {
           setShowChangePasswordModal(false)

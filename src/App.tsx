@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
+import AnalyticsSummary from './pages/AnalyticsSummary'
+import AnalyticsArticle from './pages/AnalyticsArticle'
 import { useAuthStore } from './store/authStore'
 
 function App() {
@@ -12,10 +14,17 @@ function App() {
         <Route
           path="/"
           element={
-            token ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+            token ? <Navigate to="/analytics" replace /> : <Navigate to="/login" replace />
           }
         />
-        {/* TODO: Добавить защищенные маршруты */}
+        <Route
+          path="/analytics"
+          element={token ? <AnalyticsSummary /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/analytics/article/:nmId"
+          element={token ? <AnalyticsArticle /> : <Navigate to="/login" replace />}
+        />
       </Routes>
     </BrowserRouter>
   )
