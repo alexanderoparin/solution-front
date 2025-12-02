@@ -36,7 +36,6 @@ export interface AggregatedMetrics {
 }
 
 export interface SummaryResponse {
-  generalInfo: GeneralInfo
   periods: Period[]
   articles: ArticleSummary[]
   aggregatedMetrics: Record<number, AggregatedMetrics>

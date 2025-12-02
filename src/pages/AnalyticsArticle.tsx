@@ -1,13 +1,178 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { DatePicker } from 'antd'
+import dayjs, { type Dayjs } from 'dayjs'
+import 'dayjs/locale/ru'
+import locale from 'antd/locale/ru_RU'
 import { analyticsApi } from '../api/analytics'
 import { generateDefaultPeriods, validatePeriods } from '../utils/periodGenerator'
 import type { ArticleResponse, Period } from '../types/analytics'
 
+dayjs.locale('ru')
+
+interface PeriodItemProps {
+  period: Period
+  periodsCount: number
+  allPeriods: Period[]
+  onPeriodChange: (periodId: number, dates: [Dayjs | null, Dayjs | null] | null) => void
+  onRemovePeriod: (periodId: number) => void
+}
+
+function PeriodItem({ period, periodsCount, allPeriods, onPeriodChange, onRemovePeriod }: PeriodItemProps) {
+  const [isHovered, setIsHovered] = useState(false)
+  const [selectedRange, setSelectedRange] = useState<[Dayjs | null, Dayjs | null] | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+
+  // Проверяет, пересекается ли дата с другими периодами
+  const isDateOverlapping = (current: Dayjs): boolean => {
+    const otherPeriods = allPeriods.filter(p => p.id !== period.id)
+    const currentStart = dayjs(period.dateFrom)
+    const currentEnd = dayjs(period.dateTo)
+    
+    // Определяем потенциальный диапазон
+    let potentialStart: Dayjs
+    let potentialEnd: Dayjs
+    
+    if (selectedRange && selectedRange[0] && selectedRange[1]) {
+      // Если выбран полный диапазон, используем его
+      potentialStart = selectedRange[0]
+      potentialEnd = selectedRange[1]
+      
+      // Корректируем с учетом текущей даты
+      if (current.isBefore(potentialStart)) {
+        potentialStart = current
+      } else if (current.isAfter(potentialEnd)) {
+        potentialEnd = current
+      }
+    } else if (selectedRange && selectedRange[0]) {
+      // Выбрана начальная дата
+      potentialStart = selectedRange[0]
+      potentialEnd = current.isAfter(selectedRange[0]) ? current : currentEnd
+    } else if (selectedRange && selectedRange[1]) {
+      // Выбрана конечная дата
+      potentialEnd = selectedRange[1]
+      potentialStart = current.isBefore(selectedRange[1]) ? current : currentStart
+    } else {
+      // Диапазон не выбран, используем текущее значение периода и проверяем с учетом текущей даты
+      // Если текущая дата вне текущего диапазона, расширяем диапазон
+      if (current.isBefore(currentStart)) {
+        potentialStart = current
+        potentialEnd = currentEnd
+      } else if (current.isAfter(currentEnd)) {
+        potentialStart = currentStart
+        potentialEnd = current
+      } else {
+        potentialStart = currentStart
+        potentialEnd = currentEnd
+      }
+    }
+    
+    // Проверяем пересечение с другими периодами
+    for (const otherPeriod of otherPeriods) {
+      const otherStart = dayjs(otherPeriod.dateFrom)
+      const otherEnd = dayjs(otherPeriod.dateTo)
+      
+      // Пересечение: potentialEnd >= otherStart && potentialStart <= otherEnd
+      if ((potentialEnd.isAfter(otherStart) || potentialEnd.isSame(otherStart)) &&
+          (potentialStart.isBefore(otherEnd) || potentialStart.isSame(otherEnd))) {
+        return true
+      }
+    }
+    
+    return false
+  }
+
+  return (
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        alignItems: 'center',
+        maxWidth: '220px',
+        position: 'relative'
+      }}
+    >
+      <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '4px', textAlign: 'center' }}>{period.name}</div>
+      <DatePicker.RangePicker
+        locale={locale.DatePicker}
+        value={[dayjs(period.dateFrom), dayjs(period.dateTo)]}
+        onChange={(dates) => {
+          setSelectedRange(dates)
+          onPeriodChange(period.id, dates)
+          // Закрываем календарь только если выбран полный диапазон
+          if (dates && dates[0] && dates[1]) {
+            setPickerOpen(false)
+          }
+        }}
+        onCalendarChange={(dates) => {
+          setSelectedRange(dates)
+        }}
+        format="DD.MM.YYYY"
+        separator="→"
+        open={pickerOpen}
+        onOpenChange={(open) => {
+          setPickerOpen(open)
+          // Если закрываем календарь, но выбрана только одна дата, оставляем открытым
+          if (open === false && selectedRange && selectedRange[0] && !selectedRange[1]) {
+            setTimeout(() => setPickerOpen(true), 0)
+          }
+        }}
+        disabledDate={(current) => {
+          // Запрещаем выбор будущих дат
+          if (current && current > dayjs().endOf('day')) {
+            return true
+          }
+          
+          // Проверяем пересечение с другими периодами
+          return isDateOverlapping(current)
+        }}
+      />
+      {periodsCount > 2 && isHovered && (
+        <button
+          onClick={() => onRemovePeriod(period.id)}
+          style={{
+            position: 'absolute',
+            top: '-8px',
+            right: '-8px',
+            width: '24px',
+            height: '24px',
+            borderRadius: '50%',
+            border: '1px solid #E2E8F0',
+            backgroundColor: '#FFFFFF',
+            color: '#64748B',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '16px',
+            lineHeight: '1',
+            padding: 0,
+            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+          }}
+          title="Удалить период"
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#F1F5F9'
+            e.currentTarget.style.color = '#475569'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#FFFFFF'
+            e.currentTarget.style.color = '#64748B'
+          }}
+        >
+          ×
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function AnalyticsArticle() {
   const { nmId } = useParams<{ nmId: string }>()
   const navigate = useNavigate()
-  const [periods] = useState<Period[]>(() => {
+  const [periods, setPeriods] = useState<Period[]>(() => {
     // Загружаем периоды из localStorage или генерируем по умолчанию
     const saved = localStorage.getItem('analytics_periods')
     if (saved) {
@@ -22,6 +187,79 @@ export default function AnalyticsArticle() {
     }
     return generateDefaultPeriods()
   })
+
+  useEffect(() => {
+    // Сохраняем периоды в localStorage при изменении
+    localStorage.setItem('analytics_periods', JSON.stringify(periods))
+  }, [periods])
+
+  const handlePeriodChange = (periodId: number, dates: [Dayjs | null, Dayjs | null] | null) => {
+    if (!dates || !dates[0] || !dates[1]) return
+    
+    const dateFrom = dates[0]
+    const dateTo = dates[1]
+    if (!dateFrom || !dateTo) return
+    
+    const updatedPeriods = periods.map(period => {
+      if (period.id === periodId) {
+        return {
+          ...period,
+          dateFrom: dateFrom.format('YYYY-MM-DD'),
+          dateTo: dateTo.format('YYYY-MM-DD')
+        }
+      }
+      return period
+    })
+    
+    if (validatePeriods(updatedPeriods)) {
+      setPeriods(updatedPeriods)
+    }
+  }
+
+  const handleAddPeriod = () => {
+    if (periods.length >= 5) return
+    
+    // Находим самую раннюю дату начала среди всех периодов
+    const earliestDate = periods.reduce((earliest, period) => {
+      const periodDate = dayjs(period.dateFrom)
+      return periodDate.isBefore(earliest) ? periodDate : earliest
+    }, dayjs(periods[0].dateFrom))
+    
+    // Создаем новый период на 3 дня раньше самого раннего
+    const newPeriodEnd = earliestDate.subtract(1, 'day')
+    const newPeriodStart = newPeriodEnd.subtract(2, 'day')
+    
+    const newPeriod: Period = {
+      id: Math.max(...periods.map(p => p.id)) + 1,
+      name: `период №${periods.length + 1}`,
+      dateFrom: newPeriodStart.format('YYYY-MM-DD'),
+      dateTo: newPeriodEnd.format('YYYY-MM-DD')
+    }
+    
+    const updatedPeriods = [...periods, newPeriod]
+    // Пересчитываем id и name для всех периодов
+    const renumberedPeriods = updatedPeriods.map((period, index) => ({
+      ...period,
+      id: index + 1,
+      name: `период №${index + 1}`
+    }))
+    
+    setPeriods(renumberedPeriods)
+  }
+
+  const handleRemovePeriod = (periodId: number) => {
+    if (periods.length <= 2) return
+    
+    const updatedPeriods = periods.filter(period => period.id !== periodId)
+    // Пересчитываем id и name для оставшихся периодов
+    const renumberedPeriods = updatedPeriods.map((period, index) => ({
+      ...period,
+      id: index + 1,
+      name: `период №${index + 1}`
+    }))
+    
+    setPeriods(renumberedPeriods)
+  }
   const [article, setArticle] = useState<ArticleResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -145,23 +383,51 @@ export default function AnalyticsArticle() {
         padding: '16px',
         marginBottom: '24px'
       }}>
-        <h2 style={{ color: '#1E293B', marginBottom: '16px', fontSize: '18px' }}>Периоды</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-          {periods.map(period => (
-            <div key={period.id} style={{
-              backgroundColor: '#1E293B',
-              color: '#FFFFFF',
-              padding: '12px',
-              borderRadius: '4px',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '12px', marginBottom: '4px' }}>{period.name}</div>
-              <div style={{ fontSize: '14px', fontWeight: '500' }}>
-                {new Date(period.dateFrom).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} -{' '}
-                {new Date(period.dateTo).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}
-              </div>
-            </div>
+        <h2 style={{ color: '#1E293B', marginBottom: '16px', fontSize: '18px', textAlign: 'center' }}>Укажите желаемые периоды для сравнения данных</h2>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          {periods.map((period) => (
+            <PeriodItem
+              key={period.id}
+              period={period}
+              periodsCount={periods.length}
+              allPeriods={periods}
+              onPeriodChange={handlePeriodChange}
+              onRemovePeriod={handleRemovePeriod}
+            />
           ))}
+          {periods.length < 5 && (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '32px'
+            }}>
+              <button
+                onClick={handleAddPeriod}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  border: '2px dashed #94A3B8',
+                  backgroundColor: 'transparent',
+                  color: '#64748B',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '20px',
+                  lineHeight: '1',
+                  padding: 0,
+                  marginTop: '20px'
+                }}
+                title="Добавить период"
+              >
+                +
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

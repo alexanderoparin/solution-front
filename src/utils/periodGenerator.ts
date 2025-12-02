@@ -28,7 +28,8 @@ export function generateDefaultPeriods(): Period[] {
     })
   }
   
-  return periods
+  // Возвращаем периоды в обратном порядке: самый старый первым, самый новый последним
+  return periods.reverse()
 }
 
 /**
