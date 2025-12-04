@@ -52,11 +52,19 @@ export interface ArticleMetric {
   periods: PeriodMetricValue[]
 }
 
+export interface CampaignMetric {
+  campaignId: number
+  campaignName: string
+  articles: number[] // Список артикулов (nmId)
+  periods: PeriodMetricValue[]
+}
+
 export interface MetricGroupResponse {
   metricName: string // Английский ключ
   metricNameRu: string // Русское название
   category: 'funnel' | 'advertising'
-  articles: ArticleMetric[]
+  articles?: ArticleMetric[] // Для метрик воронки
+  campaigns?: CampaignMetric[] // Для рекламных метрик
 }
 
 export interface ArticleDetail {

@@ -1,85 +1,28 @@
 import { useEffect, useState, useCallback } from 'react'
-import { DatePicker } from 'antd'
+import { DatePicker, Spin, Tooltip } from 'antd'
+import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
 import { analyticsApi } from '../api/analytics'
 import { generateDefaultPeriods, validatePeriods } from '../utils/periodGenerator'
+import { analyticsRequestQueue } from '../utils/requestQueue'
 import type { SummaryResponse, MetricGroupResponse, Period } from '../types/analytics'
+import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
+import Header from '../components/Header'
 
 dayjs.locale('ru')
 
 interface PeriodItemProps {
   period: Period
   periodsCount: number
-  allPeriods: Period[]
   onPeriodChange: (periodId: number, dates: [Dayjs | null, Dayjs | null] | null) => void
   onRemovePeriod: (periodId: number) => void
 }
 
-function PeriodItem({ period, periodsCount, allPeriods, onPeriodChange, onRemovePeriod }: PeriodItemProps) {
+function PeriodItem({ period, periodsCount, onPeriodChange, onRemovePeriod }: PeriodItemProps) {
   const [isHovered, setIsHovered] = useState(false)
-  const [selectedRange, setSelectedRange] = useState<[Dayjs | null, Dayjs | null] | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
-
-  // Проверяет, пересекается ли дата с другими периодами
-  const isDateOverlapping = (current: Dayjs): boolean => {
-    const otherPeriods = allPeriods.filter(p => p.id !== period.id)
-    const currentStart = dayjs(period.dateFrom)
-    const currentEnd = dayjs(period.dateTo)
-    
-    // Определяем потенциальный диапазон
-    let potentialStart: Dayjs
-    let potentialEnd: Dayjs
-    
-    if (selectedRange && selectedRange[0] && selectedRange[1]) {
-      // Если выбран полный диапазон, используем его
-      potentialStart = selectedRange[0]
-      potentialEnd = selectedRange[1]
-      
-      // Корректируем с учетом текущей даты
-      if (current.isBefore(potentialStart)) {
-        potentialStart = current
-      } else if (current.isAfter(potentialEnd)) {
-        potentialEnd = current
-      }
-    } else if (selectedRange && selectedRange[0]) {
-      // Выбрана начальная дата
-      potentialStart = selectedRange[0]
-      potentialEnd = current.isAfter(selectedRange[0]) ? current : currentEnd
-    } else if (selectedRange && selectedRange[1]) {
-      // Выбрана конечная дата
-      potentialEnd = selectedRange[1]
-      potentialStart = current.isBefore(selectedRange[1]) ? current : currentStart
-    } else {
-      // Диапазон не выбран, используем текущее значение периода и проверяем с учетом текущей даты
-      // Если текущая дата вне текущего диапазона, расширяем диапазон
-      if (current.isBefore(currentStart)) {
-        potentialStart = current
-        potentialEnd = currentEnd
-      } else if (current.isAfter(currentEnd)) {
-        potentialStart = currentStart
-        potentialEnd = current
-      } else {
-        potentialStart = currentStart
-        potentialEnd = currentEnd
-      }
-    }
-    
-    // Проверяем пересечение с другими периодами
-    for (const otherPeriod of otherPeriods) {
-      const otherStart = dayjs(otherPeriod.dateFrom)
-      const otherEnd = dayjs(otherPeriod.dateTo)
-      
-      // Пересечение: potentialEnd >= otherStart && potentialStart <= otherEnd
-      if ((potentialEnd.isAfter(otherStart) || potentialEnd.isSame(otherStart)) &&
-          (potentialStart.isBefore(otherEnd) || potentialStart.isSame(otherEnd))) {
-        return true
-      }
-    }
-    
-    return false
-  }
 
   return (
     <div
@@ -99,70 +42,59 @@ function PeriodItem({ period, periodsCount, allPeriods, onPeriodChange, onRemove
         locale={locale.DatePicker}
         value={[dayjs(period.dateFrom), dayjs(period.dateTo)]}
         onChange={(dates) => {
-          setSelectedRange(dates)
-          onPeriodChange(period.id, dates)
-          // Закрываем календарь только если выбран полный диапазон
           if (dates && dates[0] && dates[1]) {
+            onPeriodChange(period.id, dates)
             setPickerOpen(false)
           }
         }}
-        onCalendarChange={(dates) => {
-          setSelectedRange(dates)
-        }}
+        allowClear={false}
         format="DD.MM.YYYY"
         separator="→"
         open={pickerOpen}
         onOpenChange={(open) => {
           setPickerOpen(open)
-          // Если закрываем календарь, но выбрана только одна дата, оставляем открытым
-          if (open === false && selectedRange && selectedRange[0] && !selectedRange[1]) {
-            setTimeout(() => setPickerOpen(true), 0)
-          }
-        }}
-        disabledDate={(current) => {
-          // Запрещаем выбор будущих дат
-          if (current && current > dayjs().endOf('day')) {
-            return true
-          }
-          
-          // Проверяем пересечение с другими периодами
-          return isDateOverlapping(current)
         }}
       />
       {periodsCount > 2 && isHovered && (
-        <button
-          onClick={() => onRemovePeriod(period.id)}
-          style={{
-            position: 'absolute',
-            top: '-8px',
-            right: '-8px',
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            border: '1px solid #E2E8F0',
-            backgroundColor: '#FFFFFF',
-            color: '#64748B',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '16px',
-            lineHeight: '1',
-            padding: 0,
-            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-          }}
-          title="Удалить период"
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#F1F5F9'
-            e.currentTarget.style.color = '#475569'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#FFFFFF'
-            e.currentTarget.style.color = '#64748B'
-          }}
-        >
-          ×
-        </button>
+        <Tooltip title="Удалить период">
+          <button
+            onClick={() => onRemovePeriod(period.id)}
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              width: '24px',
+              height: '24px',
+              borderRadius: borderRadius.full,
+              border: `1px solid ${colors.border}`,
+              backgroundColor: colors.bgWhite,
+              color: colors.textSecondary,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '14px',
+              lineHeight: '1',
+              padding: 0,
+              boxShadow: shadows.sm,
+              transition: transitions.fast
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = colors.errorLight
+              e.currentTarget.style.color = colors.error
+              e.currentTarget.style.borderColor = colors.error
+              e.currentTarget.style.boxShadow = shadows.md
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = colors.bgWhite
+              e.currentTarget.style.color = colors.textSecondary
+              e.currentTarget.style.borderColor = colors.border
+              e.currentTarget.style.boxShadow = shadows.sm
+            }}
+          >
+            <DeleteOutlined />
+          </button>
+        </Tooltip>
       )}
     </div>
   )
@@ -231,9 +163,14 @@ export default function AnalyticsSummary() {
   const handlePeriodChange = (periodId: number, dates: [Dayjs | null, Dayjs | null] | null) => {
     if (!dates || !dates[0] || !dates[1]) return
     
-    const dateFrom = dates[0]
-    const dateTo = dates[1]
+    let dateFrom = dates[0]
+    let dateTo = dates[1]
     if (!dateFrom || !dateTo) return
+    
+    // Если дата начала позже даты окончания, делаем начало равным концу
+    if (dateFrom.isAfter(dateTo)) {
+      dateFrom = dateTo
+    }
     
     const updatedPeriods = periods.map(period => {
       if (period.id === periodId) {
@@ -246,9 +183,7 @@ export default function AnalyticsSummary() {
       return period
     })
     
-    if (validatePeriods(updatedPeriods)) {
-      setPeriods(updatedPeriods)
-    }
+    setPeriods(updatedPeriods)
   }
 
   const handleAddPeriod = () => {
@@ -302,6 +237,7 @@ export default function AnalyticsSummary() {
   const [excludedNmIds] = useState<Set<number>>(new Set())
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set())
   const [metricGroups, setMetricGroups] = useState<Map<string, MetricGroupResponse>>(new Map())
+  const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set())
 
   const loadSummary = useCallback(async () => {
     try {
@@ -316,6 +252,7 @@ export default function AnalyticsSummary() {
       // Очищаем загруженные метрики при изменении фильтра или периодов
       setMetricGroups(new Map())
       setExpandedMetrics(new Set())
+      setLoadingMetrics(new Set())
     } catch (err: any) {
       setError(err.response?.data?.message || 'Ошибка при загрузке данных')
     } finally {
@@ -337,15 +274,33 @@ export default function AnalyticsSummary() {
       return // Уже загружено
     }
 
+    // Помечаем метрику как загружаемую
+    setLoadingMetrics(prev => new Set(prev).add(metricName))
+
+    // Добавляем запрос в очередь для ограничения параллелизма
     try {
       const excludedArray = Array.from(excludedNmIds)
-      const data = await analyticsApi.getMetricGroup(metricName, {
-        periods,
-        excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
-      })
+      const data = await analyticsRequestQueue.add(() =>
+        analyticsApi.getMetricGroup(metricName, {
+          periods,
+          excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
+        })
+      )
       setMetricGroups(prev => new Map(prev).set(metricName, data))
     } catch (err: any) {
       console.error(`Ошибка при загрузке метрики ${metricName}:`, err)
+      // Удаляем метрику из expandedMetrics при ошибке
+      setExpandedMetrics(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(metricName)
+        return newSet
+      })
+    } finally {
+      setLoadingMetrics(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(metricName)
+        return newSet
+      })
     }
   }
 
@@ -388,37 +343,108 @@ export default function AnalyticsSummary() {
   }
 
   if (loading && !summary) {
-    return <div>Загрузка...</div>
+    return (
+      <div style={{ 
+        padding: spacing.xxl, 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        minHeight: '400px'
+      }}>
+        <Spin size="large" />
+      </div>
+    )
   }
 
   if (error) {
-    return <div>Ошибка: {error}</div>
+    return (
+      <div style={{ 
+        padding: spacing.xxl, 
+        maxWidth: '1400px', 
+        margin: '0 auto',
+        textAlign: 'center'
+      }}>
+        <div style={{ 
+          color: colors.error, 
+          fontSize: typography.h3.fontSize,
+          marginBottom: spacing.md
+        }}>
+          Ошибка: {error}
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          style={{
+            padding: `${spacing.sm} ${spacing.md}`,
+            backgroundColor: colors.primary,
+            color: colors.bgWhite,
+            border: 'none',
+            borderRadius: borderRadius.md,
+            cursor: 'pointer',
+            fontSize: typography.body.fontSize,
+            fontWeight: 500,
+            transition: transitions.normal
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = colors.primaryHover
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = colors.primary
+          }}
+        >
+          Обновить страницу
+        </button>
+      </div>
+    )
   }
 
   if (!summary) {
-    return <div>Нет данных</div>
+    return (
+      <div style={{ 
+        padding: spacing.xxl, 
+        maxWidth: '1400px', 
+        margin: '0 auto',
+        textAlign: 'center',
+        color: colors.textSecondary
+      }}>
+        <InfoCircleOutlined style={{ fontSize: '48px', marginBottom: spacing.md, color: colors.textMuted }} />
+        <div style={{ fontSize: typography.h3.fontSize }}>Нет данных</div>
+      </div>
+    )
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <h1 style={{ color: '#1E293B', marginBottom: '24px' }}>Сводная аналитика</h1>
+    <>
+      <Header />
+      <div style={{ 
+        padding: `${spacing.lg} ${spacing.md}`, 
+        maxWidth: '1400px', 
+        margin: '0 auto',
+        backgroundColor: colors.bgGray,
+        minHeight: '100vh'
+      }}>
 
       {/* Периоды */}
       <div style={{
-        backgroundColor: '#FFFFFF',
-        border: '1px solid #F1F5F9',
-        borderRadius: '8px',
-        padding: '16px',
-        marginBottom: '24px'
+        backgroundColor: colors.bgWhite,
+        border: `1px solid ${colors.borderLight}`,
+        borderRadius: borderRadius.md,
+        padding: spacing.md,
+        marginBottom: spacing.xl,
+        boxShadow: shadows.md
       }}>
-        <h2 style={{ color: '#1E293B', marginBottom: '16px', fontSize: '18px', textAlign: 'center' }}>Укажите желаемые периоды для сравнения данных</h2>
+        <h2 style={{ 
+          ...typography.h2, 
+          marginBottom: spacing.md, 
+          textAlign: 'center' 
+        }}>
+          Укажите желаемые периоды для сравнения данных
+        </h2>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           {periods.map((period) => (
             <PeriodItem
               key={period.id}
               period={period}
               periodsCount={periods.length}
-              allPeriods={periods}
               onPeriodChange={handlePeriodChange}
               onRemovePeriod={handleRemovePeriod}
             />
@@ -432,28 +458,45 @@ export default function AnalyticsSummary() {
               justifyContent: 'center',
               minHeight: '32px'
             }}>
-              <button
-                onClick={handleAddPeriod}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  border: '2px dashed #94A3B8',
-                  backgroundColor: 'transparent',
-                  color: '#64748B',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '20px',
-                  lineHeight: '1',
-                  padding: 0,
-                  marginTop: '20px'
-                }}
-                title="Добавить период"
-              >
-                +
-              </button>
+              <Tooltip title="Добавить период">
+                <button
+                  onClick={handleAddPeriod}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: borderRadius.full,
+                    border: `2px dashed ${colors.border}`,
+                    backgroundColor: colors.bgWhite,
+                    color: colors.textSecondary,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '20px',
+                    lineHeight: '1',
+                    padding: 0,
+                    marginTop: '20px',
+                    transition: transitions.normal,
+                    boxShadow: shadows.sm
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = colors.primary
+                    e.currentTarget.style.color = colors.primary
+                    e.currentTarget.style.backgroundColor = colors.primaryLight
+                    e.currentTarget.style.boxShadow = shadows.md
+                    e.currentTarget.style.transform = 'scale(1.1)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = colors.border
+                    e.currentTarget.style.color = colors.textSecondary
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                    e.currentTarget.style.boxShadow = shadows.sm
+                    e.currentTarget.style.transform = 'scale(1)'
+                  }}
+                >
+                  <PlusOutlined />
+                </button>
+              </Tooltip>
             </div>
           )}
         </div>
@@ -461,25 +504,34 @@ export default function AnalyticsSummary() {
 
       {/* Сводные метрики */}
       <div style={{
-        backgroundColor: '#FFFFFF',
-        border: '1px solid #F1F5F9',
-        borderRadius: '8px',
-        padding: '16px',
-        marginBottom: '24px'
+        backgroundColor: colors.bgWhite,
+        border: `1px solid ${colors.borderLight}`,
+        borderRadius: borderRadius.md,
+        padding: spacing.md,
+        marginBottom: spacing.xl,
+        boxShadow: shadows.md
       }}>
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #F1F5F9', color: '#1E293B' }}>
+              <tr style={{ backgroundColor: colors.bgGrayLight }}>
+                <th style={{ 
+                  textAlign: 'left', 
+                  padding: spacing.md, 
+                  borderBottom: `2px solid ${colors.border}`, 
+                  ...typography.h3,
+                  fontWeight: 600
+                }}>
                   Метрика
                 </th>
                 {periods.map(period => (
                   <th key={period.id} style={{
                     textAlign: 'center',
-                    padding: '8px',
-                    borderBottom: '1px solid #F1F5F9',
-                    color: '#1E293B'
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    ...typography.h3,
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap'
                   }}>
                     {formatPeriodDates(period)}
                   </th>
@@ -515,6 +567,7 @@ export default function AnalyticsSummary() {
 
                 const isExpanded = expandedMetrics.has(metricKey)
                 const metricGroup = metricGroups.get(metricKey)
+                const isLoading = loadingMetrics.has(metricKey)
 
                 return (
                   <>
@@ -522,23 +575,50 @@ export default function AnalyticsSummary() {
                       key={metricKey} 
                       onClick={() => toggleMetric(metricKey)}
                       style={{
-                        backgroundColor: category === 'funnel' ? '#E0F2FE' : '#D1FAE5',
-                        cursor: 'pointer'
+                        backgroundColor: category === 'funnel' ? colors.funnelBg : colors.advertisingBg,
+                        cursor: isLoading ? 'wait' : 'pointer',
+                        transition: transitions.fast,
+                        opacity: isLoading ? 0.6 : 1
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isLoading) {
+                          e.currentTarget.style.backgroundColor = category === 'funnel' ? colors.funnelBgHover : colors.advertisingBgHover
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = category === 'funnel' ? colors.funnelBg : colors.advertisingBg
                       }}
                     >
-                      <td style={{ padding: '8px', borderBottom: '1px solid #F1F5F9', color: '#1E293B', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>{isExpanded ? '▼' : '▶'}</span>
+                      <td style={{ 
+                        padding: spacing.md, 
+                        borderBottom: `1px solid ${colors.borderLight}`, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: spacing.sm,
+                        ...typography.body,
+                        fontWeight: 500,
+                        color: colors.textPrimary
+                      }}>
+                        {isLoading ? (
+                          <Spin size="small" style={{ fontSize: '12px' }} />
+                        ) : isExpanded ? (
+                          <CaretDownOutlined style={{ fontSize: '12px' }} />
+                        ) : (
+                          <CaretRightOutlined style={{ fontSize: '12px' }} />
+                        )}
                         {metricNameRu}
                       </td>
                       {periods.map(period => {
                         const value = getMetricValue(period.id)
                         const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
+                        const isEmpty = value === null || value === undefined || value === 0
                         return (
                           <td key={period.id} style={{
                             textAlign: 'center',
-                            padding: '8px',
-                            borderBottom: '1px solid #F1F5F9',
-                            color: '#1E293B'
+                            padding: spacing.md,
+                            borderBottom: `1px solid ${colors.borderLight}`,
+                            color: isEmpty ? colors.textMuted : colors.textPrimary,
+                            ...typography.number
                           }}>
                             {isPercent ? formatPercent(value) : formatValue(value)}
                           </td>
@@ -547,86 +627,252 @@ export default function AnalyticsSummary() {
                     </tr>
                     {isExpanded && metricGroup && (
                       <tr key={`${metricKey}-detail`}>
-                        <td colSpan={periods.length + 1} style={{ padding: '0', borderBottom: '1px solid #F1F5F9' }}>
-                          <div style={{ padding: '16px', backgroundColor: '#FFFFFF' }}>
-                            <div style={{ overflowX: 'auto' }}>
-                              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                  <tr>
-                                    <th style={{
-                                      textAlign: 'left',
-                                      padding: '8px',
-                                      borderBottom: '1px solid #F1F5F9',
-                                      color: '#1E293B'
-                                    }}>
-                                      Артикул
-                                    </th>
-                                    {periods.map(period => (
-                                      <th key={period.id} style={{
-                                        textAlign: 'center',
-                                        padding: '8px',
-                                        borderBottom: '1px solid #F1F5F9',
-                                        color: '#1E293B'
-                                      }}>
-                                        {formatPeriodDates(period)}
-                                      </th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {metricGroup.articles.map(article => (
-                                    <tr key={article.nmId}>
-                                      <td style={{
-                                        padding: '8px',
-                                        borderBottom: '1px solid #F1F5F9',
-                                        color: '#1E293B'
-                                      }}>
-                                        <a
-                                          href={`/analytics/article/${article.nmId}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
+                        <td colSpan={periods.length + 1} style={{ padding: '0', borderBottom: `1px solid ${colors.borderLight}` }}>
+                          <div style={{ padding: spacing.md, backgroundColor: colors.bgWhite }}>
+                            {category === 'advertising' ? (
+                              // Отображение для рекламных метрик - по кампаниям
+                              metricGroup.campaigns && metricGroup.campaigns.length > 0 ? (
+                                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                      <tr style={{ backgroundColor: colors.bgGray }}>
+                                        <th style={{
+                                          textAlign: 'left',
+                                          padding: spacing.md,
+                                          borderBottom: `1px solid ${colors.borderLight}`,
+                                          ...typography.body,
+                                          fontWeight: 600
+                                        }}>
+                                          Артикул
+                                        </th>
+                                        <th style={{
+                                          textAlign: 'left',
+                                          padding: spacing.md,
+                                          borderBottom: `1px solid ${colors.borderLight}`,
+                                          ...typography.body,
+                                          fontWeight: 600
+                                        }}>
+                                          Рекламная кампания
+                                        </th>
+                                        {periods.map(period => (
+                                          <th key={period.id} style={{
+                                            textAlign: 'center',
+                                            padding: spacing.md,
+                                            borderBottom: `1px solid ${colors.borderLight}`,
+                                            ...typography.body,
+                                            fontWeight: 600,
+                                            whiteSpace: 'nowrap'
+                                          }}>
+                                            {formatPeriodDates(period)}
+                                          </th>
+                                        ))}
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {metricGroup.campaigns.flatMap((campaign, campaignIndex) => 
+                                        campaign.articles.map((nmId, articleIndex) => (
+                                          <tr 
+                                            key={`${campaign.campaignId}-${nmId}`}
+                                            style={{
+                                              backgroundColor: campaignIndex % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
+                                            }}
+                                          >
+                                            <td style={{
+                                              padding: spacing.md,
+                                              borderBottom: `1px solid ${colors.borderLight}`,
+                                              ...typography.body,
+                                              fontWeight: 500
+                                            }}>
+                                              <a
+                                                href={`/analytics/article/${nmId}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                  color: colors.primary,
+                                                  textDecoration: 'none',
+                                                  fontWeight: 500,
+                                                  cursor: 'pointer',
+                                                  transition: transitions.fast
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                  e.currentTarget.style.textDecoration = 'underline'
+                                                  e.currentTarget.style.color = colors.primaryHover
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                  e.currentTarget.style.textDecoration = 'none'
+                                                  e.currentTarget.style.color = colors.primary
+                                                }}
+                                              >
+                                                {nmId}
+                                              </a>
+                                            </td>
+                                            <td style={{
+                                              padding: spacing.md,
+                                              borderBottom: `1px solid ${colors.borderLight}`,
+                                              ...typography.body,
+                                              fontWeight: articleIndex === 0 ? 600 : 400
+                                            }}>
+                                              {articleIndex === 0 && (
+                                                <span>
+                                                  {campaign.campaignName} ({campaign.campaignId})
+                                                </span>
+                                              )}
+                                            </td>
+                                            {campaign.periods.map(period => {
+                                              const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
+                                              const isEmpty = period.value === null || period.value === undefined || period.value === 0
+                                              const changeColor = period.changePercent !== null 
+                                                ? (period.changePercent >= 0 ? colors.success : colors.error)
+                                                : colors.textSecondary
+                                              return (
+                                                <td key={period.periodId} style={{
+                                                  textAlign: 'center',
+                                                  padding: spacing.md,
+                                                  borderBottom: `1px solid ${colors.borderLight}`,
+                                                  color: isEmpty ? colors.textMuted : colors.textPrimary
+                                                }}>
+                                                  <div style={{ ...typography.number }}>
+                                                    {isPercent ? formatPercent(period.value as number) : formatValue(period.value as number)}
+                                                  </div>
+                                                  {period.changePercent !== null && (
+                                                    <div style={{
+                                                      ...typography.bodySmall,
+                                                      color: changeColor,
+                                                      fontWeight: 600,
+                                                      marginTop: spacing.xs
+                                                    }}>
+                                                      {formatChangePercent(period.changePercent)}
+                                                    </div>
+                                                  )}
+                                                </td>
+                                              )
+                                            })}
+                                          </tr>
+                                        ))
+                                      )}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div style={{ 
+                                  textAlign: 'center', 
+                                  padding: spacing.xl,
+                                  color: colors.textMuted
+                                }}>
+                                  Нет данных
+                                </div>
+                              )
+                            ) : (
+                              // Отображение для метрик воронки - по артикулам
+                              metricGroup.articles && metricGroup.articles.length > 0 ? (
+                                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                      <tr style={{ backgroundColor: colors.bgGray }}>
+                                        <th style={{
+                                          textAlign: 'left',
+                                          padding: spacing.md,
+                                          borderBottom: `1px solid ${colors.borderLight}`,
+                                          ...typography.body,
+                                          fontWeight: 600
+                                        }}>
+                                          Артикул
+                                        </th>
+                                        {periods.map(period => (
+                                          <th key={period.id} style={{
+                                            textAlign: 'center',
+                                            padding: spacing.md,
+                                            borderBottom: `1px solid ${colors.borderLight}`,
+                                            ...typography.body,
+                                            fontWeight: 600,
+                                            whiteSpace: 'nowrap'
+                                          }}>
+                                            {formatPeriodDates(period)}
+                                          </th>
+                                        ))}
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {metricGroup.articles.map((article, index) => (
+                                        <tr 
+                                          key={article.nmId}
                                           style={{
-                                            color: '#7C3AED',
-                                            textDecoration: 'none',
-                                            fontWeight: '500',
-                                            cursor: 'pointer'
-                                          }}
-                                          onMouseEnter={(e) => {
-                                            e.currentTarget.style.textDecoration = 'underline'
-                                          }}
-                                          onMouseLeave={(e) => {
-                                            e.currentTarget.style.textDecoration = 'none'
+                                            backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
                                           }}
                                         >
-                                          {article.nmId}
-                                        </a>
-                                      </td>
-                                      {article.periods.map(period => {
-                                        const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
-                                        return (
-                                          <td key={period.periodId} style={{
-                                            textAlign: 'center',
-                                            padding: '8px',
-                                            borderBottom: '1px solid #F1F5F9',
-                                            color: '#1E293B'
+                                          <td style={{
+                                            padding: spacing.md,
+                                            borderBottom: `1px solid ${colors.borderLight}`,
+                                            ...typography.body,
+                                            fontWeight: 500
                                           }}>
-                                            <div>{isPercent ? formatPercent(period.value as number) : formatValue(period.value as number)}</div>
-                                            {period.changePercent !== null && (
-                                              <div style={{
-                                                fontSize: '12px',
-                                                color: period.changePercent >= 0 ? '#10B981' : '#EF4444'
-                                              }}>
-                                                {formatChangePercent(period.changePercent)}
-                                              </div>
-                                            )}
+                                            <a
+                                              href={`/analytics/article/${article.nmId}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              style={{
+                                                color: colors.primary,
+                                                textDecoration: 'none',
+                                                fontWeight: 500,
+                                                cursor: 'pointer',
+                                                transition: transitions.fast
+                                              }}
+                                              onMouseEnter={(e) => {
+                                                e.currentTarget.style.textDecoration = 'underline'
+                                                e.currentTarget.style.color = colors.primaryHover
+                                              }}
+                                              onMouseLeave={(e) => {
+                                                e.currentTarget.style.textDecoration = 'none'
+                                                e.currentTarget.style.color = colors.primary
+                                              }}
+                                            >
+                                              {article.nmId}
+                                            </a>
                                           </td>
-                                        )
-                                      })}
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
+                                          {article.periods.map(period => {
+                                            const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
+                                            const isEmpty = period.value === null || period.value === undefined || period.value === 0
+                                            const changeColor = period.changePercent !== null 
+                                              ? (period.changePercent >= 0 ? colors.success : colors.error)
+                                              : colors.textSecondary
+                                            return (
+                                              <td key={period.periodId} style={{
+                                                textAlign: 'center',
+                                                padding: spacing.md,
+                                                borderBottom: `1px solid ${colors.borderLight}`,
+                                                color: isEmpty ? colors.textMuted : colors.textPrimary
+                                              }}>
+                                                <div style={{ ...typography.number }}>
+                                                  {isPercent ? formatPercent(period.value as number) : formatValue(period.value as number)}
+                                                </div>
+                                                {period.changePercent !== null && (
+                                                  <div style={{
+                                                    ...typography.bodySmall,
+                                                    color: changeColor,
+                                                    fontWeight: 600,
+                                                    marginTop: spacing.xs
+                                                  }}>
+                                                    {formatChangePercent(period.changePercent)}
+                                                  </div>
+                                                )}
+                                              </td>
+                                            )
+                                          })}
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              ) : (
+                                <div style={{ 
+                                  textAlign: 'center', 
+                                  padding: spacing.xl,
+                                  color: colors.textMuted
+                                }}>
+                                  Нет данных
+                                </div>
+                              )
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -638,8 +884,8 @@ export default function AnalyticsSummary() {
           </table>
         </div>
       </div>
-
-    </div>
+      </div>
+    </>
   )
 }
 

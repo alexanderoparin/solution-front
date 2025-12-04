@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { DatePicker } from 'antd'
+import { DatePicker, Spin, Tooltip } from 'antd'
+import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
 import { analyticsApi } from '../api/analytics'
 import { generateDefaultPeriods, validatePeriods } from '../utils/periodGenerator'
 import type { ArticleResponse, Period } from '../types/analytics'
+import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
+import Header from '../components/Header'
 
 dayjs.locale('ru')
 
@@ -120,6 +123,10 @@ function PeriodItem({ period, periodsCount, allPeriods, onPeriodChange, onRemove
             setTimeout(() => setPickerOpen(true), 0)
           }
         }}
+        style={{
+          borderRadius: borderRadius.md,
+          borderColor: colors.border
+        }}
         disabledDate={(current) => {
           // Запрещаем выбор будущих дат
           if (current && current > dayjs().endOf('day')) {
@@ -131,39 +138,45 @@ function PeriodItem({ period, periodsCount, allPeriods, onPeriodChange, onRemove
         }}
       />
       {periodsCount > 2 && isHovered && (
-        <button
-          onClick={() => onRemovePeriod(period.id)}
-          style={{
-            position: 'absolute',
-            top: '-8px',
-            right: '-8px',
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            border: '1px solid #E2E8F0',
-            backgroundColor: '#FFFFFF',
-            color: '#64748B',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '16px',
-            lineHeight: '1',
-            padding: 0,
-            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-          }}
-          title="Удалить период"
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#F1F5F9'
-            e.currentTarget.style.color = '#475569'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#FFFFFF'
-            e.currentTarget.style.color = '#64748B'
-          }}
-        >
-          ×
-        </button>
+        <Tooltip title="Удалить период">
+          <button
+            onClick={() => onRemovePeriod(period.id)}
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              width: '24px',
+              height: '24px',
+              borderRadius: borderRadius.full,
+              border: `1px solid ${colors.border}`,
+              backgroundColor: colors.bgWhite,
+              color: colors.textSecondary,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '14px',
+              lineHeight: '1',
+              padding: 0,
+              boxShadow: shadows.sm,
+              transition: transitions.fast
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = colors.errorLight
+              e.currentTarget.style.color = colors.error
+              e.currentTarget.style.borderColor = colors.error
+              e.currentTarget.style.boxShadow = shadows.md
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = colors.bgWhite
+              e.currentTarget.style.color = colors.textSecondary
+              e.currentTarget.style.borderColor = colors.border
+              e.currentTarget.style.boxShadow = shadows.sm
+            }}
+          >
+            <DeleteOutlined />
+          </button>
+        </Tooltip>
       )}
     </div>
   )
@@ -307,23 +320,52 @@ export default function AnalyticsArticle() {
   }
 
   if (loading) {
-    return <div>Загрузка...</div>
+    return (
+      <div style={{ 
+        padding: spacing.xxl, 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        minHeight: '400px'
+      }}>
+        <Spin size="large" />
+      </div>
+    )
   }
 
   if (error) {
     return (
-      <div style={{ padding: '24px' }}>
-        <div>Ошибка: {error}</div>
+      <div style={{ 
+        padding: spacing.xxl, 
+        maxWidth: '1400px', 
+        margin: '0 auto',
+        textAlign: 'center'
+      }}>
+        <div style={{ 
+          color: colors.error, 
+          fontSize: typography.h3.fontSize,
+          marginBottom: spacing.md
+        }}>
+          Ошибка: {error}
+        </div>
         <button
           onClick={() => navigate('/analytics')}
           style={{
-            marginTop: '16px',
-            padding: '8px 16px',
-            backgroundColor: '#7C3AED',
-            color: '#FFFFFF',
+            padding: `${spacing.sm} ${spacing.md}`,
+            backgroundColor: colors.primary,
+            color: colors.bgWhite,
             border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
+            borderRadius: borderRadius.md,
+            cursor: 'pointer',
+            fontSize: typography.body.fontSize,
+            fontWeight: 500,
+            transition: transitions.normal
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = colors.primaryHover
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = colors.primary
           }}
         >
           Вернуться к сводной
@@ -333,29 +375,74 @@ export default function AnalyticsArticle() {
   }
 
   if (!article) {
-    return <div>Нет данных</div>
+    return (
+      <div style={{ 
+        padding: spacing.xxl, 
+        maxWidth: '1400px', 
+        margin: '0 auto',
+        textAlign: 'center',
+        color: colors.textSecondary
+      }}>
+        <InfoCircleOutlined style={{ fontSize: '48px', marginBottom: spacing.md, color: colors.textMuted }} />
+        <div style={{ fontSize: typography.h3.fontSize }}>Нет данных</div>
+      </div>
+    )
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '24px' }}>
+    <>
+      <Header />
+      <div style={{ 
+        padding: `${spacing.lg} ${spacing.md}`, 
+        maxWidth: '1400px', 
+        margin: '0 auto',
+        backgroundColor: colors.bgGray,
+        minHeight: '100vh'
+      }}>
+      <div style={{ marginBottom: spacing.xl }}>
         <button
           onClick={() => navigate('/analytics')}
           style={{
-            padding: '8px 16px',
-            backgroundColor: '#F1F5F9',
-            color: '#1E293B',
-            border: 'none',
-            borderRadius: '4px',
+            padding: `${spacing.sm} ${spacing.md}`,
+            backgroundColor: colors.bgWhite,
+            color: colors.textPrimary,
+            border: `1px solid ${colors.border}`,
+            borderRadius: borderRadius.md,
             cursor: 'pointer',
-            marginBottom: '16px'
+            marginBottom: spacing.md,
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.xs,
+            fontSize: typography.body.fontSize,
+            fontWeight: 500,
+            transition: transitions.normal,
+            boxShadow: shadows.sm
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = colors.bgGrayLight
+            e.currentTarget.style.boxShadow = shadows.md
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = colors.bgWhite
+            e.currentTarget.style.boxShadow = shadows.sm
           }}
         >
-          ← Вернуться к сводной
+          <ArrowLeftOutlined /> Вернуться к сводной
         </button>
-        <h1 style={{ color: '#1E293B', marginBottom: '8px' }}>{article.article.title}</h1>
-        <div style={{ color: '#64748B', fontSize: '14px' }}>
-          Артикул: {article.article.nmId} • {article.article.brand} • {article.article.subjectName}
+        <h1 style={{ 
+          ...typography.h1, 
+          marginBottom: spacing.sm,
+          borderBottom: `3px solid ${colors.primary}`,
+          paddingBottom: spacing.md
+        }}>
+          {article.article.title}
+        </h1>
+        <div style={{ 
+          ...typography.body, 
+          color: colors.textSecondary,
+          marginBottom: spacing.sm
+        }}>
+          Артикул: <strong style={{ color: colors.textPrimary }}>{article.article.nmId}</strong> • {article.article.brand} • {article.article.subjectName}
         </div>
         {article.article.productUrl && (
           <a
@@ -363,11 +450,21 @@ export default function AnalyticsArticle() {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              color: '#7C3AED',
+              color: colors.primary,
               textDecoration: 'none',
-              fontSize: '14px',
-              marginTop: '8px',
-              display: 'inline-block'
+              fontSize: typography.body.fontSize,
+              marginTop: spacing.sm,
+              display: 'inline-block',
+              fontWeight: 500,
+              transition: transitions.fast
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.textDecoration = 'underline'
+              e.currentTarget.style.color = colors.primaryHover
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.textDecoration = 'none'
+              e.currentTarget.style.color = colors.primary
             }}
           >
             Открыть на Wildberries →
@@ -377,13 +474,20 @@ export default function AnalyticsArticle() {
 
       {/* Периоды */}
       <div style={{
-        backgroundColor: '#FFFFFF',
-        border: '1px solid #F1F5F9',
-        borderRadius: '8px',
-        padding: '16px',
-        marginBottom: '24px'
+        backgroundColor: colors.bgWhite,
+        border: `1px solid ${colors.borderLight}`,
+        borderRadius: borderRadius.md,
+        padding: spacing.md,
+        marginBottom: spacing.xl,
+        boxShadow: shadows.md
       }}>
-        <h2 style={{ color: '#1E293B', marginBottom: '16px', fontSize: '18px', textAlign: 'center' }}>Укажите желаемые периоды для сравнения данных</h2>
+        <h2 style={{ 
+          ...typography.h2, 
+          marginBottom: spacing.md, 
+          textAlign: 'center' 
+        }}>
+          Укажите желаемые периоды для сравнения данных
+        </h2>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           {periods.map((period) => (
             <PeriodItem
@@ -404,28 +508,45 @@ export default function AnalyticsArticle() {
               justifyContent: 'center',
               minHeight: '32px'
             }}>
-              <button
-                onClick={handleAddPeriod}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  border: '2px dashed #94A3B8',
-                  backgroundColor: 'transparent',
-                  color: '#64748B',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '20px',
-                  lineHeight: '1',
-                  padding: 0,
-                  marginTop: '20px'
-                }}
-                title="Добавить период"
-              >
-                +
-              </button>
+              <Tooltip title="Добавить период">
+                <button
+                  onClick={handleAddPeriod}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: borderRadius.full,
+                    border: `2px dashed ${colors.border}`,
+                    backgroundColor: colors.bgWhite,
+                    color: colors.textSecondary,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '20px',
+                    lineHeight: '1',
+                    padding: 0,
+                    marginTop: '20px',
+                    transition: transitions.normal,
+                    boxShadow: shadows.sm
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = colors.primary
+                    e.currentTarget.style.color = colors.primary
+                    e.currentTarget.style.backgroundColor = colors.primaryLight
+                    e.currentTarget.style.boxShadow = shadows.md
+                    e.currentTarget.style.transform = 'scale(1.1)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = colors.border
+                    e.currentTarget.style.color = colors.textSecondary
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                    e.currentTarget.style.boxShadow = shadows.sm
+                    e.currentTarget.style.transform = 'scale(1)'
+                  }}
+                >
+                  <PlusOutlined />
+                </button>
+              </Tooltip>
             </div>
           )}
         </div>
@@ -433,31 +554,40 @@ export default function AnalyticsArticle() {
 
       {/* Все метрики */}
       <div style={{
-        backgroundColor: '#FFFFFF',
-        border: '1px solid #F1F5F9',
-        borderRadius: '8px',
-        padding: '16px',
-        marginBottom: '24px'
+        backgroundColor: colors.bgWhite,
+        border: `1px solid ${colors.borderLight}`,
+        borderRadius: borderRadius.md,
+        padding: spacing.md,
+        marginBottom: spacing.xl,
+        boxShadow: shadows.md
       }}>
-        <h2 style={{ color: '#1E293B', marginBottom: '16px', fontSize: '18px' }}>Метрики</h2>
-        <div style={{ overflowX: 'auto' }}>
+        <h2 style={{ 
+          ...typography.h2, 
+          marginBottom: spacing.md 
+        }}>
+          Метрики
+        </h2>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr>
+              <tr style={{ backgroundColor: colors.bgGrayLight }}>
                 <th style={{
                   textAlign: 'left',
-                  padding: '8px',
-                  borderBottom: '1px solid #F1F5F9',
-                  color: '#1E293B'
+                  padding: spacing.md,
+                  borderBottom: `2px solid ${colors.border}`,
+                  ...typography.h3,
+                  fontWeight: 600
                 }}>
                   Метрика
                 </th>
                 {periods.map(period => (
                   <th key={period.id} style={{
                     textAlign: 'center',
-                    padding: '8px',
-                    borderBottom: '1px solid #F1F5F9',
-                    color: '#1E293B'
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    ...typography.h3,
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap'
                   }}>
                     {period.name}
                   </th>
@@ -465,37 +595,58 @@ export default function AnalyticsArticle() {
               </tr>
             </thead>
             <tbody>
-              {article.metrics.map(metric => {
+              {article.metrics.map((metric) => {
                 const isPercent = metric.metricName.includes('conversion') || metric.metricName === 'ctr' || metric.metricName === 'drr'
                 return (
-                  <tr key={metric.metricName} style={{
-                    backgroundColor: metric.category === 'funnel' ? '#E0F2FE' : '#D1FAE5'
-                  }}>
+                  <tr 
+                    key={metric.metricName} 
+                    style={{
+                      backgroundColor: metric.category === 'funnel' ? colors.funnelBg : colors.advertisingBg,
+                      transition: transitions.fast
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = metric.category === 'funnel' ? colors.funnelBgHover : colors.advertisingBgHover
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = metric.category === 'funnel' ? colors.funnelBg : colors.advertisingBg
+                    }}
+                  >
                     <td style={{
-                      padding: '8px',
-                      borderBottom: '1px solid #F1F5F9',
-                      color: '#1E293B'
+                      padding: spacing.md,
+                      borderBottom: `1px solid ${colors.borderLight}`,
+                      ...typography.body,
+                      fontWeight: 500
                     }}>
                       {metric.metricNameRu || metric.metricName}
                     </td>
-                    {metric.periods.map(period => (
-                      <td key={period.periodId} style={{
-                        textAlign: 'center',
-                        padding: '8px',
-                        borderBottom: '1px solid #F1F5F9',
-                        color: '#1E293B'
-                      }}>
-                        <div>{isPercent ? formatPercent(period.value as number) : formatValue(period.value as number)}</div>
-                        {period.changePercent !== null && (
-                          <div style={{
-                            fontSize: '12px',
-                            color: period.changePercent >= 0 ? '#10B981' : '#EF4444'
-                          }}>
-                            {formatChangePercent(period.changePercent)}
+                    {metric.periods.map(period => {
+                      const isEmpty = period.value === null || period.value === undefined || period.value === 0
+                      const changeColor = period.changePercent !== null 
+                        ? (period.changePercent >= 0 ? colors.success : colors.error)
+                        : colors.textSecondary
+                      return (
+                        <td key={period.periodId} style={{
+                          textAlign: 'center',
+                          padding: spacing.md,
+                          borderBottom: `1px solid ${colors.borderLight}`,
+                          color: isEmpty ? colors.textMuted : colors.textPrimary
+                        }}>
+                          <div style={{ ...typography.number }}>
+                            {isPercent ? formatPercent(period.value as number) : formatValue(period.value as number)}
                           </div>
-                        )}
-                      </td>
-                    ))}
+                          {period.changePercent !== null && (
+                            <div style={{
+                              ...typography.bodySmall,
+                              color: changeColor,
+                              fontWeight: 600,
+                              marginTop: spacing.xs
+                            }}>
+                              {formatChangePercent(period.changePercent)}
+                            </div>
+                          )}
+                        </td>
+                      )
+                    })}
                   </tr>
                 )
               })}
@@ -552,36 +703,41 @@ export default function AnalyticsArticle() {
               </tr>
             </thead>
             <tbody>
-              {article.dailyData.map(daily => (
-                <tr key={daily.date}>
+              {article.dailyData.map((daily, index) => (
+                <tr 
+                  key={daily.date}
+                  style={{
+                    backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
+                  }}
+                >
                   <td style={{
-                    padding: '8px',
-                    borderBottom: '1px solid #F1F5F9',
-                    color: '#1E293B'
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
                   }}>
                     {new Date(daily.date).toLocaleDateString('ru-RU')}
                   </td>
                   <td style={{
                     textAlign: 'center',
-                    padding: '8px',
-                    borderBottom: '1px solid #F1F5F9',
-                    color: '#1E293B'
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.number
                   }}>
                     {formatValue(daily.transitions)}
                   </td>
                   <td style={{
                     textAlign: 'center',
-                    padding: '8px',
-                    borderBottom: '1px solid #F1F5F9',
-                    color: '#1E293B'
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.number
                   }}>
                     {formatValue(daily.cart)}
                   </td>
                   <td style={{
                     textAlign: 'center',
-                    padding: '8px',
-                    borderBottom: '1px solid #F1F5F9',
-                    color: '#1E293B'
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.number
                   }}>
                     {formatValue(daily.orders)}
                   </td>
@@ -621,7 +777,8 @@ export default function AnalyticsArticle() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }
 

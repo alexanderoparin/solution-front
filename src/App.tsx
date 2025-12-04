@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import AnalyticsSummary from './pages/AnalyticsSummary'
 import AnalyticsArticle from './pages/AnalyticsArticle'
+import Profile from './pages/Profile'
 import { useAuthStore } from './store/authStore'
 
 function App() {
@@ -24,6 +25,10 @@ function App() {
         <Route
           path="/analytics/article/:nmId"
           element={token ? <AnalyticsArticle /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/profile"
+          element={token ? <Profile /> : <Navigate to="/login" replace />}
         />
       </Routes>
     </BrowserRouter>

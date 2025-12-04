@@ -43,41 +43,26 @@ function formatDate(date: Date): string {
 }
 
 /**
- * Валидирует периоды на пересечение.
+ * Валидирует периоды - проверяет только наличие дат и их корректность.
+ * Пересечения периодов разрешены.
  */
 export function validatePeriods(periods: Period[]): boolean {
-  if (!periods || periods.length < 2) {
-    return true
+  if (!periods || periods.length === 0) {
+    return false
   }
   
   for (let i = 0; i < periods.length; i++) {
-    const period1 = periods[i]
-    if (!period1.dateFrom || !period1.dateTo) {
+    const period = periods[i]
+    if (!period.dateFrom || !period.dateTo) {
       return false
     }
     
-    const dateFrom1 = new Date(period1.dateFrom)
-    const dateTo1 = new Date(period1.dateTo)
+    const dateFrom = new Date(period.dateFrom)
+    const dateTo = new Date(period.dateTo)
     
-    if (dateFrom1 > dateTo1) {
+    // Проверяем только, что даты валидны
+    if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
       return false
-    }
-    
-    for (let j = i + 1; j < periods.length; j++) {
-      const period2 = periods[j]
-      if (!period2.dateFrom || !period2.dateTo) {
-        return false
-      }
-      
-      const dateFrom2 = new Date(period2.dateFrom)
-      const dateTo2 = new Date(period2.dateTo)
-      
-      // Проверяем пересечение
-      const overlaps = dateTo1 >= dateFrom2 && dateFrom1 <= dateTo2
-      
-      if (overlaps) {
-        return false
-      }
     }
   }
   
