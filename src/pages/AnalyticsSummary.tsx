@@ -806,28 +806,67 @@ export default function AnalyticsSummary() {
                                             ...typography.body,
                                             fontWeight: 500
                                           }}>
-                                            <a
-                                              href={`/analytics/article/${article.nmId}`}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              style={{
-                                                color: colors.primary,
-                                                textDecoration: 'none',
-                                                fontWeight: 500,
-                                                cursor: 'pointer',
-                                                transition: transitions.fast
-                                              }}
-                                              onMouseEnter={(e) => {
-                                                e.currentTarget.style.textDecoration = 'underline'
-                                                e.currentTarget.style.color = colors.primaryHover
-                                              }}
-                                              onMouseLeave={(e) => {
-                                                e.currentTarget.style.textDecoration = 'none'
-                                                e.currentTarget.style.color = colors.primary
-                                              }}
-                                            >
-                                              {article.nmId}
-                                            </a>
+                                            <div style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: spacing.md
+                                            }}>
+                                              {article.photoTm && (
+                                                <a
+                                                  href={`https://www.wildberries.ru/catalog/${article.nmId}/detail.aspx`}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  style={{
+                                                    display: 'inline-block',
+                                                    cursor: 'pointer',
+                                                    transition: transitions.fast
+                                                  }}
+                                                  onMouseEnter={(e) => {
+                                                    e.currentTarget.style.opacity = '0.8'
+                                                  }}
+                                                  onMouseLeave={(e) => {
+                                                    e.currentTarget.style.opacity = '1'
+                                                  }}
+                                                >
+                                                  <img
+                                                    src={article.photoTm}
+                                                    alt={article.title || `Товар ${article.nmId}`}
+                                                    style={{
+                                                      width: '50px',
+                                                      height: '50px',
+                                                      objectFit: 'cover',
+                                                      borderRadius: borderRadius.sm,
+                                                      border: `1px solid ${colors.borderLight}`
+                                                    }}
+                                                    onError={(e) => {
+                                                      e.currentTarget.style.display = 'none'
+                                                    }}
+                                                  />
+                                                </a>
+                                              )}
+                                              <a
+                                                href={`/analytics/article/${article.nmId}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                  color: colors.primary,
+                                                  textDecoration: 'none',
+                                                  fontWeight: 500,
+                                                  cursor: 'pointer',
+                                                  transition: transitions.fast
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                  e.currentTarget.style.textDecoration = 'underline'
+                                                  e.currentTarget.style.color = colors.primaryHover
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                  e.currentTarget.style.textDecoration = 'none'
+                                                  e.currentTarget.style.color = colors.primary
+                                                }}
+                                              >
+                                                {article.nmId}
+                                              </a>
+                                            </div>
                                           </td>
                                           {article.periods.map(period => {
                                             const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'

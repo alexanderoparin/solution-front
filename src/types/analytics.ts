@@ -17,6 +17,7 @@ export interface ArticleSummary {
   title: string
   brand: string
   subjectName: string
+  photoTm: string | null // URL миниатюры первой фотографии товара
 }
 
 export interface AggregatedMetrics {
@@ -49,6 +50,7 @@ export interface PeriodMetricValue {
 
 export interface ArticleMetric {
   nmId: number
+  photoTm: string | null // URL миниатюры первой фотографии товара
   periods: PeriodMetricValue[]
 }
 
