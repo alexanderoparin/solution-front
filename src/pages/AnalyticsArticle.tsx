@@ -451,16 +451,18 @@ export default function AnalyticsArticle() {
           
           <div style={{
             display: 'flex',
-            gap: spacing.lg,
+            gap: spacing.xl,
             flex: 1,
             alignItems: 'flex-start'
           }}>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: spacing.md,
-              flex: 1
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: spacing.lg,
+              flex: 1,
+              alignContent: 'start'
             }}>
+              {/* Первая колонка */}
               <div>
                 <div style={{ 
                   ...typography.bodySmall, 
@@ -472,32 +474,48 @@ export default function AnalyticsArticle() {
                 <div style={{ 
                   ...typography.body, 
                   fontWeight: 600,
-                  color: colors.textPrimary
+                  color: colors.textPrimary,
+                  marginBottom: spacing.md
                 }}>
                   {article.article.nmId}
                 </div>
+                {article.article.vendorCode && (
+                  <>
+                    <div style={{ 
+                      ...typography.bodySmall, 
+                      color: colors.textSecondary,
+                      marginBottom: spacing.xs
+                    }}>
+                      Артикул продавца
+                    </div>
+                    <div style={{ 
+                      ...typography.body, 
+                      fontWeight: 500,
+                      color: colors.textPrimary
+                    }}>
+                      {article.article.vendorCode}
+                    </div>
+                  </>
+                )}
               </div>
               
-              {article.article.imtId && (
-                <div>
-                  <div style={{ 
-                    ...typography.bodySmall, 
-                    color: colors.textSecondary,
-                    marginBottom: spacing.xs
-                  }}>
-                    IMT ID
-                  </div>
-                  <div style={{ 
-                    ...typography.body, 
-                    fontWeight: 500,
-                    color: colors.textPrimary
-                  }}>
-                    {article.article.imtId}
-                  </div>
-                </div>
-              )}
-              
+              {/* Вторая колонка */}
               <div>
+                <div style={{ 
+                  ...typography.bodySmall, 
+                  color: colors.textSecondary,
+                  marginBottom: spacing.xs
+                }}>
+                  Категория
+                </div>
+                <div style={{ 
+                  ...typography.body, 
+                  fontWeight: 500,
+                  color: colors.textPrimary,
+                  marginBottom: spacing.md
+                }}>
+                  {article.article.subjectName || '-'}
+                </div>
                 <div style={{ 
                   ...typography.bodySmall, 
                   color: colors.textSecondary,
@@ -514,38 +532,22 @@ export default function AnalyticsArticle() {
                 </div>
               </div>
               
-              <div>
-                <div style={{ 
-                  ...typography.bodySmall, 
-                  color: colors.textSecondary,
-                  marginBottom: spacing.xs
-                }}>
-                  Категория
-                </div>
-                <div style={{ 
-                  ...typography.body, 
-                  fontWeight: 500,
-                  color: colors.textPrimary
-                }}>
-                  {article.article.subjectName || '-'}
-                </div>
-              </div>
-              
-              {article.article.vendorCode && (
+              {/* Третья колонка */}
+              {article.article.imtId && (
                 <div>
                   <div style={{ 
                     ...typography.bodySmall, 
                     color: colors.textSecondary,
                     marginBottom: spacing.xs
                   }}>
-                    Артикул продавца
+                    IMT ID
                   </div>
                   <div style={{ 
                     ...typography.body, 
                     fontWeight: 500,
                     color: colors.textPrimary
                   }}>
-                    {article.article.vendorCode}
+                    {article.article.imtId}
                   </div>
                 </div>
               )}
@@ -591,8 +593,7 @@ export default function AnalyticsArticle() {
             
             {article.campaigns.length > 0 && (
               <div style={{
-                minWidth: '300px',
-                maxWidth: '400px',
+                width: '450px',
                 flexShrink: 0
               }}>
                 <div style={{
@@ -603,37 +604,45 @@ export default function AnalyticsArticle() {
                   Рекламные кампании
                 </div>
                 <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: spacing.sm
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: spacing.sm,
+                  alignContent: 'start'
                 }}>
                   {article.campaigns.map(campaign => (
                     <div
                       key={campaign.id}
                       style={{
-                        padding: spacing.md,
+                        padding: spacing.sm,
                         border: `1px solid ${colors.borderLight}`,
                         borderRadius: borderRadius.sm,
-                        backgroundColor: colors.bgGrayLight
+                        backgroundColor: colors.bgGrayLight,
+                        display: 'flex',
+                        flexDirection: 'column'
                       }}
                     >
                       <div style={{
                         ...typography.body,
                         fontWeight: 500,
                         color: colors.textPrimary,
-                        marginBottom: spacing.xs
+                        marginBottom: spacing.xs,
+                        lineHeight: 1.3
                       }}>
                         {campaign.name}
                       </div>
                       <div style={{
                         ...typography.bodySmall,
-                        color: colors.textSecondary
+                        color: colors.textSecondary,
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                        gap: spacing.xs,
+                        lineHeight: 1.3
                       }}>
-                        ID: {campaign.id}
-                        {campaign.type && ` • ${campaign.type}`}
+                        <span>ID: {campaign.id}</span>
+                        {campaign.type && <span>• {campaign.type}</span>}
                         {campaign.statusName && (
                           <span style={{
-                            marginLeft: spacing.xs,
                             padding: `2px ${spacing.xs}`,
                             backgroundColor: campaign.status === 9 
                               ? colors.successLight 
@@ -646,7 +655,8 @@ export default function AnalyticsArticle() {
                                 ? colors.warning 
                                 : colors.textSecondary,
                             borderRadius: borderRadius.sm,
-                            fontSize: '11px'
+                            fontSize: '11px',
+                            whiteSpace: 'nowrap'
                           }}>
                             {campaign.statusName}
                           </span>
