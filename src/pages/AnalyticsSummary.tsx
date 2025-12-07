@@ -360,8 +360,7 @@ export default function AnalyticsSummary() {
     return (
       <div style={{ 
         padding: spacing.xxl, 
-        maxWidth: '1400px', 
-        margin: '0 auto',
+        width: '100%',
         textAlign: 'center'
       }}>
         <div style={{ 
@@ -401,8 +400,7 @@ export default function AnalyticsSummary() {
     return (
       <div style={{ 
         padding: spacing.xxl, 
-        maxWidth: '1400px', 
-        margin: '0 auto',
+        width: '100%',
         textAlign: 'center',
         color: colors.textSecondary
       }}>
@@ -417,8 +415,7 @@ export default function AnalyticsSummary() {
       <Header />
       <div style={{ 
         padding: `${spacing.lg} ${spacing.md}`, 
-        maxWidth: '1400px', 
-        margin: '0 auto',
+        width: '100%',
         backgroundColor: colors.bgGray,
         minHeight: '100vh'
       }}>
@@ -830,7 +827,7 @@ export default function AnalyticsSummary() {
                                                 >
                                                   <img
                                                     src={article.photoTm}
-                                                    alt={article.title || `Товар ${article.nmId}`}
+                                                    alt={`Товар ${article.nmId}`}
                                                     style={{
                                                       width: '50px',
                                                       height: '50px',

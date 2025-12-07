@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { DatePicker, Spin, Tooltip } from 'antd'
-import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons'
+import { InfoCircleOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -337,8 +337,7 @@ export default function AnalyticsArticle() {
     return (
       <div style={{ 
         padding: spacing.xxl, 
-        maxWidth: '1400px', 
-        margin: '0 auto',
+        width: '100%',
         textAlign: 'center'
       }}>
         <div style={{ 
@@ -378,8 +377,7 @@ export default function AnalyticsArticle() {
     return (
       <div style={{ 
         padding: spacing.xxl, 
-        maxWidth: '1400px', 
-        margin: '0 auto',
+        width: '100%',
         textAlign: 'center',
         color: colors.textSecondary
       }}>
@@ -391,85 +389,276 @@ export default function AnalyticsArticle() {
 
   return (
     <>
-      <Header />
+      <Header articleTitle={article.article.title} />
       <div style={{ 
         padding: `${spacing.lg} ${spacing.md}`, 
-        maxWidth: '1400px', 
-        margin: '0 auto',
+        width: '100%',
         backgroundColor: colors.bgGray,
         minHeight: '100vh'
       }}>
-      <div style={{ marginBottom: spacing.xl }}>
-        <button
-          onClick={() => navigate('/analytics')}
-          style={{
-            padding: `${spacing.sm} ${spacing.md}`,
-            backgroundColor: colors.bgWhite,
-            color: colors.textPrimary,
-            border: `1px solid ${colors.border}`,
-            borderRadius: borderRadius.md,
-            cursor: 'pointer',
-            marginBottom: spacing.md,
+      {/* Информация о карточке товара */}
+      <div style={{
+        backgroundColor: colors.bgWhite,
+        border: `1px solid ${colors.borderLight}`,
+        borderRadius: borderRadius.md,
+        padding: spacing.lg,
+        marginBottom: spacing.xl,
+        boxShadow: shadows.md
+      }}>
+        <div style={{
+          display: 'flex',
+          gap: spacing.lg,
+          alignItems: 'flex-start'
+        }}>
+          {article.article.photoTm && (
+            <a
+              href={article.article.productUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block',
+                flexShrink: 0,
+                cursor: 'pointer',
+                transition: transitions.fast
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.8'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1'
+              }}
+            >
+              <img
+                src={article.article.photoTm}
+                alt={article.article.title}
+                style={{
+                  width: 'auto',
+                  height: 'auto',
+                  maxWidth: '300px',
+                  maxHeight: '300px',
+                  objectFit: 'contain',
+                  borderRadius: borderRadius.md,
+                  border: `1px solid ${colors.borderLight}`,
+                  boxShadow: shadows.sm,
+                  display: 'block'
+                }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            </a>
+          )}
+          
+          <div style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: spacing.xs,
-            fontSize: typography.body.fontSize,
-            fontWeight: 500,
-            transition: transitions.normal,
-            boxShadow: shadows.sm
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = colors.bgGrayLight
-            e.currentTarget.style.boxShadow = shadows.md
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = colors.bgWhite
-            e.currentTarget.style.boxShadow = shadows.sm
-          }}
-        >
-          <ArrowLeftOutlined /> Вернуться к сводной
-        </button>
-        <h1 style={{ 
-          ...typography.h1, 
-          marginBottom: spacing.sm,
-          borderBottom: `3px solid ${colors.primary}`,
-          paddingBottom: spacing.md
-        }}>
-          {article.article.title}
-        </h1>
-        <div style={{ 
-          ...typography.body, 
-          color: colors.textSecondary,
-          marginBottom: spacing.sm
-        }}>
-          Артикул: <strong style={{ color: colors.textPrimary }}>{article.article.nmId}</strong> • {article.article.brand} • {article.article.subjectName}
+            gap: spacing.lg,
+            flex: 1,
+            alignItems: 'flex-start'
+          }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: spacing.md,
+              flex: 1
+            }}>
+              <div>
+                <div style={{ 
+                  ...typography.bodySmall, 
+                  color: colors.textSecondary,
+                  marginBottom: spacing.xs
+                }}>
+                  Артикул
+                </div>
+                <div style={{ 
+                  ...typography.body, 
+                  fontWeight: 600,
+                  color: colors.textPrimary
+                }}>
+                  {article.article.nmId}
+                </div>
+              </div>
+              
+              {article.article.imtId && (
+                <div>
+                  <div style={{ 
+                    ...typography.bodySmall, 
+                    color: colors.textSecondary,
+                    marginBottom: spacing.xs
+                  }}>
+                    IMT ID
+                  </div>
+                  <div style={{ 
+                    ...typography.body, 
+                    fontWeight: 500,
+                    color: colors.textPrimary
+                  }}>
+                    {article.article.imtId}
+                  </div>
+                </div>
+              )}
+              
+              <div>
+                <div style={{ 
+                  ...typography.bodySmall, 
+                  color: colors.textSecondary,
+                  marginBottom: spacing.xs
+                }}>
+                  Бренд
+                </div>
+                <div style={{ 
+                  ...typography.body, 
+                  fontWeight: 500,
+                  color: colors.textPrimary
+                }}>
+                  {article.article.brand || '-'}
+                </div>
+              </div>
+              
+              <div>
+                <div style={{ 
+                  ...typography.bodySmall, 
+                  color: colors.textSecondary,
+                  marginBottom: spacing.xs
+                }}>
+                  Категория
+                </div>
+                <div style={{ 
+                  ...typography.body, 
+                  fontWeight: 500,
+                  color: colors.textPrimary
+                }}>
+                  {article.article.subjectName || '-'}
+                </div>
+              </div>
+              
+              {article.article.vendorCode && (
+                <div>
+                  <div style={{ 
+                    ...typography.bodySmall, 
+                    color: colors.textSecondary,
+                    marginBottom: spacing.xs
+                  }}>
+                    Артикул продавца
+                  </div>
+                  <div style={{ 
+                    ...typography.body, 
+                    fontWeight: 500,
+                    color: colors.textPrimary
+                  }}>
+                    {article.article.vendorCode}
+                  </div>
+                </div>
+              )}
+              
+              {article.article.rating !== null && (
+                <div>
+                  <div style={{ 
+                    ...typography.bodySmall, 
+                    color: colors.textSecondary,
+                    marginBottom: spacing.xs
+                  }}>
+                    Рейтинг
+                  </div>
+                  <div style={{ 
+                    ...typography.body, 
+                    fontWeight: 500,
+                    color: colors.textPrimary
+                  }}>
+                    {article.article.rating.toFixed(1)} ⭐
+                  </div>
+                </div>
+              )}
+              
+              {article.article.reviewsCount !== null && (
+                <div>
+                  <div style={{ 
+                    ...typography.bodySmall, 
+                    color: colors.textSecondary,
+                    marginBottom: spacing.xs
+                  }}>
+                    Отзывов
+                  </div>
+                  <div style={{ 
+                    ...typography.body, 
+                    fontWeight: 500,
+                    color: colors.textPrimary
+                  }}>
+                    {article.article.reviewsCount.toLocaleString('ru-RU')}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {article.campaigns.length > 0 && (
+              <div style={{
+                minWidth: '300px',
+                maxWidth: '400px',
+                flexShrink: 0
+              }}>
+                <div style={{
+                  ...typography.h3,
+                  marginBottom: spacing.md,
+                  color: colors.textPrimary
+                }}>
+                  Рекламные кампании
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: spacing.sm
+                }}>
+                  {article.campaigns.map(campaign => (
+                    <div
+                      key={campaign.id}
+                      style={{
+                        padding: spacing.md,
+                        border: `1px solid ${colors.borderLight}`,
+                        borderRadius: borderRadius.sm,
+                        backgroundColor: colors.bgGrayLight
+                      }}
+                    >
+                      <div style={{
+                        ...typography.body,
+                        fontWeight: 500,
+                        color: colors.textPrimary,
+                        marginBottom: spacing.xs
+                      }}>
+                        {campaign.name}
+                      </div>
+                      <div style={{
+                        ...typography.bodySmall,
+                        color: colors.textSecondary
+                      }}>
+                        ID: {campaign.id}
+                        {campaign.type && ` • ${campaign.type}`}
+                        {campaign.statusName && (
+                          <span style={{
+                            marginLeft: spacing.xs,
+                            padding: `2px ${spacing.xs}`,
+                            backgroundColor: campaign.status === 9 
+                              ? colors.successLight 
+                              : campaign.status === 11 
+                                ? colors.warningLight 
+                                : colors.bgWhite,
+                            color: campaign.status === 9 
+                              ? colors.success 
+                              : campaign.status === 11 
+                                ? colors.warning 
+                                : colors.textSecondary,
+                            borderRadius: borderRadius.sm,
+                            fontSize: '11px'
+                          }}>
+                            {campaign.statusName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        {article.article.productUrl && (
-          <a
-            href={article.article.productUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: colors.primary,
-              textDecoration: 'none',
-              fontSize: typography.body.fontSize,
-              marginTop: spacing.sm,
-              display: 'inline-block',
-              fontWeight: 500,
-              transition: transitions.fast
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.textDecoration = 'underline'
-              e.currentTarget.style.color = colors.primaryHover
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.textDecoration = 'none'
-              e.currentTarget.style.color = colors.primary
-            }}
-          >
-            Открыть на Wildberries →
-          </a>
-        )}
       </div>
 
       {/* Периоды */}
@@ -748,35 +937,6 @@ export default function AnalyticsArticle() {
         </div>
       </div>
 
-      {/* Рекламные кампании */}
-      {article.campaigns.length > 0 && (
-        <div style={{
-          backgroundColor: '#FFFFFF',
-          border: '1px solid #F1F5F9',
-          borderRadius: '8px',
-          padding: '16px'
-        }}>
-          <h2 style={{ color: '#1E293B', marginBottom: '16px', fontSize: '18px' }}>Рекламные кампании</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {article.campaigns.map(campaign => (
-              <div
-                key={campaign.id}
-                style={{
-                  padding: '12px',
-                  border: '1px solid #F1F5F9',
-                  borderRadius: '4px',
-                  backgroundColor: '#F8FAFC'
-                }}
-              >
-                <div style={{ color: '#1E293B', fontWeight: '500' }}>{campaign.name}</div>
-                <div style={{ color: '#64748B', fontSize: '14px', marginTop: '4px' }}>
-                  ID: {campaign.id} • Тип: {campaign.type || 'Не указан'} • Создана: {new Date(campaign.createdAt).toLocaleDateString('ru-RU')}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
       </div>
     </>
   )

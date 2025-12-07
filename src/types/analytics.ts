@@ -71,13 +71,17 @@ export interface MetricGroupResponse {
 
 export interface ArticleDetail {
   nmId: number
+  imtId: number | null
   title: string
   brand: string
   subjectName: string
   vendorCode: string
+  photoTm: string | null
   rating: number | null
   reviewsCount: number | null
   productUrl: string
+  createdAt: string | null
+  updatedAt: string | null
 }
 
 export interface Metric {
@@ -98,6 +102,8 @@ export interface Campaign {
   id: number
   name: string
   type: string | null
+  status: number | null
+  statusName: string | null
   createdAt: string
 }
 

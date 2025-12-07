@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider } from 'antd'
 import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined } from '@ant-design/icons'
-import { useNavigate } from 'react-router-dom'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
 import type { UserProfileResponse, UpdateApiKeyRequest, ChangePasswordRequest } from '../types/api'
@@ -12,7 +11,6 @@ import Header from '../components/Header'
 const { Text } = Typography
 
 export default function Profile() {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [apiKeyForm] = Form.useForm()
   const [passwordForm] = Form.useForm()
