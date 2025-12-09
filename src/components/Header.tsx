@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Button, Space, Typography } from 'antd'
-import { UserOutlined, BarChartOutlined, ArrowLeftOutlined } from '@ant-design/icons'
+import { UserOutlined, BarChartOutlined, ArrowLeftOutlined, TeamOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../store/authStore'
 
 const { Text, Title } = Typography
@@ -13,10 +13,23 @@ export default function Header({ articleTitle }: HeaderProps = {}) {
   const navigate = useNavigate()
   const location = useLocation()
   const email = useAuthStore((state) => state.email)
+  const role = useAuthStore((state) => state.role)
+  
+  // Проверяем, может ли пользователь управлять другими пользователями
+  const canManageUsers = role === 'ADMIN' || role === 'MANAGER' || role === 'SELLER'
+  
+  // Название кнопки в зависимости от роли
+  const getUsersButtonLabel = () => {
+    if (role === 'ADMIN') return 'Менеджеры'
+    if (role === 'MANAGER') return 'Селлеры'
+    if (role === 'SELLER') return 'Работники'
+    return 'Пользователи'
+  }
 
   const isProfilePage = location.pathname === '/profile'
   const isAnalyticsPage = location.pathname === '/analytics'
   const isArticlePage = location.pathname.startsWith('/analytics/article/')
+  const isUsersPage = location.pathname === '/users'
 
   return (
     <div
@@ -74,6 +87,19 @@ export default function Header({ articleTitle }: HeaderProps = {}) {
             Личный кабинет
           </Title>
         )}
+        {isUsersPage && (
+          <Title 
+            level={2} 
+            style={{ 
+              margin: 0,
+              fontSize: '24px',
+              fontWeight: 600,
+              color: '#1E293B'
+            }}
+          >
+            Управление пользователями
+          </Title>
+        )}
         {isArticlePage && articleTitle && (
           <Title 
             level={2} 
@@ -111,7 +137,21 @@ export default function Header({ articleTitle }: HeaderProps = {}) {
           </Button>
         )}
         
-        {!isProfilePage && !isArticlePage && (
+        {canManageUsers && !isUsersPage && (
+          <Button
+            type="default"
+            icon={<TeamOutlined />}
+            onClick={() => navigate('/users')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            {getUsersButtonLabel()}
+          </Button>
+        )}
+        {!isProfilePage && !isArticlePage && !isUsersPage && (
           <Button
             type="default"
             icon={<UserOutlined />}
@@ -126,6 +166,20 @@ export default function Header({ articleTitle }: HeaderProps = {}) {
           </Button>
         )}
         {isArticlePage && (
+          <Button
+            type="default"
+            icon={<UserOutlined />}
+            onClick={() => navigate('/profile')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            Личный кабинет
+          </Button>
+        )}
+        {isUsersPage && (
           <Button
             type="default"
             icon={<UserOutlined />}

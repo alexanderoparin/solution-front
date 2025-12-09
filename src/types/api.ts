@@ -39,3 +39,26 @@ export interface UpdateApiKeyRequest {
   wbApiKey: string
 }
 
+export type UserRole = 'ADMIN' | 'MANAGER' | 'SELLER' | 'WORKER'
+
+export interface UserListItem {
+  id: number
+  email: string
+  role: UserRole
+  isActive: boolean
+  isTemporaryPassword: boolean
+  createdAt: string
+  ownerEmail: string | null
+}
+
+export interface CreateUserRequest {
+  email: string
+  password: string
+  role: UserRole
+}
+
+export interface UpdateUserRequest {
+  email: string
+  isActive?: boolean
+}
+

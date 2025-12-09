@@ -15,6 +15,13 @@ export default function Login() {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const setAuth = useAuthStore((state) => state.setAuth)
 
+  const getInitialRoute = (role: string) => {
+    if (role === 'ADMIN' || role === 'MANAGER') {
+      return '/users'
+    }
+    return '/analytics'
+  }
+
   const loginMutation = useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
     onSuccess: (data) => {
@@ -24,7 +31,7 @@ export default function Login() {
         setShowChangePasswordModal(true)
       } else {
         message.success('Вход выполнен успешно')
-        navigate('/analytics')
+        navigate(getInitialRoute(data.role))
       }
     },
     onError: (error: any) => {
@@ -117,7 +124,8 @@ export default function Login() {
         onSuccess={() => {
           setShowChangePasswordModal(false)
           message.success('Пароль успешно изменен')
-          navigate('/analytics')
+          const role = useAuthStore.getState().role
+          navigate(getInitialRoute(role || 'SELLER'))
         }}
         onCancel={() => {
           setShowChangePasswordModal(false)

@@ -96,6 +96,24 @@ export interface DailyData {
   transitions: number | null
   cart: number | null
   orders: number | null
+  ordersAmount: number | null
+  cartConversion: number | null
+  orderConversion: number | null
+  views: number | null
+  clicks: number | null
+  costs: number | null
+  cpc: number | null
+  ctr: number | null
+  cpo: number | null
+  drr: number | null
+  priceBeforeDiscount: number | null
+  sellerDiscount: number | null
+  priceWithDiscount: number | null
+  wbClubDiscount: number | null
+  priceWithWbClub: number | null
+  priceWithSpp: number | null
+  sppAmount: number | null
+  sppPercent: number | null
 }
 
 export interface Campaign {

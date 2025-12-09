@@ -1,5 +1,12 @@
 import apiClient from './client'
-import { UserProfileResponse, UpdateApiKeyRequest, MessageResponse } from '../types/api'
+import {
+  UserProfileResponse,
+  UpdateApiKeyRequest,
+  MessageResponse,
+  UserListItem,
+  CreateUserRequest,
+  UpdateUserRequest,
+} from '../types/api'
 
 export const userApi = {
   getProfile: async (): Promise<UserProfileResponse> => {
@@ -14,6 +21,27 @@ export const userApi = {
 
   validateApiKey: async (): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>('/user/api-key/validate')
+    return response.data
+  },
+
+  // Управление пользователями
+  getManagedUsers: async (): Promise<UserListItem[]> => {
+    const response = await apiClient.get<UserListItem[]>('/users')
+    return response.data
+  },
+
+  createUser: async (data: CreateUserRequest): Promise<UserListItem> => {
+    const response = await apiClient.post<UserListItem>('/users', data)
+    return response.data
+  },
+
+  updateUser: async (userId: number, data: UpdateUserRequest): Promise<UserListItem> => {
+    const response = await apiClient.put<UserListItem>(`/users/${userId}`, data)
+    return response.data
+  },
+
+  toggleUserActive: async (userId: number): Promise<MessageResponse> => {
+    const response = await apiClient.put<MessageResponse>(`/users/${userId}/toggle-active`)
     return response.data
   },
 }

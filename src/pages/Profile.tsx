@@ -1,22 +1,31 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider } from 'antd'
-import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined } from '@ant-design/icons'
+import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, LogoutOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
 import type { UserProfileResponse, UpdateApiKeyRequest, ChangePasswordRequest } from '../types/api'
+import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
 import Header from '../components/Header'
 
 const { Text } = Typography
 
 export default function Profile() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const clearAuth = useAuthStore((state) => state.clearAuth)
   const [apiKeyForm] = Form.useForm()
   const [passwordForm] = Form.useForm()
   const [isApiKeyExpanded, setIsApiKeyExpanded] = useState(false)
   const [showApiKeyForm, setShowApiKeyForm] = useState(false)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
+  
+  const handleLogout = () => {
+    clearAuth()
+    navigate('/login')
+  }
 
   const { data: profile, isLoading, error } = useQuery<UserProfileResponse>({
     queryKey: ['userProfile'],
@@ -414,6 +423,20 @@ export default function Profile() {
             </Form>
           </Card>
         )}
+
+        {/* Выход из системы */}
+        <Card style={{ marginTop: '24px' }}>
+          <Button
+            type="primary"
+            danger
+            icon={<LogoutOutlined />}
+            onClick={handleLogout}
+            block
+            size="large"
+          >
+            Выйти из системы
+          </Button>
+        </Card>
       </div>
     </>
   )
