@@ -8,13 +8,9 @@ import { useAuthStore } from './store/authStore'
 
 function App() {
   const token = useAuthStore((state) => state.token)
-  const role = useAuthStore((state) => state.role)
 
   const getInitialRoute = () => {
-    if (role === 'ADMIN' || role === 'MANAGER') {
-      return '/users'
-    }
-    return '/analytics'
+    return '/profile'
   }
 
   return (
