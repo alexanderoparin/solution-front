@@ -11,7 +11,6 @@ import {
   message,
   Tag,
   Popconfirm,
-  Typography,
 } from 'antd'
 import {
   PlusOutlined,
@@ -29,7 +28,6 @@ import 'dayjs/locale/ru'
 
 dayjs.locale('ru')
 
-const { Title } = Typography
 
 const ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: 'Администратор',
@@ -54,12 +52,18 @@ export default function UsersManagement() {
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role) as UserRole
 
-  // Определяем, какую роль можно создавать
-  const getCreatableRole = (): UserRole => {
-    if (role === 'ADMIN') return 'MANAGER'
-    if (role === 'MANAGER') return 'SELLER'
-    if (role === 'SELLER') return 'WORKER'
-    return 'WORKER'
+  // Определяем, какие роли можно создавать
+  const getCreatableRoles = (): UserRole[] => {
+    if (role === 'ADMIN') return ['MANAGER', 'SELLER']
+    if (role === 'MANAGER') return ['SELLER']
+    if (role === 'SELLER') return ['WORKER']
+    return ['WORKER']
+  }
+
+  // Получаем роль по умолчанию (первая из доступных)
+  const getDefaultRole = (): UserRole => {
+    const roles = getCreatableRoles()
+    return roles[0]
   }
 
   // Получение списка пользователей
@@ -133,12 +137,6 @@ export default function UsersManagement() {
     toggleActiveMutation.mutate(user.id)
   }
 
-  const getPageTitle = () => {
-    if (role === 'ADMIN') return 'Управление менеджерами'
-    if (role === 'MANAGER') return 'Управление селлерами'
-    if (role === 'SELLER') return 'Управление работниками'
-    return 'Управление пользователями'
-  }
 
   const columns = [
     {
@@ -217,14 +215,11 @@ export default function UsersManagement() {
         <div
           style={{
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
             alignItems: 'center',
             marginBottom: '24px',
           }}
         >
-          <Title level={2} style={{ margin: 0 }}>
-            {getPageTitle()}
-          </Title>
           <Button
             type="primary"
             icon={<PlusOutlined />}
@@ -297,12 +292,15 @@ export default function UsersManagement() {
             <Form.Item
               name="role"
               label="Роль"
-              initialValue={getCreatableRole()}
+              initialValue={getDefaultRole()}
+              rules={[{ required: true, message: 'Выберите роль' }]}
             >
-              <Select disabled>
-                <Select.Option value={getCreatableRole()}>
-                  {ROLE_LABELS[getCreatableRole()]}
-                </Select.Option>
+              <Select>
+                {getCreatableRoles().map(roleOption => (
+                  <Select.Option key={roleOption} value={roleOption}>
+                    {ROLE_LABELS[roleOption]}
+                  </Select.Option>
+                ))}
               </Select>
             </Form.Item>
 

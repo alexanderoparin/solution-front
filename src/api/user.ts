@@ -44,5 +44,17 @@ export const userApi = {
     const response = await apiClient.put<MessageResponse>(`/users/${userId}/toggle-active`)
     return response.data
   },
+
+  // Получение активных селлеров для аналитики
+  getActiveSellers: async (): Promise<UserListItem[]> => {
+    const response = await apiClient.get<UserListItem[]>('/users/active-sellers')
+    return response.data
+  },
+
+  // Принудительный запуск обновления данных
+  triggerDataUpdate: async (): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/user/update-data')
+    return response.data
+  },
 }
 

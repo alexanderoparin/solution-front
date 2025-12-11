@@ -7,6 +7,7 @@ import 'dayjs/locale/ru'
 import { analyticsApi } from '../api/analytics'
 import type { ArticleResponse } from '../types/analytics'
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
+import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 
 dayjs.locale('ru')
@@ -63,6 +64,26 @@ function getLast14Days(): string[] {
 export default function AnalyticsArticle() {
   const { nmId } = useParams<{ nmId: string }>()
   const navigate = useNavigate()
+  const role = useAuthStore((state) => state.role)
+  const isManagerOrAdmin = role === 'MANAGER' || role === 'ADMIN'
+  
+  // Получаем выбранного селлера из localStorage (если есть)
+  const getSelectedSellerId = (): number | undefined => {
+    if (!isManagerOrAdmin) return undefined
+    const saved = localStorage.getItem('analytics_selected_seller_id')
+    if (saved) {
+      try {
+        const sellerId = parseInt(saved, 10)
+        if (!isNaN(sellerId)) {
+          return sellerId
+        }
+      } catch {
+        // Игнорируем ошибку
+      }
+    }
+    return undefined
+  }
+
   const [selectedFunnel1, setSelectedFunnel1] = useState<keyof typeof FUNNELS>('general')
   const [selectedFunnel2, setSelectedFunnel2] = useState<keyof typeof FUNNELS>('advertising')
   const [article, setArticle] = useState<ArticleResponse | null>(null)
@@ -84,8 +105,9 @@ export default function AnalyticsArticle() {
     try {
       setLoading(true)
       setError(null)
+      const sellerId = getSelectedSellerId()
       // TODO: Обновить API для получения данных за последние 14 дней
-      const data = await analyticsApi.getArticle(id, [])
+      const data = await analyticsApi.getArticle(id, [], sellerId)
       setArticle(data)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Ошибка при загрузке данных')

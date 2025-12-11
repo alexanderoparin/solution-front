@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider } from 'antd'
-import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, LogoutOutlined } from '@ant-design/icons'
+import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip } from 'antd'
+import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, LogoutOutlined, SyncOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
 import type { UserProfileResponse, UpdateApiKeyRequest, ChangePasswordRequest } from '../types/api'
@@ -68,6 +68,18 @@ export default function Profile() {
     },
   })
 
+  const triggerDataUpdateMutation = useMutation({
+    mutationFn: () => userApi.triggerDataUpdate(),
+    onSuccess: (data) => {
+      message.success(data.message)
+      // Обновляем профиль, чтобы получить актуальное время последнего обновления
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+    },
+    onError: (error: any) => {
+      message.error(error.response?.data?.message || 'Ошибка запуска обновления данных')
+    },
+  })
+
   const handleApiKeySubmit = (values: { wbApiKey: string }) => {
     updateApiKeyMutation.mutate({ wbApiKey: values.wbApiKey })
   }
@@ -125,8 +137,7 @@ export default function Profile() {
     <>
       <Header />
       <div style={{ 
-        maxWidth: '800px', 
-        margin: '0 auto', 
+        width: '100%',
         padding: '24px',
         minHeight: '100vh',
         backgroundColor: '#F8FAFC'
@@ -141,32 +152,68 @@ export default function Profile() {
           }
           style={{ marginBottom: '24px' }}
         >
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            <div>
-              <Text type="secondary">Email:</Text>
-              <div style={{ marginTop: '4px' }}>
-                <Text strong>{profile.email}</Text>
+          <Row gutter={[24, 16]} align="middle">
+            <Col xs={24} sm={6}>
+              <div>
+                <Text type="secondary">Email:</Text>
+                <div style={{ marginTop: '4px' }}>
+                  <Text strong>{profile.email}</Text>
+                </div>
               </div>
-            </div>
+            </Col>
             
-            <div>
-              <Text type="secondary">Роль:</Text>
-              <div style={{ marginTop: '4px' }}>
-                <Tag color={profile.role === 'SELLER' ? 'purple' : 'blue'}>
-                  {profile.role === 'SELLER' ? 'Продавец' : profile.role}
-                </Tag>
+            <Col xs={24} sm={6}>
+              <div>
+                <Text type="secondary">Роль:</Text>
+                <div style={{ marginTop: '4px' }}>
+                  <Tag color={profile.role === 'SELLER' ? 'purple' : 'blue'}>
+                    {profile.role === 'SELLER' ? 'Продавец' : profile.role}
+                  </Tag>
+                </div>
               </div>
-            </div>
+            </Col>
 
-            <div>
-              <Text type="secondary">Статус:</Text>
-              <div style={{ marginTop: '4px' }}>
-                <Tag color={profile.isActive ? 'success' : 'default'}>
-                  {profile.isActive ? 'Активен' : 'Неактивен'}
-                </Tag>
+            <Col xs={24} sm={6}>
+              <div>
+                <Text type="secondary">Статус:</Text>
+                <div style={{ marginTop: '4px' }}>
+                  <Tag color={profile.isActive ? 'success' : 'default'}>
+                    {profile.isActive ? 'Активен' : 'Неактивен'}
+                  </Tag>
+                </div>
               </div>
-            </div>
-          </Space>
+            </Col>
+
+            <Col xs={24} sm={6} style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                {!showPasswordForm ? (
+                  <Button
+                    type="primary"
+                    icon={<LockOutlined />}
+                    onClick={() => setShowPasswordForm(true)}
+                    block
+                    size="large"
+                    style={{
+                      backgroundColor: '#7C3AED',
+                      borderColor: '#7C3AED',
+                    }}
+                  >
+                    Сменить пароль
+                  </Button>
+                ) : null}
+                <Button
+                  type="primary"
+                  danger
+                  icon={<LogoutOutlined />}
+                  onClick={handleLogout}
+                  block
+                  size="large"
+                >
+                  Выйти из системы
+                </Button>
+              </Space>
+            </Col>
+          </Row>
         </Card>
 
         {/* WB API Ключ (только для продавцов) */}
@@ -181,81 +228,127 @@ export default function Profile() {
             style={{ marginBottom: '24px' }}
           >
             {profile.apiKey && (
-              <Space direction="vertical" size="middle" style={{ width: '100%', marginBottom: '16px' }}>
-                <div>
-                  <Text type="secondary">API Ключ:</Text>
-                  <div style={{ marginTop: '4px' }}>
-                    <Space>
-                      <Text 
-                        code 
-                        copyable={{ text: profile.apiKey.apiKey || '' }}
-                        style={{ 
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          fontFamily: 'monospace',
-                          maxWidth: '600px',
-                          wordBreak: 'break-all'
-                        }}
-                        onClick={() => setIsApiKeyExpanded(!isApiKeyExpanded)}
-                      >
-                        {profile.apiKey.apiKey && !isApiKeyExpanded
-                          ? `${profile.apiKey.apiKey.substring(0, 8)}...${profile.apiKey.apiKey.substring(profile.apiKey.apiKey.length - 8)}`
-                          : profile.apiKey.apiKey}
-                      </Text>
+              <Row gutter={24} style={{ marginBottom: '16px' }}>
+                {/* Первый столбец: API Ключ и под ним "Сменить ключ" */}
+                <Col xs={24} sm={8}>
+                  <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
+                    <div style={{ textAlign: 'center', width: '100%' }}>
+                      <Text type="secondary">API Ключ:</Text>
+                      <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'center' }}>
+                        <Space>
+                          <Text 
+                            code 
+                            copyable={{ text: profile.apiKey.apiKey || '' }}
+                            style={{ 
+                              cursor: 'pointer',
+                              fontSize: '13px',
+                              fontFamily: 'monospace',
+                              maxWidth: '100%',
+                              wordBreak: 'break-all'
+                            }}
+                            onClick={() => setIsApiKeyExpanded(!isApiKeyExpanded)}
+                          >
+                            {profile.apiKey.apiKey && !isApiKeyExpanded
+                              ? `${profile.apiKey.apiKey.substring(0, 8)}...${profile.apiKey.apiKey.substring(profile.apiKey.apiKey.length - 8)}`
+                              : profile.apiKey.apiKey}
+                          </Text>
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={isApiKeyExpanded ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                            onClick={() => setIsApiKeyExpanded(!isApiKeyExpanded)}
+                            style={{ padding: '0 4px' }}
+                          />
+                        </Space>
+                      </div>
+                    </div>
+                    <Button
+                      type="default"
+                      icon={<EditOutlined />}
+                      onClick={() => setShowApiKeyForm(true)}
+                      style={{ width: '100%' }}
+                    >
+                      Сменить ключ
+                    </Button>
+                  </Space>
+                </Col>
+
+                {/* Второй столбец: Дата последней проверки и кнопка "Проверить ключ" */}
+                <Col xs={24} sm={8}>
+                  <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
+                    {profile.apiKey.lastValidatedAt ? (
+                      <div style={{ textAlign: 'center', width: '100%' }}>
+                        <Text type="secondary" style={{ fontSize: '12px' }}>Последняя проверка:</Text>
+                        <div style={{ marginTop: '4px' }}>
+                          <Text style={{ fontSize: '12px' }}>{formatDate(profile.apiKey.lastValidatedAt)}</Text>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ height: '40px' }}></div>
+                    )}
+                    <Button
+                      type="default"
+                      icon={<CheckCircleOutlined />}
+                      onClick={() => validateApiKeyMutation.mutate()}
+                      loading={validateApiKeyMutation.isPending}
+                      style={{ width: '100%' }}
+                    >
+                      Проверить ключ
+                    </Button>
+                  </Space>
+                </Col>
+
+                {/* Третий столбец: Дата последнего обновления и кнопка "Обновить данные" */}
+                <Col xs={24} sm={8}>
+                  <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
+                    {profile.apiKey.lastDataUpdateAt ? (
+                      <div style={{ textAlign: 'center', width: '100%' }}>
+                        <Text type="secondary" style={{ fontSize: '12px' }}>Последнее обновление:</Text>
+                        <div style={{ marginTop: '4px' }}>
+                          <Text style={{ fontSize: '12px' }}>{formatDate(profile.apiKey.lastDataUpdateAt)}</Text>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ height: '40px' }}></div>
+                    )}
+                    <Tooltip title="Запускает обновление карточек, кампаний и аналитики. Процесс выполняется в фоновом режиме.">
                       <Button
-                        type="text"
-                        size="small"
-                        icon={isApiKeyExpanded ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                        onClick={() => setIsApiKeyExpanded(!isApiKeyExpanded)}
-                        style={{ padding: '0 4px' }}
-                      />
-                    </Space>
-                  </div>
-                </div>
-
-                {profile.apiKey.lastValidatedAt && (
-                  <div>
-                    <Text type="secondary">Последняя проверка:</Text>
-                    <div style={{ marginTop: '4px' }}>
-                      <Text>{formatDate(profile.apiKey.lastValidatedAt)}</Text>
-                    </div>
-                  </div>
-                )}
-
-                {profile.apiKey.validationError && (
-                  <div>
-                    <Text type="secondary">Ошибка валидации:</Text>
-                    <div style={{ marginTop: '4px' }}>
-                      <Text type="danger">{profile.apiKey.validationError}</Text>
-                    </div>
-                  </div>
-                )}
-              </Space>
+                        type="default"
+                        icon={<SyncOutlined />}
+                        onClick={() => triggerDataUpdateMutation.mutate()}
+                        loading={triggerDataUpdateMutation.isPending}
+                        style={{ width: '100%' }}
+                      >
+                        Обновить данные
+                      </Button>
+                    </Tooltip>
+                  </Space>
+                </Col>
+              </Row>
             )}
 
-            {!showApiKeyForm ? (
-              <Space direction="vertical" size="middle" style={{ width: '100%', marginTop: '16px' }}>
-                <Button
-                  type="default"
-                  icon={<CheckCircleOutlined />}
-                  onClick={() => validateApiKeyMutation.mutate()}
-                  loading={validateApiKeyMutation.isPending}
-                  block
-                  size="large"
-                >
-                  Проверить ключ
-                </Button>
-                <Button
-                  type="default"
-                  icon={<EditOutlined />}
-                  onClick={() => setShowApiKeyForm(true)}
-                  block
-                  size="large"
-                >
-                  Сменить ключ
-                </Button>
-              </Space>
-            ) : (
+            {profile.apiKey?.validationError && (
+              <div>
+                <Text type="secondary">Ошибка валидации:</Text>
+                <div style={{ marginTop: '4px' }}>
+                  <Text type="danger">{profile.apiKey.validationError}</Text>
+                </div>
+              </div>
+            )}
+
+            {!showApiKeyForm && !profile.apiKey && (
+              <Button
+                type="default"
+                icon={<EditOutlined />}
+                onClick={() => setShowApiKeyForm(true)}
+                block
+                size="large"
+              >
+                Добавить ключ
+              </Button>
+            )}
+
+            {showApiKeyForm && (
               <>
                 <Divider />
                 <Form
@@ -311,23 +404,7 @@ export default function Profile() {
         )}
 
         {/* Смена пароля */}
-        {!showPasswordForm ? (
-          <Card>
-            <Button
-              type="primary"
-              icon={<LockOutlined />}
-              onClick={() => setShowPasswordForm(true)}
-              block
-              size="large"
-              style={{
-                backgroundColor: '#7C3AED',
-                borderColor: '#7C3AED',
-              }}
-            >
-              Сменить пароль
-            </Button>
-          </Card>
-        ) : (
+        {showPasswordForm && (
           <Card 
             title={
               <Space>
@@ -424,19 +501,6 @@ export default function Profile() {
           </Card>
         )}
 
-        {/* Выход из системы */}
-        <Card style={{ marginTop: '24px' }}>
-          <Button
-            type="primary"
-            danger
-            icon={<LogoutOutlined />}
-            onClick={handleLogout}
-            block
-            size="large"
-          >
-            Выйти из системы
-          </Button>
-        </Card>
       </div>
     </>
   )

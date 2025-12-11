@@ -1,14 +1,18 @@
 import { useEffect, useState, useCallback } from 'react'
-import { DatePicker, Spin, Tooltip } from 'antd'
-import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
+import { DatePicker, Spin, Tooltip, Button } from 'antd'
+import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined, UserOutlined, KeyOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
+import { useQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
+import { userApi } from '../api/user'
 import { generateDefaultPeriods, validatePeriods } from '../utils/periodGenerator'
 import { analyticsRequestQueue } from '../utils/requestQueue'
 import type { SummaryResponse, MetricGroupResponse, Period } from '../types/analytics'
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
+import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 
 dayjs.locale('ru')
@@ -144,6 +148,90 @@ const FUNNEL_METRICS = [
 ]
 
 export default function AnalyticsSummary() {
+  const navigate = useNavigate()
+  const role = useAuthStore((state) => state.role)
+  const isManagerOrAdmin = role === 'MANAGER' || role === 'ADMIN'
+  const isSeller = role === 'SELLER'
+
+  // Получение профиля пользователя для проверки API ключа (для селлеров)
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: userApi.getProfile,
+    enabled: isSeller,
+  })
+
+  // Получение списка активных селлеров для ADMIN/MANAGER
+  const { data: activeSellers = [] } = useQuery({
+    queryKey: ['activeSellers'],
+    queryFn: userApi.getActiveSellers,
+    enabled: isManagerOrAdmin,
+  })
+
+  // Выбор последнего добавленного активного селлера по умолчанию
+  const getDefaultSellerId = (sellers: typeof activeSellers): number | undefined => {
+    if (!isManagerOrAdmin || sellers.length === 0) {
+      return undefined
+    }
+    // Сортируем по createdAt DESC и берем первого (последнего добавленного)
+    const sorted = [...sellers].sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime()
+      const dateB = new Date(b.createdAt).getTime()
+      return dateB - dateA
+    })
+    return sorted[0]?.id
+  }
+
+  const [selectedSellerId, setSelectedSellerId] = useState<number | undefined>(() => {
+    if (!isManagerOrAdmin) return undefined
+    // Пытаемся загрузить из localStorage
+    const saved = localStorage.getItem('analytics_selected_seller_id')
+    if (saved) {
+      try {
+        const sellerId = parseInt(saved, 10)
+        if (!isNaN(sellerId)) {
+          return sellerId
+        }
+      } catch {
+        // Игнорируем ошибку
+      }
+    }
+    return undefined
+  })
+
+  // Обновляем выбранного селлера при загрузке списка
+  useEffect(() => {
+    if (isManagerOrAdmin && activeSellers.length > 0) {
+      // Если sellerId не выбран, выбираем последнего добавленного
+      if (!selectedSellerId) {
+        const defaultId = getDefaultSellerId(activeSellers)
+        if (defaultId) {
+          setSelectedSellerId(defaultId)
+          localStorage.setItem('analytics_selected_seller_id', defaultId.toString())
+        }
+      } else {
+        // Проверяем, что выбранный селлер все еще активен
+        const sellerExists = activeSellers.some(s => s.id === selectedSellerId && s.isActive)
+        if (!sellerExists) {
+          // Если выбранный селлер больше не активен, выбираем последнего добавленного
+          const defaultId = getDefaultSellerId(activeSellers)
+          if (defaultId) {
+            setSelectedSellerId(defaultId)
+            localStorage.setItem('analytics_selected_seller_id', defaultId.toString())
+          }
+        }
+      }
+    }
+  }, [activeSellers, isManagerOrAdmin, selectedSellerId])
+
+  // Сохраняем выбранного селлера в localStorage
+  useEffect(() => {
+    if (isManagerOrAdmin && selectedSellerId) {
+      localStorage.setItem('analytics_selected_seller_id', selectedSellerId.toString())
+    } else if (!isManagerOrAdmin) {
+      localStorage.removeItem('analytics_selected_seller_id')
+    }
+  }, [selectedSellerId, isManagerOrAdmin])
+
   const [periods, setPeriods] = useState<Period[]>(() => {
     // Загружаем периоды из localStorage или генерируем по умолчанию
     const saved = localStorage.getItem('analytics_periods')
@@ -247,6 +335,7 @@ export default function AnalyticsSummary() {
       const data = await analyticsApi.getSummary({
         periods,
         excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
+        sellerId: selectedSellerId,
       })
       setSummary(data)
       // Очищаем загруженные метрики при изменении фильтра или периодов
@@ -254,11 +343,22 @@ export default function AnalyticsSummary() {
       setExpandedMetrics(new Set())
       setLoadingMetrics(new Set())
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Ошибка при загрузке данных')
+      // Определяем тип ошибки для более информативного сообщения
+      const errorMessage = err.response?.data?.message || 'Ошибка при загрузке данных'
+      const statusCode = err.response?.status
+      
+      // Если это ошибка из-за отсутствия API ключа или селлеров, не показываем как ошибку
+      // Теперь селлеры без ключей не должны попадать в список, но на всякий случай обрабатываем
+      if (statusCode === 404 || errorMessage.includes('не найден') || errorMessage.includes('Не найдено')) {
+        setError(null) // Не показываем как ошибку, покажем информативное сообщение
+        setSummary(null) // Устанавливаем summary в null для показа информативного сообщения
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
-  }, [excludedNmIds, periods])
+  }, [excludedNmIds, periods, selectedSellerId])
 
   useEffect(() => {
     loadSummary()
@@ -284,6 +384,7 @@ export default function AnalyticsSummary() {
         analyticsApi.getMetricGroup(metricName, {
           periods,
           excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
+          sellerId: selectedSellerId,
         })
       )
       setMetricGroups(prev => new Map(prev).set(metricName, data))
@@ -356,63 +457,221 @@ export default function AnalyticsSummary() {
     )
   }
 
-  if (error) {
+  // Проверяем, нужно ли показать информативное сообщение вместо ошибки
+  const hasNoData = !summary && !loading
+  const hasApiKeyIssue = isSeller && userProfile && (!userProfile.apiKey || !userProfile.apiKey.apiKey)
+  const hasNoSellers = isManagerOrAdmin && activeSellers.length === 0
+
+  // Показываем информативное сообщение для селлеров без API ключа
+  if (hasApiKeyIssue && hasNoData) {
     return (
-      <div style={{ 
-        padding: spacing.xxl, 
-        width: '100%',
-        textAlign: 'center'
-      }}>
+      <>
+        <Header />
         <div style={{ 
-          color: colors.error, 
-          fontSize: typography.h3.fontSize,
-          marginBottom: spacing.md
+          padding: spacing.xxl, 
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+          backgroundColor: colors.bgGray
         }}>
-          Ошибка: {error}
-        </div>
-        <button
-          onClick={() => window.location.reload()}
-          style={{
-            padding: `${spacing.sm} ${spacing.md}`,
-            backgroundColor: colors.primary,
-            color: colors.bgWhite,
-            border: 'none',
-            borderRadius: borderRadius.md,
-            cursor: 'pointer',
+          <KeyOutlined style={{ 
+            fontSize: '64px', 
+            marginBottom: spacing.lg, 
+            color: colors.textMuted 
+          }} />
+          <div style={{ 
+            fontSize: typography.h2.fontSize,
+            fontWeight: 600,
+            color: colors.textPrimary,
+            marginBottom: spacing.md,
+            textAlign: 'center'
+          }}>
+            Необходимо добавить WB API ключ
+          </div>
+          <div style={{ 
             fontSize: typography.body.fontSize,
-            fontWeight: 500,
-            transition: transitions.normal
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = colors.primaryHover
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = colors.primary
-          }}
-        >
-          Обновить страницу
-        </button>
-      </div>
+            color: colors.textSecondary,
+            marginBottom: spacing.xl,
+            textAlign: 'center',
+            maxWidth: '600px',
+            lineHeight: 1.6
+          }}>
+            Для просмотра аналитики необходимо добавить WB API ключ в личном кабинете. 
+            Ключ должен иметь доступ на чтение для всех разделов.
+          </div>
+          <Button
+            type="primary"
+            size="large"
+            icon={<UserOutlined />}
+            onClick={() => navigate('/profile')}
+            style={{
+              backgroundColor: colors.primary,
+              borderColor: colors.primary,
+              height: '48px',
+              paddingLeft: spacing.lg,
+              paddingRight: spacing.lg,
+              fontSize: typography.body.fontSize,
+              fontWeight: 500
+            }}
+          >
+            Перейти в личный кабинет
+          </Button>
+        </div>
+      </>
     )
   }
 
-  if (!summary) {
+  // Показываем информативное сообщение для менеджеров/админов без селлеров с ключами
+  if (hasNoSellers && hasNoData) {
     return (
-      <div style={{ 
-        padding: spacing.xxl, 
-        width: '100%',
-        textAlign: 'center',
-        color: colors.textSecondary
-      }}>
-        <InfoCircleOutlined style={{ fontSize: '48px', marginBottom: spacing.md, color: colors.textMuted }} />
-        <div style={{ fontSize: typography.h3.fontSize }}>Нет данных</div>
-      </div>
+      <>
+        <Header />
+        <div style={{ 
+          padding: spacing.xxl, 
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+          backgroundColor: colors.bgGray
+        }}>
+          <InfoCircleOutlined style={{ 
+            fontSize: '64px', 
+            marginBottom: spacing.lg, 
+            color: colors.textMuted 
+          }} />
+          <div style={{ 
+            fontSize: typography.h2.fontSize,
+            fontWeight: 600,
+            color: colors.textPrimary,
+            marginBottom: spacing.md,
+            textAlign: 'center'
+          }}>
+            Нет данных для аналитики
+          </div>
+          <div style={{ 
+            fontSize: typography.body.fontSize,
+            color: colors.textSecondary,
+            marginBottom: spacing.xl,
+            textAlign: 'center',
+            maxWidth: '600px',
+            lineHeight: 1.6
+          }}>
+            Нет активных селлеров с сохраненной информацией для аналитики. 
+            Необходимо, чтобы были активные селлеры с добавленным WB API ключом и загруженной информацией.
+          </div>
+        </div>
+      </>
     )
+  }
+
+  // Показываем общую ошибку только для реальных ошибок (не связанных с отсутствием данных)
+  if (error) {
+    return (
+      <>
+        <Header />
+        <div style={{ 
+          padding: spacing.xxl, 
+          width: '100%',
+          textAlign: 'center',
+          backgroundColor: colors.bgGray,
+          minHeight: '60vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{ 
+            color: colors.error, 
+            fontSize: typography.h3.fontSize,
+            marginBottom: spacing.md
+          }}>
+            Ошибка: {error}
+          </div>
+          <Button
+            type="primary"
+            size="large"
+            onClick={() => window.location.reload()}
+            style={{
+              backgroundColor: colors.primary,
+              borderColor: colors.primary,
+              height: '48px',
+              paddingLeft: spacing.lg,
+              paddingRight: spacing.lg,
+              fontSize: typography.body.fontSize,
+              fontWeight: 500
+            }}
+          >
+            Обновить страницу
+          </Button>
+        </div>
+      </>
+    )
+  }
+
+  // Показываем сообщение, если summary пустой или нет артикулов (но нет ошибки)
+  const hasEmptySummary = summary && (!summary.articles || summary.articles.length === 0)
+  if ((!summary || hasEmptySummary) && !loading && !error) {
+    // Если это селлер без API ключа или менеджер/админ без селлеров, уже показали сообщение выше
+    // Здесь показываем только если summary загружен, но пустой
+    if (hasEmptySummary) {
+      return (
+        <>
+          <Header />
+          <div style={{ 
+            padding: spacing.xxl, 
+            width: '100%',
+            textAlign: 'center',
+            backgroundColor: colors.bgGray,
+            minHeight: '60vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <InfoCircleOutlined style={{ 
+              fontSize: '64px', 
+              marginBottom: spacing.md, 
+              color: colors.textMuted 
+            }} />
+            <div style={{ 
+              fontSize: typography.h3.fontSize,
+              color: colors.textSecondary,
+              marginBottom: spacing.sm
+            }}>
+              Нет данных для отображения
+            </div>
+            <div style={{ 
+              fontSize: typography.body.fontSize,
+              color: colors.textMuted,
+              maxWidth: '500px',
+              lineHeight: 1.6
+            }}>
+              Аналитика будет доступна после загрузки данных из Wildberries. Данные обновляются автоматически.
+            </div>
+          </div>
+        </>
+      )
+    }
   }
 
   return (
     <>
-      <Header />
+      <Header 
+        sellerSelectProps={
+          isManagerOrAdmin && activeSellers.length > 0
+            ? {
+                selectedSellerId,
+                activeSellers,
+                onSellerChange: setSelectedSellerId,
+              }
+            : undefined
+        }
+      />
       <div style={{ 
         padding: `${spacing.lg} ${spacing.md}`, 
         width: '100%',
@@ -539,6 +798,7 @@ export default function AnalyticsSummary() {
               {METRIC_KEYS.map(metricKey => {
                 const metricNameRu = METRIC_NAMES_RU[metricKey]
                 const category = FUNNEL_METRICS.includes(metricKey) ? 'funnel' : 'advertising'
+                if (!summary) return null
                 const metrics = summary.aggregatedMetrics
                 const getMetricValue = (periodId: number) => {
                   const periodMetrics = metrics[periodId]

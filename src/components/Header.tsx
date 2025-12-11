@@ -1,15 +1,23 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Button, Space, Typography } from 'antd'
+import { Button, Space, Typography, Select } from 'antd'
 import { UserOutlined, BarChartOutlined, ArrowLeftOutlined, TeamOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../store/authStore'
+import type { UserListItem } from '../types/api'
 
 const { Text, Title } = Typography
 
-interface HeaderProps {
-  articleTitle?: string
+interface SellerSelectProps {
+  selectedSellerId?: number
+  activeSellers: UserListItem[]
+  onSellerChange: (sellerId: number | undefined) => void
 }
 
-export default function Header({ articleTitle }: HeaderProps = {}) {
+interface HeaderProps {
+  articleTitle?: string
+  sellerSelectProps?: SellerSelectProps
+}
+
+export default function Header({ articleTitle, sellerSelectProps }: HeaderProps = {}) {
   const navigate = useNavigate()
   const location = useLocation()
   const email = useAuthStore((state) => state.email)
@@ -20,7 +28,7 @@ export default function Header({ articleTitle }: HeaderProps = {}) {
   
   // Название кнопки в зависимости от роли
   const getUsersButtonLabel = () => {
-    if (role === 'ADMIN') return 'Менеджеры'
+    if (role === 'ADMIN') return 'Пользователи'
     if (role === 'MANAGER') return 'Селлеры'
     if (role === 'SELLER') return 'Работники'
     return 'Пользователи'
@@ -62,17 +70,31 @@ export default function Header({ articleTitle }: HeaderProps = {}) {
           </Button>
         )}
         {isAnalyticsPage && (
-          <Title 
-            level={2} 
-            style={{ 
-              margin: 0,
-              fontSize: '24px',
-              fontWeight: 600,
-              color: '#1E293B'
-            }}
-          >
-            Сводная аналитика
-          </Title>
+          <>
+            <Title 
+              level={2} 
+              style={{ 
+                margin: 0,
+                fontSize: '24px',
+                fontWeight: 600,
+                color: '#1E293B'
+              }}
+            >
+              Сводная аналитика
+            </Title>
+            {sellerSelectProps && (
+              <Select
+                value={sellerSelectProps.selectedSellerId}
+                onChange={sellerSelectProps.onSellerChange}
+                style={{ minWidth: 250, marginLeft: '16px' }}
+                placeholder="Выберите селлера"
+                options={sellerSelectProps.activeSellers.map(seller => ({
+                  label: seller.email,
+                  value: seller.id,
+                }))}
+              />
+            )}
+          </>
         )}
         {isProfilePage && (
           <Title 
@@ -122,7 +144,7 @@ export default function Header({ articleTitle }: HeaderProps = {}) {
           </Text>
         )}
         
-        {isProfilePage && (
+        {(isProfilePage || (role === 'ADMIN' || role === 'MANAGER')) && !isAnalyticsPage && (
           <Button
             type="default"
             icon={<BarChartOutlined />}
