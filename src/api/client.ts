@@ -27,7 +27,8 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Обрабатываем 401 (Unauthorized) и 403 (Forbidden) - истекший или невалидный токен
+    if (error.response?.status === 401 || error.response?.status === 403) {
       useAuthStore.getState().clearAuth()
       window.location.href = '/login'
     }
