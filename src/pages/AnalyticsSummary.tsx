@@ -624,7 +624,17 @@ export default function AnalyticsSummary() {
     if (hasEmptySummary) {
       return (
         <>
-          <Header />
+          <Header 
+            sellerSelectProps={
+              isManagerOrAdmin && activeSellers.length > 0
+                ? {
+                    selectedSellerId,
+                    activeSellers,
+                    onSellerChange: setSelectedSellerId,
+                  }
+                : undefined
+            }
+          />
           <div style={{ 
             padding: spacing.xxl, 
             width: '100%',
