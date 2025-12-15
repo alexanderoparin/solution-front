@@ -352,6 +352,9 @@ export default function AnalyticsSummary() {
       if (statusCode === 404 || errorMessage.includes('не найден') || errorMessage.includes('Не найдено')) {
         setError(null) // Не показываем как ошибку, покажем информативное сообщение
         setSummary(null) // Устанавливаем summary в null для показа информативного сообщения
+      } else if (statusCode === 403) {
+        // 403 Forbidden - нет прав доступа
+        setError('У вас нет прав доступа к этой странице. Обратитесь к администратору.')
       } else {
         setError(errorMessage)
       }
