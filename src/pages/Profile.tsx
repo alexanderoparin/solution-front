@@ -76,7 +76,15 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: ['userProfile'] })
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Ошибка запуска обновления данных')
+      // Обрабатываем ошибку 429 (Too Many Requests) - слишком частые обновления
+      const statusCode = error.response?.status
+      const errorMessage = error.response?.data?.message || 'Ошибка запуска обновления данных'
+      
+      if (statusCode === 429) {
+        message.error(errorMessage)
+      } else {
+        message.error(errorMessage)
+      }
     },
   })
 
@@ -103,6 +111,70 @@ export default function Profile() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '—'
     return dayjs(dateString).format('DD.MM.YYYY HH:mm')
+  }
+
+  // Минимальный интервал между обновлениями (6 часов)
+  const MIN_UPDATE_INTERVAL_HOURS = 6
+
+  // Проверяет, можно ли запустить обновление (прошло ли 6 часов)
+  const canUpdateData = (): boolean => {
+    if (!profile?.apiKey?.lastDataUpdateAt) {
+      return true // Если обновление еще не запускалось, разрешаем
+    }
+    
+    const lastUpdate = dayjs(profile.apiKey.lastDataUpdateAt)
+    const now = dayjs()
+    const hoursSinceLastUpdate = now.diff(lastUpdate, 'hour')
+    
+    return hoursSinceLastUpdate >= MIN_UPDATE_INTERVAL_HOURS
+  }
+
+  // Вычисляет оставшееся время до следующего обновления
+  const getRemainingTime = (): string | null => {
+    if (!profile?.apiKey?.lastDataUpdateAt) {
+      return null
+    }
+    
+    const lastUpdate = dayjs(profile.apiKey.lastDataUpdateAt)
+    const now = dayjs()
+    const hoursSinceLastUpdate = now.diff(lastUpdate, 'hour')
+    const minutesSinceLastUpdate = now.diff(lastUpdate, 'minute')
+    
+    if (hoursSinceLastUpdate >= MIN_UPDATE_INTERVAL_HOURS) {
+      return null
+    }
+    
+    const remainingMinutes = MIN_UPDATE_INTERVAL_HOURS * 60 - minutesSinceLastUpdate
+    const remainingHours = Math.floor(remainingMinutes / 60)
+    const remainingMins = remainingMinutes % 60
+    
+    if (remainingHours > 0) {
+      return `${remainingHours} ${getHoursWord(remainingHours)} ${remainingMins > 0 ? `и ${remainingMins} ${getMinutesWord(remainingMins)}` : ''}`
+    } else {
+      return `${remainingMins} ${getMinutesWord(remainingMins)}`
+    }
+  }
+
+  // Возвращает правильное склонение слова "час/часа/часов"
+  const getHoursWord = (hours: number): string => {
+    if (hours % 10 === 1 && hours % 100 !== 11) {
+      return 'час'
+    } else if (hours % 10 >= 2 && hours % 10 <= 4 && (hours % 100 < 10 || hours % 100 >= 20)) {
+      return 'часа'
+    } else {
+      return 'часов'
+    }
+  }
+
+  // Возвращает правильное склонение слова "минута/минуты/минут"
+  const getMinutesWord = (minutes: number): string => {
+    if (minutes % 10 === 1 && minutes % 100 !== 11) {
+      return 'минута'
+    } else if (minutes % 10 >= 2 && minutes % 10 <= 4 && (minutes % 100 < 10 || minutes % 100 >= 20)) {
+      return 'минуты'
+    } else {
+      return 'минут'
+    }
   }
 
   if (isLoading) {
@@ -311,17 +383,28 @@ export default function Profile() {
                     ) : (
                       <div style={{ height: '40px' }}></div>
                     )}
-                    <Tooltip title="Запускает обновление карточек, кампаний и аналитики. Процесс выполняется в фоновом режиме.">
-                      <Button
-                        type="default"
-                        icon={<SyncOutlined />}
-                        onClick={() => triggerDataUpdateMutation.mutate()}
-                        loading={triggerDataUpdateMutation.isPending}
-                        style={{ width: '100%' }}
-                      >
-                        Обновить данные
-                      </Button>
-                    </Tooltip>
+                    {(() => {
+                      const canUpdate = canUpdateData()
+                      const remainingTime = getRemainingTime()
+                      const tooltipTitle = canUpdate
+                        ? 'Запускает обновление карточек, кампаний и аналитики. Процесс выполняется в фоновом режиме.'
+                        : `Обновление данных можно запускать не чаще одного раза в ${MIN_UPDATE_INTERVAL_HOURS} часов. Следующее обновление будет доступно через ${remainingTime || 'несколько минут'}.`
+                      
+                      return (
+                        <Tooltip title={tooltipTitle}>
+                          <Button
+                            type="default"
+                            icon={<SyncOutlined />}
+                            onClick={() => triggerDataUpdateMutation.mutate()}
+                            loading={triggerDataUpdateMutation.isPending}
+                            disabled={!canUpdate || triggerDataUpdateMutation.isPending}
+                            style={{ width: '100%' }}
+                          >
+                            Обновить данные
+                          </Button>
+                        </Tooltip>
+                      )
+                    })()}
                   </Space>
                 </Col>
               </Row>
