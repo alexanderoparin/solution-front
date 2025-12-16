@@ -396,13 +396,55 @@ export default function AnalyticsSummary() {
     }
   }, [excludedNmIds, periods, selectedSellerId, originalArticles.length, loadOriginalArticles])
 
-  // Сбрасываем фильтр и загружаем исходный список при смене селлера или периодов
+  // Загружаем сохраненный фильтр и исходный список при смене селлера или периодов
   useEffect(() => {
-    setExcludedNmIds(new Set())
-    if (selectedSellerId !== undefined) {
+    if (isManagerOrAdmin && selectedSellerId !== undefined) {
+      // Загружаем сохраненный фильтр для текущего селлера
+      const saved = localStorage.getItem(`analytics_excluded_nm_ids_${selectedSellerId}`)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as number[]
+          setExcludedNmIds(new Set(parsed))
+        } catch {
+          setExcludedNmIds(new Set())
+        }
+      } else {
+        setExcludedNmIds(new Set())
+      }
       loadOriginalArticles()
+    } else if (!isManagerOrAdmin) {
+      // Для селлеров всегда пустой фильтр
+      setExcludedNmIds(new Set())
     }
-  }, [selectedSellerId, periods.length, loadOriginalArticles])
+  }, [selectedSellerId, periods.length, loadOriginalArticles, isManagerOrAdmin])
+
+  // Загружаем сохраненный фильтр при первой установке selectedSellerId
+  useEffect(() => {
+    if (isManagerOrAdmin && selectedSellerId !== undefined && excludedNmIds.size === 0) {
+      const saved = localStorage.getItem(`analytics_excluded_nm_ids_${selectedSellerId}`)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as number[]
+          if (parsed.length > 0) {
+            setExcludedNmIds(new Set(parsed))
+          }
+        } catch {
+          // Игнорируем ошибку
+        }
+      }
+    }
+  }, [selectedSellerId, isManagerOrAdmin])
+
+  // Сохраняем фильтр артикулов в localStorage при изменении
+  useEffect(() => {
+    if (isManagerOrAdmin && selectedSellerId !== undefined) {
+      const excludedArray = Array.from(excludedNmIds)
+      localStorage.setItem(
+        `analytics_excluded_nm_ids_${selectedSellerId}`,
+        JSON.stringify(excludedArray)
+      )
+    }
+  }, [excludedNmIds, selectedSellerId, isManagerOrAdmin])
 
   useEffect(() => {
     loadSummary()
