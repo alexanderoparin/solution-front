@@ -27,11 +27,37 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    const status = error.response?.status
+    const token = useAuthStore.getState().token
+    const requestUrl = error.config?.url || ''
+    
     // 401 (Unauthorized) - токен отсутствует, истек или невалиден - редиректим на логин
-    if (error.response?.status === 401) {
+    if (status === 401) {
       useAuthStore.getState().clearAuth()
       window.location.href = '/login'
+      return Promise.reject(error)
     }
+    
+    // 403 (Forbidden) - может быть из-за отсутствия токена, истекшего токена или отсутствия прав
+    if (status === 403) {
+      // Если токена нет в store, считаем это как 401 и редиректим на логин
+      if (!token) {
+        useAuthStore.getState().clearAuth()
+        window.location.href = '/login'
+        return Promise.reject(error)
+      }
+      
+      // Для базовых эндпоинтов (profile, active-sellers) 403 скорее всего означает истекший токен
+      // Редиректим на логин
+      const isBasicEndpoint = requestUrl.includes('/user/profile') || 
+                              requestUrl.includes('/users/active-sellers')
+      if (isBasicEndpoint) {
+        useAuthStore.getState().clearAuth()
+        window.location.href = '/login'
+        return Promise.reject(error)
+      }
+    }
+    
     // 403 (Forbidden) - токен валиден, но нет прав доступа - не редиректим, просто пробрасываем ошибку
     // Компоненты сами обработают и покажут сообщение пользователю
     return Promise.reject(error)
