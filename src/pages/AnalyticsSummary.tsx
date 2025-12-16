@@ -10,7 +10,7 @@ import { analyticsApi } from '../api/analytics'
 import { userApi } from '../api/user'
 import { generateDefaultPeriods, validatePeriods } from '../utils/periodGenerator'
 import { analyticsRequestQueue } from '../utils/requestQueue'
-import type { SummaryResponse, MetricGroupResponse, Period } from '../types/analytics'
+import type { SummaryResponse, MetricGroupResponse, Period, ArticleSummary } from '../types/analytics'
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
@@ -322,22 +322,55 @@ export default function AnalyticsSummary() {
   const [summary, setSummary] = useState<SummaryResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [excludedNmIds] = useState<Set<number>>(new Set())
+  const [excludedNmIds, setExcludedNmIds] = useState<Set<number>>(new Set())
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set())
   const [metricGroups, setMetricGroups] = useState<Map<string, MetricGroupResponse>>(new Map())
   const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set())
+  const [articleSearchText, setArticleSearchText] = useState<string>('')
+  // Сохраняем исходный список артикулов, чтобы фильтр всегда был виден
+  const [originalArticles, setOriginalArticles] = useState<ArticleSummary[]>([])
+
+  // Загружаем исходный список артикулов без фильтрации
+  // Это нужно для того, чтобы фильтр всегда был виден, даже когда все артикулы исключены
+  const loadOriginalArticles = useCallback(async () => {
+    if (selectedSellerId === undefined) return
+    try {
+      const data = await analyticsApi.getSummary({
+        periods,
+        excludedNmIds: undefined, // Загружаем без фильтрации
+        sellerId: selectedSellerId,
+      })
+      if (data && data.articles) {
+        setOriginalArticles(data.articles)
+      } else {
+        setOriginalArticles([])
+      }
+    } catch (err) {
+      // Игнорируем ошибки при загрузке исходного списка
+      console.error('Ошибка при загрузке исходного списка артикулов:', err)
+      setOriginalArticles([])
+    }
+  }, [periods, selectedSellerId])
 
   const loadSummary = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
       const excludedArray = Array.from(excludedNmIds)
+      
+      // Загружаем исходный список артикулов параллельно, если он еще не загружен
+      if (originalArticles.length === 0 && selectedSellerId !== undefined) {
+        loadOriginalArticles()
+      }
+      
       const data = await analyticsApi.getSummary({
         periods,
         excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
         sellerId: selectedSellerId,
       })
       setSummary(data)
+      // НЕ сохраняем originalArticles здесь, так как data.articles может быть пустым при фильтрации
+      // originalArticles загружается отдельно через loadOriginalArticles
       // Очищаем загруженные метрики при изменении фильтра или периодов
       setMetricGroups(new Map())
       setExpandedMetrics(new Set())
@@ -361,11 +394,27 @@ export default function AnalyticsSummary() {
     } finally {
       setLoading(false)
     }
-  }, [excludedNmIds, periods, selectedSellerId])
+  }, [excludedNmIds, periods, selectedSellerId, originalArticles.length, loadOriginalArticles])
+
+  // Сбрасываем фильтр и загружаем исходный список при смене селлера или периодов
+  useEffect(() => {
+    setExcludedNmIds(new Set())
+    if (selectedSellerId !== undefined) {
+      loadOriginalArticles()
+    }
+  }, [selectedSellerId, periods.length, loadOriginalArticles])
 
   useEffect(() => {
     loadSummary()
   }, [loadSummary])
+
+  // Загружаем исходный список артикулов при первой загрузке, если он еще не загружен
+  // Это гарантирует, что фильтр всегда будет виден, даже если summary пустой
+  useEffect(() => {
+    if (originalArticles.length === 0 && !loading && selectedSellerId !== undefined) {
+      loadOriginalArticles()
+    }
+  }, [loading, originalArticles.length, selectedSellerId, loadOriginalArticles])
 
   useEffect(() => {
     // Сохраняем периоды в localStorage при изменении
@@ -445,6 +494,7 @@ export default function AnalyticsSummary() {
     const dateTo = dayjs(period.dateTo).format('DD.MM')
     return `${dateFrom} - ${dateTo}`
   }
+
 
   if (loading && !summary) {
     return (
@@ -634,6 +684,17 @@ export default function AnalyticsSummary() {
                   }
                 : undefined
             }
+            articleFilterProps={
+              originalArticles.length > 0
+                ? {
+                    articles: originalArticles,
+                    excludedNmIds,
+                    onExcludedNmIdsChange: setExcludedNmIds,
+                    articleSearchText,
+                    onArticleSearchTextChange: setArticleSearchText,
+                  }
+                : undefined
+            }
           />
           <div style={{ 
             padding: spacing.xxl, 
@@ -681,6 +742,17 @@ export default function AnalyticsSummary() {
                 selectedSellerId,
                 activeSellers,
                 onSellerChange: setSelectedSellerId,
+              }
+            : undefined
+        }
+        articleFilterProps={
+          originalArticles.length > 0
+            ? {
+                articles: originalArticles,
+                excludedNmIds,
+                onExcludedNmIdsChange: setExcludedNmIds,
+                articleSearchText,
+                onArticleSearchTextChange: setArticleSearchText,
               }
             : undefined
         }
