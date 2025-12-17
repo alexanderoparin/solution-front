@@ -28,7 +28,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status
-    const token = useAuthStore.getState().token
+    const url = error.config?.url || ''
     
     // 401 - неавторизован, всегда редиректим на логин
     if (status === 401) {
@@ -37,12 +37,19 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
     
-    // 403 - запрещено, но если токена нет, это означает отсутствие авторизации
-    // В этом случае тоже редиректим на логин
-    if (status === 403 && !token) {
-      useAuthStore.getState().clearAuth()
-      window.location.href = '/login'
-      return Promise.reject(error)
+    // 403 - запрещено
+    // Для эндпоинтов, которые требуют авторизации (профиль, активные селлеры),
+    // 403 с "JWT токен не найден или невалиден" означает проблему с авторизацией
+    // Редиректим на логин для этих эндпоинтов
+    if (status === 403) {
+      const authRequiredEndpoints = ['/user/profile', '/users/active-sellers']
+      const isAuthRequiredEndpoint = authRequiredEndpoints.some(endpoint => url.includes(endpoint))
+      
+      if (isAuthRequiredEndpoint) {
+        useAuthStore.getState().clearAuth()
+        window.location.href = '/login'
+        return Promise.reject(error)
+      }
     }
     
     return Promise.reject(error)
