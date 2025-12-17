@@ -52,10 +52,11 @@ const FUNNELS = {
   }
 }
 
-function getLast14Days(): string[] {
+function getLast7Days(): string[] {
   const days: string[] = []
   const yesterday = dayjs().subtract(1, 'day')
-  for (let i = 13; i >= 0; i--) {
+  // Максимум 7 дней: вчера и 6 дней до этого
+  for (let i = 6; i >= 0; i--) {
     days.push(yesterday.subtract(i, 'day').format('YYYY-MM-DD'))
   }
   return days.reverse() // Разворачиваем, чтобы самые новые были сверху
@@ -89,7 +90,7 @@ export default function AnalyticsArticle() {
   const [article, setArticle] = useState<ArticleResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [last14Days] = useState<string[]>(getLast14Days())
+  const [last7Days] = useState<string[]>(getLast7Days())
 
   useEffect(() => {
     if (!nmId) {
@@ -618,7 +619,7 @@ export default function AnalyticsArticle() {
               </tr>
             </thead>
             <tbody>
-              {last14Days.map(date => (
+              {last7Days.map(date => (
                 <tr key={date}>
                   <td style={{
                     padding: spacing.sm,
