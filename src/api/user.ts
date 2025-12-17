@@ -24,6 +24,14 @@ export const userApi = {
     return response.data
   },
 
+  /**
+   * Запускает обновление данных для текущего селлера.
+   */
+  triggerDataUpdate: async (): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/user/update-data')
+    return response.data
+  },
+
   // Управление пользователями
   getManagedUsers: async (): Promise<UserListItem[]> => {
     const response = await apiClient.get<UserListItem[]>('/users')

@@ -33,6 +33,7 @@ export interface ApiKeyInfo {
   isValid: boolean | null
   lastValidatedAt: string | null
   validationError: string | null
+  lastDataUpdateAt: string | null
 }
 
 export interface UpdateApiKeyRequest {
