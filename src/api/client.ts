@@ -27,10 +27,24 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status
+    const token = useAuthStore.getState().token
+    
+    // 401 - неавторизован, всегда редиректим на логин
+    if (status === 401) {
       useAuthStore.getState().clearAuth()
       window.location.href = '/login'
+      return Promise.reject(error)
     }
+    
+    // 403 - запрещено, но если токена нет, это означает отсутствие авторизации
+    // В этом случае тоже редиректим на логин
+    if (status === 403 && !token) {
+      useAuthStore.getState().clearAuth()
+      window.location.href = '/login'
+      return Promise.reject(error)
+    }
+    
     return Promise.reject(error)
   }
 )
