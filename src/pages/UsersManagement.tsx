@@ -28,7 +28,6 @@ import 'dayjs/locale/ru'
 
 dayjs.locale('ru')
 
-
 const ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: 'Администратор',
   MANAGER: 'Менеджер',
@@ -52,18 +51,12 @@ export default function UsersManagement() {
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role) as UserRole
 
-  // Определяем, какие роли можно создавать
-  const getCreatableRoles = (): UserRole[] => {
-    if (role === 'ADMIN') return ['MANAGER', 'SELLER']
-    if (role === 'MANAGER') return ['SELLER']
-    if (role === 'SELLER') return ['WORKER']
-    return ['WORKER']
-  }
-
-  // Получаем роль по умолчанию (первая из доступных)
-  const getDefaultRole = (): UserRole => {
-    const roles = getCreatableRoles()
-    return roles[0]
+  // Определяем, какую роль можно создавать
+  const getCreatableRole = (): UserRole => {
+    if (role === 'ADMIN') return 'MANAGER'
+    if (role === 'MANAGER') return 'SELLER'
+    if (role === 'SELLER') return 'WORKER'
+    return 'WORKER'
   }
 
   // Получение списка пользователей
@@ -136,7 +129,6 @@ export default function UsersManagement() {
   const handleToggleActive = (user: UserListItem) => {
     toggleActiveMutation.mutate(user.id)
   }
-
 
   const columns = [
     {
@@ -292,15 +284,12 @@ export default function UsersManagement() {
             <Form.Item
               name="role"
               label="Роль"
-              initialValue={getDefaultRole()}
-              rules={[{ required: true, message: 'Выберите роль' }]}
+              initialValue={getCreatableRole()}
             >
-              <Select>
-                {getCreatableRoles().map(roleOption => (
-                  <Select.Option key={roleOption} value={roleOption}>
-                    {ROLE_LABELS[roleOption]}
-                  </Select.Option>
-                ))}
+              <Select disabled>
+                <Select.Option value={getCreatableRole()}>
+                  {ROLE_LABELS[getCreatableRole()]}
+                </Select.Option>
               </Select>
             </Form.Item>
 

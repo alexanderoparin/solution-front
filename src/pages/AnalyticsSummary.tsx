@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { DatePicker, Spin, Tooltip, Button } from 'antd'
-import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined, UserOutlined, KeyOutlined } from '@ant-design/icons'
+import { DatePicker, Spin, Tooltip } from 'antd'
+import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -148,87 +147,44 @@ const FUNNEL_METRICS = [
 ]
 
 export default function AnalyticsSummary() {
-  const navigate = useNavigate()
   const role = useAuthStore((state) => state.role)
-  const isManagerOrAdmin = role === 'MANAGER' || role === 'ADMIN'
-  const isSeller = role === 'SELLER'
-
-  // Получение профиля пользователя для проверки API ключа (для селлеров)
-  const { data: userProfile } = useQuery({
-    queryKey: ['userProfile'],
-    queryFn: userApi.getProfile,
-    enabled: isSeller,
-  })
-
-  // Получение списка активных селлеров для ADMIN/MANAGER
-  const { data: activeSellers = [] } = useQuery({
+  const isManagerOrAdmin = role === 'ADMIN' || role === 'MANAGER'
+  
+  // Загрузка списка активных селлеров (только для админов и менеджеров)
+  const { data: activeSellers = [], isLoading: sellersLoading } = useQuery({
     queryKey: ['activeSellers'],
-    queryFn: userApi.getActiveSellers,
+    queryFn: () => userApi.getActiveSellers(),
     enabled: isManagerOrAdmin,
   })
-
-  // Выбор последнего добавленного активного селлера по умолчанию
-  const getDefaultSellerId = (sellers: typeof activeSellers): number | undefined => {
-    if (!isManagerOrAdmin || sellers.length === 0) {
-      return undefined
-    }
-    // Сортируем по createdAt DESC и берем первого (последнего добавленного)
-    const sorted = [...sellers].sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime()
-      const dateB = new Date(b.createdAt).getTime()
-      return dateB - dateA
-    })
-    return sorted[0]?.id
-  }
-
+  
+  // Выбранный селлер (только для админов и менеджеров)
   const [selectedSellerId, setSelectedSellerId] = useState<number | undefined>(() => {
     if (!isManagerOrAdmin) return undefined
-    // Пытаемся загрузить из localStorage
     const saved = localStorage.getItem('analytics_selected_seller_id')
     if (saved) {
       try {
         const sellerId = parseInt(saved, 10)
-        if (!isNaN(sellerId)) {
-          return sellerId
-        }
+        if (!isNaN(sellerId)) return sellerId
       } catch {
-        // Игнорируем ошибку
+        // Игнорируем
       }
     }
     return undefined
   })
-
-  // Обновляем выбранного селлера при загрузке списка
+  
+  // Устанавливаем первого селлера по умолчанию
   useEffect(() => {
-    if (isManagerOrAdmin && activeSellers.length > 0) {
-      // Если sellerId не выбран, выбираем последнего добавленного
-      if (!selectedSellerId) {
-        const defaultId = getDefaultSellerId(activeSellers)
-        if (defaultId) {
-          setSelectedSellerId(defaultId)
-          localStorage.setItem('analytics_selected_seller_id', defaultId.toString())
-        }
-      } else {
-        // Проверяем, что выбранный селлер все еще активен
-        const sellerExists = activeSellers.some(s => s.id === selectedSellerId && s.isActive)
-        if (!sellerExists) {
-          // Если выбранный селлер больше не активен, выбираем последнего добавленного
-          const defaultId = getDefaultSellerId(activeSellers)
-          if (defaultId) {
-            setSelectedSellerId(defaultId)
-            localStorage.setItem('analytics_selected_seller_id', defaultId.toString())
-          }
-        }
-      }
+    if (isManagerOrAdmin && activeSellers.length > 0 && !selectedSellerId) {
+      const lastSeller = activeSellers[activeSellers.length - 1]
+      setSelectedSellerId(lastSeller.id)
+      localStorage.setItem('analytics_selected_seller_id', lastSeller.id.toString())
     }
   }, [activeSellers, isManagerOrAdmin, selectedSellerId])
-
+  
   // Сохраняем выбранного селлера в localStorage
   useEffect(() => {
     if (isManagerOrAdmin && selectedSellerId) {
       localStorage.setItem('analytics_selected_seller_id', selectedSellerId.toString())
-    } else if (!isManagerOrAdmin) {
-      localStorage.removeItem('analytics_selected_seller_id')
     }
   }, [selectedSellerId, isManagerOrAdmin])
 
@@ -327,17 +283,16 @@ export default function AnalyticsSummary() {
   const [metricGroups, setMetricGroups] = useState<Map<string, MetricGroupResponse>>(new Map())
   const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set())
   const [articleSearchText, setArticleSearchText] = useState<string>('')
-  // Сохраняем исходный список артикулов, чтобы фильтр всегда был виден
   const [originalArticles, setOriginalArticles] = useState<ArticleSummary[]>([])
 
   // Загружаем исходный список артикулов без фильтрации
-  // Это нужно для того, чтобы фильтр всегда был виден, даже когда все артикулы исключены
   const loadOriginalArticles = useCallback(async () => {
-    if (selectedSellerId === undefined) return
+    // Для менеджера/админа нужен выбранный селлер
+    if (isManagerOrAdmin && selectedSellerId === undefined) return
     try {
       const data = await analyticsApi.getSummary({
         periods,
-        excludedNmIds: undefined, // Загружаем без фильтрации
+        excludedNmIds: undefined,
         sellerId: selectedSellerId,
       })
       if (data && data.articles) {
@@ -346,20 +301,25 @@ export default function AnalyticsSummary() {
         setOriginalArticles([])
       }
     } catch (err) {
-      // Игнорируем ошибки при загрузке исходного списка
       console.error('Ошибка при загрузке исходного списка артикулов:', err)
       setOriginalArticles([])
     }
-  }, [periods, selectedSellerId])
+  }, [periods, selectedSellerId, isManagerOrAdmin])
 
   const loadSummary = useCallback(async () => {
+    // Для менеджера/админа нужен выбранный селлер
+    if (isManagerOrAdmin && selectedSellerId === undefined) {
+      setLoading(false)
+      return
+    }
+    
     try {
       setLoading(true)
       setError(null)
       const excludedArray = Array.from(excludedNmIds)
       
       // Загружаем исходный список артикулов параллельно, если он еще не загружен
-      if (originalArticles.length === 0 && selectedSellerId !== undefined) {
+      if (originalArticles.length === 0) {
         loadOriginalArticles()
       }
       
@@ -369,37 +329,40 @@ export default function AnalyticsSummary() {
         sellerId: selectedSellerId,
       })
       setSummary(data)
-      // НЕ сохраняем originalArticles здесь, так как data.articles может быть пустым при фильтрации
-      // originalArticles загружается отдельно через loadOriginalArticles
       // Очищаем загруженные метрики при изменении фильтра или периодов
       setMetricGroups(new Map())
       setExpandedMetrics(new Set())
       setLoadingMetrics(new Set())
     } catch (err: any) {
-      // Определяем тип ошибки для более информативного сообщения
-      const errorMessage = err.response?.data?.message || 'Ошибка при загрузке данных'
-      const statusCode = err.response?.status
-      
-      // Если это ошибка из-за отсутствия API ключа или селлеров, не показываем как ошибку
-      // Теперь селлеры без ключей не должны попадать в список, но на всякий случай обрабатываем
-      if (statusCode === 404 || errorMessage.includes('не найден') || errorMessage.includes('Не найдено')) {
-        setError(null) // Не показываем как ошибку, покажем информативное сообщение
-        setSummary(null) // Устанавливаем summary в null для показа информативного сообщения
-      } else if (statusCode === 403) {
-        // 403 Forbidden - нет прав доступа
-        setError('У вас нет прав доступа к этой странице. Обратитесь к администратору.')
-      } else {
-        setError(errorMessage)
-      }
+      setError(err.response?.data?.message || 'Ошибка при загрузке данных')
     } finally {
       setLoading(false)
     }
-  }, [excludedNmIds, periods, selectedSellerId, originalArticles.length, loadOriginalArticles])
+  }, [excludedNmIds, periods, selectedSellerId, originalArticles.length, loadOriginalArticles, isManagerOrAdmin])
 
-  // Загружаем сохраненный фильтр и исходный список при смене селлера или периодов
   useEffect(() => {
-    if (isManagerOrAdmin && selectedSellerId !== undefined) {
-      // Загружаем сохраненный фильтр для текущего селлера
+    loadSummary()
+  }, [loadSummary])
+
+  useEffect(() => {
+    // Сохраняем периоды в localStorage при изменении
+    localStorage.setItem('analytics_periods', JSON.stringify(periods))
+  }, [periods])
+  
+  // Сохраняем фильтр артикулов в localStorage при изменении
+  useEffect(() => {
+    if (selectedSellerId !== undefined) {
+      const excludedArray = Array.from(excludedNmIds)
+      localStorage.setItem(
+        `analytics_excluded_nm_ids_${selectedSellerId}`,
+        JSON.stringify(excludedArray)
+      )
+    }
+  }, [excludedNmIds, selectedSellerId])
+
+  // Загружаем сохраненный фильтр и исходный список при смене селлера
+  useEffect(() => {
+    if (selectedSellerId !== undefined) {
       const saved = localStorage.getItem(`analytics_excluded_nm_ids_${selectedSellerId}`)
       if (saved) {
         try {
@@ -411,57 +374,10 @@ export default function AnalyticsSummary() {
       } else {
         setExcludedNmIds(new Set())
       }
-      loadOriginalArticles()
-    } else if (!isManagerOrAdmin) {
-      // Для селлеров всегда пустой фильтр
-      setExcludedNmIds(new Set())
-    }
-  }, [selectedSellerId, periods.length, loadOriginalArticles, isManagerOrAdmin])
-
-  // Загружаем сохраненный фильтр при первой установке selectedSellerId
-  useEffect(() => {
-    if (isManagerOrAdmin && selectedSellerId !== undefined && excludedNmIds.size === 0) {
-      const saved = localStorage.getItem(`analytics_excluded_nm_ids_${selectedSellerId}`)
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved) as number[]
-          if (parsed.length > 0) {
-            setExcludedNmIds(new Set(parsed))
-          }
-        } catch {
-          // Игнорируем ошибку
-        }
-      }
-    }
-  }, [selectedSellerId, isManagerOrAdmin])
-
-  // Сохраняем фильтр артикулов в localStorage при изменении
-  useEffect(() => {
-    if (isManagerOrAdmin && selectedSellerId !== undefined) {
-      const excludedArray = Array.from(excludedNmIds)
-      localStorage.setItem(
-        `analytics_excluded_nm_ids_${selectedSellerId}`,
-        JSON.stringify(excludedArray)
-      )
-    }
-  }, [excludedNmIds, selectedSellerId, isManagerOrAdmin])
-
-  useEffect(() => {
-    loadSummary()
-  }, [loadSummary])
-
-  // Загружаем исходный список артикулов при первой загрузке, если он еще не загружен
-  // Это гарантирует, что фильтр всегда будет виден, даже если summary пустой
-  useEffect(() => {
-    if (originalArticles.length === 0 && !loading && selectedSellerId !== undefined) {
+      setOriginalArticles([])
       loadOriginalArticles()
     }
-  }, [loading, originalArticles.length, selectedSellerId, loadOriginalArticles])
-
-  useEffect(() => {
-    // Сохраняем периоды в localStorage при изменении
-    localStorage.setItem('analytics_periods', JSON.stringify(periods))
-  }, [periods])
+  }, [selectedSellerId, loadOriginalArticles])
 
   const loadMetricGroup = async (metricName: string) => {
     if (metricGroups.has(metricName)) {
@@ -537,8 +453,7 @@ export default function AnalyticsSummary() {
     return `${dateFrom} - ${dateTo}`
   }
 
-
-  if (loading && !summary) {
+  if ((loading || sellersLoading) && !summary) {
     return (
       <div style={{ 
         padding: spacing.xxl, 
@@ -552,227 +467,80 @@ export default function AnalyticsSummary() {
     )
   }
 
-  // Проверяем, нужно ли показать информативное сообщение вместо ошибки
-  const hasNoData = !summary && !loading
-  const hasApiKeyIssue = isSeller && userProfile && (!userProfile.apiKey || !userProfile.apiKey.apiKey)
-  const hasNoSellers = isManagerOrAdmin && activeSellers.length === 0
-
-  // Показываем информативное сообщение для селлеров без API ключа
-  if (hasApiKeyIssue && hasNoData) {
+  // Менеджер/админ без селлеров
+  if (isManagerOrAdmin && !sellersLoading && activeSellers.length === 0) {
     return (
       <>
         <Header />
         <div style={{ 
           padding: spacing.xxl, 
           width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '60vh',
-          backgroundColor: colors.bgGray
+          textAlign: 'center'
         }}>
-          <KeyOutlined style={{ 
-            fontSize: '64px', 
-            marginBottom: spacing.lg, 
-            color: colors.textMuted 
-          }} />
-          <div style={{ 
-            fontSize: typography.h2.fontSize,
-            fontWeight: 600,
-            color: colors.textPrimary,
-            marginBottom: spacing.md,
-            textAlign: 'center'
-          }}>
-            Необходимо добавить WB API ключ
+          <InfoCircleOutlined style={{ fontSize: '48px', marginBottom: spacing.md, color: colors.textMuted }} />
+          <div style={{ fontSize: typography.h3.fontSize, color: colors.textSecondary }}>
+            У вас пока нет селлеров
           </div>
-          <div style={{ 
-            fontSize: typography.body.fontSize,
-            color: colors.textSecondary,
-            marginBottom: spacing.xl,
-            textAlign: 'center',
-            maxWidth: '600px',
-            lineHeight: 1.6
-          }}>
-            Для просмотра аналитики необходимо добавить WB API ключ в личном кабинете. 
-            Ключ должен иметь доступ на чтение для всех разделов.
-          </div>
-          <Button
-            type="primary"
-            size="large"
-            icon={<UserOutlined />}
-            onClick={() => navigate('/profile')}
-            style={{
-              backgroundColor: colors.primary,
-              borderColor: colors.primary,
-              height: '48px',
-              paddingLeft: spacing.lg,
-              paddingRight: spacing.lg,
-              fontSize: typography.body.fontSize,
-              fontWeight: 500
-            }}
-          >
-            Перейти в личный кабинет
-          </Button>
-        </div>
-      </>
-    )
-  }
-
-  // Показываем информативное сообщение для менеджеров/админов без селлеров с ключами
-  if (hasNoSellers && hasNoData) {
-    return (
-      <>
-        <Header />
-        <div style={{ 
-          padding: spacing.xxl, 
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '60vh',
-          backgroundColor: colors.bgGray
-        }}>
-          <InfoCircleOutlined style={{ 
-            fontSize: '64px', 
-            marginBottom: spacing.lg, 
-            color: colors.textMuted 
-          }} />
-          <div style={{ 
-            fontSize: typography.h2.fontSize,
-            fontWeight: 600,
-            color: colors.textPrimary,
-            marginBottom: spacing.md,
-            textAlign: 'center'
-          }}>
-            Нет данных для аналитики
-          </div>
-          <div style={{ 
-            fontSize: typography.body.fontSize,
-            color: colors.textSecondary,
-            marginBottom: spacing.xl,
-            textAlign: 'center',
-            maxWidth: '600px',
-            lineHeight: 1.6
-          }}>
-            Нет активных селлеров с сохраненной информацией для аналитики. 
-            Необходимо, чтобы были активные селлеры с добавленным WB API ключом и загруженной информацией.
+          <div style={{ fontSize: typography.body.fontSize, color: colors.textMuted, marginTop: spacing.sm }}>
+            Добавьте селлеров, нажав на кнопку "Селлеры"
           </div>
         </div>
       </>
     )
   }
 
-  // Показываем общую ошибку только для реальных ошибок (не связанных с отсутствием данных)
   if (error) {
     return (
-      <>
-        <Header />
+      <div style={{ 
+        padding: spacing.xxl, 
+        width: '100%',
+        textAlign: 'center'
+      }}>
         <div style={{ 
-          padding: spacing.xxl, 
-          width: '100%',
-          textAlign: 'center',
-          backgroundColor: colors.bgGray,
-          minHeight: '60vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center'
+          color: colors.error, 
+          fontSize: typography.h3.fontSize,
+          marginBottom: spacing.md
         }}>
-          <div style={{ 
-            color: colors.error, 
-            fontSize: typography.h3.fontSize,
-            marginBottom: spacing.md
-          }}>
-            Ошибка: {error}
-          </div>
-          <Button
-            type="primary"
-            size="large"
-            onClick={() => window.location.reload()}
-            style={{
-              backgroundColor: colors.primary,
-              borderColor: colors.primary,
-              height: '48px',
-              paddingLeft: spacing.lg,
-              paddingRight: spacing.lg,
-              fontSize: typography.body.fontSize,
-              fontWeight: 500
-            }}
-          >
-            Обновить страницу
-          </Button>
+          Ошибка: {error}
         </div>
-      </>
+        <button
+          onClick={() => window.location.reload()}
+          style={{
+            padding: `${spacing.sm} ${spacing.md}`,
+            backgroundColor: colors.primary,
+            color: colors.bgWhite,
+            border: 'none',
+            borderRadius: borderRadius.md,
+            cursor: 'pointer',
+            fontSize: typography.body.fontSize,
+            fontWeight: 500,
+            transition: transitions.normal
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = colors.primaryHover
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = colors.primary
+          }}
+        >
+          Обновить страницу
+        </button>
+      </div>
     )
   }
 
-  // Показываем сообщение, если summary пустой или нет артикулов (но нет ошибки)
-  const hasEmptySummary = summary && (!summary.articles || summary.articles.length === 0)
-  if ((!summary || hasEmptySummary) && !loading && !error) {
-    // Если это селлер без API ключа или менеджер/админ без селлеров, уже показали сообщение выше
-    // Здесь показываем только если summary загружен, но пустой
-    if (hasEmptySummary) {
-      return (
-        <>
-          <Header 
-            sellerSelectProps={
-              isManagerOrAdmin && activeSellers.length > 0
-                ? {
-                    selectedSellerId,
-                    activeSellers,
-                    onSellerChange: setSelectedSellerId,
-                  }
-                : undefined
-            }
-            articleFilterProps={
-              originalArticles.length > 0
-                ? {
-                    articles: originalArticles,
-                    excludedNmIds,
-                    onExcludedNmIdsChange: setExcludedNmIds,
-                    articleSearchText,
-                    onArticleSearchTextChange: setArticleSearchText,
-                  }
-                : undefined
-            }
-          />
-          <div style={{ 
-            padding: spacing.xxl, 
-            width: '100%',
-            textAlign: 'center',
-            backgroundColor: colors.bgGray,
-            minHeight: '60vh',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <InfoCircleOutlined style={{ 
-              fontSize: '64px', 
-              marginBottom: spacing.md, 
-              color: colors.textMuted 
-            }} />
-            <div style={{ 
-              fontSize: typography.h3.fontSize,
-              color: colors.textSecondary,
-              marginBottom: spacing.sm
-            }}>
-              Нет данных для отображения
-            </div>
-            <div style={{ 
-              fontSize: typography.body.fontSize,
-              color: colors.textMuted,
-              maxWidth: '500px',
-              lineHeight: 1.6
-            }}>
-              Аналитика будет доступна после загрузки данных из Wildberries. Данные обновляются автоматически.
-            </div>
-          </div>
-        </>
-      )
-    }
+  if (!summary) {
+    return (
+      <div style={{ 
+        padding: spacing.xxl, 
+        width: '100%',
+        textAlign: 'center',
+        color: colors.textSecondary
+      }}>
+        <InfoCircleOutlined style={{ fontSize: '48px', marginBottom: spacing.md, color: colors.textMuted }} />
+        <div style={{ fontSize: typography.h3.fontSize }}>Нет данных</div>
+      </div>
+    )
   }
 
   return (
@@ -886,6 +654,25 @@ export default function AnalyticsSummary() {
       </div>
 
       {/* Сводные метрики */}
+      {originalArticles.length > 0 && excludedNmIds.size === originalArticles.length ? (
+        <div style={{
+          backgroundColor: colors.bgWhite,
+          border: `1px solid ${colors.borderLight}`,
+          borderRadius: borderRadius.md,
+          padding: spacing.xxl,
+          marginBottom: spacing.xl,
+          boxShadow: shadows.md,
+          textAlign: 'center'
+        }}>
+          <InfoCircleOutlined style={{ fontSize: '48px', marginBottom: spacing.md, color: colors.textMuted }} />
+          <div style={{ fontSize: typography.h3.fontSize, color: colors.textSecondary }}>
+            Нет данных для отображения
+          </div>
+          <div style={{ fontSize: typography.body.fontSize, color: colors.textMuted, marginTop: spacing.sm }}>
+            Выберите хотя бы один артикул в фильтре
+          </div>
+        </div>
+      ) : (
       <div style={{
         backgroundColor: colors.bgWhite,
         border: `1px solid ${colors.borderLight}`,
@@ -925,7 +712,6 @@ export default function AnalyticsSummary() {
               {METRIC_KEYS.map(metricKey => {
                 const metricNameRu = METRIC_NAMES_RU[metricKey]
                 const category = FUNNEL_METRICS.includes(metricKey) ? 'funnel' : 'advertising'
-                if (!summary) return null
                 const metrics = summary.aggregatedMetrics
                 const getMetricValue = (periodId: number) => {
                   const periodMetrics = metrics[periodId]
@@ -1307,6 +1093,7 @@ export default function AnalyticsSummary() {
           </table>
         </div>
       </div>
+      )}
       </div>
     </>
   )

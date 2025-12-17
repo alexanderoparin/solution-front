@@ -1,95 +1,281 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Spin, Select } from 'antd'
-import { InfoCircleOutlined } from '@ant-design/icons'
-import dayjs from 'dayjs'
+import { DatePicker, Spin, Tooltip } from 'antd'
+import { InfoCircleOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons'
+import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
+import locale from 'antd/locale/ru_RU'
 import { analyticsApi } from '../api/analytics'
-import type { ArticleResponse } from '../types/analytics'
+import { generateDefaultPeriods, validatePeriods } from '../utils/periodGenerator'
+import type { ArticleResponse, Period } from '../types/analytics'
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
-import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 
 dayjs.locale('ru')
 
-// Определение воронок и их метрик
-const FUNNELS = {
-  general: {
-    name: 'Общая воронка',
-    metrics: [
-      { key: 'transitions', name: 'Переходы\nв карточку' },
-      { key: 'cart', name: 'Положили\nв корзину, шт' },
-      { key: 'orders', name: 'Заказали\nтоваров, шт' },
-      { key: 'orders_amount', name: 'Заказали\nна сумму, руб' },
-      { key: 'cart_conversion', name: 'Конверсия\nв корзину, %' },
-      { key: 'order_conversion', name: 'Конверсия\nв заказ, %' },
-    ]
-  },
-  advertising: {
-    name: 'Рекламная воронка',
-    metrics: [
-      { key: 'views', name: 'Просмотры' },
-      { key: 'clicks', name: 'Клики' },
-      { key: 'costs', name: 'Затраты,\nруб' },
-      { key: 'cpc', name: 'СРС,\nруб' },
-      { key: 'ctr', name: 'CTR, %' },
-      { key: 'cpo', name: 'СРО,\nруб' },
-      { key: 'drr', name: 'ДРР, %' },
-    ]
-  },
-  pricing: {
-    name: 'Ценообразование',
-    metrics: [
-      { key: 'price_before_discount', name: 'Цена до\nскидки, руб' },
-      { key: 'seller_discount', name: 'Скидка\nпродавца, %' },
-      { key: 'price_with_discount', name: 'Цена со\nскидкой, руб' },
-      { key: 'wb_club_discount', name: 'Скидка\nWB Клуба, %' },
-      { key: 'price_with_wb_club', name: 'Цена со скидкой\nWB Клуба, руб' },
-      { key: 'price_with_spp', name: 'Цена с СПП,\nруб' },
-      { key: 'spp_amount', name: 'СПП,\nруб' },
-      { key: 'spp_percent', name: 'СПП, %' },
-    ]
-  }
+interface PeriodItemProps {
+  period: Period
+  periodsCount: number
+  allPeriods: Period[]
+  onPeriodChange: (periodId: number, dates: [Dayjs | null, Dayjs | null] | null) => void
+  onRemovePeriod: (periodId: number) => void
 }
 
-function getLast14Days(): string[] {
-  const days: string[] = []
-  const yesterday = dayjs().subtract(1, 'day')
-  for (let i = 13; i >= 0; i--) {
-    days.push(yesterday.subtract(i, 'day').format('YYYY-MM-DD'))
+function PeriodItem({ period, periodsCount, allPeriods, onPeriodChange, onRemovePeriod }: PeriodItemProps) {
+  const [isHovered, setIsHovered] = useState(false)
+  const [selectedRange, setSelectedRange] = useState<[Dayjs | null, Dayjs | null] | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+
+  // Проверяет, пересекается ли дата с другими периодами
+  const isDateOverlapping = (current: Dayjs): boolean => {
+    const otherPeriods = allPeriods.filter(p => p.id !== period.id)
+    const currentStart = dayjs(period.dateFrom)
+    const currentEnd = dayjs(period.dateTo)
+    
+    // Определяем потенциальный диапазон
+    let potentialStart: Dayjs
+    let potentialEnd: Dayjs
+    
+    if (selectedRange && selectedRange[0] && selectedRange[1]) {
+      // Если выбран полный диапазон, используем его
+      potentialStart = selectedRange[0]
+      potentialEnd = selectedRange[1]
+      
+      // Корректируем с учетом текущей даты
+      if (current.isBefore(potentialStart)) {
+        potentialStart = current
+      } else if (current.isAfter(potentialEnd)) {
+        potentialEnd = current
+      }
+    } else if (selectedRange && selectedRange[0]) {
+      // Выбрана начальная дата
+      potentialStart = selectedRange[0]
+      potentialEnd = current.isAfter(selectedRange[0]) ? current : currentEnd
+    } else if (selectedRange && selectedRange[1]) {
+      // Выбрана конечная дата
+      potentialEnd = selectedRange[1]
+      potentialStart = current.isBefore(selectedRange[1]) ? current : currentStart
+    } else {
+      // Диапазон не выбран, используем текущее значение периода и проверяем с учетом текущей даты
+      // Если текущая дата вне текущего диапазона, расширяем диапазон
+      if (current.isBefore(currentStart)) {
+        potentialStart = current
+        potentialEnd = currentEnd
+      } else if (current.isAfter(currentEnd)) {
+        potentialStart = currentStart
+        potentialEnd = current
+      } else {
+        potentialStart = currentStart
+        potentialEnd = currentEnd
+      }
+    }
+    
+    // Проверяем пересечение с другими периодами
+    for (const otherPeriod of otherPeriods) {
+      const otherStart = dayjs(otherPeriod.dateFrom)
+      const otherEnd = dayjs(otherPeriod.dateTo)
+      
+      // Пересечение: potentialEnd >= otherStart && potentialStart <= otherEnd
+      if ((potentialEnd.isAfter(otherStart) || potentialEnd.isSame(otherStart)) &&
+          (potentialStart.isBefore(otherEnd) || potentialStart.isSame(otherEnd))) {
+        return true
+      }
+    }
+    
+    return false
   }
-  return days.reverse() // Разворачиваем, чтобы самые новые были сверху
+
+  return (
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        alignItems: 'center',
+        maxWidth: '220px',
+        position: 'relative'
+      }}
+    >
+      <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '4px', textAlign: 'center' }}>{period.name}</div>
+      <DatePicker.RangePicker
+        locale={locale.DatePicker}
+        value={[dayjs(period.dateFrom), dayjs(period.dateTo)]}
+        onChange={(dates) => {
+          setSelectedRange(dates)
+          onPeriodChange(period.id, dates)
+          // Закрываем календарь только если выбран полный диапазон
+          if (dates && dates[0] && dates[1]) {
+            setPickerOpen(false)
+          }
+        }}
+        onCalendarChange={(dates) => {
+          setSelectedRange(dates)
+        }}
+        format="DD.MM.YYYY"
+        separator="→"
+        open={pickerOpen}
+        onOpenChange={(open) => {
+          setPickerOpen(open)
+          // Если закрываем календарь, но выбрана только одна дата, оставляем открытым
+          if (open === false && selectedRange && selectedRange[0] && !selectedRange[1]) {
+            setTimeout(() => setPickerOpen(true), 0)
+          }
+        }}
+        style={{
+          borderRadius: borderRadius.md,
+          borderColor: colors.border
+        }}
+        disabledDate={(current) => {
+          // Запрещаем выбор будущих дат
+          if (current && current > dayjs().endOf('day')) {
+            return true
+          }
+          
+          // Проверяем пересечение с другими периодами
+          return isDateOverlapping(current)
+        }}
+      />
+      {periodsCount > 2 && isHovered && (
+        <Tooltip title="Удалить период">
+          <button
+            onClick={() => onRemovePeriod(period.id)}
+            style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              width: '24px',
+              height: '24px',
+              borderRadius: borderRadius.full,
+              border: `1px solid ${colors.border}`,
+              backgroundColor: colors.bgWhite,
+              color: colors.textSecondary,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '14px',
+              lineHeight: '1',
+              padding: 0,
+              boxShadow: shadows.sm,
+              transition: transitions.fast
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = colors.errorLight
+              e.currentTarget.style.color = colors.error
+              e.currentTarget.style.borderColor = colors.error
+              e.currentTarget.style.boxShadow = shadows.md
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = colors.bgWhite
+              e.currentTarget.style.color = colors.textSecondary
+              e.currentTarget.style.borderColor = colors.border
+              e.currentTarget.style.boxShadow = shadows.sm
+            }}
+          >
+            <DeleteOutlined />
+          </button>
+        </Tooltip>
+      )}
+    </div>
+  )
 }
 
 export default function AnalyticsArticle() {
   const { nmId } = useParams<{ nmId: string }>()
   const navigate = useNavigate()
-  const role = useAuthStore((state) => state.role)
-  const isManagerOrAdmin = role === 'MANAGER' || role === 'ADMIN'
-  
-  // Получаем выбранного селлера из localStorage (если есть)
-  const getSelectedSellerId = (): number | undefined => {
-    if (!isManagerOrAdmin) return undefined
-    const saved = localStorage.getItem('analytics_selected_seller_id')
+  const [periods, setPeriods] = useState<Period[]>(() => {
+    // Загружаем периоды из localStorage или генерируем по умолчанию
+    const saved = localStorage.getItem('analytics_periods')
     if (saved) {
       try {
-        const sellerId = parseInt(saved, 10)
-        if (!isNaN(sellerId)) {
-          return sellerId
+        const parsed = JSON.parse(saved) as Period[]
+        if (validatePeriods(parsed)) {
+          return parsed
         }
       } catch {
-        // Игнорируем ошибку
+        // Если не удалось распарсить, используем дефолтные
       }
     }
-    return undefined
+    return generateDefaultPeriods()
+  })
+
+  useEffect(() => {
+    // Сохраняем периоды в localStorage при изменении
+    localStorage.setItem('analytics_periods', JSON.stringify(periods))
+  }, [periods])
+
+  const handlePeriodChange = (periodId: number, dates: [Dayjs | null, Dayjs | null] | null) => {
+    if (!dates || !dates[0] || !dates[1]) return
+    
+    const dateFrom = dates[0]
+    const dateTo = dates[1]
+    if (!dateFrom || !dateTo) return
+    
+    const updatedPeriods = periods.map(period => {
+      if (period.id === periodId) {
+        return {
+          ...period,
+          dateFrom: dateFrom.format('YYYY-MM-DD'),
+          dateTo: dateTo.format('YYYY-MM-DD')
+        }
+      }
+      return period
+    })
+    
+    if (validatePeriods(updatedPeriods)) {
+      setPeriods(updatedPeriods)
+    }
   }
 
-  const [selectedFunnel1, setSelectedFunnel1] = useState<keyof typeof FUNNELS>('general')
-  const [selectedFunnel2, setSelectedFunnel2] = useState<keyof typeof FUNNELS>('advertising')
+  const handleAddPeriod = () => {
+    if (periods.length >= 5) return
+    
+    // Находим самую раннюю дату начала среди всех периодов
+    const earliestDate = periods.reduce((earliest, period) => {
+      const periodDate = dayjs(period.dateFrom)
+      return periodDate.isBefore(earliest) ? periodDate : earliest
+    }, dayjs(periods[0].dateFrom))
+    
+    // Создаем новый период на 3 дня раньше самого раннего
+    const newPeriodEnd = earliestDate.subtract(1, 'day')
+    const newPeriodStart = newPeriodEnd.subtract(2, 'day')
+    
+    const newPeriod: Period = {
+      id: Math.max(...periods.map(p => p.id)) + 1,
+      name: `период №${periods.length + 1}`,
+      dateFrom: newPeriodStart.format('YYYY-MM-DD'),
+      dateTo: newPeriodEnd.format('YYYY-MM-DD')
+    }
+    
+    const updatedPeriods = [...periods, newPeriod]
+    // Пересчитываем id и name для всех периодов
+    const renumberedPeriods = updatedPeriods.map((period, index) => ({
+      ...period,
+      id: index + 1,
+      name: `период №${index + 1}`
+    }))
+    
+    setPeriods(renumberedPeriods)
+  }
+
+  const handleRemovePeriod = (periodId: number) => {
+    if (periods.length <= 2) return
+    
+    const updatedPeriods = periods.filter(period => period.id !== periodId)
+    // Пересчитываем id и name для оставшихся периодов
+    const renumberedPeriods = updatedPeriods.map((period, index) => ({
+      ...period,
+      id: index + 1,
+      name: `период №${index + 1}`
+    }))
+    
+    setPeriods(renumberedPeriods)
+  }
   const [article, setArticle] = useState<ArticleResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [last14Days] = useState<string[]>(getLast14Days())
 
   useEffect(() => {
     if (!nmId) {
@@ -99,15 +285,13 @@ export default function AnalyticsArticle() {
     }
 
     loadArticle(Number(nmId))
-  }, [nmId])
+  }, [nmId, periods])
 
   const loadArticle = async (id: number) => {
     try {
       setLoading(true)
       setError(null)
-      const sellerId = getSelectedSellerId()
-      // TODO: Обновить API для получения данных за последние 14 дней
-      const data = await analyticsApi.getArticle(id, [], sellerId)
+      const data = await analyticsApi.getArticle(id, periods)
       setArticle(data)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Ошибка при загрузке данных')
@@ -118,52 +302,21 @@ export default function AnalyticsArticle() {
 
   const formatValue = (value: number | null): string => {
     if (value === null || value === undefined) return '-'
-    return value.toLocaleString('ru-RU')
+    if (typeof value === 'number') {
+      return value.toLocaleString('ru-RU')
+    }
+    return String(value)
   }
 
-  const formatPercent = (value: number): string => {
+  const formatPercent = (value: number | null): string => {
+    if (value === null || value === undefined) return '-%'
     return `${value.toFixed(2)}%`
   }
 
-  const formatCurrency = (value: number): string => {
-    return `${value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`
-  }
-
-  // Получаем данные метрики для конкретной даты
-  const getMetricValueForDate = (metricKey: string, date: string): number | null => {
-    if (!article) return null
-    
-    const dailyData = article.dailyData.find(d => d.date === date)
-    if (!dailyData) return null
-    
-    // Метрики воронки из dailyData
-    if (metricKey === 'transitions') return dailyData.transitions
-    if (metricKey === 'cart') return dailyData.cart
-    if (metricKey === 'orders') return dailyData.orders
-    if (metricKey === 'orders_amount') return dailyData.ordersAmount
-    if (metricKey === 'cart_conversion') return dailyData.cartConversion
-    if (metricKey === 'order_conversion') return dailyData.orderConversion
-    
-    // Рекламные метрики из dailyData
-    if (metricKey === 'views') return dailyData.views
-    if (metricKey === 'clicks') return dailyData.clicks
-    if (metricKey === 'costs') return dailyData.costs
-    if (metricKey === 'cpc') return dailyData.cpc
-    if (metricKey === 'ctr') return dailyData.ctr
-    if (metricKey === 'cpo') return dailyData.cpo
-    if (metricKey === 'drr') return dailyData.drr
-    
-    // Ценообразование из dailyData
-    if (metricKey === 'price_before_discount') return dailyData.priceBeforeDiscount
-    if (metricKey === 'seller_discount') return dailyData.sellerDiscount
-    if (metricKey === 'price_with_discount') return dailyData.priceWithDiscount
-    if (metricKey === 'wb_club_discount') return dailyData.wbClubDiscount
-    if (metricKey === 'price_with_wb_club') return dailyData.priceWithWbClub
-    if (metricKey === 'price_with_spp') return dailyData.priceWithSpp
-    if (metricKey === 'spp_amount') return dailyData.sppAmount
-    if (metricKey === 'spp_percent') return dailyData.sppPercent
-    
-    return null
+  const formatChangePercent = (value: number | null): string => {
+    if (value === null || value === undefined) return '-%'
+    const sign = value >= 0 ? '+' : ''
+    return `${sign}${value.toFixed(2)}%`
   }
 
   if (loading) {
@@ -298,18 +451,16 @@ export default function AnalyticsArticle() {
           
           <div style={{
             display: 'flex',
-            gap: spacing.xl,
+            gap: spacing.lg,
             flex: 1,
             alignItems: 'flex-start'
           }}>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: spacing.lg,
-              flex: 1,
-              alignContent: 'start'
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: spacing.md,
+              flex: 1
             }}>
-              {/* Первая колонка */}
               <div>
                 <div style={{ 
                   ...typography.bodySmall, 
@@ -321,48 +472,32 @@ export default function AnalyticsArticle() {
                 <div style={{ 
                   ...typography.body, 
                   fontWeight: 600,
-                  color: colors.textPrimary,
-                  marginBottom: spacing.md
+                  color: colors.textPrimary
                 }}>
                   {article.article.nmId}
                 </div>
-                {article.article.vendorCode && (
-                  <>
-                    <div style={{ 
-                      ...typography.bodySmall, 
-                      color: colors.textSecondary,
-                      marginBottom: spacing.xs
-                    }}>
-                      Артикул продавца
-                    </div>
-                    <div style={{ 
-                      ...typography.body, 
-                      fontWeight: 500,
-                      color: colors.textPrimary
-                    }}>
-                      {article.article.vendorCode}
-                    </div>
-                  </>
-                )}
               </div>
               
-              {/* Вторая колонка */}
+              {article.article.imtId && (
+                <div>
+                  <div style={{ 
+                    ...typography.bodySmall, 
+                    color: colors.textSecondary,
+                    marginBottom: spacing.xs
+                  }}>
+                    IMT ID
+                  </div>
+                  <div style={{ 
+                    ...typography.body, 
+                    fontWeight: 500,
+                    color: colors.textPrimary
+                  }}>
+                    {article.article.imtId}
+                  </div>
+                </div>
+              )}
+              
               <div>
-                <div style={{ 
-                  ...typography.bodySmall, 
-                  color: colors.textSecondary,
-                  marginBottom: spacing.xs
-                }}>
-                  Категория
-                </div>
-                <div style={{ 
-                  ...typography.body, 
-                  fontWeight: 500,
-                  color: colors.textPrimary,
-                  marginBottom: spacing.md
-                }}>
-                  {article.article.subjectName || '-'}
-                </div>
                 <div style={{ 
                   ...typography.bodySmall, 
                   color: colors.textSecondary,
@@ -379,22 +514,38 @@ export default function AnalyticsArticle() {
                 </div>
               </div>
               
-              {/* Третья колонка */}
-              {article.article.imtId && (
+              <div>
+                <div style={{ 
+                  ...typography.bodySmall, 
+                  color: colors.textSecondary,
+                  marginBottom: spacing.xs
+                }}>
+                  Категория
+                </div>
+                <div style={{ 
+                  ...typography.body, 
+                  fontWeight: 500,
+                  color: colors.textPrimary
+                }}>
+                  {article.article.subjectName || '-'}
+                </div>
+              </div>
+              
+              {article.article.vendorCode && (
                 <div>
                   <div style={{ 
                     ...typography.bodySmall, 
                     color: colors.textSecondary,
                     marginBottom: spacing.xs
                   }}>
-                    IMT ID
+                    Артикул продавца
                   </div>
                   <div style={{ 
                     ...typography.body, 
                     fontWeight: 500,
                     color: colors.textPrimary
                   }}>
-                    {article.article.imtId}
+                    {article.article.vendorCode}
                   </div>
                 </div>
               )}
@@ -440,7 +591,8 @@ export default function AnalyticsArticle() {
             
             {article.campaigns.length > 0 && (
               <div style={{
-                width: '450px',
+                minWidth: '300px',
+                maxWidth: '400px',
                 flexShrink: 0
               }}>
                 <div style={{
@@ -451,45 +603,37 @@ export default function AnalyticsArticle() {
                   Рекламные кампании
                 </div>
                 <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: spacing.sm,
-                  alignContent: 'start'
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: spacing.sm
                 }}>
                   {article.campaigns.map(campaign => (
                     <div
                       key={campaign.id}
                       style={{
-                        padding: spacing.sm,
+                        padding: spacing.md,
                         border: `1px solid ${colors.borderLight}`,
                         borderRadius: borderRadius.sm,
-                        backgroundColor: colors.bgGrayLight,
-                        display: 'flex',
-                        flexDirection: 'column'
+                        backgroundColor: colors.bgGrayLight
                       }}
                     >
                       <div style={{
                         ...typography.body,
                         fontWeight: 500,
                         color: colors.textPrimary,
-                        marginBottom: spacing.xs,
-                        lineHeight: 1.3
+                        marginBottom: spacing.xs
                       }}>
                         {campaign.name}
                       </div>
                       <div style={{
                         ...typography.bodySmall,
-                        color: colors.textSecondary,
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        alignItems: 'center',
-                        gap: spacing.xs,
-                        lineHeight: 1.3
+                        color: colors.textSecondary
                       }}>
-                        <span>ID: {campaign.id}</span>
-                        {campaign.type && <span>• {campaign.type}</span>}
+                        ID: {campaign.id}
+                        {campaign.type && ` • ${campaign.type}`}
                         {campaign.statusName && (
                           <span style={{
+                            marginLeft: spacing.xs,
                             padding: `2px ${spacing.xs}`,
                             backgroundColor: campaign.status === 9 
                               ? colors.successLight 
@@ -502,8 +646,7 @@ export default function AnalyticsArticle() {
                                 ? colors.warning 
                                 : colors.textSecondary,
                             borderRadius: borderRadius.sm,
-                            fontSize: '11px',
-                            whiteSpace: 'nowrap'
+                            fontSize: '11px'
                           }}>
                             {campaign.statusName}
                           </span>
@@ -518,7 +661,7 @@ export default function AnalyticsArticle() {
         </div>
       </div>
 
-      {/* Блоки воронок */}
+      {/* Периоды */}
       <div style={{
         backgroundColor: colors.bgWhite,
         border: `1px solid ${colors.borderLight}`,
@@ -527,152 +670,266 @@ export default function AnalyticsArticle() {
         marginBottom: spacing.xl,
         boxShadow: shadows.md
       }}>
-        <div style={{ overflowX: 'auto' }}>
-          <div style={{
-            display: 'flex',
-            marginBottom: spacing.md,
-            position: 'relative'
-          }}>
-            <div style={{ width: '120px', flexShrink: 0 }}></div>
+        <h2 style={{ 
+          ...typography.h2, 
+          marginBottom: spacing.md, 
+          textAlign: 'center' 
+        }}>
+          Укажите желаемые периоды для сравнения данных
+        </h2>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          {periods.map((period) => (
+            <PeriodItem
+              key={period.id}
+              period={period}
+              periodsCount={periods.length}
+              allPeriods={periods}
+              onPeriodChange={handlePeriodChange}
+              onRemovePeriod={handleRemovePeriod}
+            />
+          ))}
+          {periods.length < 5 && (
             <div style={{
-              flex: 1,
               display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              alignItems: 'center',
               justifyContent: 'center',
-              minWidth: `${FUNNELS[selectedFunnel1].metrics.length * 120}px`
+              minHeight: '32px'
             }}>
-              <Select
-                value={selectedFunnel1}
-                onChange={(value) => setSelectedFunnel1(value)}
-                style={{ width: 200 }}
-                options={Object.entries(FUNNELS).map(([key, funnel]) => ({
-                  label: funnel.name,
-                  value: key
-                }))}
-              />
+              <Tooltip title="Добавить период">
+                <button
+                  onClick={handleAddPeriod}
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: borderRadius.full,
+                    border: `2px dashed ${colors.border}`,
+                    backgroundColor: colors.bgWhite,
+                    color: colors.textSecondary,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '20px',
+                    lineHeight: '1',
+                    padding: 0,
+                    marginTop: '20px',
+                    transition: transitions.normal,
+                    boxShadow: shadows.sm
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = colors.primary
+                    e.currentTarget.style.color = colors.primary
+                    e.currentTarget.style.backgroundColor = colors.primaryLight
+                    e.currentTarget.style.boxShadow = shadows.md
+                    e.currentTarget.style.transform = 'scale(1.1)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = colors.border
+                    e.currentTarget.style.color = colors.textSecondary
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                    e.currentTarget.style.boxShadow = shadows.sm
+                    e.currentTarget.style.transform = 'scale(1)'
+                  }}
+                >
+                  <PlusOutlined />
+                </button>
+              </Tooltip>
             </div>
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              justifyContent: 'center',
-              minWidth: `${FUNNELS[selectedFunnel2].metrics.length * 120}px`
-            }}>
-              <Select
-                value={selectedFunnel2}
-                onChange={(value) => setSelectedFunnel2(value)}
-                style={{ width: 200 }}
-                options={Object.entries(FUNNELS).map(([key, funnel]) => ({
-                  label: funnel.name,
-                  value: key
-                }))}
-              />
-            </div>
-          </div>
+          )}
+        </div>
+      </div>
+
+      {/* Все метрики */}
+      <div style={{
+        backgroundColor: colors.bgWhite,
+        border: `1px solid ${colors.borderLight}`,
+        borderRadius: borderRadius.md,
+        padding: spacing.md,
+        marginBottom: spacing.xl,
+        boxShadow: shadows.md
+      }}>
+        <h2 style={{ 
+          ...typography.h2, 
+          marginBottom: spacing.md 
+        }}>
+          Метрики
+        </h2>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr>
+              <tr style={{ backgroundColor: colors.bgGrayLight }}>
                 <th style={{
                   textAlign: 'left',
-                  padding: spacing.sm,
+                  padding: spacing.md,
                   borderBottom: `2px solid ${colors.border}`,
-                  borderRight: `2px solid ${colors.border}`,
-                  ...typography.body,
-                  fontWeight: 600,
-                  position: 'sticky',
-                  left: 0,
-                  backgroundColor: colors.bgWhite,
-                  zIndex: 2
+                  ...typography.h3,
+                  fontWeight: 600
                 }}>
-                  Дата
+                  Метрика
                 </th>
-                {FUNNELS[selectedFunnel1].metrics.map((metric, index) => (
-                  <th key={metric.key} style={{
+                {periods.map(period => (
+                  <th key={period.id} style={{
                     textAlign: 'center',
-                    padding: `${spacing.xs} ${spacing.xs}`,
+                    padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
-                    borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.borderLight}`,
-                    ...typography.bodySmall,
+                    ...typography.h3,
                     fontWeight: 600,
-                    whiteSpace: 'pre-line',
-                    lineHeight: 1.3,
-                    backgroundColor: colors.bgGrayLight,
-                    maxWidth: '120px'
+                    whiteSpace: 'nowrap'
                   }}>
-                    {metric.name}
-                  </th>
-                ))}
-                {FUNNELS[selectedFunnel2].metrics.map(metric => (
-                  <th key={metric.key} style={{
-                    textAlign: 'center',
-                    padding: `${spacing.xs} ${spacing.xs}`,
-                    borderBottom: `2px solid ${colors.border}`,
-                    ...typography.bodySmall,
-                    fontWeight: 600,
-                    whiteSpace: 'pre-line',
-                    lineHeight: 1.3,
-                    backgroundColor: colors.bgGrayLight,
-                    maxWidth: '120px'
-                  }}>
-                    {metric.name}
+                    {period.name}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {last14Days.map(date => (
-                <tr key={date}>
+              {article.metrics.map((metric) => {
+                const isPercent = metric.metricName.includes('conversion') || metric.metricName === 'ctr' || metric.metricName === 'drr'
+                return (
+                  <tr 
+                    key={metric.metricName} 
+                    style={{
+                      backgroundColor: metric.category === 'funnel' ? colors.funnelBg : colors.advertisingBg,
+                      transition: transitions.fast
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = metric.category === 'funnel' ? colors.funnelBgHover : colors.advertisingBgHover
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = metric.category === 'funnel' ? colors.funnelBg : colors.advertisingBg
+                    }}
+                  >
+                    <td style={{
+                      padding: spacing.md,
+                      borderBottom: `1px solid ${colors.borderLight}`,
+                      ...typography.body,
+                      fontWeight: 500
+                    }}>
+                      {metric.metricNameRu || metric.metricName}
+                    </td>
+                    {metric.periods.map(period => {
+                      const isEmpty = period.value === null || period.value === undefined || period.value === 0
+                      const changeColor = period.changePercent !== null 
+                        ? (period.changePercent >= 0 ? colors.success : colors.error)
+                        : colors.textSecondary
+                      return (
+                        <td key={period.periodId} style={{
+                          textAlign: 'center',
+                          padding: spacing.md,
+                          borderBottom: `1px solid ${colors.borderLight}`,
+                          color: isEmpty ? colors.textMuted : colors.textPrimary
+                        }}>
+                          <div style={{ ...typography.number }}>
+                            {isPercent ? formatPercent(period.value as number) : formatValue(period.value as number)}
+                          </div>
+                          {period.changePercent !== null && (
+                            <div style={{
+                              ...typography.bodySmall,
+                              color: changeColor,
+                              fontWeight: 600,
+                              marginTop: spacing.xs
+                            }}>
+                              {formatChangePercent(period.changePercent)}
+                            </div>
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Ежедневные данные */}
+      <div style={{
+        backgroundColor: '#FFFFFF',
+        border: '1px solid #F1F5F9',
+        borderRadius: '8px',
+        padding: '16px',
+        marginBottom: '24px'
+      }}>
+        <h2 style={{ color: '#1E293B', marginBottom: '16px', fontSize: '18px' }}>Ежедневные данные</h2>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{
+                  textAlign: 'left',
+                  padding: '8px',
+                  borderBottom: '1px solid #F1F5F9',
+                  color: '#1E293B'
+                }}>
+                  Дата
+                </th>
+                <th style={{
+                  textAlign: 'center',
+                  padding: '8px',
+                  borderBottom: '1px solid #F1F5F9',
+                  color: '#1E293B'
+                }}>
+                  Переходы
+                </th>
+                <th style={{
+                  textAlign: 'center',
+                  padding: '8px',
+                  borderBottom: '1px solid #F1F5F9',
+                  color: '#1E293B'
+                }}>
+                  Корзина
+                </th>
+                <th style={{
+                  textAlign: 'center',
+                  padding: '8px',
+                  borderBottom: '1px solid #F1F5F9',
+                  color: '#1E293B'
+                }}>
+                  Заказы
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {article.dailyData.map((daily, index) => (
+                <tr 
+                  key={daily.date}
+                  style={{
+                    backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
+                  }}
+                >
                   <td style={{
-                    padding: spacing.sm,
+                    padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
-                    borderRight: `2px solid ${colors.border}`,
-                    ...typography.body,
-                    fontWeight: 500,
-                    position: 'sticky',
-                    left: 0,
-                    backgroundColor: colors.bgWhite,
-                    zIndex: 1
+                    ...typography.body
                   }}>
-                    {dayjs(date).format('DD.MM.YYYY')}
+                    {new Date(daily.date).toLocaleDateString('ru-RU')}
                   </td>
-                  {FUNNELS[selectedFunnel1].metrics.map((metric, index) => {
-                    const value = getMetricValueForDate(metric.key, date)
-                    const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
-                    const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
-                    return (
-                      <td key={metric.key} style={{
-                        textAlign: 'center',
-                        padding: `${spacing.xs} ${spacing.xs}`,
-                        borderBottom: `1px solid ${colors.borderLight}`,
-                        borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.borderLight}`,
-                        backgroundColor: colors.bgGrayLight,
-                        ...typography.bodySmall
-                      }}>
-                        {value === null ? '-' : (
-                          isPercent ? formatPercent(value) :
-                          isCurrency ? formatCurrency(value) :
-                          formatValue(value)
-                        )}
-                      </td>
-                    )
-                  })}
-                  {FUNNELS[selectedFunnel2].metrics.map(metric => {
-                    const value = getMetricValueForDate(metric.key, date)
-                    const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
-                    const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
-                    return (
-                      <td key={metric.key} style={{
-                        textAlign: 'center',
-                        padding: `${spacing.xs} ${spacing.xs}`,
-                        borderBottom: `1px solid ${colors.borderLight}`,
-                        ...typography.bodySmall
-                      }}>
-                        {value === null ? '-' : (
-                          isPercent ? formatPercent(value) :
-                          isCurrency ? formatCurrency(value) :
-                          formatValue(value)
-                        )}
-                      </td>
-                    )
-                  })}
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.number
+                  }}>
+                    {formatValue(daily.transitions)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.number
+                  }}>
+                    {formatValue(daily.cart)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.number
+                  }}>
+                    {formatValue(daily.orders)}
+                  </td>
                 </tr>
               ))}
             </tbody>
