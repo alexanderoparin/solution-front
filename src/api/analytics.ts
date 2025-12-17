@@ -39,10 +39,10 @@ export const analyticsApi = {
   /**
    * Получает детальную информацию по артикулу.
    */
-  getArticle: async (nmId: number, periods: Period[]): Promise<ArticleResponse> => {
+  getArticle: async (nmId: number, periods: Period[], sellerId?: number): Promise<ArticleResponse> => {
     const response = await apiClient.post<ArticleResponse>(
       `/analytics/article/${nmId}`,
-      { periods }
+      { periods, sellerId }
     )
     return response.data
   },
