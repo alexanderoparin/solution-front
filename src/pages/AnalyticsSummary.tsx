@@ -278,7 +278,21 @@ export default function AnalyticsSummary() {
   const [summary, setSummary] = useState<SummaryResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [excludedNmIds, setExcludedNmIds] = useState<Set<number>>(new Set())
+  // Инициализируем фильтр из localStorage, если selectedSellerId уже определен
+  const [excludedNmIds, setExcludedNmIds] = useState<Set<number>>(() => {
+    if (isManagerOrAdmin && selectedSellerId !== undefined) {
+      const saved = localStorage.getItem(`analytics_excluded_nm_ids_${selectedSellerId}`)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as number[]
+          return new Set(parsed)
+        } catch {
+          return new Set()
+        }
+      }
+    }
+    return new Set()
+  })
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set())
   const [metricGroups, setMetricGroups] = useState<Map<string, MetricGroupResponse>>(new Map())
   const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set())
