@@ -50,6 +50,7 @@ export interface UserListItem {
   isTemporaryPassword: boolean
   createdAt: string
   ownerEmail: string | null
+  lastDataUpdateAt: string | null
 }
 
 export interface CreateUserRequest {

@@ -1,11 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useMemo } from 'react'
 import { Button, Space, Typography, Select, Tooltip, message, Popover, Checkbox, Input } from 'antd'
 import { UserOutlined, BarChartOutlined, ArrowLeftOutlined, TeamOutlined, SyncOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/authStore'
 import { userApi } from '../api/user'
 import type { UserListItem } from '../types/api'
 import type { ArticleSummary } from '../types/analytics'
+import dayjs from 'dayjs'
 
 const { Text, Title } = Typography
 
@@ -32,6 +34,7 @@ interface HeaderProps {
 export default function Header({ articleTitle, sellerSelectProps, articleFilterProps }: HeaderProps = {}) {
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
   const email = useAuthStore((state) => state.email)
   const role = useAuthStore((state) => state.role)
   
@@ -47,11 +50,87 @@ export default function Header({ articleTitle, sellerSelectProps, articleFilterP
     return 'Пользователи'
   }
 
+  // Минимальный интервал между обновлениями (6 часов)
+  const MIN_UPDATE_INTERVAL_HOURS = 6
+
+  // Получаем информацию о выбранном селлере
+  const selectedSeller = useMemo(() => {
+    if (!sellerSelectProps?.selectedSellerId || !sellerSelectProps?.activeSellers) {
+      return undefined
+    }
+    return sellerSelectProps.activeSellers.find(
+      s => s.id === sellerSelectProps.selectedSellerId
+    )
+  }, [sellerSelectProps?.selectedSellerId, sellerSelectProps?.activeSellers])
+
+  // Проверяет, можно ли запустить обновление (прошло ли 6 часов)
+  const canUpdateSellerData = (): boolean => {
+    if (!selectedSeller?.lastDataUpdateAt) {
+      return true // Если обновление еще не запускалось, разрешаем
+    }
+    
+    const lastUpdate = dayjs(selectedSeller.lastDataUpdateAt)
+    const now = dayjs()
+    const hoursSinceLastUpdate = now.diff(lastUpdate, 'hour')
+    
+    return hoursSinceLastUpdate >= MIN_UPDATE_INTERVAL_HOURS
+  }
+
+  // Вычисляет оставшееся время до следующего обновления
+  const getRemainingTime = (): string | null => {
+    if (!selectedSeller?.lastDataUpdateAt) {
+      return null
+    }
+    
+    const lastUpdate = dayjs(selectedSeller.lastDataUpdateAt)
+    const now = dayjs()
+    const hoursSinceLastUpdate = now.diff(lastUpdate, 'hour')
+    const minutesSinceLastUpdate = now.diff(lastUpdate, 'minute')
+    
+    if (hoursSinceLastUpdate >= MIN_UPDATE_INTERVAL_HOURS) {
+      return null
+    }
+    
+    const remainingMinutes = MIN_UPDATE_INTERVAL_HOURS * 60 - minutesSinceLastUpdate
+    const remainingHours = Math.floor(remainingMinutes / 60)
+    const remainingMins = remainingMinutes % 60
+    
+    if (remainingHours > 0) {
+      return `${remainingHours} ${getHoursWord(remainingHours)} ${remainingMins > 0 ? `и ${remainingMins} ${getMinutesWord(remainingMins)}` : ''}`
+    } else {
+      return `${remainingMins} ${getMinutesWord(remainingMins)}`
+    }
+  }
+
+  // Возвращает правильное склонение слова "час/часа/часов"
+  const getHoursWord = (hours: number): string => {
+    if (hours % 10 === 1 && hours % 100 !== 11) {
+      return 'час'
+    } else if (hours % 10 >= 2 && hours % 10 <= 4 && (hours % 100 < 10 || hours % 100 >= 20)) {
+      return 'часа'
+    } else {
+      return 'часов'
+    }
+  }
+
+  // Возвращает правильное склонение слова "минута/минуты/минут"
+  const getMinutesWord = (minutes: number): string => {
+    if (minutes % 10 === 1 && minutes % 100 !== 11) {
+      return 'минута'
+    } else if (minutes % 10 >= 2 && minutes % 10 <= 4 && (minutes % 100 < 10 || minutes % 100 >= 20)) {
+      return 'минуты'
+    } else {
+      return 'минут'
+    }
+  }
+
   // Мутация для запуска обновления данных селлера
   const triggerUpdateMutation = useMutation({
     mutationFn: (sellerId: number) => userApi.triggerSellerDataUpdate(sellerId),
     onSuccess: (data) => {
       message.success(data.message)
+      // Обновляем список селлеров, чтобы получить актуальное время последнего обновления
+      queryClient.invalidateQueries({ queryKey: ['activeSellers'] })
     },
     onError: (error: any) => {
       const statusCode = error.response?.status
@@ -125,21 +204,29 @@ export default function Header({ articleTitle, sellerSelectProps, articleFilterP
                     value: seller.id,
                   }))}
                 />
-                {isManagerOrAdmin && sellerSelectProps.selectedSellerId && (
-                  <Tooltip title="Запускает обновление карточек, кампаний и аналитики. Процесс выполняется в фоновом режиме.">
-                    <Button
-                      type="text"
-                      icon={<SyncOutlined spin={triggerUpdateMutation.isPending} />}
-                      onClick={() => triggerUpdateMutation.mutate(sellerSelectProps.selectedSellerId!)}
-                      loading={triggerUpdateMutation.isPending}
-                      disabled={triggerUpdateMutation.isPending}
-                      style={{
-                        marginLeft: '8px',
-                        color: '#7C3AED',
-                      }}
-                    />
-                  </Tooltip>
-                )}
+                {isManagerOrAdmin && sellerSelectProps.selectedSellerId && (() => {
+                  const canUpdate = canUpdateSellerData()
+                  const remainingTime = getRemainingTime()
+                  const tooltipTitle = canUpdate
+                    ? 'Запускает обновление карточек, кампаний и аналитики. Процесс выполняется в фоновом режиме.'
+                    : `Обновление данных можно запускать не чаще одного раза в ${MIN_UPDATE_INTERVAL_HOURS} часов. Следующее обновление будет доступно через ${remainingTime || 'несколько минут'}.`
+                  
+                  return (
+                    <Tooltip title={tooltipTitle}>
+                      <Button
+                        type="text"
+                        icon={<SyncOutlined spin={triggerUpdateMutation.isPending} />}
+                        onClick={() => triggerUpdateMutation.mutate(sellerSelectProps.selectedSellerId!)}
+                        loading={triggerUpdateMutation.isPending}
+                        disabled={!canUpdate || triggerUpdateMutation.isPending}
+                        style={{
+                          marginLeft: '8px',
+                          color: '#7C3AED',
+                        }}
+                      />
+                    </Tooltip>
+                  )
+                })()}
               </>
             )}
             {articleFilterProps && articleFilterProps.articles.length > 0 && (
