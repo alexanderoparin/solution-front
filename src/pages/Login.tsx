@@ -32,7 +32,8 @@ export default function Login() {
       }
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Ошибка входа')
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Ошибка входа'
+      message.error(errorMessage)
     },
   })
 
