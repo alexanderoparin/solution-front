@@ -755,83 +755,92 @@ export default function AnalyticsArticle() {
         </div>
       </div>
 
-      {/* Сравнение периодов */}
-      {article && period1Data && period2Data && (
-        <div style={{
-          backgroundColor: colors.bgWhite,
-          border: `1px solid ${colors.borderLight}`,
-          borderRadius: borderRadius.md,
-          padding: spacing.lg,
-          marginBottom: spacing.xl,
-          boxShadow: shadows.md
-        }}>
-          <h2 style={{ 
-            ...typography.h2, 
-            marginBottom: spacing.md,
-            textAlign: 'center'
-          }}>
-            Сравнение периодов
-          </h2>
-
-          {/* Выбор периодов */}
-          <div style={{
-            display: 'flex',
-            gap: spacing.lg,
-            marginBottom: spacing.xl,
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <div>
-              <div style={{ 
-                ...typography.bodySmall, 
-                color: colors.textSecondary,
-                marginBottom: spacing.xs
-              }}>
-                Период 1
-              </div>
-              <DatePicker.RangePicker
-                locale={locale.DatePicker}
-                value={period1}
-                onChange={(dates) => {
-                  if (dates && dates[0] && dates[1]) {
-                    setPeriod1([dates[0], dates[1]])
-                  }
-                }}
-                format="DD.MM.YYYY"
-                separator="→"
-                style={{ width: 240 }}
-              />
-            </div>
-            <div>
-              <div style={{ 
-                ...typography.bodySmall, 
-                color: colors.textSecondary,
-                marginBottom: spacing.xs
-              }}>
-                Период 2
-              </div>
-              <DatePicker.RangePicker
-                locale={locale.DatePicker}
-                value={period2}
-                onChange={(dates) => {
-                  if (dates && dates[0] && dates[1]) {
-                    setPeriod2([dates[0], dates[1]])
-                  }
-                }}
-                format="DD.MM.YYYY"
-                separator="→"
-                style={{ width: 240 }}
-              />
-            </div>
-          </div>
-
-          {/* Сравнение по общей воронке и рекламе - два блока рядом */}
+      {/* Сравнение периодов и остатки */}
+      {article && period1Data && period2Data && (() => {
+        const nonZeroStocks = article?.stocks?.filter(stock => stock.amount > 0) || []
+        return (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: spacing.lg
+            gridTemplateColumns: '2fr 1fr',
+            gap: spacing.lg,
+            marginBottom: spacing.xl,
+            alignItems: 'start'
           }}>
+            {/* Сравнение периодов */}
+            <div style={{
+              backgroundColor: colors.bgWhite,
+              border: `1px solid ${colors.borderLight}`,
+              borderRadius: borderRadius.md,
+              padding: spacing.lg,
+              boxShadow: shadows.md
+            }}>
+              <h2 style={{ 
+                ...typography.h2, 
+                marginBottom: spacing.md,
+                textAlign: 'center'
+              }}>
+                Сравнение периодов
+              </h2>
+
+              {/* Выбор периодов */}
+              <div style={{
+                display: 'flex',
+                gap: spacing.lg,
+                marginBottom: spacing.xl,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <div>
+                  <div style={{ 
+                    ...typography.bodySmall, 
+                    color: colors.textSecondary,
+                    marginBottom: spacing.xs
+                  }}>
+                    Период 1
+                  </div>
+                  <DatePicker.RangePicker
+                    locale={locale.DatePicker}
+                    value={period1}
+                    onChange={(dates) => {
+                      if (dates && dates[0] && dates[1]) {
+                        setPeriod1([dates[0], dates[1]])
+                      }
+                    }}
+                    format="DD.MM.YYYY"
+                    separator="→"
+                    style={{ width: 240 }}
+                  />
+                </div>
+                <div>
+                  <div style={{ 
+                    ...typography.bodySmall, 
+                    color: colors.textSecondary,
+                    marginBottom: spacing.xs
+                  }}>
+                    Период 2
+                  </div>
+                  <DatePicker.RangePicker
+                    locale={locale.DatePicker}
+                    value={period2}
+                    onChange={(dates) => {
+                      if (dates && dates[0] && dates[1]) {
+                        setPeriod2([dates[0], dates[1]])
+                      }
+                    }}
+                    format="DD.MM.YYYY"
+                    separator="→"
+                    style={{ width: 240 }}
+                  />
+                </div>
+              </div>
+
+              {/* Сравнение по общей воронке и рекламе - два блока рядом */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: spacing.lg
+              }}>
             {/* Сравнение по общей воронке */}
             <div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -1448,7 +1457,127 @@ export default function AnalyticsArticle() {
             </div>
           </div>
         </div>
-      )}
+
+        {/* Остатки на текущий момент */}
+        {nonZeroStocks.length > 0 && (
+          <div style={{
+            backgroundColor: colors.bgWhite,
+            border: `1px solid ${colors.borderLight}`,
+            borderRadius: borderRadius.md,
+            padding: spacing.lg,
+            boxShadow: shadows.md
+          }}>
+            <h2 style={{ 
+              ...typography.h2, 
+              marginBottom: spacing.md,
+              textAlign: 'center',
+              color: colors.textPrimary
+            }}>
+              Остатки на дату
+            </h2>
+            
+            {(() => {
+              const latestUpdate = nonZeroStocks
+                .map(s => s.updatedAt)
+                .filter(d => d !== null)
+                .sort()
+                .reverse()[0]
+              const totalAmount = nonZeroStocks.reduce((sum, stock) => sum + stock.amount, 0)
+              
+              return (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: spacing.md,
+                  marginBottom: spacing.lg,
+                  alignItems: 'center',
+                  minHeight: '70px'
+                }}>
+                  <div style={{ textAlign: 'left' }}>
+                    {latestUpdate && (
+                      <div style={{
+                        ...typography.bodySmall,
+                        color: colors.textSecondary
+                      }}>
+                        Дата обновления {dayjs(latestUpdate).format('DD.MM.YY HH:mm')}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{
+                      ...typography.h3,
+                      color: colors.bgWhite,
+                      backgroundColor: colors.primary,
+                      padding: `${spacing.xs} ${spacing.sm}`,
+                      borderRadius: borderRadius.sm,
+                      fontWeight: 600,
+                      display: 'inline-block'
+                    }}>
+                      Всего {totalAmount.toLocaleString('ru-RU')}
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+            
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: colors.bgGrayLight }}>
+                  <th style={{
+                    textAlign: 'left',
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    ...typography.body,
+                    fontWeight: 600
+                  }}>
+                    Склад
+                  </th>
+                  <th style={{
+                    textAlign: 'left',
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    ...typography.body,
+                    fontWeight: 600,
+                    backgroundColor: colors.bgGrayLight
+                  }}>
+                    Кол-во
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {nonZeroStocks.map((stock, index) => {
+                  const isLowStock = stock.amount <= 1
+                  return (
+                    <tr key={stock.warehouseName} style={{
+                      backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
+                    }}>
+                      <td style={{
+                        padding: spacing.md,
+                        borderBottom: `1px solid ${colors.borderLight}`,
+                        ...typography.body
+                      }}>
+                        {stock.warehouseName}
+                      </td>
+                      <td style={{
+                        textAlign: 'center',
+                        padding: spacing.md,
+                        borderBottom: `1px solid ${colors.borderLight}`,
+                        ...typography.body,
+                        fontWeight: 600,
+                        color: isLowStock ? colors.error : colors.textPrimary
+                      }}>
+                        {stock.amount.toLocaleString('ru-RU')}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+          </div>
+        )
+      })()}
 
       </div>
     </>

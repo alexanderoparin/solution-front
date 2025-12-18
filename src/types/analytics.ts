@@ -125,11 +125,18 @@ export interface Campaign {
   createdAt: string
 }
 
+export interface Stock {
+  warehouseName: string
+  amount: number
+  updatedAt: string | null
+}
+
 export interface ArticleResponse {
   article: ArticleDetail
   periods: Period[]
   metrics: Metric[]
   dailyData: DailyData[]
   campaigns: Campaign[]
+  stocks: Stock[]
 }
 
