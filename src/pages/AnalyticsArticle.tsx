@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Spin, Select } from 'antd'
+import { Spin, Select, DatePicker } from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
-import dayjs from 'dayjs'
+import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
+import locale from 'antd/locale/ru_RU'
 import { analyticsApi } from '../api/analytics'
 import type { ArticleResponse } from '../types/analytics'
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
@@ -91,6 +92,17 @@ export default function AnalyticsArticle() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [last14Days] = useState<string[]>(getLast14Days())
+  
+  // Периоды для сравнения (по умолчанию - две недели, разбитые по неделям)
+  const yesterday = dayjs().subtract(1, 'day')
+  const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>([
+    yesterday.subtract(13, 'day'), // 14 дней назад
+    yesterday.subtract(7, 'day')   // 7 дней назад
+  ])
+  const [period2, setPeriod2] = useState<[Dayjs, Dayjs]>([
+    yesterday.subtract(6, 'day'),  // 6 дней назад
+    yesterday                       // вчера
+  ])
 
   useEffect(() => {
     if (!nmId) {
@@ -123,7 +135,7 @@ export default function AnalyticsArticle() {
   }
 
   const formatPercent = (value: number): string => {
-    return `${value.toFixed(2)}%`
+    return `${value.toFixed(2).replace('.', ',')}%`
   }
 
   const formatCurrency = (value: number): string => {
@@ -166,6 +178,63 @@ export default function AnalyticsArticle() {
     
     return null
   }
+
+  // Агрегирует данные за период
+  const aggregatePeriodData = (startDate: Dayjs, endDate: Dayjs) => {
+    if (!article) return null
+    
+    const periodData = article.dailyData.filter(d => {
+      const date = dayjs(d.date)
+      const start = startDate.startOf('day')
+      const end = endDate.endOf('day')
+      return (date.isAfter(start) || date.isSame(start, 'day')) && 
+             (date.isBefore(end) || date.isSame(end, 'day'))
+    })
+
+    if (periodData.length === 0) return null
+
+    // Агрегируем метрики воронки
+    const transitions = periodData.reduce((sum, d) => sum + (d.transitions || 0), 0)
+    const cart = periodData.reduce((sum, d) => sum + (d.cart || 0), 0)
+    const orders = periodData.reduce((sum, d) => sum + (d.orders || 0), 0)
+    const ordersAmount = periodData.reduce((sum, d) => sum + (d.ordersAmount || 0), 0)
+    const cartConversion = transitions > 0 ? (cart / transitions) * 100 : null
+    const orderConversion = cart > 0 ? (orders / cart) * 100 : null
+
+    // Агрегируем рекламные метрики
+    const views = periodData.reduce((sum, d) => sum + (d.views || 0), 0)
+    const clicks = periodData.reduce((sum, d) => sum + (d.clicks || 0), 0)
+    const costs = periodData.reduce((sum, d) => sum + (d.costs || 0), 0)
+    const cpc = clicks > 0 ? costs / clicks : null
+    const ctr = views > 0 ? (clicks / views) * 100 : null
+    const cpo = orders > 0 ? costs / orders : null
+    const drr = ordersAmount > 0 ? (costs / ordersAmount) * 100 : null
+
+    return {
+      transitions,
+      cart,
+      orders,
+      ordersAmount,
+      cartConversion,
+      orderConversion,
+      views,
+      clicks,
+      costs,
+      cpc,
+      ctr,
+      cpo,
+      drr
+    }
+  }
+
+  // Вычисляет разницу в процентах
+  const calculateDifference = (value1: number | null, value2: number | null): number | null => {
+    if (value1 === null || value2 === null || value1 === 0) return null
+    return ((value2 - value1) / value1) * 100
+  }
+
+  const period1Data = aggregatePeriodData(period1[0], period1[1])
+  const period2Data = aggregatePeriodData(period2[0], period2[1])
 
   if (loading) {
     return (
@@ -685,6 +754,701 @@ export default function AnalyticsArticle() {
           </table>
         </div>
       </div>
+
+      {/* Сравнение периодов */}
+      {article && period1Data && period2Data && (
+        <div style={{
+          backgroundColor: colors.bgWhite,
+          border: `1px solid ${colors.borderLight}`,
+          borderRadius: borderRadius.md,
+          padding: spacing.lg,
+          marginBottom: spacing.xl,
+          boxShadow: shadows.md
+        }}>
+          <h2 style={{ 
+            ...typography.h2, 
+            marginBottom: spacing.md,
+            textAlign: 'center'
+          }}>
+            Сравнение периодов
+          </h2>
+
+          {/* Выбор периодов */}
+          <div style={{
+            display: 'flex',
+            gap: spacing.lg,
+            marginBottom: spacing.xl,
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <div>
+              <div style={{ 
+                ...typography.bodySmall, 
+                color: colors.textSecondary,
+                marginBottom: spacing.xs
+              }}>
+                Период 1
+              </div>
+              <DatePicker.RangePicker
+                locale={locale.DatePicker}
+                value={period1}
+                onChange={(dates) => {
+                  if (dates && dates[0] && dates[1]) {
+                    setPeriod1([dates[0], dates[1]])
+                  }
+                }}
+                format="DD.MM.YYYY"
+                separator="→"
+                style={{ width: 240 }}
+              />
+            </div>
+            <div>
+              <div style={{ 
+                ...typography.bodySmall, 
+                color: colors.textSecondary,
+                marginBottom: spacing.xs
+              }}>
+                Период 2
+              </div>
+              <DatePicker.RangePicker
+                locale={locale.DatePicker}
+                value={period2}
+                onChange={(dates) => {
+                  if (dates && dates[0] && dates[1]) {
+                    setPeriod2([dates[0], dates[1]])
+                  }
+                }}
+                format="DD.MM.YYYY"
+                separator="→"
+                style={{ width: 240 }}
+              />
+            </div>
+          </div>
+
+          {/* Сравнение по общей воронке и рекламе - два блока рядом */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: spacing.lg
+          }}>
+            {/* Сравнение по общей воронке */}
+            <div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: colors.bgGrayLight }}>
+                  <th style={{
+                    textAlign: 'left',
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body,
+                    fontWeight: 600,
+                    width: '30%'
+                  }}>
+                    ОБЩАЯ ВОРОНКА
+                  </th>
+                  <th style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    ...typography.body,
+                    fontWeight: 600,
+                    backgroundColor: colors.bgGrayLight
+                  }}>
+                    {period1[0].format('DD.MM')} - {period1[1].format('DD.MM')}
+                  </th>
+                  <th style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    ...typography.body,
+                    fontWeight: 600,
+                    backgroundColor: colors.bgGrayLight
+                  }}>
+                    {period2[0].format('DD.MM')} - {period2[1].format('DD.MM')}
+                  </th>
+                  <th style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    ...typography.body,
+                    fontWeight: 600,
+                    backgroundColor: colors.bgGrayLight
+                  }}>
+                    Разница
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Переходы в карточку */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    Переходы в карточку
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatValue(period1Data.transitions)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatValue(period2Data.transitions)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body,
+                    backgroundColor: calculateDifference(period1Data.transitions, period2Data.transitions) !== null && calculateDifference(period1Data.transitions, period2Data.transitions)! > 0 
+                      ? colors.successLight 
+                      : 'transparent',
+                    color: calculateDifference(period1Data.transitions, period2Data.transitions) !== null && calculateDifference(period1Data.transitions, period2Data.transitions)! > 0 
+                      ? colors.success 
+                      : colors.textPrimary,
+                    fontWeight: 600
+                  }}>
+                    {calculateDifference(period1Data.transitions, period2Data.transitions) !== null 
+                      ? `${calculateDifference(period1Data.transitions, period2Data.transitions)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.transitions, period2Data.transitions)!)}`
+                      : '-'}
+                  </td>
+                </tr>
+                {/* Положили в корзину */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    Положили в корзину
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatValue(period1Data.cart)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatValue(period2Data.cart)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body,
+                    backgroundColor: calculateDifference(period1Data.cart, period2Data.cart) !== null && calculateDifference(period1Data.cart, period2Data.cart)! > 0 
+                      ? colors.successLight 
+                      : 'transparent',
+                    color: calculateDifference(period1Data.cart, period2Data.cart) !== null && calculateDifference(period1Data.cart, period2Data.cart)! > 0 
+                      ? colors.success 
+                      : colors.textPrimary,
+                    fontWeight: 600
+                  }}>
+                    {calculateDifference(period1Data.cart, period2Data.cart) !== null 
+                      ? `${calculateDifference(period1Data.cart, period2Data.cart)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.cart, period2Data.cart)!)}`
+                      : '-'}
+                  </td>
+                </tr>
+                {/* Заказали товаров */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    Заказали товаров
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatValue(period1Data.orders)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatValue(period2Data.orders)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body,
+                    backgroundColor: calculateDifference(period1Data.orders, period2Data.orders) !== null && calculateDifference(period1Data.orders, period2Data.orders)! > 0 
+                      ? colors.successLight 
+                      : 'transparent',
+                    color: calculateDifference(period1Data.orders, period2Data.orders) !== null && calculateDifference(period1Data.orders, period2Data.orders)! > 0 
+                      ? colors.success 
+                      : colors.textPrimary,
+                    fontWeight: 600
+                  }}>
+                    {calculateDifference(period1Data.orders, period2Data.orders) !== null 
+                      ? `${calculateDifference(period1Data.orders, period2Data.orders)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.orders, period2Data.orders)!)}`
+                      : '-'}
+                  </td>
+                </tr>
+                {/* Заказали на сумму */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    Заказали на сумму
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatCurrency(period1Data.ordersAmount)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatCurrency(period2Data.ordersAmount)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body,
+                    backgroundColor: calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount) !== null && calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount)! > 0 
+                      ? colors.successLight 
+                      : 'transparent',
+                    color: calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount) !== null && calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount)! > 0 
+                      ? colors.success 
+                      : colors.textPrimary,
+                    fontWeight: 600
+                  }}>
+                    {calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount) !== null 
+                      ? `${calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount)!)}`
+                      : '-'}
+                  </td>
+                </tr>
+                {/* Конверсия в корзину */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    Конверсия в корзину
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period1Data.cartConversion !== null ? formatPercent(period1Data.cartConversion) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period2Data.cartConversion !== null ? formatPercent(period2Data.cartConversion) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    -
+                  </td>
+                </tr>
+                {/* Конверсия в заказ */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    Конверсия в заказ
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period1Data.orderConversion !== null ? formatPercent(period1Data.orderConversion) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period2Data.orderConversion !== null ? formatPercent(period2Data.orderConversion) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    -
+                  </td>
+                </tr>
+              </tbody>
+              </table>
+            </div>
+
+            {/* Сравнение по рекламе */}
+            <div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ backgroundColor: colors.bgGrayLight }}>
+                  <th style={{
+                    textAlign: 'left',
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body,
+                    fontWeight: 600,
+                    width: '30%'
+                  }}>
+                    РЕКЛАМНАЯ ВОРОНКА
+                  </th>
+                  <th style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    ...typography.body,
+                    fontWeight: 600,
+                    backgroundColor: colors.bgGrayLight
+                  }}>
+                    {period1[0].format('DD.MM')} - {period1[1].format('DD.MM')}
+                  </th>
+                  <th style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    ...typography.body,
+                    fontWeight: 600,
+                    backgroundColor: colors.bgGrayLight
+                  }}>
+                    {period2[0].format('DD.MM')} - {period2[1].format('DD.MM')}
+                  </th>
+                  <th style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `2px solid ${colors.border}`,
+                    ...typography.body,
+                    fontWeight: 600,
+                    backgroundColor: colors.bgGrayLight
+                  }}>
+                    Разница
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Просмотры */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    Просмотры
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatValue(period1Data.views)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatValue(period2Data.views)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body,
+                    backgroundColor: calculateDifference(period1Data.views, period2Data.views) !== null && calculateDifference(period1Data.views, period2Data.views)! > 0 
+                      ? colors.successLight 
+                      : 'transparent',
+                    color: calculateDifference(period1Data.views, period2Data.views) !== null && calculateDifference(period1Data.views, period2Data.views)! > 0 
+                      ? colors.success 
+                      : colors.textPrimary,
+                    fontWeight: 600
+                  }}>
+                    {calculateDifference(period1Data.views, period2Data.views) !== null 
+                      ? `${calculateDifference(period1Data.views, period2Data.views)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.views, period2Data.views)!)}`
+                      : '-'}
+                  </td>
+                </tr>
+                {/* Клики */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    Клики
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatValue(period1Data.clicks)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {formatValue(period2Data.clicks)}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body,
+                    backgroundColor: calculateDifference(period1Data.clicks, period2Data.clicks) !== null && calculateDifference(period1Data.clicks, period2Data.clicks)! > 0 
+                      ? colors.successLight 
+                      : 'transparent',
+                    color: calculateDifference(period1Data.clicks, period2Data.clicks) !== null && calculateDifference(period1Data.clicks, period2Data.clicks)! > 0 
+                      ? colors.success 
+                      : colors.textPrimary,
+                    fontWeight: 600
+                  }}>
+                    {calculateDifference(period1Data.clicks, period2Data.clicks) !== null 
+                      ? `${calculateDifference(period1Data.clicks, period2Data.clicks)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.clicks, period2Data.clicks)!)}`
+                      : '-'}
+                  </td>
+                </tr>
+                {/* Затраты */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    Затраты
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period1Data.costs !== null ? formatCurrency(period1Data.costs) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period2Data.costs !== null ? formatCurrency(period2Data.costs) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    -
+                  </td>
+                </tr>
+                {/* CPC */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    СРС
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period1Data.cpc !== null ? formatCurrency(period1Data.cpc) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period2Data.cpc !== null ? formatCurrency(period2Data.cpc) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    -
+                  </td>
+                </tr>
+                {/* CTR */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    CTR
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period1Data.ctr !== null ? formatPercent(period1Data.ctr) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period2Data.ctr !== null ? formatPercent(period2Data.ctr) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    -
+                  </td>
+                </tr>
+                {/* CPO */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    СРО
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period1Data.cpo !== null ? formatCurrency(period1Data.cpo) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period2Data.cpo !== null ? formatCurrency(period2Data.cpo) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    -
+                  </td>
+                </tr>
+                {/* ДРР */}
+                <tr>
+                  <td style={{
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
+                    ...typography.body
+                  }}>
+                    ДРР
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period1Data.drr !== null ? formatPercent(period1Data.drr) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    {period2Data.drr !== null ? formatPercent(period2Data.drr) : '-'}
+                  </td>
+                  <td style={{
+                    textAlign: 'center',
+                    padding: spacing.md,
+                    borderBottom: `1px solid ${colors.borderLight}`,
+                    ...typography.body
+                  }}>
+                    -
+                  </td>
+                </tr>
+              </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </>
