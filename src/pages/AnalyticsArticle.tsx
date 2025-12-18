@@ -52,11 +52,11 @@ const FUNNELS = {
   }
 }
 
-function getLast7Days(): string[] {
+function getLast14Days(): string[] {
   const days: string[] = []
   const yesterday = dayjs().subtract(1, 'day')
-  // Максимум 7 дней: вчера и 6 дней до этого
-  for (let i = 6; i >= 0; i--) {
+  // 14 дней: вчера и 13 дней до этого
+  for (let i = 13; i >= 0; i--) {
     days.push(yesterday.subtract(i, 'day').format('YYYY-MM-DD'))
   }
   return days.reverse() // Разворачиваем, чтобы самые новые были сверху
@@ -90,7 +90,7 @@ export default function AnalyticsArticle() {
   const [article, setArticle] = useState<ArticleResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [last7Days] = useState<string[]>(getLast7Days())
+  const [last14Days] = useState<string[]>(getLast14Days())
 
   useEffect(() => {
     if (!nmId) {
@@ -528,7 +528,7 @@ export default function AnalyticsArticle() {
         marginBottom: spacing.xl,
         boxShadow: shadows.md
       }}>
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ overflowX: 'hidden', width: '100%' }}>
           <div style={{
             display: 'flex',
             marginBottom: spacing.md,
@@ -568,35 +568,36 @@ export default function AnalyticsArticle() {
               />
             </div>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th style={{
                   textAlign: 'left',
-                  padding: spacing.sm,
+                  padding: '6px 8px',
                   borderBottom: `2px solid ${colors.border}`,
                   borderRight: `2px solid ${colors.border}`,
-                  ...typography.body,
+                  fontSize: '12px',
                   fontWeight: 600,
                   position: 'sticky',
                   left: 0,
                   backgroundColor: colors.bgWhite,
-                  zIndex: 2
+                  zIndex: 2,
+                  width: '90px'
                 }}>
                   Дата
                 </th>
                 {FUNNELS[selectedFunnel1].metrics.map((metric, index) => (
                   <th key={metric.key} style={{
                     textAlign: 'center',
-                    padding: `${spacing.xs} ${spacing.xs}`,
+                    padding: '4px 6px',
                     borderBottom: `2px solid ${colors.border}`,
                     borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.borderLight}`,
-                    ...typography.bodySmall,
+                    fontSize: '10px',
                     fontWeight: 600,
                     whiteSpace: 'pre-line',
-                    lineHeight: 1.3,
+                    lineHeight: 1.2,
                     backgroundColor: colors.bgGrayLight,
-                    maxWidth: '120px'
+                    width: `${100 / (FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length)}%`
                   }}>
                     {metric.name}
                   </th>
@@ -604,14 +605,14 @@ export default function AnalyticsArticle() {
                 {FUNNELS[selectedFunnel2].metrics.map(metric => (
                   <th key={metric.key} style={{
                     textAlign: 'center',
-                    padding: `${spacing.xs} ${spacing.xs}`,
+                    padding: '4px 6px',
                     borderBottom: `2px solid ${colors.border}`,
-                    ...typography.bodySmall,
+                    fontSize: '10px',
                     fontWeight: 600,
                     whiteSpace: 'pre-line',
-                    lineHeight: 1.3,
+                    lineHeight: 1.2,
                     backgroundColor: colors.bgGrayLight,
-                    maxWidth: '120px'
+                    width: `${100 / (FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length)}%`
                   }}>
                     {metric.name}
                   </th>
@@ -619,13 +620,13 @@ export default function AnalyticsArticle() {
               </tr>
             </thead>
             <tbody>
-              {last7Days.map(date => (
+              {last14Days.map(date => (
                 <tr key={date}>
                   <td style={{
-                    padding: spacing.sm,
+                    padding: '6px 8px',
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body,
+                    fontSize: '12px',
                     fontWeight: 500,
                     position: 'sticky',
                     left: 0,
@@ -641,11 +642,13 @@ export default function AnalyticsArticle() {
                     return (
                       <td key={metric.key} style={{
                         textAlign: 'center',
-                        padding: `${spacing.xs} ${spacing.xs}`,
+                        padding: '4px 6px',
                         borderBottom: `1px solid ${colors.borderLight}`,
                         borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.borderLight}`,
                         backgroundColor: colors.bgGrayLight,
-                        ...typography.bodySmall
+                        fontSize: '11px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
                       }}>
                         {value === null ? '-' : (
                           isPercent ? formatPercent(value) :
@@ -662,9 +665,11 @@ export default function AnalyticsArticle() {
                     return (
                       <td key={metric.key} style={{
                         textAlign: 'center',
-                        padding: `${spacing.xs} ${spacing.xs}`,
+                        padding: '4px 6px',
                         borderBottom: `1px solid ${colors.borderLight}`,
-                        ...typography.bodySmall
+                        fontSize: '11px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
                       }}>
                         {value === null ? '-' : (
                           isPercent ? formatPercent(value) :
