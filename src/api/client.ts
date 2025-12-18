@@ -30,8 +30,9 @@ apiClient.interceptors.response.use(
     const status = error.response?.status
     const url = error.config?.url || ''
     
-    // 401 - неавторизован, всегда редиректим на логин
-    if (status === 401) {
+    // 401 - неавторизован, редиректим на логин
+    // Исключаем эндпоинт логина, чтобы пользователь мог увидеть сообщение об ошибке
+    if (status === 401 && !url.includes('/auth/login')) {
       useAuthStore.getState().clearAuth()
       window.location.href = '/login'
       return Promise.reject(error)
