@@ -19,6 +19,8 @@ apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  } else {
+    console.warn('Токен не найден для запроса:', config.url)
   }
   return config
 })
@@ -39,14 +41,14 @@ apiClient.interceptors.response.use(
     }
     
     // 403 - запрещено
-    // Для эндпоинтов, которые требуют авторизации (профиль, активные селлеры),
-    // 403 с "JWT токен не найден или невалиден" означает проблему с авторизацией
-    // Редиректим на логин для этих эндпоинтов
+    // Для всех защищенных эндпоинтов 403 означает проблему с авторизацией
+    // Редиректим на логин для всех защищенных эндпоинтов (кроме публичных)
     if (status === 403) {
-      const authRequiredEndpoints = ['/user/profile', '/users/active-sellers']
-      const isAuthRequiredEndpoint = authRequiredEndpoints.some(endpoint => url.includes(endpoint))
+      const publicEndpoints = ['/auth/login', '/health']
+      const isPublicEndpoint = publicEndpoints.some(endpoint => url.includes(endpoint))
       
-      if (isAuthRequiredEndpoint) {
+      if (!isPublicEndpoint) {
+        // 403 на защищенном эндпоинте означает проблему с токеном
         useAuthStore.getState().clearAuth()
         window.location.href = '/login'
         return Promise.reject(error)
