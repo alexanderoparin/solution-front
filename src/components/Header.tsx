@@ -181,17 +181,17 @@ export default function Header({ articleTitle, sellerSelectProps, articleFilterP
         )}
         {isAnalyticsPage && (
           <>
-            <Title 
-              level={2} 
-              style={{ 
-                margin: 0,
-                fontSize: '24px',
-                fontWeight: 600,
-                color: '#1E293B'
-              }}
-            >
-              Сводная аналитика
-            </Title>
+          <Title 
+            level={2} 
+            style={{ 
+              margin: 0,
+              fontSize: '24px',
+              fontWeight: 600,
+              color: '#1E293B'
+            }}
+          >
+            Сводная аналитика
+          </Title>
             {sellerSelectProps && (
               <>
                 <Select
@@ -458,18 +458,18 @@ export default function Header({ articleTitle, sellerSelectProps, articleFilterP
             >
               Сводная аналитика
             </Button>
-            <Button
-              type="default"
-              icon={<UserOutlined />}
-              onClick={() => navigate('/profile')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              Личный кабинет
-            </Button>
+          <Button
+            type="default"
+            icon={<UserOutlined />}
+            onClick={() => navigate('/profile')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            Личный кабинет
+          </Button>
           </>
         )}
       </Space>

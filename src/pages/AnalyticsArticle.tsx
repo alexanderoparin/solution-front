@@ -318,13 +318,21 @@ export default function AnalyticsArticle() {
         backgroundColor: colors.bgWhite,
         border: `1px solid ${colors.borderLight}`,
         borderRadius: borderRadius.md,
-        padding: spacing.lg,
+        padding: spacing.xl,
         marginBottom: spacing.xl,
-        boxShadow: shadows.md
-      }}>
+        boxShadow: shadows.md,
+        transition: transitions.normal
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = shadows.lg
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = shadows.md
+      }}
+      >
         <div style={{
           display: 'flex',
-          gap: spacing.lg,
+          gap: spacing.xl,
           alignItems: 'flex-start'
         }}>
           {article.article.photoTm && (
@@ -340,9 +348,11 @@ export default function AnalyticsArticle() {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.opacity = '0.8'
+                e.currentTarget.style.transform = 'scale(1.02)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.opacity = '1'
+                e.currentTarget.style.transform = 'scale(1)'
               }}
             >
               <img
@@ -356,7 +366,7 @@ export default function AnalyticsArticle() {
                   objectFit: 'contain',
                   borderRadius: borderRadius.md,
                   border: `1px solid ${colors.borderLight}`,
-                  boxShadow: shadows.sm,
+                  boxShadow: shadows.md,
                   display: 'block'
                 }}
                 onError={(e) => {
@@ -417,17 +427,23 @@ export default function AnalyticsArticle() {
               </div>
               
               {/* Вторая колонка */}
-              <div>
+              <div style={{
+                padding: spacing.md,
+                backgroundColor: colors.bgGrayLight,
+                borderRadius: borderRadius.sm,
+                border: `1px solid ${colors.borderLight}`
+              }}>
                 <div style={{ 
                   ...typography.bodySmall, 
                   color: colors.textSecondary,
-                  marginBottom: spacing.xs
+                  marginBottom: spacing.xs,
+                  fontWeight: 500
                 }}>
                   Категория
                 </div>
                 <div style={{ 
                   ...typography.body, 
-                  fontWeight: 500,
+                  fontWeight: 600,
                   color: colors.textPrimary,
                   marginBottom: spacing.md
                 }}>
@@ -436,13 +452,14 @@ export default function AnalyticsArticle() {
                 <div style={{ 
                   ...typography.bodySmall, 
                   color: colors.textSecondary,
-                  marginBottom: spacing.xs
+                  marginBottom: spacing.xs,
+                  fontWeight: 500
                 }}>
                   Бренд
                 </div>
                 <div style={{ 
                   ...typography.body, 
-                  fontWeight: 500,
+                  fontWeight: 600,
                   color: colors.textPrimary
                 }}>
                   {article.article.brand || '-'}
@@ -470,18 +487,28 @@ export default function AnalyticsArticle() {
               )}
               
               {article.article.rating !== null && (
-                <div>
+                <div style={{
+                  padding: spacing.md,
+                  backgroundColor: colors.successLight,
+                  borderRadius: borderRadius.sm,
+                  border: `1px solid ${colors.success}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
                   <div style={{ 
                     ...typography.bodySmall, 
                     color: colors.textSecondary,
-                    marginBottom: spacing.xs
+                    marginBottom: spacing.xs,
+                    fontWeight: 500
                   }}>
                     Рейтинг
                   </div>
                   <div style={{ 
-                    ...typography.body, 
-                    fontWeight: 500,
-                    color: colors.textPrimary
+                    ...typography.h3, 
+                    color: colors.success,
+                    fontWeight: 700
                   }}>
                     {article.article.rating.toFixed(1)} ⭐
                   </div>
@@ -489,18 +516,28 @@ export default function AnalyticsArticle() {
               )}
               
               {article.article.reviewsCount !== null && (
-                <div>
+                <div style={{
+                  padding: spacing.md,
+                  backgroundColor: colors.primaryLight,
+                  borderRadius: borderRadius.sm,
+                  border: `1px solid ${colors.primary}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
                   <div style={{ 
                     ...typography.bodySmall, 
                     color: colors.textSecondary,
-                    marginBottom: spacing.xs
+                    marginBottom: spacing.xs,
+                    fontWeight: 500
                   }}>
                     Отзывов
                   </div>
                   <div style={{ 
-                    ...typography.body, 
-                    fontWeight: 500,
-                    color: colors.textPrimary
+                    ...typography.h3, 
+                    color: colors.primary,
+                    fontWeight: 700
                   }}>
                     {article.article.reviewsCount.toLocaleString('ru-RU')}
                   </div>
@@ -511,31 +548,48 @@ export default function AnalyticsArticle() {
             {article.campaigns.length > 0 && (
               <div style={{
                 width: '450px',
-                flexShrink: 0
+                flexShrink: 0,
+                padding: spacing.md,
+                backgroundColor: colors.bgGrayLight,
+                borderRadius: borderRadius.md,
+                border: `1px solid ${colors.borderLight}`
               }}>
                 <div style={{
                   ...typography.h3,
                   marginBottom: spacing.md,
-                  color: colors.textPrimary
+                  color: colors.textPrimary,
+                  fontWeight: 600
                 }}>
                   Рекламные кампании
                 </div>
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: spacing.sm,
+                  gap: spacing.md,
                   alignContent: 'start'
                 }}>
                   {article.campaigns.map(campaign => (
                     <div
                       key={campaign.id}
                       style={{
-                        padding: spacing.sm,
+                        padding: spacing.md,
                         border: `1px solid ${colors.borderLight}`,
                         borderRadius: borderRadius.sm,
-                        backgroundColor: colors.bgGrayLight,
+                        backgroundColor: colors.bgWhite,
                         display: 'flex',
-                        flexDirection: 'column'
+                        flexDirection: 'column',
+                        transition: transitions.fast,
+                        boxShadow: shadows.sm
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow = shadows.md
+                        e.currentTarget.style.borderColor = colors.primary
+                        e.currentTarget.style.transform = 'translateY(-2px)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = shadows.sm
+                        e.currentTarget.style.borderColor = colors.borderLight
+                        e.currentTarget.style.transform = 'translateY(0)'
                       }}
                     >
                       <div style={{
@@ -593,10 +647,18 @@ export default function AnalyticsArticle() {
         backgroundColor: colors.bgWhite,
         border: `1px solid ${colors.borderLight}`,
         borderRadius: borderRadius.md,
-        padding: spacing.md,
+        padding: spacing.lg,
         marginBottom: spacing.xl,
-        boxShadow: shadows.md
-      }}>
+        boxShadow: shadows.md,
+        transition: transitions.normal
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = shadows.lg
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = shadows.md
+      }}
+      >
         <div style={{ overflowX: 'hidden', width: '100%' }}>
           <div style={{
             display: 'flex',
@@ -655,101 +717,129 @@ export default function AnalyticsArticle() {
                 }}>
                   Дата
                 </th>
-                {FUNNELS[selectedFunnel1].metrics.map((metric, index) => (
-                  <th key={metric.key} style={{
-                    textAlign: 'center',
-                    padding: '4px 6px',
-                    borderBottom: `2px solid ${colors.border}`,
-                    borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.borderLight}`,
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    whiteSpace: 'pre-line',
-                    lineHeight: 1.2,
-                    backgroundColor: colors.bgGrayLight,
-                    width: `${100 / (FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length)}%`
-                  }}>
-                    {metric.name}
-                  </th>
-                ))}
-                {FUNNELS[selectedFunnel2].metrics.map(metric => (
-                  <th key={metric.key} style={{
-                    textAlign: 'center',
-                    padding: '4px 6px',
-                    borderBottom: `2px solid ${colors.border}`,
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    whiteSpace: 'pre-line',
-                    lineHeight: 1.2,
-                    backgroundColor: colors.bgGrayLight,
-                    width: `${100 / (FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length)}%`
-                  }}>
-                    {metric.name}
-                  </th>
-                ))}
+                {FUNNELS[selectedFunnel1].metrics.map((metric, index) => {
+                  const isGeneralFunnel = selectedFunnel1 === 'general'
+                  const isAdvertisingFunnel = selectedFunnel1 === 'advertising'
+                  return (
+                    <th key={metric.key} style={{
+                      textAlign: 'center',
+                      padding: '4px 6px',
+                      borderBottom: `2px solid ${colors.border}`,
+                      borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.borderLight}`,
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      whiteSpace: 'pre-line',
+                      lineHeight: 1.2,
+                      backgroundColor: isGeneralFunnel ? colors.funnelBg : isAdvertisingFunnel ? colors.advertisingBg : colors.bgGrayLight,
+                      width: `${100 / (FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length)}%`
+                    }}>
+                      {metric.name}
+                    </th>
+                  )
+                })}
+                {FUNNELS[selectedFunnel2].metrics.map(metric => {
+                  const isGeneralFunnel = selectedFunnel2 === 'general'
+                  const isAdvertisingFunnel = selectedFunnel2 === 'advertising'
+                  return (
+                    <th key={metric.key} style={{
+                      textAlign: 'center',
+                      padding: '4px 6px',
+                      borderBottom: `2px solid ${colors.border}`,
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      whiteSpace: 'pre-line',
+                      lineHeight: 1.2,
+                      backgroundColor: isGeneralFunnel ? colors.funnelBg : isAdvertisingFunnel ? colors.advertisingBg : colors.bgGrayLight,
+                      width: `${100 / (FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length)}%`
+                    }}>
+                      {metric.name}
+                    </th>
+                  )
+                })}
               </tr>
             </thead>
             <tbody>
-              {last14Days.map(date => (
-                <tr key={date}>
-                  <td style={{
-                    padding: '6px 8px',
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderRight: `2px solid ${colors.border}`,
-                    fontSize: '12px',
-                    fontWeight: 500,
-                    position: 'sticky',
-                    left: 0,
-                    backgroundColor: colors.bgWhite,
-                    zIndex: 1
-                  }}>
-                    {dayjs(date).format('DD.MM.YYYY')}
-                  </td>
-                  {FUNNELS[selectedFunnel1].metrics.map((metric, index) => {
-                    const value = getMetricValueForDate(metric.key, date)
-                    const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
-                    const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
-                    return (
-                      <td key={metric.key} style={{
-                        textAlign: 'center',
-                        padding: '4px 6px',
-                        borderBottom: `1px solid ${colors.borderLight}`,
-                        borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.borderLight}`,
-                        backgroundColor: colors.bgGrayLight,
-                        fontSize: '11px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                        {value === null ? '-' : (
-                          isPercent ? formatPercent(value) :
-                          isCurrency ? formatCurrency(value) :
-                          formatValue(value)
-                        )}
-                      </td>
-                    )
-                  })}
-                  {FUNNELS[selectedFunnel2].metrics.map(metric => {
-                    const value = getMetricValueForDate(metric.key, date)
-                    const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
-                    const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
-                    return (
-                      <td key={metric.key} style={{
-                        textAlign: 'center',
-                        padding: '4px 6px',
-                        borderBottom: `1px solid ${colors.borderLight}`,
-                        fontSize: '11px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                        {value === null ? '-' : (
-                          isPercent ? formatPercent(value) :
-                          isCurrency ? formatCurrency(value) :
-                          formatValue(value)
-                        )}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
+              {last14Days.map((date) => {
+                const isGeneralFunnel1 = selectedFunnel1 === 'general'
+                const isAdvertisingFunnel1 = selectedFunnel1 === 'advertising'
+                const isGeneralFunnel2 = selectedFunnel2 === 'general'
+                const isAdvertisingFunnel2 = selectedFunnel2 === 'advertising'
+                return (
+                  <tr 
+                    key={date}
+                    style={{
+                      transition: transitions.fast
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = colors.bgGrayLight
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent'
+                    }}
+                  >
+                    <td style={{
+                      padding: '6px 8px',
+                      borderBottom: `1px solid ${colors.borderLight}`,
+                      borderRight: `2px solid ${colors.border}`,
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      position: 'sticky',
+                      left: 0,
+                      backgroundColor: colors.bgWhite,
+                      zIndex: 1
+                    }}>
+                      {dayjs(date).format('DD.MM.YYYY')}
+                    </td>
+                    {FUNNELS[selectedFunnel1].metrics.map((metric, index) => {
+                      const value = getMetricValueForDate(metric.key, date)
+                      const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
+                      const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
+                      return (
+                        <td key={metric.key} style={{
+                          textAlign: 'center',
+                          padding: '4px 6px',
+                          borderBottom: `1px solid ${colors.borderLight}`,
+                          borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.borderLight}`,
+                          backgroundColor: isGeneralFunnel1 ? colors.funnelBg : isAdvertisingFunnel1 ? colors.advertisingBg : colors.bgGrayLight,
+                          fontSize: '11px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          transition: transitions.fast
+                        }}>
+                          {value === null ? '-' : (
+                            isPercent ? formatPercent(value) :
+                            isCurrency ? formatCurrency(value) :
+                            formatValue(value)
+                          )}
+                        </td>
+                      )
+                    })}
+                    {FUNNELS[selectedFunnel2].metrics.map(metric => {
+                      const value = getMetricValueForDate(metric.key, date)
+                      const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
+                      const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
+                      return (
+                        <td key={metric.key} style={{
+                          textAlign: 'center',
+                          padding: '4px 6px',
+                          borderBottom: `1px solid ${colors.borderLight}`,
+                          backgroundColor: isGeneralFunnel2 ? colors.funnelBg : isAdvertisingFunnel2 ? colors.advertisingBg : colors.bgGrayLight,
+                          fontSize: '11px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          transition: transitions.fast
+                        }}>
+                          {value === null ? '-' : (
+                            isPercent ? formatPercent(value) :
+                            isCurrency ? formatCurrency(value) :
+                            formatValue(value)
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -772,8 +862,16 @@ export default function AnalyticsArticle() {
               border: `1px solid ${colors.borderLight}`,
               borderRadius: borderRadius.md,
               padding: spacing.lg,
-              boxShadow: shadows.md
-            }}>
+              boxShadow: shadows.md,
+              transition: transitions.normal
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = shadows.lg
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = shadows.md
+            }}
+            >
               <h2 style={{ 
                 ...typography.h2, 
                 marginBottom: spacing.md,
@@ -845,7 +943,7 @@ export default function AnalyticsArticle() {
             <div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ backgroundColor: colors.bgGrayLight }}>
+                <tr style={{ backgroundColor: colors.funnelBg }}>
                   <th style={{
                     textAlign: 'left',
                     padding: spacing.md,
@@ -921,12 +1019,11 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     ...typography.body,
-                    backgroundColor: calculateDifference(period1Data.transitions, period2Data.transitions) !== null && calculateDifference(period1Data.transitions, period2Data.transitions)! > 0 
-                      ? colors.successLight 
-                      : 'transparent',
-                    color: calculateDifference(period1Data.transitions, period2Data.transitions) !== null && calculateDifference(period1Data.transitions, period2Data.transitions)! > 0 
-                      ? colors.success 
-                      : colors.textPrimary,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.transitions, period2Data.transitions)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
                     fontWeight: 600
                   }}>
                     {calculateDifference(period1Data.transitions, period2Data.transitions) !== null 
@@ -935,12 +1032,24 @@ export default function AnalyticsArticle() {
                   </td>
                 </tr>
                 {/* Положили в корзину */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.funnelBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                    fontWeight: 500
                   }}>
                     Положили в корзину
                   </td>
@@ -965,12 +1074,11 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     ...typography.body,
-                    backgroundColor: calculateDifference(period1Data.cart, period2Data.cart) !== null && calculateDifference(period1Data.cart, period2Data.cart)! > 0 
-                      ? colors.successLight 
-                      : 'transparent',
-                    color: calculateDifference(period1Data.cart, period2Data.cart) !== null && calculateDifference(period1Data.cart, period2Data.cart)! > 0 
-                      ? colors.success 
-                      : colors.textPrimary,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.cart, period2Data.cart)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
                     fontWeight: 600
                   }}>
                     {calculateDifference(period1Data.cart, period2Data.cart) !== null 
@@ -979,12 +1087,24 @@ export default function AnalyticsArticle() {
                   </td>
                 </tr>
                 {/* Заказали товаров */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.funnelBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                    fontWeight: 500
                   }}>
                     Заказали товаров
                   </td>
@@ -1009,12 +1129,11 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     ...typography.body,
-                    backgroundColor: calculateDifference(period1Data.orders, period2Data.orders) !== null && calculateDifference(period1Data.orders, period2Data.orders)! > 0 
-                      ? colors.successLight 
-                      : 'transparent',
-                    color: calculateDifference(period1Data.orders, period2Data.orders) !== null && calculateDifference(period1Data.orders, period2Data.orders)! > 0 
-                      ? colors.success 
-                      : colors.textPrimary,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.orders, period2Data.orders)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
                     fontWeight: 600
                   }}>
                     {calculateDifference(period1Data.orders, period2Data.orders) !== null 
@@ -1053,12 +1172,11 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     ...typography.body,
-                    backgroundColor: calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount) !== null && calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount)! > 0 
-                      ? colors.successLight 
-                      : 'transparent',
-                    color: calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount) !== null && calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount)! > 0 
-                      ? colors.success 
-                      : colors.textPrimary,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
                     fontWeight: 600
                   }}>
                     {calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount) !== null 
@@ -1067,12 +1185,24 @@ export default function AnalyticsArticle() {
                   </td>
                 </tr>
                 {/* Конверсия в корзину */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.funnelBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                    fontWeight: 500
                   }}>
                     Конверсия в корзину
                   </td>
@@ -1102,12 +1232,24 @@ export default function AnalyticsArticle() {
                   </td>
                 </tr>
                 {/* Конверсия в заказ */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.funnelBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                    fontWeight: 500
                   }}>
                     Конверсия в заказ
                   </td>
@@ -1144,7 +1286,7 @@ export default function AnalyticsArticle() {
             <div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ backgroundColor: colors.bgGrayLight }}>
+                <tr style={{ backgroundColor: colors.advertisingBg }}>
                   <th style={{
                     textAlign: 'left',
                     padding: spacing.md,
@@ -1162,7 +1304,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
-                    backgroundColor: colors.bgGrayLight
+                    backgroundColor: colors.advertisingBg
                   }}>
                     {period1[0].format('DD.MM')} - {period1[1].format('DD.MM')}
                   </th>
@@ -1172,7 +1314,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
-                    backgroundColor: colors.bgGrayLight
+                    backgroundColor: colors.advertisingBg
                   }}>
                     {period2[0].format('DD.MM')} - {period2[1].format('DD.MM')}
                   </th>
@@ -1182,7 +1324,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
-                    backgroundColor: colors.bgGrayLight
+                    backgroundColor: colors.advertisingBg
                   }}>
                     Разница
                   </th>
@@ -1220,12 +1362,11 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     ...typography.body,
-                    backgroundColor: calculateDifference(period1Data.views, period2Data.views) !== null && calculateDifference(period1Data.views, period2Data.views)! > 0 
-                      ? colors.successLight 
-                      : 'transparent',
-                    color: calculateDifference(period1Data.views, period2Data.views) !== null && calculateDifference(period1Data.views, period2Data.views)! > 0 
-                      ? colors.success 
-                      : colors.textPrimary,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.views, period2Data.views)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
                     fontWeight: 600
                   }}>
                     {calculateDifference(period1Data.views, period2Data.views) !== null 
@@ -1234,12 +1375,24 @@ export default function AnalyticsArticle() {
                   </td>
                 </tr>
                 {/* Клики */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                    fontWeight: 500
                   }}>
                     Клики
                   </td>
@@ -1264,12 +1417,11 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     ...typography.body,
-                    backgroundColor: calculateDifference(period1Data.clicks, period2Data.clicks) !== null && calculateDifference(period1Data.clicks, period2Data.clicks)! > 0 
-                      ? colors.successLight 
-                      : 'transparent',
-                    color: calculateDifference(period1Data.clicks, period2Data.clicks) !== null && calculateDifference(period1Data.clicks, period2Data.clicks)! > 0 
-                      ? colors.success 
-                      : colors.textPrimary,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.clicks, period2Data.clicks)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
                     fontWeight: 600
                   }}>
                     {calculateDifference(period1Data.clicks, period2Data.clicks) !== null 
@@ -1313,12 +1465,24 @@ export default function AnalyticsArticle() {
                   </td>
                 </tr>
                 {/* CPC */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                    fontWeight: 500
                   }}>
                     СРС
                   </td>
@@ -1348,12 +1512,24 @@ export default function AnalyticsArticle() {
                   </td>
                 </tr>
                 {/* CTR */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                    fontWeight: 500
                   }}>
                     CTR
                   </td>
@@ -1418,12 +1594,24 @@ export default function AnalyticsArticle() {
                   </td>
                 </tr>
                 {/* ДРР */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                    fontWeight: 500
                   }}>
                     ДРР
                   </td>
@@ -1522,23 +1710,25 @@ export default function AnalyticsArticle() {
             
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ backgroundColor: colors.bgGrayLight }}>
+                <tr style={{ backgroundColor: colors.primaryLight }}>
                   <th style={{
                     textAlign: 'left',
                     padding: spacing.md,
-                    borderBottom: `2px solid ${colors.border}`,
+                    borderBottom: `2px solid ${colors.primary}`,
                     ...typography.body,
-                    fontWeight: 600
+                    fontWeight: 600,
+                    color: colors.primary
                   }}>
                     Склад
                   </th>
                   <th style={{
                     textAlign: 'left',
                     padding: spacing.md,
-                    borderBottom: `2px solid ${colors.border}`,
+                    borderBottom: `2px solid ${colors.primary}`,
                     ...typography.body,
                     fontWeight: 600,
-                    backgroundColor: colors.bgGrayLight
+                    backgroundColor: colors.primaryLight,
+                    color: colors.primary
                   }}>
                     Кол-во
                   </th>
@@ -1548,13 +1738,26 @@ export default function AnalyticsArticle() {
                 {nonZeroStocks.map((stock, index) => {
                   const isLowStock = stock.amount <= 1
                   return (
-                    <tr key={stock.warehouseName} style={{
-                      backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
-                    }}>
+                    <tr 
+                      key={stock.warehouseName} 
+                      style={{
+                        backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight,
+                        transition: transitions.fast
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = colors.primaryLight
+                        e.currentTarget.style.transform = 'scale(1.01)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
+                        e.currentTarget.style.transform = 'scale(1)'
+                      }}
+                    >
                       <td style={{
                         padding: spacing.md,
                         borderBottom: `1px solid ${colors.borderLight}`,
-                        ...typography.body
+                        ...typography.body,
+                        fontWeight: 500
                       }}>
                         {stock.warehouseName}
                       </td>
