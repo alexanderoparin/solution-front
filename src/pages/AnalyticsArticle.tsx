@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Spin, Select, DatePicker } from 'antd'
-import { InfoCircleOutlined } from '@ant-design/icons'
+import { InfoCircleOutlined, DownOutlined, RightOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
 import { analyticsApi } from '../api/analytics'
-import type { ArticleResponse } from '../types/analytics'
+import type { ArticleResponse, StockSize } from '../types/analytics'
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
@@ -92,6 +92,9 @@ export default function AnalyticsArticle() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [last14Days] = useState<string[]>(getLast14Days())
+  const [expandedStocks, setExpandedStocks] = useState<Set<string>>(new Set())
+  const [stockSizes, setStockSizes] = useState<Record<string, import('../types/analytics').StockSize[]>>({})
+  const [loadingSizes, setLoadingSizes] = useState<Record<string, boolean>>({})
   
   // Периоды для сравнения (по умолчанию - две недели, разбитые по неделям)
   const yesterday = dayjs().subtract(1, 'day')
@@ -1785,41 +1788,162 @@ export default function AnalyticsArticle() {
               <tbody>
                 {nonZeroStocks.map((stock, index) => {
                   const isLowStock = stock.amount <= 1
+                  const isExpanded = expandedStocks.has(stock.warehouseName)
+                  const sizes = stockSizes[stock.warehouseName] || []
+                  const isLoading = loadingSizes[stock.warehouseName] || false
+                  
+                  const handleRowClick = async () => {
+                    if (isExpanded) {
+                      // Сворачиваем строку
+                      setExpandedStocks(prev => {
+                        const newSet = new Set(prev)
+                        newSet.delete(stock.warehouseName)
+                        return newSet
+                      })
+                    } else {
+                      // Разворачиваем строку
+                      setExpandedStocks(prev => new Set(prev).add(stock.warehouseName))
+                      
+                      // Загружаем данные по размерам, если еще не загружены
+                      if (!stockSizes[stock.warehouseName] && !loadingSizes[stock.warehouseName]) {
+                        setLoadingSizes(prev => ({ ...prev, [stock.warehouseName]: true }))
+                        try {
+                          const sellerId = getSelectedSellerId()
+                          const sizesData = await analyticsApi.getStockSizes(Number(nmId), stock.warehouseName, sellerId)
+                          setStockSizes(prev => ({ ...prev, [stock.warehouseName]: sizesData }))
+                        } catch (err) {
+                          console.error('Ошибка при загрузке размеров:', err)
+                        } finally {
+                          setLoadingSizes(prev => ({ ...prev, [stock.warehouseName]: false }))
+                        }
+                      }
+                    }
+                  }
+                  
                   return (
-                    <tr 
-                      key={stock.warehouseName} 
-                      style={{
-                        backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight,
-                        transition: transitions.fast
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = colors.primaryLight
-                        e.currentTarget.style.transform = 'scale(1.01)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
-                        e.currentTarget.style.transform = 'scale(1)'
-                      }}
-                    >
-                      <td style={{
-                        padding: spacing.md,
-                        borderBottom: `1px solid ${colors.borderLight}`,
-                        ...typography.body,
-                        fontWeight: 500
-                      }}>
-                        {stock.warehouseName}
-                      </td>
-                      <td style={{
-                        textAlign: 'center',
-                        padding: spacing.md,
-                        borderBottom: `1px solid ${colors.borderLight}`,
-                        ...typography.body,
-                        fontWeight: 600,
-                        color: isLowStock ? colors.error : colors.textPrimary
-                      }}>
-                        {stock.amount.toLocaleString('ru-RU')}
-                      </td>
-                    </tr>
+                    <>
+                      <tr 
+                        key={stock.warehouseName} 
+                        onClick={handleRowClick}
+                        style={{
+                          backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight,
+                          transition: transitions.fast,
+                          cursor: 'pointer'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = colors.primaryLight
+                          e.currentTarget.style.transform = 'scale(1.01)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
+                          e.currentTarget.style.transform = 'scale(1)'
+                        }}
+                      >
+                        <td style={{
+                          padding: spacing.md,
+                          borderBottom: `1px solid ${colors.borderLight}`,
+                          ...typography.body,
+                          fontWeight: 500,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: spacing.xs
+                        }}>
+                          {isExpanded ? (
+                            <DownOutlined style={{ fontSize: '12px', color: colors.primary }} />
+                          ) : (
+                            <RightOutlined style={{ fontSize: '12px', color: colors.textSecondary }} />
+                          )}
+                          {stock.warehouseName}
+                        </td>
+                        <td style={{
+                          textAlign: 'center',
+                          padding: spacing.md,
+                          borderBottom: `1px solid ${colors.borderLight}`,
+                          ...typography.body,
+                          fontWeight: 600,
+                          color: isLowStock ? colors.error : colors.textPrimary
+                        }}>
+                          {stock.amount.toLocaleString('ru-RU')}
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr key={`${stock.warehouseName}-expanded`}>
+                          <td colSpan={2} style={{
+                            padding: spacing.md,
+                            backgroundColor: colors.bgGrayLight,
+                            borderBottom: `1px solid ${colors.borderLight}`
+                          }}>
+                            {isLoading ? (
+                              <div style={{ textAlign: 'center', padding: spacing.md }}>
+                                <Spin size="small" />
+                              </div>
+                            ) : sizes.length > 0 ? (
+                              <div style={{ paddingLeft: spacing.lg }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                  <thead>
+                                    <tr>
+                                      <th style={{
+                                        textAlign: 'left',
+                                        padding: `${spacing.xs} ${spacing.sm}`,
+                                        borderBottom: `1px solid ${colors.borderLight}`,
+                                        ...typography.bodySmall,
+                                        fontWeight: 600,
+                                        color: colors.textSecondary
+                                      }}>
+                                        Размер
+                                      </th>
+                                      <th style={{
+                                        textAlign: 'center',
+                                        padding: `${spacing.xs} ${spacing.sm}`,
+                                        borderBottom: `1px solid ${colors.borderLight}`,
+                                        ...typography.bodySmall,
+                                        fontWeight: 600,
+                                        color: colors.textSecondary
+                                      }}>
+                                        Кол-во
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {sizes.map((size: StockSize, sizeIndex: number) => (
+                                      <tr key={sizeIndex} style={{
+                                        backgroundColor: sizeIndex % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
+                                      }}>
+                                        <td style={{
+                                          padding: `${spacing.xs} ${spacing.sm}`,
+                                          borderBottom: `1px solid ${colors.borderLight}`,
+                                          ...typography.bodySmall
+                                        }}>
+                                          {size.wbSize || size.techSize || 'Неизвестно'}
+                                        </td>
+                                        <td style={{
+                                          textAlign: 'center',
+                                          padding: `${spacing.xs} ${spacing.sm}`,
+                                          borderBottom: `1px solid ${colors.borderLight}`,
+                                          ...typography.bodySmall,
+                                          fontWeight: 500
+                                        }}>
+                                          {size.amount.toLocaleString('ru-RU')}
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <div style={{
+                                textAlign: 'center',
+                                padding: spacing.md,
+                                ...typography.bodySmall,
+                                color: colors.textSecondary
+                              }}>
+                                Нет данных по размерам
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   )
                 })}
               </tbody>

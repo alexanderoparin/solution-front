@@ -4,6 +4,7 @@ import type {
   MetricGroupResponse,
   ArticleResponse,
   Period,
+  StockSize,
 } from '../types/analytics'
 
 export interface SummaryRequest {
@@ -43,6 +44,18 @@ export const analyticsApi = {
     const response = await apiClient.post<ArticleResponse>(
       `/analytics/article/${nmId}`,
       { periods, sellerId }
+    )
+    return response.data
+  },
+
+  /**
+   * Получает детализацию остатков по размерам для товара на конкретном складе.
+   */
+  getStockSizes: async (nmId: number, warehouseName: string, sellerId?: number): Promise<StockSize[]> => {
+    const encodedWarehouseName = encodeURIComponent(warehouseName)
+    const params = sellerId ? `?sellerId=${sellerId}` : ''
+    const response = await apiClient.get<StockSize[]>(
+      `/analytics/article/${nmId}/stocks/${encodedWarehouseName}/sizes${params}`
     )
     return response.data
   },

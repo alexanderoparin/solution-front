@@ -131,6 +131,12 @@ export interface Stock {
   updatedAt: string | null
 }
 
+export interface StockSize {
+  techSize: string | null
+  wbSize: string | null
+  amount: number
+}
+
 export interface ArticleResponse {
   article: ArticleDetail
   periods: Period[]
