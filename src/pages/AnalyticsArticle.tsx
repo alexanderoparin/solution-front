@@ -1226,9 +1226,17 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
-                    ...typography.body
+                    ...typography.body,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.cartConversion, period2Data.cartConversion)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
+                    fontWeight: 600
                   }}>
-                    -
+                    {calculateDifference(period1Data.cartConversion, period2Data.cartConversion) !== null 
+                      ? `${calculateDifference(period1Data.cartConversion, period2Data.cartConversion)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.cartConversion, period2Data.cartConversion)!)}`
+                      : '-'}
                   </td>
                 </tr>
                 {/* Конверсия в заказ */}
@@ -1273,9 +1281,17 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
-                    ...typography.body
+                    ...typography.body,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.orderConversion, period2Data.orderConversion)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
+                    fontWeight: 600
                   }}>
-                    -
+                    {calculateDifference(period1Data.orderConversion, period2Data.orderConversion) !== null 
+                      ? `${calculateDifference(period1Data.orderConversion, period2Data.orderConversion)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.orderConversion, period2Data.orderConversion)!)}`
+                      : '-'}
                   </td>
                 </tr>
               </tbody>
@@ -1459,9 +1475,17 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
-                    ...typography.body
+                    ...typography.body,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.costs, period2Data.costs)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
+                    fontWeight: 600
                   }}>
-                    -
+                    {calculateDifference(period1Data.costs, period2Data.costs) !== null 
+                      ? `${calculateDifference(period1Data.costs, period2Data.costs)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.costs, period2Data.costs)!)}`
+                      : '-'}
                   </td>
                 </tr>
                 {/* CPC */}
@@ -1506,9 +1530,17 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
-                    ...typography.body
+                    ...typography.body,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.cpc, period2Data.cpc)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
+                    fontWeight: 600
                   }}>
-                    -
+                    {calculateDifference(period1Data.cpc, period2Data.cpc) !== null 
+                      ? `${calculateDifference(period1Data.cpc, period2Data.cpc)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.cpc, period2Data.cpc)!)}`
+                      : '-'}
                   </td>
                 </tr>
                 {/* CTR */}
@@ -1588,9 +1620,17 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
-                    ...typography.body
+                    ...typography.body,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.cpo, period2Data.cpo)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
+                    fontWeight: 600
                   }}>
-                    -
+                    {calculateDifference(period1Data.cpo, period2Data.cpo) !== null 
+                      ? `${calculateDifference(period1Data.cpo, period2Data.cpo)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.cpo, period2Data.cpo)!)}`
+                      : '-'}
                   </td>
                 </tr>
                 {/* ДРР */}
@@ -1635,9 +1675,17 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
-                    ...typography.body
+                    ...typography.body,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.drr, period2Data.drr)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
+                    fontWeight: 600
                   }}>
-                    -
+                    {calculateDifference(period1Data.drr, period2Data.drr) !== null 
+                      ? `${calculateDifference(period1Data.drr, period2Data.drr)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.drr, period2Data.drr)!)}`
+                      : '-'}
                   </td>
                 </tr>
               </tbody>
