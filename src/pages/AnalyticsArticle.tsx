@@ -748,7 +748,7 @@ export default function AnalyticsArticle() {
                       textAlign: 'center',
                       padding: '4px 6px',
                       borderBottom: `2px solid ${colors.border}`,
-                      borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.borderLight}`,
+                      borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
                       fontSize: '10px',
                       fontWeight: 600,
                       whiteSpace: 'pre-line',
@@ -768,6 +768,7 @@ export default function AnalyticsArticle() {
                       textAlign: 'center',
                       padding: '4px 6px',
                       borderBottom: `2px solid ${colors.border}`,
+                      borderRight: `1px solid ${colors.border}`,
                       fontSize: '10px',
                       fontWeight: 600,
                       whiteSpace: 'pre-line',
@@ -802,7 +803,7 @@ export default function AnalyticsArticle() {
                   >
                     <td style={{
                       padding: '6px 8px',
-                      borderBottom: `1px solid ${colors.borderLight}`,
+                      borderBottom: `1px solid ${colors.border}`,
                       borderRight: `2px solid ${colors.border}`,
                       fontSize: '12px',
                       fontWeight: 500,
@@ -821,8 +822,8 @@ export default function AnalyticsArticle() {
                         <td key={metric.key} style={{
                           textAlign: 'center',
                           padding: '4px 6px',
-                          borderBottom: `1px solid ${colors.borderLight}`,
-                          borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.borderLight}`,
+                          borderBottom: `1px solid ${colors.border}`,
+                          borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
                           backgroundColor: isGeneralFunnel1 ? colors.funnelBg : isAdvertisingFunnel1 ? colors.advertisingBg : colors.bgGrayLight,
                           fontSize: '11px',
                           overflow: 'hidden',
@@ -837,7 +838,7 @@ export default function AnalyticsArticle() {
                         </td>
                       )
                     })}
-                    {FUNNELS[selectedFunnel2].metrics.map(metric => {
+                    {FUNNELS[selectedFunnel2].metrics.map((metric, index) => {
                       const value = getMetricValueForDate(metric.key, date)
                       const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                       const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
@@ -845,7 +846,8 @@ export default function AnalyticsArticle() {
                         <td key={metric.key} style={{
                           textAlign: 'center',
                           padding: '4px 6px',
-                          borderBottom: `1px solid ${colors.borderLight}`,
+                          borderBottom: `1px solid ${colors.border}`,
+                          borderRight: index === FUNNELS[selectedFunnel2].metrics.length - 1 ? 'none' : `1px solid ${colors.border}`,
                           backgroundColor: isGeneralFunnel2 ? colors.funnelBg : isAdvertisingFunnel2 ? colors.advertisingBg : colors.bgGrayLight,
                           fontSize: '11px',
                           overflow: 'hidden',
@@ -983,7 +985,7 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
                     backgroundColor: colors.bgGrayLight
@@ -1019,7 +1021,7 @@ export default function AnalyticsArticle() {
                 <tr>
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1028,9 +1030,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period1Data.transitions)}
@@ -1038,8 +1040,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period2Data.transitions)}
@@ -1047,8 +1050,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.transitions, period2Data.transitions)
@@ -1077,7 +1080,7 @@ export default function AnalyticsArticle() {
                 >
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1086,9 +1089,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period1Data.cart)}
@@ -1096,8 +1099,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period2Data.cart)}
@@ -1105,8 +1109,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.cart, period2Data.cart)
@@ -1135,7 +1139,7 @@ export default function AnalyticsArticle() {
                 >
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1144,9 +1148,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period1Data.orders)}
@@ -1154,8 +1158,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period2Data.orders)}
@@ -1163,8 +1168,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.orders, period2Data.orders)
@@ -1182,7 +1187,7 @@ export default function AnalyticsArticle() {
                 <tr>
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1191,9 +1196,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatCurrency(period1Data.ordersAmount)}
@@ -1201,8 +1206,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatCurrency(period2Data.ordersAmount)}
@@ -1210,8 +1216,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount, 2)
@@ -1240,19 +1246,18 @@ export default function AnalyticsArticle() {
                 >
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body,
-                    fontWeight: 500
+                    ...typography.body
                   }}>
                     Конверсия в корзину
                   </td>
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.cartConversion !== null ? formatPercent(period1Data.cartConversion) : '-'}
@@ -1260,8 +1265,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period2Data.cartConversion !== null ? formatPercent(period2Data.cartConversion) : '-'}
@@ -1269,8 +1275,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.cartConversion, period2Data.cartConversion)
@@ -1299,7 +1305,7 @@ export default function AnalyticsArticle() {
                 >
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1308,9 +1314,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.orderConversion !== null ? formatPercent(period1Data.orderConversion) : '-'}
@@ -1318,8 +1324,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period2Data.orderConversion !== null ? formatPercent(period2Data.orderConversion) : '-'}
@@ -1327,8 +1334,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.orderConversion, period2Data.orderConversion)
@@ -1367,7 +1374,7 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
                     backgroundColor: colors.advertisingBg
@@ -1378,7 +1385,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
                     backgroundColor: colors.advertisingBg
@@ -1389,7 +1397,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
                     backgroundColor: colors.advertisingBg
@@ -1403,7 +1411,7 @@ export default function AnalyticsArticle() {
                 <tr>
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1412,9 +1420,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period1Data.views)}
@@ -1422,8 +1430,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period2Data.views)}
@@ -1431,8 +1440,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.views, period2Data.views)
@@ -1461,7 +1470,7 @@ export default function AnalyticsArticle() {
                 >
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1470,9 +1479,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period1Data.clicks)}
@@ -1480,8 +1489,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period2Data.clicks)}
@@ -1489,8 +1499,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.clicks, period2Data.clicks)
@@ -1508,7 +1518,7 @@ export default function AnalyticsArticle() {
                 <tr>
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1517,9 +1527,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.costs !== null ? formatCurrency(period1Data.costs) : '-'}
@@ -1527,7 +1537,7 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1536,8 +1546,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.costs, period2Data.costs, 2)
@@ -1566,7 +1576,7 @@ export default function AnalyticsArticle() {
                 >
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1575,9 +1585,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.cpc !== null ? formatCurrency(period1Data.cpc) : '-'}
@@ -1585,7 +1595,7 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1594,8 +1604,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.cpc, period2Data.cpc)
@@ -1624,7 +1634,7 @@ export default function AnalyticsArticle() {
                 >
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1633,9 +1643,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.ctr !== null ? formatPercent(period1Data.ctr) : '-'}
@@ -1643,7 +1653,7 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1652,7 +1662,7 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1663,7 +1673,7 @@ export default function AnalyticsArticle() {
                 <tr>
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1672,9 +1682,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.cpo !== null ? formatCurrency(period1Data.cpo) : '-'}
@@ -1682,7 +1692,7 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1691,8 +1701,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.cpo, period2Data.cpo, 2)
@@ -1721,7 +1731,7 @@ export default function AnalyticsArticle() {
                 >
                   <td style={{
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1730,9 +1740,9 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    borderRight: `2px solid ${colors.border}`,
+                    borderRight: `1px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.drr !== null ? formatPercent(period1Data.drr) : '-'}
@@ -1740,7 +1750,7 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
+                    borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
@@ -1749,8 +1759,8 @@ export default function AnalyticsArticle() {
                   <td style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                    borderLeft: `2px solid ${colors.border}`,
+                    borderBottom: `1px solid ${colors.border}`,
+                    borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.drr, period2Data.drr)
@@ -1914,7 +1924,7 @@ export default function AnalyticsArticle() {
                       >
                         <td style={{
                           padding: spacing.md,
-                          borderBottom: `1px solid ${colors.borderLight}`,
+                          borderBottom: `1px solid ${colors.border}`,
                           ...typography.body,
                           fontWeight: 500,
                           display: 'flex',
@@ -1931,7 +1941,7 @@ export default function AnalyticsArticle() {
                         <td style={{
                           textAlign: 'center',
                           padding: spacing.md,
-                          borderBottom: `1px solid ${colors.borderLight}`,
+                          borderBottom: `1px solid ${colors.border}`,
                           ...typography.body,
                           fontWeight: 600,
                           color: isLowStock ? colors.error : colors.textPrimary
@@ -1958,7 +1968,7 @@ export default function AnalyticsArticle() {
                                       <th style={{
                                         textAlign: 'left',
                                         padding: `${spacing.xs} ${spacing.sm}`,
-                                        borderBottom: `1px solid ${colors.borderLight}`,
+                                        borderBottom: `1px solid ${colors.border}`,
                                         ...typography.bodySmall,
                                         fontWeight: 600,
                                         color: colors.textSecondary
@@ -1968,7 +1978,7 @@ export default function AnalyticsArticle() {
                                       <th style={{
                                         textAlign: 'center',
                                         padding: `${spacing.xs} ${spacing.sm}`,
-                                        borderBottom: `1px solid ${colors.borderLight}`,
+                                        borderBottom: `1px solid ${colors.border}`,
                                         ...typography.bodySmall,
                                         fontWeight: 600,
                                         color: colors.textSecondary
@@ -1984,7 +1994,7 @@ export default function AnalyticsArticle() {
                                       }}>
                                         <td style={{
                                           padding: `${spacing.xs} ${spacing.sm}`,
-                                          borderBottom: `1px solid ${colors.borderLight}`,
+                                          borderBottom: `1px solid ${colors.border}`,
                                           ...typography.bodySmall
                                         }}>
                                           {size.wbSize || size.techSize || 'Неизвестно'}
@@ -1992,7 +2002,7 @@ export default function AnalyticsArticle() {
                                         <td style={{
                                           textAlign: 'center',
                                           padding: `${spacing.xs} ${spacing.sm}`,
-                                          borderBottom: `1px solid ${colors.borderLight}`,
+                                          borderBottom: `1px solid ${colors.border}`,
                                           ...typography.bodySmall,
                                           fontWeight: 500
                                         }}>
