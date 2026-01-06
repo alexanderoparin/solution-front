@@ -231,9 +231,29 @@ export default function AnalyticsArticle() {
   }
 
   // Вычисляет разницу в процентах
-  const calculateDifference = (value1: number | null, value2: number | null): number | null => {
+  const calculateDifference = (value1: number | null, value2: number | null, roundToDecimals?: number): number | null => {
     if (value1 === null || value2 === null || value1 === 0) return null
-    return ((value2 - value1) / value1) * 100
+    
+    // Если указано округление, округляем значения перед вычислением разницы
+    let v1 = value1
+    let v2 = value2
+    if (roundToDecimals !== undefined) {
+      const multiplier = Math.pow(10, roundToDecimals)
+      v1 = Math.round(value1 * multiplier) / multiplier
+      v2 = Math.round(value2 * multiplier) / multiplier
+    }
+    
+    // Для очень маленьких значений проверяем абсолютную разницу
+    // Если значения очень близки (разница меньше 0.001), считаем их одинаковыми
+    const absDiff = Math.abs(v2 - v1)
+    if (absDiff < 0.001) return null
+    
+    const diff = ((v2 - v1) / v1) * 100
+    
+    // Если процентная разница очень маленькая (меньше 0.01%), считаем значения одинаковыми
+    if (Math.abs(diff) < 0.01) return null
+    
+    return diff
   }
 
   const period1Data = aggregatePeriodData(period1[0], period1[1])
@@ -956,12 +976,14 @@ export default function AnalyticsArticle() {
                     fontWeight: 600,
                     width: '30%'
                   }}>
-                    ОБЩАЯ ВОРОНКА
+                    Общая воронка
                   </th>
                   <th style={{
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
                     backgroundColor: colors.bgGrayLight
@@ -972,6 +994,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
                     backgroundColor: colors.bgGrayLight
@@ -982,6 +1005,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
                     backgroundColor: colors.bgGrayLight
@@ -1005,6 +1029,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period1Data.transitions)}
@@ -1013,6 +1039,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period2Data.transitions)}
@@ -1021,6 +1048,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.transitions, period2Data.transitions)
@@ -1051,8 +1079,7 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body,
-                    fontWeight: 500
+                    ...typography.body
                   }}>
                     Положили в корзину
                   </td>
@@ -1060,6 +1087,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period1Data.cart)}
@@ -1068,6 +1097,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period2Data.cart)}
@@ -1076,6 +1106,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.cart, period2Data.cart)
@@ -1106,8 +1137,7 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body,
-                    fontWeight: 500
+                    ...typography.body
                   }}>
                     Заказали товаров
                   </td>
@@ -1115,6 +1145,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period1Data.orders)}
@@ -1123,6 +1155,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period2Data.orders)}
@@ -1131,6 +1164,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.orders, period2Data.orders)
@@ -1158,6 +1192,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatCurrency(period1Data.ordersAmount)}
@@ -1166,6 +1202,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatCurrency(period2Data.ordersAmount)}
@@ -1174,16 +1211,17 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
-                      const diff = calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount)
+                      const diff = calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount, 2)
                       if (diff === null) return colors.textPrimary
                       return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
                     })(),
                     fontWeight: 600
                   }}>
-                    {calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount) !== null 
-                      ? `${calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount)!)}`
+                    {calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount, 2) !== null 
+                      ? `${calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount, 2)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount, 2)!)}`
                       : '-'}
                   </td>
                 </tr>
@@ -1213,6 +1251,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.cartConversion !== null ? formatPercent(period1Data.cartConversion) : '-'}
@@ -1221,6 +1261,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period2Data.cartConversion !== null ? formatPercent(period2Data.cartConversion) : '-'}
@@ -1229,6 +1270,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.cartConversion, period2Data.cartConversion)
@@ -1259,8 +1301,7 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body,
-                    fontWeight: 500
+                    ...typography.body
                   }}>
                     Конверсия в заказ
                   </td>
@@ -1268,6 +1309,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.orderConversion !== null ? formatPercent(period1Data.orderConversion) : '-'}
@@ -1276,6 +1319,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period2Data.orderConversion !== null ? formatPercent(period2Data.orderConversion) : '-'}
@@ -1284,6 +1328,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.orderConversion, period2Data.orderConversion)
@@ -1315,12 +1360,14 @@ export default function AnalyticsArticle() {
                     fontWeight: 600,
                     width: '30%'
                   }}>
-                    РЕКЛАМНАЯ ВОРОНКА
+                    Рекламная воронка
                   </th>
                   <th style={{
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
                     backgroundColor: colors.advertisingBg
@@ -1331,6 +1378,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
                     backgroundColor: colors.advertisingBg
@@ -1341,6 +1389,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
                     backgroundColor: colors.advertisingBg
@@ -1364,6 +1413,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period1Data.views)}
@@ -1372,6 +1423,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period2Data.views)}
@@ -1380,6 +1432,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.views, period2Data.views)
@@ -1410,8 +1463,7 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body,
-                    fontWeight: 500
+                    ...typography.body
                   }}>
                     Клики
                   </td>
@@ -1419,6 +1471,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period1Data.clicks)}
@@ -1427,6 +1481,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {formatValue(period2Data.clicks)}
@@ -1435,6 +1490,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.clicks, period2Data.clicks)
@@ -1462,6 +1518,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.costs !== null ? formatCurrency(period1Data.costs) : '-'}
@@ -1470,6 +1528,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period2Data.costs !== null ? formatCurrency(period2Data.costs) : '-'}
@@ -1478,16 +1537,17 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
-                      const diff = calculateDifference(period1Data.costs, period2Data.costs)
+                      const diff = calculateDifference(period1Data.costs, period2Data.costs, 2)
                       if (diff === null) return colors.textPrimary
                       return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
                     })(),
                     fontWeight: 600
                   }}>
-                    {calculateDifference(period1Data.costs, period2Data.costs) !== null 
-                      ? `${calculateDifference(period1Data.costs, period2Data.costs)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.costs, period2Data.costs)!)}`
+                    {calculateDifference(period1Data.costs, period2Data.costs, 2) !== null 
+                      ? `${calculateDifference(period1Data.costs, period2Data.costs, 2)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.costs, period2Data.costs, 2)!)}`
                       : '-'}
                   </td>
                 </tr>
@@ -1508,8 +1568,7 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body,
-                    fontWeight: 500
+                    ...typography.body
                   }}>
                     СРС
                   </td>
@@ -1517,6 +1576,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.cpc !== null ? formatCurrency(period1Data.cpc) : '-'}
@@ -1525,6 +1586,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period2Data.cpc !== null ? formatCurrency(period2Data.cpc) : '-'}
@@ -1533,6 +1595,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.cpc, period2Data.cpc)
@@ -1563,8 +1626,7 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body,
-                    fontWeight: 500
+                    ...typography.body
                   }}>
                     CTR
                   </td>
@@ -1572,6 +1634,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.ctr !== null ? formatPercent(period1Data.ctr) : '-'}
@@ -1580,6 +1644,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period2Data.ctr !== null ? formatPercent(period2Data.ctr) : '-'}
@@ -1588,6 +1653,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     -
@@ -1607,6 +1673,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.cpo !== null ? formatCurrency(period1Data.cpo) : '-'}
@@ -1615,6 +1683,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period2Data.cpo !== null ? formatCurrency(period2Data.cpo) : '-'}
@@ -1623,16 +1692,17 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
-                      const diff = calculateDifference(period1Data.cpo, period2Data.cpo)
+                      const diff = calculateDifference(period1Data.cpo, period2Data.cpo, 2)
                       if (diff === null) return colors.textPrimary
                       return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
                     })(),
                     fontWeight: 600
                   }}>
-                    {calculateDifference(period1Data.cpo, period2Data.cpo) !== null 
-                      ? `${calculateDifference(period1Data.cpo, period2Data.cpo)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.cpo, period2Data.cpo)!)}`
+                    {calculateDifference(period1Data.cpo, period2Data.cpo, 2) !== null 
+                      ? `${calculateDifference(period1Data.cpo, period2Data.cpo, 2)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.cpo, period2Data.cpo, 2)!)}`
                       : '-'}
                   </td>
                 </tr>
@@ -1653,8 +1723,7 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body,
-                    fontWeight: 500
+                    ...typography.body
                   }}>
                     ДРР
                   </td>
@@ -1662,6 +1731,8 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period1Data.drr !== null ? formatPercent(period1Data.drr) : '-'}
@@ -1670,6 +1741,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderRight: `2px solid ${colors.border}`,
                     ...typography.body
                   }}>
                     {period2Data.drr !== null ? formatPercent(period2Data.drr) : '-'}
@@ -1678,6 +1750,7 @@ export default function AnalyticsArticle() {
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.borderLight}`,
+                    borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     color: (() => {
                       const diff = calculateDifference(period1Data.drr, period2Data.drr)
