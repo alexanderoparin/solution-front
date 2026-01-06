@@ -51,12 +51,20 @@ export default function UsersManagement() {
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role) as UserRole
 
-  // Определяем, какую роль можно создавать
+  // Определяем, какую роль можно создавать (по умолчанию)
   const getCreatableRole = (): UserRole => {
     if (role === 'ADMIN') return 'MANAGER'
     if (role === 'MANAGER') return 'SELLER'
     if (role === 'SELLER') return 'WORKER'
     return 'WORKER'
+  }
+
+  // Определяем, какие роли можно создавать
+  const getCreatableRoles = (): UserRole[] => {
+    if (role === 'ADMIN') return ['MANAGER', 'SELLER']
+    if (role === 'MANAGER') return ['SELLER']
+    if (role === 'SELLER') return ['WORKER']
+    return []
   }
 
   // Получение списка пользователей
@@ -285,11 +293,14 @@ export default function UsersManagement() {
               name="role"
               label="Роль"
               initialValue={getCreatableRole()}
+              rules={[{ required: true, message: 'Выберите роль' }]}
             >
-              <Select disabled>
-                <Select.Option value={getCreatableRole()}>
-                  {ROLE_LABELS[getCreatableRole()]}
-                </Select.Option>
+              <Select>
+                {getCreatableRoles().map((r) => (
+                  <Select.Option key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </Select.Option>
+                ))}
               </Select>
             </Form.Item>
 
