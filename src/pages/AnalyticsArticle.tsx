@@ -888,7 +888,10 @@ export default function AnalyticsArticle() {
               borderRadius: borderRadius.md,
               padding: spacing.lg,
               boxShadow: shadows.md,
-              transition: transitions.normal
+              transition: transitions.normal,
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.boxShadow = shadows.lg
@@ -897,31 +900,31 @@ export default function AnalyticsArticle() {
               e.currentTarget.style.boxShadow = shadows.md
             }}
             >
-              <h2 style={{ 
-                ...typography.h2, 
-                marginBottom: spacing.md,
-                textAlign: 'center'
-              }}>
-                Сравнение периодов
-              </h2>
-
-              {/* Выбор периодов */}
+              {/* Заголовок и периоды в одной строке */}
               <div style={{
                 display: 'flex',
-                gap: spacing.lg,
-                marginBottom: spacing.xl,
-                flexWrap: 'wrap',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'space-between',
+                marginBottom: spacing.xl,
+                gap: spacing.lg,
+                flexWrap: 'wrap'
               }}>
-                <div>
-                  <div style={{ 
-                    ...typography.bodySmall, 
-                    color: colors.textSecondary,
-                    marginBottom: spacing.xs
-                  }}>
-                    Период 1
-                  </div>
+                <h2 style={{ 
+                  ...typography.h2, 
+                  margin: 0,
+                  flex: '0 0 auto'
+                }}>
+                  Сравнение периодов
+                </h2>
+                
+                {/* Выбор периодов */}
+                <div style={{
+                  display: 'flex',
+                  gap: spacing.lg,
+                  alignItems: 'center',
+                  flex: '1 1 auto',
+                  justifyContent: 'flex-end'
+                }}>
                   <DatePicker.RangePicker
                     locale={locale.DatePicker}
                     value={period1}
@@ -934,15 +937,6 @@ export default function AnalyticsArticle() {
                     separator="→"
                     style={{ width: 240 }}
                   />
-                </div>
-                <div>
-                  <div style={{ 
-                    ...typography.bodySmall, 
-                    color: colors.textSecondary,
-                    marginBottom: spacing.xs
-                  }}>
-                    Период 2
-                  </div>
                   <DatePicker.RangePicker
                     locale={locale.DatePicker}
                     value={period2}
@@ -962,7 +956,8 @@ export default function AnalyticsArticle() {
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: spacing.lg
+                gap: spacing.lg,
+                alignContent: 'start'
               }}>
             {/* Сравнение по общей воронке */}
             <div>
@@ -1184,7 +1179,18 @@ export default function AnalyticsArticle() {
                   </td>
                 </tr>
                 {/* Заказали на сумму */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.funnelBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
@@ -1408,7 +1414,18 @@ export default function AnalyticsArticle() {
               </thead>
               <tbody>
                 {/* Просмотры */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
@@ -1515,7 +1532,18 @@ export default function AnalyticsArticle() {
                   </td>
                 </tr>
                 {/* Затраты */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
@@ -1670,7 +1698,18 @@ export default function AnalyticsArticle() {
                   </td>
                 </tr>
                 {/* CPO */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
@@ -1787,17 +1826,12 @@ export default function AnalyticsArticle() {
             border: `1px solid ${colors.borderLight}`,
             borderRadius: borderRadius.md,
             padding: spacing.lg,
-            boxShadow: shadows.md
+            boxShadow: shadows.md,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            overflow: 'hidden'
           }}>
-            <h2 style={{ 
-              ...typography.h2, 
-              marginBottom: spacing.md,
-              textAlign: 'center',
-              color: colors.textPrimary
-            }}>
-              Остатки на дату
-            </h2>
-            
             {(() => {
               const latestUpdate = nonZeroStocks
                 .map(s => s.updatedAt)
@@ -1807,68 +1841,69 @@ export default function AnalyticsArticle() {
               const totalAmount = nonZeroStocks.reduce((sum, stock) => sum + stock.amount, 0)
               
               return (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: spacing.md,
-                  marginBottom: spacing.lg,
-                  alignItems: 'center',
-                  minHeight: '70px'
-                }}>
-                  <div style={{ textAlign: 'left' }}>
-                    {latestUpdate && (
-                      <div style={{
-                        ...typography.bodySmall,
-                        color: colors.textSecondary
-                      }}>
-                        Дата обновления {dayjs(latestUpdate).format('DD.MM.YY HH:mm')}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{
-                      ...typography.h3,
-                      color: colors.bgWhite,
-                      backgroundColor: colors.primary,
-                      padding: `${spacing.xs} ${spacing.sm}`,
-                      borderRadius: borderRadius.sm,
-                      fontWeight: 600,
-                      display: 'inline-block'
+                <>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: spacing.md,
+                    gap: spacing.md,
+                    flexShrink: 0
+                  }}>
+                    <h2 style={{ 
+                      ...typography.h2, 
+                      margin: 0,
+                      color: colors.textPrimary
                     }}>
-                      Всего {totalAmount.toLocaleString('ru-RU')}
+                      Остатки на {latestUpdate ? dayjs(latestUpdate).format('DD.MM.YY HH:mm') : 'дату'}
+                    </h2>
+                    <div 
+                      style={{
+                        position: 'relative'
+                      }}
+                      title={latestUpdate ? `Дата обновления ${dayjs(latestUpdate).format('DD.MM.YY HH:mm')}` : ''}
+                    >
+                      <div style={{
+                        ...typography.h3,
+                        color: colors.bgWhite,
+                        backgroundColor: colors.primary,
+                        padding: `${spacing.xs} ${spacing.sm}`,
+                        borderRadius: borderRadius.sm,
+                        fontWeight: 600,
+                        display: 'inline-block',
+                        cursor: 'help'
+                      }}>
+                        Всего {totalAmount.toLocaleString('ru-RU')}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })()}
-            
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ backgroundColor: colors.primaryLight }}>
-                  <th style={{
-                    textAlign: 'left',
-                    padding: spacing.md,
-                    borderBottom: `2px solid ${colors.primary}`,
-                    ...typography.body,
-                    fontWeight: 600,
-                    color: colors.primary
-                  }}>
-                    Склад
-                  </th>
-                  <th style={{
-                    textAlign: 'left',
-                    padding: spacing.md,
-                    borderBottom: `2px solid ${colors.primary}`,
-                    ...typography.body,
-                    fontWeight: 600,
-                    backgroundColor: colors.primaryLight,
-                    color: colors.primary
-                  }}>
-                    Кол-во
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: colors.primaryLight }}>
+                    <th style={{
+                      textAlign: 'left',
+                      padding: spacing.md,
+                      borderBottom: `2px solid ${colors.primary}`,
+                      ...typography.body,
+                      fontWeight: 600,
+                      color: colors.primary
+                    }}>
+                      Склад
+                    </th>
+                    <th style={{
+                      textAlign: 'left',
+                      padding: spacing.md,
+                      borderBottom: `2px solid ${colors.primary}`,
+                      ...typography.body,
+                      fontWeight: 600,
+                      backgroundColor: colors.primaryLight,
+                      color: colors.primary
+                    }}>
+                      Кол-во
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
                 {nonZeroStocks.map((stock, index) => {
                   const isLowStock = stock.amount <= 1
                   const isExpanded = expandedStocks.has(stock.warehouseName)
@@ -2031,6 +2066,9 @@ export default function AnalyticsArticle() {
                 })}
               </tbody>
             </table>
+                </>
+              )
+            })()}
           </div>
         )}
           </div>
