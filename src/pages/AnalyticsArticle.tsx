@@ -792,13 +792,46 @@ export default function AnalyticsArticle() {
                   <tr 
                     key={date}
                     style={{
-                      transition: transitions.fast
+                      transition: transitions.fast,
+                      backgroundColor: 'transparent'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = colors.bgGrayLight
+                      const row = e.currentTarget
+                      row.style.backgroundColor = colors.bgGrayLight
+                      Array.from(row.querySelectorAll('td')).forEach((cell: Element, cellIndex: number) => {
+                        const td = cell as HTMLElement
+                        // Первая ячейка (дата) остается белой
+                        if (cellIndex === 0) {
+                          td.style.backgroundColor = colors.bgWhite
+                        } else {
+                          // Определяем hover цвет на основе типа воронки
+                          const isFirstFunnel = cellIndex <= FUNNELS[selectedFunnel1].metrics.length
+                          if (isFirstFunnel) {
+                            td.style.backgroundColor = isGeneralFunnel1 ? colors.funnelBgHover : isAdvertisingFunnel1 ? colors.advertisingBgHover : colors.pricingBgHover
+                          } else {
+                            td.style.backgroundColor = isGeneralFunnel2 ? colors.funnelBgHover : isAdvertisingFunnel2 ? colors.advertisingBgHover : colors.pricingBgHover
+                          }
+                        }
+                      })
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent'
+                      const row = e.currentTarget
+                      row.style.backgroundColor = 'transparent'
+                      Array.from(row.querySelectorAll('td')).forEach((cell: Element, cellIndex: number) => {
+                        const td = cell as HTMLElement
+                        // Восстанавливаем исходный фон ячеек
+                        if (cellIndex === 0) {
+                          td.style.backgroundColor = colors.bgWhite
+                        } else {
+                          // Восстанавливаем исходный фон на основе типа воронки
+                          const isFirstFunnel = cellIndex <= FUNNELS[selectedFunnel1].metrics.length
+                          if (isFirstFunnel) {
+                            td.style.backgroundColor = isGeneralFunnel1 ? colors.funnelBg : isAdvertisingFunnel1 ? colors.advertisingBg : colors.bgGrayLight
+                          } else {
+                            td.style.backgroundColor = isGeneralFunnel2 ? colors.funnelBg : isAdvertisingFunnel2 ? colors.advertisingBg : colors.bgGrayLight
+                          }
+                        }
+                      })
                     }}
                   >
                     <td style={{
@@ -1013,7 +1046,26 @@ export default function AnalyticsArticle() {
               </thead>
               <tbody>
                 {/* Переходы в карточку */}
-                <tr>
+                <tr
+                  style={{
+                    transition: transitions.fast,
+                    backgroundColor: colors.bgWhite
+                  }}
+                  onMouseEnter={(e) => {
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.funnelBgHover
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = colors.funnelBgHover
+                    })
+                  }}
+                  onMouseLeave={(e) => {
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.bgWhite
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = 'transparent'
+                    })
+                  }}
+                >
                   <td style={{
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
@@ -1420,10 +1472,18 @@ export default function AnalyticsArticle() {
                     backgroundColor: colors.bgWhite
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.advertisingBgHover
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = colors.advertisingBgHover
+                    })
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.bgWhite
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = 'transparent'
+                    })
                   }}
                 >
                   <td style={{
@@ -1479,10 +1539,18 @@ export default function AnalyticsArticle() {
                     backgroundColor: colors.bgWhite
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.advertisingBgHover
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = colors.advertisingBgHover
+                    })
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.bgWhite
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = 'transparent'
+                    })
                   }}
                 >
                   <td style={{
@@ -1538,10 +1606,18 @@ export default function AnalyticsArticle() {
                     backgroundColor: colors.bgWhite
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.advertisingBgHover
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = colors.advertisingBgHover
+                    })
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.bgWhite
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = 'transparent'
+                    })
                   }}
                 >
                   <td style={{
@@ -1596,10 +1672,18 @@ export default function AnalyticsArticle() {
                     backgroundColor: colors.bgWhite
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.advertisingBgHover
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = colors.advertisingBgHover
+                    })
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.bgWhite
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = 'transparent'
+                    })
                   }}
                 >
                   <td style={{
@@ -1654,10 +1738,18 @@ export default function AnalyticsArticle() {
                     backgroundColor: colors.bgWhite
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.advertisingBgHover
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = colors.advertisingBgHover
+                    })
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.bgWhite
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = 'transparent'
+                    })
                   }}
                 >
                   <td style={{
@@ -1704,10 +1796,18 @@ export default function AnalyticsArticle() {
                     backgroundColor: colors.bgWhite
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.advertisingBgHover
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = colors.advertisingBgHover
+                    })
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.bgWhite
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = 'transparent'
+                    })
                   }}
                 >
                   <td style={{
@@ -1762,10 +1862,18 @@ export default function AnalyticsArticle() {
                     backgroundColor: colors.bgWhite
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.advertisingBgHover
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.advertisingBgHover
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = colors.advertisingBgHover
+                    })
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgWhite
+                    const row = e.currentTarget
+                    row.style.backgroundColor = colors.bgWhite
+                    Array.from(row.querySelectorAll('td')).forEach((cell: Element) => {
+                      (cell as HTMLElement).style.backgroundColor = 'transparent'
+                    })
                   }}
                 >
                   <td style={{
