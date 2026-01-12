@@ -137,6 +137,34 @@ export interface StockSize {
   amount: number
 }
 
+export interface ArticleNoteFile {
+  id: number
+  fileName: string
+  fileSize: number
+  mimeType: string | null
+  uploadedAt: string
+}
+
+export interface ArticleNote {
+  id: number
+  nmId: number
+  sellerId: number
+  userId: number
+  userEmail: string
+  content: string
+  files: ArticleNoteFile[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateNoteRequest {
+  content: string
+}
+
+export interface UpdateNoteRequest {
+  content: string
+}
+
 export interface ArticleResponse {
   article: ArticleDetail
   periods: Period[]

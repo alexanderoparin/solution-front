@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Spin, Select, DatePicker } from 'antd'
-import { InfoCircleOutlined, DownOutlined, RightOutlined } from '@ant-design/icons'
+import { Spin, Select, DatePicker, Input, Button, Upload, Modal, message } from 'antd'
+import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
 import { analyticsApi } from '../api/analytics'
-import type { ArticleResponse, StockSize } from '../types/analytics'
+import type { ArticleResponse, StockSize, ArticleNote } from '../types/analytics'
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
@@ -96,6 +96,15 @@ export default function AnalyticsArticle() {
   const [stockSizes, setStockSizes] = useState<Record<string, import('../types/analytics').StockSize[]>>({})
   const [loadingSizes, setLoadingSizes] = useState<Record<string, boolean>>({})
   
+  // Состояние для заметок
+  const [notes, setNotes] = useState<ArticleNote[]>([])
+  const [loadingNotes, setLoadingNotes] = useState(false)
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false)
+  const [editingNote, setEditingNote] = useState<ArticleNote | null>(null)
+  const [noteContent, setNoteContent] = useState('')
+  const [noteFiles, setNoteFiles] = useState<File[]>([])
+  const [uploadingNoteFiles, setUploadingNoteFiles] = useState(false)
+  
   // Периоды для сравнения (по умолчанию - две недели, разбитые по неделям)
   const yesterday = dayjs().subtract(1, 'day')
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>([
@@ -115,6 +124,7 @@ export default function AnalyticsArticle() {
     }
 
     loadArticle(Number(nmId))
+    loadNotes(Number(nmId))
   }, [nmId])
 
   const loadArticle = async (id: number) => {
@@ -143,6 +153,166 @@ export default function AnalyticsArticle() {
 
   const formatCurrency = (value: number): string => {
     return `${value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`
+  }
+
+  // Функции для работы с заметками
+  const loadNotes = async (id: number) => {
+    try {
+      setLoadingNotes(true)
+      const sellerId = getSelectedSellerId()
+      const data = await analyticsApi.getNotes(id, sellerId)
+      setNotes(data)
+    } catch (err: any) {
+      message.error(err.response?.data?.message || 'Ошибка при загрузке заметок')
+    } finally {
+      setLoadingNotes(false)
+    }
+  }
+
+  const openNoteModal = (note?: ArticleNote) => {
+    if (note) {
+      setEditingNote(note)
+      setNoteContent(note.content)
+    } else {
+      setEditingNote(null)
+      setNoteContent('')
+    }
+    setNoteFiles([])
+    setIsNoteModalOpen(true)
+  }
+
+  const handleCreateNote = async () => {
+    if (!noteContent.trim()) {
+      message.warning('Введите текст заметки')
+      return
+    }
+
+    if (!nmId) return
+
+    try {
+      setUploadingNoteFiles(true)
+      const sellerId = getSelectedSellerId()
+      const createdNote = await analyticsApi.createNote(Number(nmId), { content: noteContent }, sellerId)
+      message.success('Заметка создана')
+      
+      // Загружаем файлы, если они были выбраны
+      if (noteFiles.length > 0) {
+        for (const file of noteFiles) {
+          try {
+            await analyticsApi.uploadFile(Number(nmId), createdNote.id, file, sellerId)
+          } catch (err: any) {
+            message.error(`Ошибка при загрузке файла ${file.name}: ${err.response?.data?.message || 'Неизвестная ошибка'}`)
+          }
+        }
+        if (noteFiles.length > 0) {
+          message.success(`Загружено файлов: ${noteFiles.length}`)
+        }
+      }
+      
+      setIsNoteModalOpen(false)
+      setNoteContent('')
+      setNoteFiles([])
+      await loadNotes(Number(nmId))
+    } catch (err: any) {
+      message.error(err.response?.data?.message || 'Ошибка при создании заметки')
+    } finally {
+      setUploadingNoteFiles(false)
+    }
+  }
+
+  const handleUpdateNote = async () => {
+    if (!noteContent.trim()) {
+      message.warning('Введите текст заметки')
+      return
+    }
+
+    if (!nmId || !editingNote) return
+
+    try {
+      setUploadingNoteFiles(true)
+      const sellerId = getSelectedSellerId()
+      await analyticsApi.updateNote(Number(nmId), editingNote.id, { content: noteContent }, sellerId)
+      message.success('Заметка обновлена')
+      
+      // Загружаем файлы, если они были выбраны
+      if (noteFiles.length > 0) {
+        for (const file of noteFiles) {
+          try {
+            await analyticsApi.uploadFile(Number(nmId), editingNote.id, file, sellerId)
+          } catch (err: any) {
+            message.error(`Ошибка при загрузке файла ${file.name}: ${err.response?.data?.message || 'Неизвестная ошибка'}`)
+          }
+        }
+        if (noteFiles.length > 0) {
+          message.success(`Загружено файлов: ${noteFiles.length}`)
+        }
+      }
+      
+      setIsNoteModalOpen(false)
+      setEditingNote(null)
+      setNoteContent('')
+      setNoteFiles([])
+      await loadNotes(Number(nmId))
+    } catch (err: any) {
+      message.error(err.response?.data?.message || 'Ошибка при обновлении заметки')
+    } finally {
+      setUploadingNoteFiles(false)
+    }
+  }
+
+  const handleDeleteNote = async (noteId: number) => {
+    if (!nmId) return
+
+    Modal.confirm({
+      title: 'Удалить заметку?',
+      content: 'Это действие нельзя отменить.',
+      okText: 'Удалить',
+      okType: 'danger',
+      cancelText: 'Отмена',
+      onOk: async () => {
+        try {
+          const sellerId = getSelectedSellerId()
+          await analyticsApi.deleteNote(Number(nmId), noteId, sellerId)
+          message.success('Заметка удалена')
+          await loadNotes(Number(nmId))
+        } catch (err: any) {
+          message.error(err.response?.data?.message || 'Ошибка при удалении заметки')
+        }
+      },
+    })
+  }
+
+  const handleDownloadFile = async (noteId: number, fileId: number, fileName: string) => {
+    if (!nmId) return
+
+    try {
+      const sellerId = getSelectedSellerId()
+      await analyticsApi.downloadFile(Number(nmId), noteId, fileId, fileName, sellerId)
+    } catch (err: any) {
+      message.error(err.response?.data?.message || 'Ошибка при скачивании файла')
+    }
+  }
+
+  const handleDeleteFile = async (noteId: number, fileId: number) => {
+    if (!nmId) return
+
+    Modal.confirm({
+      title: 'Удалить файл?',
+      content: 'Это действие нельзя отменить.',
+      okText: 'Удалить',
+      okType: 'danger',
+      cancelText: 'Отмена',
+      onOk: async () => {
+        try {
+          const sellerId = getSelectedSellerId()
+          await analyticsApi.deleteFile(Number(nmId), noteId, fileId, sellerId)
+          message.success('Файл удален')
+          await loadNotes(Number(nmId))
+        } catch (err: any) {
+          message.error(err.response?.data?.message || 'Ошибка при удалении файла')
+        }
+      },
+    })
   }
 
   // Получаем данные метрики для конкретной даты
@@ -2179,11 +2349,221 @@ export default function AnalyticsArticle() {
             })()}
           </div>
         )}
+
+        {/* Заметки */}
+        <div style={{
+          backgroundColor: colors.bgWhite,
+          border: `1px solid ${colors.borderLight}`,
+          borderRadius: borderRadius.md,
+          padding: spacing.lg,
+          marginTop: spacing.xl,
+          boxShadow: shadows.md
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: spacing.md
+          }}>
+            <h2 style={{ 
+              ...typography.h2, 
+              margin: 0,
+              color: colors.textPrimary
+            }}>
+              Заметки
+            </h2>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => openNoteModal()}
+            >
+              Добавить заметку
+            </Button>
+          </div>
+
+          {loadingNotes ? (
+            <div style={{ textAlign: 'center', padding: spacing.xl }}>
+              <Spin />
+            </div>
+          ) : notes.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: spacing.xl,
+              fontSize: typography.body.fontSize,
+              fontWeight: typography.body.fontWeight,
+              lineHeight: typography.body.lineHeight,
+              color: colors.textSecondary
+            }}>
+              Нет заметок. Создайте первую заметку.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+              {notes.map((note) => (
+                <div
+                  key={note.id}
+                  style={{
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: borderRadius.sm,
+                    padding: spacing.md,
+                    backgroundColor: colors.bgGrayLight
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: spacing.sm
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        ...typography.bodySmall,
+                        color: colors.textSecondary,
+                        marginBottom: spacing.xs
+                      }}>
+                        {note.userEmail} • {dayjs(note.createdAt).format('DD.MM.YYYY HH:mm')}
+                        {note.updatedAt !== note.createdAt && ' (изменено)'}
+                      </div>
+                      <div style={{
+                        ...typography.body,
+                        color: colors.textPrimary,
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word'
+                      }}>
+                        {note.content}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: spacing.xs, marginLeft: spacing.md }}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<EditOutlined />}
+                        onClick={() => openNoteModal(note)}
+                      />
+                      <Button
+                        type="text"
+                        size="small"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleDeleteNote(note.id)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Файлы */}
+                  {note.files && note.files.length > 0 && (
+                    <div style={{
+                      marginTop: spacing.sm,
+                      paddingTop: spacing.sm,
+                      borderTop: `1px solid ${colors.border}`
+                    }}>
+                      <div style={{
+                        ...typography.bodySmall,
+                        color: colors.textSecondary,
+                        marginBottom: spacing.xs
+                      }}>
+                        Прикрепленные файлы:
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
+                        {note.files.map((file) => (
+                          <div
+                            key={file.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: spacing.xs,
+                              backgroundColor: colors.bgWhite,
+                              borderRadius: borderRadius.sm,
+                              border: `1px solid ${colors.borderLight}`
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
+                              <PaperClipOutlined style={{ color: colors.textSecondary }} />
+                              <span style={{ ...typography.bodySmall, color: colors.textPrimary }}>
+                                {file.fileName}
+                              </span>
+                              <span style={{ ...typography.bodySmall, color: colors.textSecondary }}>
+                                ({(file.fileSize / 1024).toFixed(2)} КБ)
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', gap: spacing.xs }}>
+                              <Button
+                                type="text"
+                                size="small"
+                                icon={<DownloadOutlined />}
+                                onClick={() => handleDownloadFile(note.id, file.id, file.fileName)}
+                              />
+                              <Button
+                                type="text"
+                                size="small"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={() => handleDeleteFile(note.id, file.id)}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
           </div>
         )
       })()}
 
       </div>
+
+      {/* Модальное окно для создания/редактирования заметки */}
+      <Modal
+        title={editingNote ? 'Редактировать заметку' : 'Создать заметку'}
+        open={isNoteModalOpen}
+        onOk={editingNote ? handleUpdateNote : handleCreateNote}
+        onCancel={() => {
+          setIsNoteModalOpen(false)
+          setEditingNote(null)
+          setNoteContent('')
+          setNoteFiles([])
+        }}
+        okText={editingNote ? 'Сохранить' : 'Создать'}
+        cancelText="Отмена"
+        width={600}
+        confirmLoading={uploadingNoteFiles}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+          <Input.TextArea
+            rows={6}
+            value={noteContent}
+            onChange={(e) => setNoteContent(e.target.value)}
+            placeholder="Введите текст заметки..."
+          />
+          <div>
+            <div style={{ marginBottom: spacing.xs, ...typography.bodySmall, color: colors.textSecondary }}>
+              Прикрепить файлы:
+            </div>
+            <Upload
+              multiple
+              beforeUpload={(file) => {
+                setNoteFiles(prev => [...prev, file])
+                return false // Предотвращаем автоматическую загрузку
+              }}
+              onRemove={(file) => {
+                setNoteFiles(prev => prev.filter(f => f.name !== file.name))
+              }}
+              fileList={noteFiles.map((file, index) => ({
+                uid: `${index}`,
+                name: file.name,
+                status: 'done' as const,
+              }))}
+            >
+              <Button icon={<PaperClipOutlined />}>Выбрать файлы</Button>
+            </Upload>
+          </div>
+        </div>
+      </Modal>
     </>
   )
 }
