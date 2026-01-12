@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Spin, Select, DatePicker, Input, Button, Upload, Modal, message } from 'antd'
-import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined } from '@ant-design/icons'
+import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -104,6 +104,7 @@ export default function AnalyticsArticle() {
   const [noteContent, setNoteContent] = useState('')
   const [noteFiles, setNoteFiles] = useState<File[]>([])
   const [uploadingNoteFiles, setUploadingNoteFiles] = useState(false)
+  const [imagePreview, setImagePreview] = useState<{ url: string; fileName: string } | null>(null)
   
   // Периоды для сравнения (по умолчанию - две недели, разбитые по неделям)
   const yesterday = dayjs().subtract(1, 'day')
@@ -313,6 +314,28 @@ export default function AnalyticsArticle() {
         }
       },
     })
+  }
+
+  // Проверяет, является ли файл изображением
+  const isImageFile = (mimeType: string | null): boolean => {
+    if (!mimeType) return false
+    return mimeType.startsWith('image/')
+  }
+
+  // Открывает изображение для просмотра
+  const handleViewImage = async (noteId: number, fileId: number, fileName: string) => {
+    if (!nmId) return
+
+    try {
+      const sellerId = getSelectedSellerId()
+      // Получаем файл как blob
+      const blob = await analyticsApi.getFileBlob(Number(nmId), noteId, fileId, sellerId)
+      // Создаем blob URL для просмотра
+      const url = window.URL.createObjectURL(blob)
+      setImagePreview({ url, fileName })
+    } catch (err: any) {
+      message.error(err.response?.data?.message || 'Ошибка при загрузке изображения')
+    }
   }
 
   // Получаем данные метрики для конкретной даты
@@ -2456,13 +2479,6 @@ export default function AnalyticsArticle() {
                       paddingTop: spacing.sm,
                       borderTop: `1px solid ${colors.border}`
                     }}>
-                      <div style={{
-                        ...typography.bodySmall,
-                        color: colors.textSecondary,
-                        marginBottom: spacing.xs
-                      }}>
-                        Прикрепленные файлы:
-                      </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
                         {note.files.map((file) => (
                           <div
@@ -2487,11 +2503,21 @@ export default function AnalyticsArticle() {
                               </span>
                             </div>
                             <div style={{ display: 'flex', gap: spacing.xs }}>
+                              {isImageFile(file.mimeType) && (
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<EyeOutlined />}
+                                  onClick={() => handleViewImage(note.id, file.id, file.fileName)}
+                                  title="Просмотр"
+                                />
+                              )}
                               <Button
                                 type="text"
                                 size="small"
                                 icon={<DownloadOutlined />}
                                 onClick={() => handleDownloadFile(note.id, file.id, file.fileName)}
+                                title="Скачать"
                               />
                               <Button
                                 type="text"
@@ -2499,6 +2525,7 @@ export default function AnalyticsArticle() {
                                 danger
                                 icon={<DeleteOutlined />}
                                 onClick={() => handleDeleteFile(note.id, file.id)}
+                                title="Удалить"
                               />
                             </div>
                           </div>
@@ -2563,6 +2590,43 @@ export default function AnalyticsArticle() {
             </Upload>
           </div>
         </div>
+      </Modal>
+
+      {/* Модальное окно для просмотра изображения */}
+      <Modal
+        title={imagePreview?.fileName || 'Просмотр изображения'}
+        open={!!imagePreview}
+        onCancel={() => {
+          if (imagePreview?.url) {
+            window.URL.revokeObjectURL(imagePreview.url)
+          }
+          setImagePreview(null)
+        }}
+        footer={null}
+        width={800}
+        centered
+      >
+        {imagePreview && (
+          <div style={{ textAlign: 'center' }}>
+            <img
+              src={imagePreview.url}
+              alt={imagePreview.fileName}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '70vh',
+                objectFit: 'contain',
+                borderRadius: borderRadius.sm,
+              }}
+              onError={() => {
+                message.error('Ошибка при загрузке изображения')
+                if (imagePreview?.url) {
+                  window.URL.revokeObjectURL(imagePreview.url)
+                }
+                setImagePreview(null)
+              }}
+            />
+          </div>
+        )}
       </Modal>
     </>
   )

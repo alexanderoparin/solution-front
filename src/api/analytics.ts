@@ -127,9 +127,9 @@ export const analyticsApi = {
   },
 
   /**
-   * Скачивает файл заметки.
+   * Получает файл как blob (для просмотра изображений).
    */
-  downloadFile: async (nmId: number, noteId: number, fileId: number, fileName: string, sellerId?: number): Promise<void> => {
+  getFileBlob: async (nmId: number, noteId: number, fileId: number, sellerId?: number): Promise<Blob> => {
     const params = sellerId ? `?sellerId=${sellerId}` : ''
     const response = await apiClient.get(
       `/analytics/article/${nmId}/notes/${noteId}/files/${fileId}${params}`,
@@ -137,7 +137,15 @@ export const analyticsApi = {
         responseType: 'blob',
       }
     )
-    const url = window.URL.createObjectURL(new Blob([response.data]))
+    return new Blob([response.data])
+  },
+
+  /**
+   * Скачивает файл заметки.
+   */
+  downloadFile: async (nmId: number, noteId: number, fileId: number, fileName: string, sellerId?: number): Promise<void> => {
+    const blob = await analyticsApi.getFileBlob(nmId, noteId, fileId, sellerId)
+    const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.setAttribute('download', fileName)
