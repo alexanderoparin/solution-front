@@ -200,7 +200,8 @@ export default function AnalyticsChart({ dailyData }: AnalyticsChartProps) {
         }}>
           <div style={{
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            marginTop: `-${spacing.md}`
           }}
           >
             {METRIC_OPTIONS.map((metric) => {
