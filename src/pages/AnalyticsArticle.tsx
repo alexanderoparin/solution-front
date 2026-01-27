@@ -376,6 +376,28 @@ export default function AnalyticsArticle() {
     return null
   }
 
+  // Вычисляет сумму метрики за весь период
+  const getMetricTotalForPeriod = (metricKey: string): number | null => {
+    if (!article) return null
+    
+    const values = last14Days
+      .map(date => getMetricValueForDate(metricKey, date))
+      .filter((v): v is number => v !== null)
+    
+    if (values.length === 0) return null
+    
+    // Для процентных метрик и средних значений - вычисляем среднее
+    if (metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr' || 
+        metricKey === 'cpc' || metricKey === 'cpo' || metricKey === 'seller_discount' || 
+        metricKey === 'wb_club_discount' || metricKey === 'spp_percent') {
+      const sum = values.reduce((acc, val) => acc + val, 0)
+      return sum / values.length
+    }
+    
+    // Для остальных - сумма
+    return values.reduce((acc, val) => acc + val, 0)
+  }
+
   // Агрегирует данные за период
   const aggregatePeriodData = (startDate: Dayjs, endDate: Dayjs) => {
     if (!article) return null
@@ -932,7 +954,7 @@ export default function AnalyticsArticle() {
             <thead>
               <tr>
                 <th style={{
-                  textAlign: 'left',
+                  textAlign: 'center',
                   padding: '6px 8px',
                   borderBottom: `2px solid ${colors.border}`,
                   borderRight: `2px solid ${colors.border}`,
@@ -959,7 +981,7 @@ export default function AnalyticsArticle() {
                       fontWeight: 600,
                       whiteSpace: 'pre-line',
                       lineHeight: 1.2,
-                      backgroundColor: isGeneralFunnel ? colors.funnelBg : isAdvertisingFunnel ? colors.advertisingBg : colors.bgGrayLight,
+                      backgroundColor: isGeneralFunnel ? colors.funnelBg : isAdvertisingFunnel ? colors.advertisingBg : colors.pricingBg,
                       width: `${100 / (FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length)}%`
                     }}>
                       {metric.name}
@@ -979,7 +1001,7 @@ export default function AnalyticsArticle() {
                       fontWeight: 600,
                       whiteSpace: 'pre-line',
                       lineHeight: 1.2,
-                      backgroundColor: isGeneralFunnel ? colors.funnelBg : isAdvertisingFunnel ? colors.advertisingBg : colors.bgGrayLight,
+                      backgroundColor: isGeneralFunnel ? colors.funnelBg : isAdvertisingFunnel ? colors.advertisingBg : colors.pricingBg,
                       width: `${100 / (FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length)}%`
                     }}>
                       {metric.name}
@@ -1006,11 +1028,11 @@ export default function AnalyticsArticle() {
                       row.style.backgroundColor = colors.bgGrayLight
                       Array.from(row.querySelectorAll('td')).forEach((cell: Element, cellIndex: number) => {
                         const td = cell as HTMLElement
-                        // Первая ячейка (дата) остается белой
+                        // Определяем hover цвет на основе типа воронки
                         if (cellIndex === 0) {
-                          td.style.backgroundColor = colors.bgWhite
+                          // Ячейка с датой - используем цвет первой воронки
+                          td.style.backgroundColor = isGeneralFunnel1 ? colors.funnelBgHover : isAdvertisingFunnel1 ? colors.advertisingBgHover : colors.pricingBgHover
                         } else {
-                          // Определяем hover цвет на основе типа воронки
                           const isFirstFunnel = cellIndex <= FUNNELS[selectedFunnel1].metrics.length
                           if (isFirstFunnel) {
                             td.style.backgroundColor = isGeneralFunnel1 ? colors.funnelBgHover : isAdvertisingFunnel1 ? colors.advertisingBgHover : colors.pricingBgHover
@@ -1032,9 +1054,9 @@ export default function AnalyticsArticle() {
                           // Восстанавливаем исходный фон на основе типа воронки
                           const isFirstFunnel = cellIndex <= FUNNELS[selectedFunnel1].metrics.length
                           if (isFirstFunnel) {
-                            td.style.backgroundColor = isGeneralFunnel1 ? colors.funnelBg : isAdvertisingFunnel1 ? colors.advertisingBg : colors.bgGrayLight
+                            td.style.backgroundColor = isGeneralFunnel1 ? colors.funnelBg : isAdvertisingFunnel1 ? colors.advertisingBg : colors.pricingBg
                           } else {
-                            td.style.backgroundColor = isGeneralFunnel2 ? colors.funnelBg : isAdvertisingFunnel2 ? colors.advertisingBg : colors.bgGrayLight
+                            td.style.backgroundColor = isGeneralFunnel2 ? colors.funnelBg : isAdvertisingFunnel2 ? colors.advertisingBg : colors.pricingBg
                           }
                         }
                       })
@@ -1063,7 +1085,7 @@ export default function AnalyticsArticle() {
                           padding: '4px 6px',
                           borderBottom: `1px solid ${colors.border}`,
                           borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
-                          backgroundColor: isGeneralFunnel1 ? colors.funnelBg : isAdvertisingFunnel1 ? colors.advertisingBg : colors.bgGrayLight,
+                          backgroundColor: isGeneralFunnel1 ? colors.funnelBg : isAdvertisingFunnel1 ? colors.advertisingBg : colors.pricingBg,
                           fontSize: '11px',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -1087,7 +1109,7 @@ export default function AnalyticsArticle() {
                           padding: '4px 6px',
                           borderBottom: `1px solid ${colors.border}`,
                           borderRight: index === FUNNELS[selectedFunnel2].metrics.length - 1 ? 'none' : `1px solid ${colors.border}`,
-                          backgroundColor: isGeneralFunnel2 ? colors.funnelBg : isAdvertisingFunnel2 ? colors.advertisingBg : colors.bgGrayLight,
+                          backgroundColor: isGeneralFunnel2 ? colors.funnelBg : isAdvertisingFunnel2 ? colors.advertisingBg : colors.pricingBg,
                           fontSize: '11px',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -1104,6 +1126,71 @@ export default function AnalyticsArticle() {
                   </tr>
                 )
               })}
+              {/* Строка "Весь период" */}
+              <tr style={{
+                backgroundColor: colors.bgGray
+              }}>
+                <td style={{
+                  padding: '6px 8px',
+                  borderBottom: `1px solid ${colors.border}`,
+                  borderRight: `2px solid ${colors.border}`,
+                  borderTop: `2px solid ${colors.border}`,
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  position: 'sticky',
+                  left: 0,
+                  backgroundColor: colors.bgGray,
+                  zIndex: 1
+                }}>
+                  Весь период
+                </td>
+                {FUNNELS[selectedFunnel1].metrics.map((metric, index) => {
+                  const totalValue = getMetricTotalForPeriod(metric.key)
+                  const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
+                  const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
+                  return (
+                    <td key={metric.key} style={{
+                      textAlign: 'center',
+                      padding: '4px 6px',
+                      borderBottom: `1px solid ${colors.border}`,
+                      borderTop: `2px solid ${colors.border}`,
+                      borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
+                      backgroundColor: colors.bgGray,
+                      fontSize: '11px',
+                      fontWeight: 500
+                    }}>
+                      {totalValue === null ? '-' : (
+                        isPercent ? formatPercent(totalValue) :
+                        isCurrency ? formatCurrency(totalValue) :
+                        formatValue(totalValue)
+                      )}
+                    </td>
+                  )
+                })}
+                {FUNNELS[selectedFunnel2].metrics.map((metric, index) => {
+                  const totalValue = getMetricTotalForPeriod(metric.key)
+                  const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
+                  const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
+                  return (
+                    <td key={metric.key} style={{
+                      textAlign: 'center',
+                      padding: '4px 6px',
+                      borderBottom: `1px solid ${colors.border}`,
+                      borderTop: `2px solid ${colors.border}`,
+                      borderRight: index === FUNNELS[selectedFunnel2].metrics.length - 1 ? 'none' : `1px solid ${colors.border}`,
+                      backgroundColor: colors.bgGray,
+                      fontSize: '11px',
+                      fontWeight: 500
+                    }}>
+                      {totalValue === null ? '-' : (
+                        isPercent ? formatPercent(totalValue) :
+                        isCurrency ? formatCurrency(totalValue) :
+                        formatValue(totalValue)
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
             </tbody>
           </table>
         </div>

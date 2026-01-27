@@ -21,7 +21,8 @@ export const colors = {
   funnelBgHover: '#BAE6FD',
   advertisingBg: '#D1FAE5',
   advertisingBgHover: '#A7F3D0',
-  pricingBgHover: '#CBD5E1',
+  pricingBg: '#FEF3C7',
+  pricingBgHover: '#FDE68A',
   
   // Статусы
   success: '#10B981',
