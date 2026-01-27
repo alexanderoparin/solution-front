@@ -10,6 +10,7 @@ import type { ArticleResponse, StockSize, ArticleNote } from '../types/analytics
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
+import AnalyticsChart from '../components/AnalyticsChart'
 
 dayjs.locale('ru')
 
@@ -857,6 +858,15 @@ export default function AnalyticsArticle() {
           </div>
         </div>
       </div>
+
+      {/* График */}
+      {article && article.dailyData && article.dailyData.length > 0 && (
+        <AnalyticsChart 
+          dailyData={article.dailyData} 
+          nmId={Number(nmId)}
+          sellerId={getSelectedSellerId()}
+        />
+      )}
 
       {/* Блоки воронок */}
       <div style={{
