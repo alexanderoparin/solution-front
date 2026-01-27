@@ -166,7 +166,7 @@ export default function AnalyticsChart({ dailyData }: AnalyticsChartProps) {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
         marginBottom: spacing.lg,
         gap: spacing.md,
         flexWrap: 'wrap'
@@ -244,7 +244,7 @@ export default function AnalyticsChart({ dailyData }: AnalyticsChartProps) {
           flex: '1 1 0',
           minWidth: 0,
           width: '100%',
-          aspectRatio: '2.5 / 1'
+          aspectRatio: '2.4 / 1'
         }}>
           {filteredData.length === 0 ? (
             <div style={{
