@@ -1101,31 +1101,41 @@ export default function AnalyticsArticle() {
         const nonZeroStocks = article?.stocks?.filter(stock => stock.amount > 0) || []
         return (
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: '2fr 1fr',
-            gap: spacing.lg,
+            backgroundColor: colors.bgWhite,
+            border: `1px solid ${colors.borderLight}`,
+            borderRadius: borderRadius.md,
+            padding: spacing.lg,
             marginBottom: spacing.xl,
-            alignItems: 'start'
-          }}>
-            {/* Сравнение периодов */}
+            boxShadow: shadows.md,
+            transition: transitions.normal,
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            height: '560px',
+            overflow: 'hidden'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.boxShadow = shadows.lg
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = shadows.md
+          }}
+          >
+            {/* Внутренний контейнер с двумя колонками */}
             <div style={{
-              backgroundColor: colors.bgWhite,
-              border: `1px solid ${colors.borderLight}`,
-              borderRadius: borderRadius.md,
-              padding: spacing.lg,
-              boxShadow: shadows.md,
-              transition: transitions.normal,
               display: 'flex',
-              flexDirection: 'column',
-              minHeight: 0
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = shadows.lg
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = shadows.md
-            }}
-            >
+              gap: spacing.lg,
+              height: '100%',
+              overflow: 'hidden'
+            }}>
+              {/* Левая колонка: Сравнение периодов */}
+              <div style={{
+                flex: '0 1 75%',
+                display: 'flex',
+                flexDirection: 'column',
+                minWidth: 0,
+                overflow: 'hidden'
+              }}>
               {/* Заголовок и периоды в одной строке */}
               <div style={{
                 display: 'flex',
@@ -1180,10 +1190,14 @@ export default function AnalyticsArticle() {
 
               {/* Сравнение по общей воронке и рекламе - два блока рядом */}
               <div style={{
+                flex: '1 1 0',
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
                 gap: spacing.lg,
-                alignContent: 'start'
+                alignContent: 'start',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                minHeight: 0
               }}>
             {/* Сравнение по общей воронке */}
             <div>
@@ -1197,7 +1211,7 @@ export default function AnalyticsArticle() {
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
-                    width: '30%'
+                    width: '35%'
                   }}>
                     Общая воронка
                   </th>
@@ -1209,7 +1223,8 @@ export default function AnalyticsArticle() {
                     borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
-                    backgroundColor: colors.bgGrayLight
+                    backgroundColor: colors.bgGrayLight,
+                    width: '22%'
                   }}>
                     {period1[0].format('DD.MM')} - {period1[1].format('DD.MM')}
                   </th>
@@ -1220,7 +1235,8 @@ export default function AnalyticsArticle() {
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
-                    backgroundColor: colors.bgGrayLight
+                    backgroundColor: colors.bgGrayLight,
+                    width: '22%'
                   }}>
                     {period2[0].format('DD.MM')} - {period2[1].format('DD.MM')}
                   </th>
@@ -1231,7 +1247,8 @@ export default function AnalyticsArticle() {
                     borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
-                    backgroundColor: colors.bgGrayLight
+                    backgroundColor: colors.bgGrayLight,
+                    width: '21%'
                   }}>
                     Разница
                   </th>
@@ -1616,7 +1633,7 @@ export default function AnalyticsArticle() {
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
-                    width: '30%'
+                    width: '35%'
                   }}>
                     Рекламная воронка
                   </th>
@@ -1628,7 +1645,8 @@ export default function AnalyticsArticle() {
                     borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
-                    backgroundColor: colors.advertisingBg
+                    backgroundColor: colors.advertisingBg,
+                    width: '22%'
                   }}>
                     {period1[0].format('DD.MM')} - {period1[1].format('DD.MM')}
                   </th>
@@ -1640,7 +1658,8 @@ export default function AnalyticsArticle() {
                     borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
-                    backgroundColor: colors.advertisingBg
+                    backgroundColor: colors.advertisingBg,
+                    width: '22%'
                   }}>
                     {period2[0].format('DD.MM')} - {period2[1].format('DD.MM')}
                   </th>
@@ -1651,7 +1670,8 @@ export default function AnalyticsArticle() {
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                     fontWeight: 600,
-                    backgroundColor: colors.advertisingBg
+                    backgroundColor: colors.advertisingBg,
+                    width: '21%'
                   }}>
                     Разница
                   </th>
@@ -2118,66 +2138,93 @@ export default function AnalyticsArticle() {
               </table>
             </div>
           </div>
-        </div>
+              </div>
 
-        {/* Остатки на текущий момент */}
-        {nonZeroStocks.length > 0 && (
-          <div style={{
-            backgroundColor: colors.bgWhite,
-            border: `1px solid ${colors.borderLight}`,
-            borderRadius: borderRadius.md,
-            padding: spacing.lg,
-            boxShadow: shadows.md,
-            display: 'flex',
-            flexDirection: 'column',
-            minHeight: 0,
-            overflow: 'hidden'
-          }}>
-            {(() => {
-              const latestUpdate = nonZeroStocks
-                .map(s => s.updatedAt)
-                .filter(d => d !== null)
-                .sort()
-                .reverse()[0]
-              const totalAmount = nonZeroStocks.reduce((sum, stock) => sum + stock.amount, 0)
-              
-              return (
-                <>
-                  <div style={{
+              {/* Правая колонка: Остатки */}
+              <div style={{
+                flex: '0 1 25%',
+                display: 'flex',
+                flexDirection: 'column',
+                borderLeft: `1px solid ${colors.borderLight}`,
+                paddingLeft: spacing.lg,
+                overflow: 'hidden',
+                minWidth: '280px'
+              }}>
+                {(() => {
+                  const latestUpdate = nonZeroStocks.length > 0
+                    ? nonZeroStocks
+                        .map(s => s.updatedAt)
+                        .filter(d => d !== null)
+                        .sort()
+                        .reverse()[0]
+                    : null
+                  const totalAmount = nonZeroStocks.reduce((sum, stock) => sum + stock.amount, 0)
+                  
+                  return (
+                    <>
+                      <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     marginBottom: spacing.md,
                     gap: spacing.md,
-                    flexShrink: 0
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap'
                   }}>
                     <h2 style={{ 
                       ...typography.h2, 
                       margin: 0,
-                      color: colors.textPrimary
+                      color: colors.textPrimary,
+                      whiteSpace: 'nowrap',
+                      fontSize: '16px',
+                      lineHeight: '1.4',
+                      flex: '1 1 auto',
+                      minWidth: 0,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
                     }}>
                       Остатки на {latestUpdate ? dayjs(latestUpdate).format('DD.MM.YY HH:mm') : 'дату'}
                     </h2>
-                    <div 
-                      style={{
-                        position: 'relative'
-                      }}
-                      title={latestUpdate ? `Дата обновления ${dayjs(latestUpdate).format('DD.MM.YY HH:mm')}` : ''}
-                    >
-                      <div style={{
-                        ...typography.h3,
-                        color: colors.bgWhite,
-                        backgroundColor: colors.primary,
-                        padding: `${spacing.xs} ${spacing.sm}`,
-                        borderRadius: borderRadius.sm,
-                        fontWeight: 600,
-                        display: 'inline-block',
-                        cursor: 'help'
-                      }}>
-                        Всего {totalAmount.toLocaleString('ru-RU')}
+                    {nonZeroStocks.length > 0 && (
+                      <div 
+                        style={{
+                          position: 'relative',
+                          flexShrink: 0
+                        }}
+                        title={latestUpdate ? `Дата обновления ${dayjs(latestUpdate).format('DD.MM.YY HH:mm')}` : ''}
+                      >
+                        <div style={{
+                          ...typography.h3,
+                          color: colors.bgWhite,
+                          backgroundColor: colors.primary,
+                          padding: `${spacing.xs} ${spacing.sm}`,
+                          borderRadius: borderRadius.sm,
+                          fontWeight: 600,
+                          display: 'inline-block',
+                          cursor: 'help',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          Всего {totalAmount.toLocaleString('ru-RU')}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
+                  {nonZeroStocks.length === 0 ? (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: spacing.xl,
+                      ...typography.body,
+                      color: colors.textSecondary
+                    }}>
+                      нет данных
+                    </div>
+                  ) : (
+                    <div style={{
+                      flex: '1 1 0',
+                      overflowY: 'auto',
+                      overflowX: 'hidden',
+                      minHeight: 0
+                    }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ backgroundColor: colors.primaryLight }}>
@@ -2367,13 +2414,18 @@ export default function AnalyticsArticle() {
                 })}
               </tbody>
             </table>
-                </>
-              )
-            })()}
+                    </div>
+                  )}
+                    </>
+                  )
+                })()}
+              </div>
+            </div>
           </div>
-        )}
+        )
+      })()}
 
-        {/* Заметки */}
+      {/* Заметки */}
         <div style={{
           backgroundColor: colors.bgWhite,
           border: `1px solid ${colors.borderLight}`,
@@ -2538,9 +2590,6 @@ export default function AnalyticsArticle() {
             </div>
           )}
         </div>
-          </div>
-        )
-      })()}
 
       </div>
 
