@@ -885,18 +885,20 @@ export default function AnalyticsArticle() {
         e.currentTarget.style.boxShadow = shadows.md
       }}
       >
-        <div style={{ overflowX: 'hidden', width: '100%' }}>
+        <div style={{ overflowX: 'auto', width: '100%' }}>
           <div style={{
             display: 'flex',
             marginBottom: spacing.md,
-            position: 'relative'
+            position: 'relative',
+            minWidth: 'fit-content'
           }}>
             <div style={{ width: '120px', flexShrink: 0 }}></div>
             <div style={{
               flex: 1,
               display: 'flex',
               justifyContent: 'center',
-              minWidth: `${FUNNELS[selectedFunnel1].metrics.length * 120}px`
+              minWidth: 0,
+              flexShrink: 1
             }}>
               <Select
                 value={selectedFunnel1}
@@ -912,7 +914,8 @@ export default function AnalyticsArticle() {
               flex: 1,
               display: 'flex',
               justifyContent: 'center',
-              minWidth: `${FUNNELS[selectedFunnel2].metrics.length * 120}px`
+              minWidth: 0,
+              flexShrink: 1
             }}>
               <Select
                 value={selectedFunnel2}
