@@ -1110,9 +1110,7 @@ export default function AnalyticsArticle() {
             transition: transitions.normal,
             display: 'flex',
             flexDirection: 'column',
-            width: '100%',
-            height: '560px',
-            overflow: 'hidden'
+            width: '100%'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.boxShadow = shadows.lg
@@ -1125,8 +1123,7 @@ export default function AnalyticsArticle() {
             <div style={{
               display: 'flex',
               gap: spacing.lg,
-              height: '100%',
-              overflow: 'hidden'
+              alignItems: 'stretch'
             }}>
               {/* Левая колонка: Сравнение периодов */}
               <div style={{
@@ -1190,14 +1187,10 @@ export default function AnalyticsArticle() {
 
               {/* Сравнение по общей воронке и рекламе - два блока рядом */}
               <div style={{
-                flex: '1 1 0',
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
                 gap: spacing.lg,
-                alignContent: 'start',
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                minHeight: 0
+                alignContent: 'start'
               }}>
             {/* Сравнение по общей воронке */}
             <div>
@@ -2147,7 +2140,6 @@ export default function AnalyticsArticle() {
                 flexDirection: 'column',
                 borderLeft: `1px solid ${colors.borderLight}`,
                 paddingLeft: spacing.lg,
-                overflow: 'hidden',
                 minWidth: '280px'
               }}>
                 {(() => {
