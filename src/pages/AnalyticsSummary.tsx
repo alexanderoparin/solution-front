@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { DatePicker, Spin, Tooltip } from 'antd'
 import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -358,6 +358,12 @@ export default function AnalyticsSummary() {
     loadSummary()
   }, [loadSummary])
 
+  // Порядок периодов слева направо: старый → новый (для таблицы)
+  const periodsSorted = useMemo(
+    () => [...periods].sort((a, b) => a.dateFrom.localeCompare(b.dateFrom)),
+    [periods]
+  )
+
   useEffect(() => {
     // Сохраняем периоды в localStorage при изменении
     localStorage.setItem('analytics_periods', JSON.stringify(periods))
@@ -708,7 +714,7 @@ export default function AnalyticsSummary() {
                 }}>
                   Метрика
                 </th>
-                {periods.map(period => (
+                {periodsSorted.map(period => (
                   <th key={period.id} style={{
                     textAlign: 'center',
                     padding: spacing.md,
@@ -792,7 +798,7 @@ export default function AnalyticsSummary() {
                         )}
                         {metricNameRu}
                       </td>
-                      {periods.map(period => {
+                      {periodsSorted.map(period => {
                         const value = getMetricValue(period.id)
                         const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
                         const isEmpty = value === null || value === undefined || value === 0
@@ -902,30 +908,33 @@ export default function AnalyticsSummary() {
                                                 </span>
                                               )}
                                             </td>
-                                            {campaign.periods.map(period => {
+                                            {periodsSorted.map(period => {
+                                              const periodData = campaign.periods.find(p => p.periodId === period.id)
+                                              const value = periodData?.value ?? null
+                                              const changePercent = periodData?.changePercent ?? null
                                               const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
-                                              const isEmpty = period.value === null || period.value === undefined || period.value === 0
-                                              const changeColor = period.changePercent !== null 
-                                                ? (period.changePercent >= 0 ? colors.success : colors.error)
+                                              const isEmpty = value === null || value === undefined || value === 0
+                                              const changeColor = changePercent !== null
+                                                ? (changePercent >= 0 ? colors.success : colors.error)
                                                 : colors.textSecondary
                                               return (
-                                                <td key={period.periodId} style={{
+                                                <td key={period.id} style={{
                                                   textAlign: 'center',
                                                   padding: spacing.md,
                                                   borderBottom: `1px solid ${colors.borderLight}`,
                                                   color: isEmpty ? colors.textMuted : colors.textPrimary
                                                 }}>
                                                   <div style={{ ...typography.number }}>
-                                                    {isPercent ? formatPercent(period.value as number) : formatValue(period.value as number)}
+                                                    {isEmpty ? '-' : (isPercent ? formatPercent(value as number) : formatValue(value as number))}
                                                   </div>
-                                                  {period.changePercent !== null && (
+                                                  {changePercent !== null && (
                                                     <div style={{
                                                       ...typography.bodySmall,
                                                       color: changeColor,
                                                       fontWeight: 600,
                                                       marginTop: spacing.xs
                                                     }}>
-                                                      {formatChangePercent(period.changePercent)}
+                                                      {formatChangePercent(changePercent)}
                                                     </div>
                                                   )}
                                                 </td>
@@ -962,7 +971,7 @@ export default function AnalyticsSummary() {
                                         }}>
                                           Артикул
                                         </th>
-                                        {periods.map(period => (
+                                        {periodsSorted.map(period => (
                                           <th key={period.id} style={{
                                             textAlign: 'center',
                                             padding: spacing.md,
@@ -1052,30 +1061,33 @@ export default function AnalyticsSummary() {
                                               </a>
                                             </div>
                                           </td>
-                                          {article.periods.map(period => {
+                                          {periodsSorted.map(period => {
+                                            const periodData = article.periods.find(p => p.periodId === period.id)
+                                            const value = periodData?.value ?? null
+                                            const changePercent = periodData?.changePercent ?? null
                                             const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
-                                            const isEmpty = period.value === null || period.value === undefined || period.value === 0
-                                            const changeColor = period.changePercent !== null 
-                                              ? (period.changePercent >= 0 ? colors.success : colors.error)
+                                            const isEmpty = value === null || value === undefined || value === 0
+                                            const changeColor = changePercent !== null
+                                              ? (changePercent >= 0 ? colors.success : colors.error)
                                               : colors.textSecondary
                                             return (
-                                              <td key={period.periodId} style={{
+                                              <td key={period.id} style={{
                                                 textAlign: 'center',
                                                 padding: spacing.md,
                                                 borderBottom: `1px solid ${colors.borderLight}`,
                                                 color: isEmpty ? colors.textMuted : colors.textPrimary
                                               }}>
                                                 <div style={{ ...typography.number }}>
-                                                  {isPercent ? formatPercent(period.value as number) : formatValue(period.value as number)}
+                                                  {isEmpty ? '-' : (isPercent ? formatPercent(value as number) : formatValue(value as number))}
                                                 </div>
-                                                {period.changePercent !== null && (
+                                                {changePercent !== null && (
                                                   <div style={{
                                                     ...typography.bodySmall,
                                                     color: changeColor,
                                                     fontWeight: 600,
                                                     marginTop: spacing.xs
                                                   }}>
-                                                    {formatChangePercent(period.changePercent)}
+                                                    {formatChangePercent(changePercent)}
                                                   </div>
                                                 )}
                                               </td>
