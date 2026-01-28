@@ -27,6 +27,7 @@ const METRIC_OPTIONS = [
 ]
 
 const LEFT_COLUMN_WIDTH = 200 // Ширина для максимум 7 показателей
+const CHART_HEIGHT = 420
 
 interface AnalyticsChartProps {
   dailyData: DailyData[]
@@ -144,7 +145,7 @@ export default function AnalyticsChart({ dailyData }: AnalyticsChartProps) {
               fontWeight: 600,
               marginTop: spacing.xs
             }}>
-              {data.changePercent >= 0 ? '+' : ''}{data.changePercent.toFixed(2)}% {data.prevValue !== null ? data.prevValue.toLocaleString('ru-RU') : ''}
+              {data.changePercent >= 0 ? '+' : ''}{data.changePercent.toFixed(2)}%
             </div>
           )}
         </div>
@@ -201,7 +202,10 @@ export default function AnalyticsChart({ dailyData }: AnalyticsChartProps) {
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            marginTop: `-${spacing.md}`
+            marginTop: `-${spacing.md}`,
+            maxHeight: CHART_HEIGHT,
+            overflowY: 'auto',
+            overflowX: 'hidden'
           }}
           >
             {METRIC_OPTIONS.map((metric) => {
@@ -245,7 +249,7 @@ export default function AnalyticsChart({ dailyData }: AnalyticsChartProps) {
           flex: '1 1 0',
           minWidth: 0,
           width: '100%',
-          aspectRatio: '2.4 / 1'
+          height: CHART_HEIGHT
         }}>
           {filteredData.length === 0 ? (
             <div style={{
