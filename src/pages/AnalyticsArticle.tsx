@@ -1013,7 +1013,7 @@ export default function AnalyticsArticle() {
               onClick={handleExportFunnelsExcel}
               disabled={!article}
             >
-              Выгрузить в эксель
+              Выгрузить
             </Button>
           </div>
           {selectedFunnel1 ? (
