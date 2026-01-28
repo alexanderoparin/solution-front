@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Spin, Select, DatePicker, Input, Button, Upload, Modal, message } from 'antd'
+import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox } from 'antd'
 import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
@@ -54,14 +54,19 @@ const FUNNELS = {
   }
 }
 
-function getLast14Days(): string[] {
+type FunnelKey = keyof typeof FUNNELS
+const FUNNEL_ORDER: FunnelKey[] = ['general', 'advertising', 'pricing']
+
+/** Даты в диапазоне [from, to] включительно, от старых к новым */
+function getDatesInRange(from: Dayjs, to: Dayjs): string[] {
   const days: string[] = []
-  const yesterday = dayjs().subtract(1, 'day')
-  // 14 дней: вчера и 13 дней до этого
-  for (let i = 13; i >= 0; i--) {
-    days.push(yesterday.subtract(i, 'day').format('YYYY-MM-DD'))
+  let cur = from.startOf('day')
+  const end = to.endOf('day')
+  while (cur.isBefore(end) || cur.isSame(end, 'day')) {
+    days.push(cur.format('YYYY-MM-DD'))
+    cur = cur.add(1, 'day')
   }
-  return days.reverse() // Разворачиваем, чтобы самые новые были сверху
+  return days
 }
 
 export default function AnalyticsArticle() {
@@ -87,12 +92,38 @@ export default function AnalyticsArticle() {
     return undefined
   }
 
-  const [selectedFunnel1, setSelectedFunnel1] = useState<keyof typeof FUNNELS>('general')
-  const [selectedFunnel2, setSelectedFunnel2] = useState<keyof typeof FUNNELS>('advertising')
+  // Общий диапазон дат для графика и воронок (по умолчанию последние 2 недели)
+  const yesterday = dayjs().subtract(1, 'day')
+  const defaultDateFrom = yesterday.subtract(13, 'day')
+  const defaultDateTo = yesterday
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([defaultDateFrom, defaultDateTo])
+
+  const rangeDates = useMemo(() => getDatesInRange(dateRange[0], dateRange[1]), [dateRange])
+
+  // Выбранные воронки (максимум 2), порядок: Общая (1) → Реклама (2) → Цены (3)
+  const [selectedFunnelKeys, setSelectedFunnelKeys] = useState<FunnelKey[]>(['general', 'advertising'])
+  const sortedFunnelKeys = useMemo(() => [...selectedFunnelKeys].sort((a, b) => FUNNEL_ORDER.indexOf(a) - FUNNEL_ORDER.indexOf(b)), [selectedFunnelKeys])
+  const selectedFunnel1 = sortedFunnelKeys[0]
+  const selectedFunnel2 = sortedFunnelKeys[1]
+
+  const toggleFunnel = (key: FunnelKey) => {
+    setSelectedFunnelKeys((prev) => {
+      const has = prev.includes(key)
+      if (has) {
+        return prev.filter((k) => k !== key)
+      }
+      if (prev.length >= 2) {
+        // Убираем воронку с наименьшим порядком
+        const sorted = [...prev].sort((a, b) => FUNNEL_ORDER.indexOf(a) - FUNNEL_ORDER.indexOf(b))
+        return [sorted[1], key].sort((a, b) => FUNNEL_ORDER.indexOf(a) - FUNNEL_ORDER.indexOf(b))
+      }
+      return [...prev, key].sort((a, b) => FUNNEL_ORDER.indexOf(a) - FUNNEL_ORDER.indexOf(b))
+    })
+  }
+
   const [article, setArticle] = useState<ArticleResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [last14Days] = useState<string[]>(getLast14Days())
   const [expandedStocks, setExpandedStocks] = useState<Set<string>>(new Set())
   const [stockSizes, setStockSizes] = useState<Record<string, import('../types/analytics').StockSize[]>>({})
   const [loadingSizes, setLoadingSizes] = useState<Record<string, boolean>>({})
@@ -108,14 +139,13 @@ export default function AnalyticsArticle() {
   const [imagePreview, setImagePreview] = useState<{ url: string; fileName: string } | null>(null)
   
   // Периоды для сравнения (по умолчанию - две недели, разбитые по неделям)
-  const yesterday = dayjs().subtract(1, 'day')
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>([
-    yesterday.subtract(13, 'day'), // 14 дней назад
-    yesterday.subtract(7, 'day')   // 7 дней назад
+    defaultDateFrom,
+    defaultDateFrom.add(6, 'day')
   ])
   const [period2, setPeriod2] = useState<[Dayjs, Dayjs]>([
-    yesterday.subtract(6, 'day'),  // 6 дней назад
-    yesterday                       // вчера
+    defaultDateTo.subtract(6, 'day'),
+    defaultDateTo
   ])
 
   useEffect(() => {
@@ -380,7 +410,7 @@ export default function AnalyticsArticle() {
   const getMetricTotalForPeriod = (metricKey: string): number | null => {
     if (!article) return null
     
-    const values = last14Days
+    const values = rangeDates
       .map(date => getMetricValueForDate(metricKey, date))
       .filter((v): v is number => v !== null)
     
@@ -887,6 +917,8 @@ export default function AnalyticsArticle() {
           dailyData={article.dailyData} 
           nmId={Number(nmId)}
           sellerId={getSelectedSellerId()}
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
         />
       )}
 
@@ -911,45 +943,35 @@ export default function AnalyticsArticle() {
           <div style={{
             display: 'flex',
             marginBottom: spacing.md,
-            position: 'relative',
-            minWidth: 'fit-content'
+            justifyContent: 'center',
+            gap: spacing.lg,
+            flexWrap: 'wrap'
           }}>
-            <div style={{ width: '120px', flexShrink: 0 }}></div>
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              justifyContent: 'center',
-              minWidth: 0,
-              flexShrink: 1
-            }}>
-              <Select
-                value={selectedFunnel1}
-                onChange={(value) => setSelectedFunnel1(value)}
-                style={{ width: 200 }}
-                options={Object.entries(FUNNELS).map(([key, funnel]) => ({
-                  label: funnel.name,
-                  value: key
-                }))}
-              />
-            </div>
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              justifyContent: 'center',
-              minWidth: 0,
-              flexShrink: 1
-            }}>
-              <Select
-                value={selectedFunnel2}
-                onChange={(value) => setSelectedFunnel2(value)}
-                style={{ width: 200 }}
-                options={Object.entries(FUNNELS).map(([key, funnel]) => ({
-                  label: funnel.name,
-                  value: key
-                }))}
-              />
-            </div>
+            <Checkbox
+              checked={selectedFunnelKeys.includes('general')}
+              onChange={() => toggleFunnel('general')}
+            >
+              Общая
+            </Checkbox>
+            <Checkbox
+              checked={selectedFunnelKeys.includes('advertising')}
+              onChange={() => toggleFunnel('advertising')}
+            >
+              Реклама
+            </Checkbox>
+            <Checkbox
+              checked={selectedFunnelKeys.includes('pricing')}
+              onChange={() => toggleFunnel('pricing')}
+            >
+              Цены
+            </Checkbox>
           </div>
+          {selectedFunnel1 ? (
+          <div style={{
+            maxHeight: 560,
+            overflowY: 'auto',
+            overflowX: 'auto'
+          }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <thead>
               <tr>
@@ -961,6 +983,7 @@ export default function AnalyticsArticle() {
                   fontSize: '12px',
                   fontWeight: 600,
                   position: 'sticky',
+                  top: 0,
                   left: 0,
                   backgroundColor: colors.bgWhite,
                   zIndex: 2,
@@ -971,26 +994,31 @@ export default function AnalyticsArticle() {
                 {FUNNELS[selectedFunnel1].metrics.map((metric, index) => {
                   const isGeneralFunnel = selectedFunnel1 === 'general'
                   const isAdvertisingFunnel = selectedFunnel1 === 'advertising'
+                  const totalCols = FUNNELS[selectedFunnel1].metrics.length + (selectedFunnel2 ? FUNNELS[selectedFunnel2].metrics.length : 0)
                   return (
                     <th key={metric.key} style={{
                       textAlign: 'center',
                       padding: '4px 6px',
                       borderBottom: `2px solid ${colors.border}`,
-                      borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
+                      borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 && !selectedFunnel2 ? 'none' : index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
                       fontSize: '10px',
                       fontWeight: 600,
                       whiteSpace: 'pre-line',
                       lineHeight: 1.2,
                       backgroundColor: isGeneralFunnel ? colors.funnelBg : isAdvertisingFunnel ? colors.advertisingBg : colors.pricingBg,
-                      width: `${100 / (FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length)}%`
+                      width: totalCols ? `${100 / totalCols}%` : undefined,
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 2
                     }}>
                       {metric.name}
                     </th>
                   )
                 })}
-                {FUNNELS[selectedFunnel2].metrics.map(metric => {
+                {selectedFunnel2 && FUNNELS[selectedFunnel2].metrics.map(metric => {
                   const isGeneralFunnel = selectedFunnel2 === 'general'
                   const isAdvertisingFunnel = selectedFunnel2 === 'advertising'
+                  const totalCols = FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length
                   return (
                     <th key={metric.key} style={{
                       textAlign: 'center',
@@ -1002,7 +1030,10 @@ export default function AnalyticsArticle() {
                       whiteSpace: 'pre-line',
                       lineHeight: 1.2,
                       backgroundColor: isGeneralFunnel ? colors.funnelBg : isAdvertisingFunnel ? colors.advertisingBg : colors.pricingBg,
-                      width: `${100 / (FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length)}%`
+                      width: `${100 / totalCols}%`,
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 2
                     }}>
                       {metric.name}
                     </th>
@@ -1011,7 +1042,7 @@ export default function AnalyticsArticle() {
               </tr>
             </thead>
             <tbody>
-              {last14Days.map((date) => {
+              {rangeDates.map((date) => {
                 const isGeneralFunnel1 = selectedFunnel1 === 'general'
                 const isAdvertisingFunnel1 = selectedFunnel1 === 'advertising'
                 const isGeneralFunnel2 = selectedFunnel2 === 'general'
@@ -1084,7 +1115,7 @@ export default function AnalyticsArticle() {
                           textAlign: 'center',
                           padding: '4px 6px',
                           borderBottom: `1px solid ${colors.border}`,
-                          borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
+                          borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 && !selectedFunnel2 ? 'none' : index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
                           backgroundColor: isGeneralFunnel1 ? colors.funnelBg : isAdvertisingFunnel1 ? colors.advertisingBg : colors.pricingBg,
                           fontSize: '11px',
                           overflow: 'hidden',
@@ -1099,7 +1130,7 @@ export default function AnalyticsArticle() {
                         </td>
                       )
                     })}
-                    {FUNNELS[selectedFunnel2].metrics.map((metric, index) => {
+                    {selectedFunnel2 && FUNNELS[selectedFunnel2].metrics.map((metric, index) => {
                       const value = getMetricValueForDate(metric.key, date)
                       const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                       const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
@@ -1154,7 +1185,7 @@ export default function AnalyticsArticle() {
                       padding: '4px 6px',
                       borderBottom: `1px solid ${colors.border}`,
                       borderTop: `2px solid ${colors.border}`,
-                      borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
+                      borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 && !selectedFunnel2 ? 'none' : index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
                       backgroundColor: colors.bgGray,
                       fontSize: '11px',
                       fontWeight: 500
@@ -1167,7 +1198,7 @@ export default function AnalyticsArticle() {
                     </td>
                   )
                 })}
-                {FUNNELS[selectedFunnel2].metrics.map((metric, index) => {
+                {selectedFunnel2 && FUNNELS[selectedFunnel2].metrics.map((metric, index) => {
                   const totalValue = getMetricTotalForPeriod(metric.key)
                   const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                   const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
@@ -1193,6 +1224,12 @@ export default function AnalyticsArticle() {
               </tr>
             </tbody>
           </table>
+          </div>
+          ) : (
+            <div style={{ ...typography.body, color: colors.textSecondary, textAlign: 'center', padding: spacing.xl }}>
+              Выберите до 2 воронок (Общая, Реклама, Цены)
+            </div>
+          )}
         </div>
       </div>
 

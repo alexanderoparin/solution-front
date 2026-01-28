@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { DatePicker } from 'antd'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import dayjs, { type Dayjs } from 'dayjs'
+import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
 import type { DailyData } from '../types/analytics'
@@ -33,23 +33,15 @@ interface AnalyticsChartProps {
   dailyData: DailyData[]
   nmId: number
   sellerId?: number
+  dateRange: [dayjs.Dayjs, dayjs.Dayjs]
+  onDateRangeChange: (range: [dayjs.Dayjs, dayjs.Dayjs]) => void
 }
 
-export default function AnalyticsChart({ dailyData }: AnalyticsChartProps) {
-  // Период по умолчанию - последние 14 дней
-  const defaultDateFrom = dayjs().subtract(14, 'day')
-  const defaultDateTo = dayjs().subtract(1, 'day')
-  
-  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([
-    defaultDateFrom,
-    defaultDateTo
-  ])
+export default function AnalyticsChart({ dailyData, dateRange, onDateRangeChange }: AnalyticsChartProps) {
   const [selectedMetric, setSelectedMetric] = useState<string>('transitions')
 
   // Фильтруем данные по выбранному периоду
   const filteredData = useMemo(() => {
-    if (!dateRange[0] || !dateRange[1]) return []
-    
     const startDate = dateRange[0].format('YYYY-MM-DD')
     const endDate = dateRange[1].format('YYYY-MM-DD')
     
@@ -177,7 +169,7 @@ export default function AnalyticsChart({ dailyData }: AnalyticsChartProps) {
           value={dateRange}
           onChange={(dates) => {
             if (dates && dates[0] && dates[1]) {
-              setDateRange([dates[0], dates[1]])
+              onDateRangeChange([dates[0], dates[1]])
             }
           }}
           format="DD.MM.YYYY"
