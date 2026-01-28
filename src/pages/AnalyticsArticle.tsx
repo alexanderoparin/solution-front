@@ -11,6 +11,7 @@ import { colors, typography, spacing, shadows, borderRadius, transitions } from 
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import AnalyticsChart from '../components/AnalyticsChart'
+import * as XLSX from 'xlsx'
 
 dayjs.locale('ru')
 
@@ -426,6 +427,44 @@ export default function AnalyticsArticle() {
     
     // Для остальных - сумма
     return values.reduce((acc, val) => acc + val, 0)
+  }
+
+  // Выгрузка воронок в Excel: все столбцы всех воронок за выбранный диапазон дат
+  const handleExportFunnelsExcel = () => {
+    if (!article) return
+    const headers: string[] = ['Дата']
+    const metricKeys: string[] = []
+    for (const key of FUNNEL_ORDER) {
+      for (const m of FUNNELS[key].metrics) {
+        headers.push(m.name.replace(/\n/g, ' '))
+        metricKeys.push(m.key)
+      }
+    }
+    const rows: (string | number)[][] = [headers]
+    for (const date of rangeDates) {
+      const row: (string | number)[] = [dayjs(date).format('DD.MM.YYYY')]
+      for (const metricKey of metricKeys) {
+        const v = getMetricValueForDate(metricKey, date)
+        const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr' || metricKey === 'seller_discount' || metricKey === 'wb_club_discount' || metricKey === 'spp_percent'
+        const isCurrency = metricKey.includes('price') || metricKey === 'orders_amount' || metricKey === 'costs' || metricKey === 'cpc' || metricKey === 'cpo' || metricKey === 'spp_amount'
+        row.push(v === null ? '' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v))
+      }
+      rows.push(row)
+    }
+    const totalRow: (string | number)[] = ['Весь период']
+    for (const metricKey of metricKeys) {
+      const v = getMetricTotalForPeriod(metricKey)
+      const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr' || metricKey === 'seller_discount' || metricKey === 'wb_club_discount' || metricKey === 'spp_percent'
+      const isCurrency = metricKey.includes('price') || metricKey === 'orders_amount' || metricKey === 'costs' || metricKey === 'cpc' || metricKey === 'cpo' || metricKey === 'spp_amount'
+      totalRow.push(v === null ? '' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v))
+    }
+    rows.push(totalRow)
+    const ws = XLSX.utils.aoa_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Воронки')
+    const fileName = `${nmId}_воронки_${dateRange[0].format('YYYY-MM-DD')}_${dateRange[1].format('YYYY-MM-DD')}.xlsx`
+    XLSX.writeFile(wb, fileName)
+    message.success('Файл выгружен')
   }
 
   // Агрегирует данные за период
@@ -943,28 +982,39 @@ export default function AnalyticsArticle() {
           <div style={{
             display: 'flex',
             marginBottom: spacing.md,
-            justifyContent: 'center',
-            gap: spacing.lg,
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: spacing.md,
             flexWrap: 'wrap'
           }}>
-            <Checkbox
-              checked={selectedFunnelKeys.includes('general')}
-              onChange={() => toggleFunnel('general')}
+            <div style={{ display: 'flex', gap: spacing.lg, flexWrap: 'wrap' }}>
+              <Checkbox
+                checked={selectedFunnelKeys.includes('general')}
+                onChange={() => toggleFunnel('general')}
+              >
+                Общая
+              </Checkbox>
+              <Checkbox
+                checked={selectedFunnelKeys.includes('advertising')}
+                onChange={() => toggleFunnel('advertising')}
+              >
+                Реклама
+              </Checkbox>
+              <Checkbox
+                checked={selectedFunnelKeys.includes('pricing')}
+                onChange={() => toggleFunnel('pricing')}
+              >
+                Цены
+              </Checkbox>
+            </div>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={handleExportFunnelsExcel}
+              disabled={!article}
             >
-              Общая
-            </Checkbox>
-            <Checkbox
-              checked={selectedFunnelKeys.includes('advertising')}
-              onChange={() => toggleFunnel('advertising')}
-            >
-              Реклама
-            </Checkbox>
-            <Checkbox
-              checked={selectedFunnelKeys.includes('pricing')}
-              onChange={() => toggleFunnel('pricing')}
-            >
-              Цены
-            </Checkbox>
+              Выгрузить в эксель
+            </Button>
           </div>
           {selectedFunnel1 ? (
           <div style={{
