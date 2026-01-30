@@ -1018,7 +1018,7 @@ export default function AnalyticsArticle() {
           </div>
           {selectedFunnel1 ? (
           <div style={{
-            maxHeight: 560,
+            maxHeight: 438,
             overflowY: 'auto',
             overflowX: 'auto'
           }}>

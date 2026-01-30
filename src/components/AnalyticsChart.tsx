@@ -26,7 +26,7 @@ const METRIC_OPTIONS = [
   { key: 'drr', name: 'ДРР', category: 'advertising' },
 ]
 
-const LEFT_COLUMN_WIDTH = 200 // Ширина для максимум 7 показателей
+const LEFT_COLUMN_WIDTH = 240 // Ширина: выбор дат (DD.MM.YYYY) + список показателей
 const CHART_HEIGHT = 420
 
 interface AnalyticsChartProps {
@@ -155,46 +155,36 @@ export default function AnalyticsChart({ dailyData, dateRange, onDateRangeChange
       marginBottom: spacing.xl,
       boxShadow: shadows.md
     }}>
-      {/* Выбор даты */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: spacing.lg,
-        gap: spacing.md,
-        flexWrap: 'wrap'
-      }}>
-        <DatePicker.RangePicker
-          locale={locale.DatePicker}
-          value={dateRange}
-          onChange={(dates) => {
-            if (dates && dates[0] && dates[1]) {
-              onDateRangeChange([dates[0], dates[1]])
-            }
-          }}
-          format="DD.MM.YYYY"
-          separator="→"
-          style={{ width: 280 }}
-        />
-      </div>
-
       {/* Основной контент: левый столбец + график */}
       <div style={{
         display: 'flex',
         gap: spacing.lg,
         alignItems: 'flex-start'
       }}>
-        {/* Левый столбец с показателями */}
+        {/* Левый столбец: выбор даты + показатели */}
         <div style={{
           width: `${LEFT_COLUMN_WIDTH}px`,
           flexShrink: 0,
           borderRight: `1px solid ${colors.borderLight}`,
           paddingRight: spacing.lg
         }}>
+          <div style={{ marginBottom: spacing.lg }}>
+            <DatePicker.RangePicker
+              locale={locale.DatePicker}
+              value={dateRange}
+              onChange={(dates) => {
+                if (dates && dates[0] && dates[1]) {
+                  onDateRangeChange([dates[0], dates[1]])
+                }
+              }}
+              format="DD.MM.YYYY"
+              separator="→"
+              style={{ width: '100%', minWidth: 220 }}
+            />
+          </div>
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            marginTop: `-${spacing.md}`,
             maxHeight: CHART_HEIGHT,
             overflowY: 'auto',
             overflowX: 'hidden'
@@ -208,7 +198,7 @@ export default function AnalyticsChart({ dailyData, dateRange, onDateRangeChange
                   onClick={() => setSelectedMetric(metric.key)}
                   style={{
                     ...typography.bodySmall,
-                    fontSize: '11px',
+                    fontSize: '14px',
                     padding: spacing.sm,
                     marginBottom: spacing.xs,
                     borderRadius: borderRadius.sm,
