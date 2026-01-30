@@ -27,7 +27,7 @@ const METRIC_OPTIONS = [
 ]
 
 const LEFT_COLUMN_WIDTH = 240 // Ширина: выбор дат (DD.MM.YYYY) + список показателей
-const CHART_HEIGHT = 420
+const CHART_HEIGHT = 460
 
 interface AnalyticsChartProps {
   dailyData: DailyData[]
@@ -152,6 +152,7 @@ export default function AnalyticsChart({ dailyData, dateRange, onDateRangeChange
       border: `1px solid ${colors.borderLight}`,
       borderRadius: borderRadius.md,
       padding: spacing.lg,
+      paddingBottom: spacing.md,
       marginBottom: spacing.xl,
       boxShadow: shadows.md
     }}>
@@ -159,14 +160,18 @@ export default function AnalyticsChart({ dailyData, dateRange, onDateRangeChange
       <div style={{
         display: 'flex',
         gap: spacing.lg,
-        alignItems: 'flex-start'
+        alignItems: 'stretch',
+        height: CHART_HEIGHT
       }}>
         {/* Левый столбец: выбор даты + показатели */}
         <div style={{
           width: `${LEFT_COLUMN_WIDTH}px`,
           flexShrink: 0,
           borderRight: `1px solid ${colors.borderLight}`,
-          paddingRight: spacing.lg
+          paddingRight: spacing.lg,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0
         }}>
           <div style={{ marginBottom: spacing.lg }}>
             <DatePicker.RangePicker
@@ -185,7 +190,8 @@ export default function AnalyticsChart({ dailyData, dateRange, onDateRangeChange
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            maxHeight: CHART_HEIGHT,
+            flex: 1,
+            minHeight: 0,
             overflowY: 'auto',
             overflowX: 'hidden'
           }}
@@ -243,8 +249,8 @@ export default function AnalyticsChart({ dailyData, dateRange, onDateRangeChange
               Нет данных за выбранный период
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={filteredData} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+            <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
+              <LineChart data={filteredData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
                 <XAxis 
                   dataKey="dateFormatted" 
