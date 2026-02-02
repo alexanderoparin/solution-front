@@ -27,7 +27,7 @@ const METRIC_OPTIONS = [
 ]
 
 const LEFT_COLUMN_WIDTH = 240 // Ширина: выбор дат (DD.MM.YYYY) + список показателей
-const CHART_HEIGHT = 460
+const CHART_HEIGHT = 300 // ~6 показателей в списке слева, остальное под скролл
 
 interface AnalyticsChartProps {
   dailyData: DailyData[]
