@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox } from 'antd'
-import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
+import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -152,6 +152,10 @@ export default function AnalyticsArticle() {
     defaultDateTo.subtract(6, 'day'),
     defaultDateTo
   ])
+
+  // Блок «Список РК»: поиск и период для метрик (null = за весь срок РК)
+  const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
+  const [campaignDateRange, setCampaignDateRange] = useState<[Dayjs, Dayjs] | null>(null)
 
   useEffect(() => {
     if (!nmId) {
@@ -2755,6 +2759,164 @@ export default function AnalyticsArticle() {
                   )
                 })()}
               </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Список РК */}
+      {article && article.campaigns.length > 0 && (() => {
+        const searchLower = campaignSearchQuery.trim().toLowerCase()
+        const filteredCampaigns = searchLower
+          ? article.campaigns.filter(
+              (c) =>
+                c.name.toLowerCase().includes(searchLower) ||
+                String(c.id).includes(campaignSearchQuery.trim())
+            )
+          : article.campaigns
+        const formatCampaignDate = (dateStr: string) =>
+          dateStr ? dayjs(dateStr).format('DD.MM.YYYY') : '-'
+        const formatNum = (v: number | null | undefined) =>
+          v == null ? '-' : v.toLocaleString('ru-RU')
+        const formatPct = (v: number | null | undefined) =>
+          v == null ? '-' : `${Number(v).toFixed(2)}%`
+        const formatCur = (v: number | null | undefined) =>
+          v == null ? '-' : v.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        const isActive = (c: typeof article.campaigns[0]) => c.status === 9
+        const statusLabel = (c: typeof article.campaigns[0]) =>
+          isActive(c) ? 'активна' : 'приостановлена'
+        const statusBg = (c: typeof article.campaigns[0]) =>
+          isActive(c) ? colors.success : colors.error
+        const statusColor = '#fff'
+        return (
+          <div
+            style={{
+              width: '100%',
+              backgroundColor: colors.bgWhite,
+              border: `1px solid ${colors.borderLight}`,
+              borderRadius: borderRadius.md,
+              padding: spacing.lg,
+              marginBottom: spacing.xl,
+              boxShadow: shadows.md,
+              transition: transitions.normal
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = shadows.lg
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = shadows.md
+            }}
+          >
+            <h2
+              style={{
+                ...typography.h2,
+                ...FONT_PAGE,
+                margin: 0,
+                marginBottom: spacing.md,
+                color: colors.textPrimary
+              }}
+            >
+              Список РК
+            </h2>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: spacing.md,
+                alignItems: 'center',
+                marginBottom: spacing.md
+              }}
+            >
+              <DatePicker.RangePicker
+                locale={locale.DatePicker}
+                value={campaignDateRange}
+                onChange={(dates) => {
+                  if (dates && dates[0] && dates[1]) {
+                    setCampaignDateRange([dates[0], dates[1]])
+                  } else {
+                    setCampaignDateRange(null)
+                  }
+                }}
+                format="DD.MM.YYYY"
+                placeholder={['Дата начала', 'Дата окончания']}
+                style={{ minWidth: 220 }}
+              />
+              <Input
+                placeholder="Поиск по ID кампании или названию"
+                prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
+                value={campaignSearchQuery}
+                onChange={(e) => setCampaignSearchQuery(e.target.value)}
+                allowClear
+                style={{
+                  maxWidth: 360,
+                  borderRadius: borderRadius.sm
+                }}
+              />
+            </div>
+            <div style={{ overflowX: 'auto', width: '100%' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+                <thead>
+                  <tr style={{ backgroundColor: colors.bgGray }}>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Дата создания</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Кампания</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>ID</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Тип</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Статус</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Показы</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Клики</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>CTR</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>CPC</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Затраты</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Корзины</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Заказы</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCampaigns.map((c, idx) => (
+                    <tr
+                      key={c.id}
+                      style={{
+                        backgroundColor: idx % 2 === 0 ? colors.bgWhite : colors.bgGrayLight,
+                        transition: transitions.fast
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = colors.bgGray
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = idx % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
+                      }}
+                    >
+                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDate(c.createdAt)}</td>
+                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 500, color: colors.primary }}>{c.name}</td>
+                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, color: colors.textSecondary }}>{c.id}</td>
+                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.type || '-'}</td>
+                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}` }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: borderRadius.sm,
+                            backgroundColor: statusBg(c),
+                            color: statusColor,
+                            fontSize: '11px',
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {statusLabel(c)}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.views)}</td>
+                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.clicks)}</td>
+                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.ctr != null ? formatPct(c.ctr) : '-'}</td>
+                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.cpc != null ? formatCur(c.cpc) : '-'}</td>
+                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.costs != null ? formatCur(c.costs) : '-'}</td>
+                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.cart)}</td>
+                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.orders)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )

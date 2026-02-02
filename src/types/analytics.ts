@@ -123,6 +123,14 @@ export interface Campaign {
   status: number | null
   statusName: string | null
   createdAt: string
+  // Опциональные метрики (суммы за период или за весь срок РК), пока бэкенд может не отдавать
+  views?: number | null
+  clicks?: number | null
+  ctr?: number | null
+  cpc?: number | null
+  costs?: number | null
+  cart?: number | null
+  orders?: number | null
 }
 
 export interface Stock {
