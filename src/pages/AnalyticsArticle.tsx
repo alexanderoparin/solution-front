@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox } from 'antd'
-import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons'
+import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -427,6 +427,19 @@ export default function AnalyticsArticle() {
     
     // Для остальных - сумма
     return values.reduce((acc, val) => acc + val, 0)
+  }
+
+  // Метрики, у которых показываем число изменения (остальные — только стрелка)
+  const METRICS_WITH_CHANGE_NUMBER = ['transitions', 'cart', 'orders', 'views', 'clicks']
+
+  // Изменение значения метрики по отношению к предыдущему дню (для первой даты — null)
+  const getMetricChangeVsPreviousDay = (dateIndex: number, metricKey: string): number | null => {
+    if (dateIndex === 0) return null
+    const prevDate = rangeDates[dateIndex - 1]
+    const current = getMetricValueForDate(metricKey, rangeDates[dateIndex])
+    const prev = getMetricValueForDate(metricKey, prevDate)
+    if (current === null || prev === null) return null
+    return current - prev
   }
 
   // Выгрузка воронок в Excel: все столбцы всех воронок за выбранный диапазон дат
@@ -1092,7 +1105,7 @@ export default function AnalyticsArticle() {
               </tr>
             </thead>
             <tbody>
-              {rangeDates.map((date) => {
+              {rangeDates.map((date, dateIndex) => {
                 const isGeneralFunnel1 = selectedFunnel1 === 'general'
                 const isAdvertisingFunnel1 = selectedFunnel1 === 'advertising'
                 const isGeneralFunnel2 = selectedFunnel2 === 'general'
@@ -1158,8 +1171,11 @@ export default function AnalyticsArticle() {
                     </td>
                     {FUNNELS[selectedFunnel1].metrics.map((metric, index) => {
                       const value = getMetricValueForDate(metric.key, date)
+                      const change = getMetricChangeVsPreviousDay(dateIndex, metric.key)
                       const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                       const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
+                      const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(metric.key)
+                      const changeColor = change !== null && change !== 0 ? (change > 0 ? colors.success : colors.error) : undefined
                       return (
                         <td key={metric.key} style={{
                           textAlign: 'center',
@@ -1170,20 +1186,42 @@ export default function AnalyticsArticle() {
                           fontSize: '11px',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          transition: transitions.fast
+                          transition: transitions.fast,
+                          position: 'relative'
                         }}>
                           {value === null ? '-' : (
                             isPercent ? formatPercent(value) :
                             isCurrency ? formatCurrency(value) :
                             formatValue(value)
                           )}
+                          {change !== null && change !== 0 && changeColor && (
+                            <div style={{
+                              position: 'absolute',
+                              top: 2,
+                              right: 4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              fontSize: '9px',
+                              fontWeight: 600,
+                              color: changeColor
+                            }}>
+                              {showChangeNumber && (
+                                <span>{change > 0 ? '+' : ''}{change}</span>
+                              )}
+                              {change > 0 ? <ArrowUpOutlined style={{ fontSize: '9px' }} /> : <ArrowDownOutlined style={{ fontSize: '9px' }} />}
+                            </div>
+                          )}
                         </td>
                       )
                     })}
                     {selectedFunnel2 && FUNNELS[selectedFunnel2].metrics.map((metric, index) => {
                       const value = getMetricValueForDate(metric.key, date)
+                      const change = getMetricChangeVsPreviousDay(dateIndex, metric.key)
                       const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                       const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
+                      const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(metric.key)
+                      const changeColor = change !== null && change !== 0 ? (change > 0 ? colors.success : colors.error) : undefined
                       return (
                         <td key={metric.key} style={{
                           textAlign: 'center',
@@ -1194,12 +1232,31 @@ export default function AnalyticsArticle() {
                           fontSize: '11px',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          transition: transitions.fast
+                          transition: transitions.fast,
+                          position: 'relative'
                         }}>
                           {value === null ? '-' : (
                             isPercent ? formatPercent(value) :
                             isCurrency ? formatCurrency(value) :
                             formatValue(value)
+                          )}
+                          {change !== null && change !== 0 && changeColor && (
+                            <div style={{
+                              position: 'absolute',
+                              top: 2,
+                              right: 4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              fontSize: '9px',
+                              fontWeight: 600,
+                              color: changeColor
+                            }}>
+                              {showChangeNumber && (
+                                <span>{change > 0 ? '+' : ''}{change}</span>
+                              )}
+                              {change > 0 ? <ArrowUpOutlined style={{ fontSize: '9px' }} /> : <ArrowDownOutlined style={{ fontSize: '9px' }} />}
+                            </div>
                           )}
                         </td>
                       )
