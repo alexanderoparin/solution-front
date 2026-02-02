@@ -58,6 +58,10 @@ const FUNNELS = {
 type FunnelKey = keyof typeof FUNNELS
 const FUNNEL_ORDER: FunnelKey[] = ['general', 'advertising', 'pricing']
 
+// Размеры шрифта как в блоке воронок (12px — подписи/даты, 11px — данные)
+const FONT_PAGE = { fontSize: '12px' as const }
+const FONT_PAGE_SMALL = { fontSize: '11px' as const }
+
 /** Даты в диапазоне [from, to] включительно, от старых к новым */
 function getDatesInRange(from: Dayjs, to: Dayjs): string[] {
   const days: string[] = []
@@ -580,7 +584,7 @@ export default function AnalyticsArticle() {
       }}>
         <div style={{ 
           color: colors.error, 
-          fontSize: typography.h3.fontSize,
+          fontSize: '12px',
           marginBottom: spacing.md
         }}>
           Ошибка: {error}
@@ -594,7 +598,7 @@ export default function AnalyticsArticle() {
             border: 'none',
             borderRadius: borderRadius.md,
             cursor: 'pointer',
-            fontSize: typography.body.fontSize,
+            fontSize: '12px',
             fontWeight: 500,
             transition: transitions.normal
           }}
@@ -620,7 +624,7 @@ export default function AnalyticsArticle() {
         color: colors.textSecondary
       }}>
         <InfoCircleOutlined style={{ fontSize: '48px', marginBottom: spacing.md, color: colors.textMuted }} />
-        <div style={{ fontSize: typography.h3.fontSize }}>Нет данных</div>
+        <div style={{ fontSize: '12px' }}>Нет данных</div>
       </div>
     )
   }
@@ -713,14 +717,16 @@ export default function AnalyticsArticle() {
               {/* Первая колонка */}
               <div>
                 <div style={{ 
-                  ...typography.bodySmall, 
+                  ...typography.body,
+                  ...FONT_PAGE_SMALL, 
                   color: colors.textSecondary,
                   marginBottom: spacing.xs
                 }}>
                   Артикул
                 </div>
                 <div style={{ 
-                  ...typography.body, 
+                  ...typography.body,
+                  ...FONT_PAGE, 
                   fontWeight: 600,
                   color: colors.textPrimary,
                   marginBottom: spacing.md
@@ -730,14 +736,16 @@ export default function AnalyticsArticle() {
                 {article.article.vendorCode && (
                   <>
                     <div style={{ 
-                      ...typography.bodySmall, 
+                      ...typography.body,
+                  ...FONT_PAGE_SMALL, 
                       color: colors.textSecondary,
                       marginBottom: spacing.xs
                     }}>
                       Артикул продавца
                     </div>
                     <div style={{ 
-                      ...typography.body, 
+                      ...typography.body,
+                  ...FONT_PAGE, 
                       fontWeight: 500,
                       color: colors.textPrimary
                     }}>
@@ -755,7 +763,8 @@ export default function AnalyticsArticle() {
                 border: `1px solid ${colors.borderLight}`
               }}>
                 <div style={{ 
-                  ...typography.bodySmall, 
+                  ...typography.body,
+                  ...FONT_PAGE_SMALL, 
                   color: colors.textSecondary,
                   marginBottom: spacing.xs,
                   fontWeight: 500
@@ -763,7 +772,8 @@ export default function AnalyticsArticle() {
                   Категория
                 </div>
                 <div style={{ 
-                  ...typography.body, 
+                  ...typography.body,
+                  ...FONT_PAGE, 
                   fontWeight: 600,
                   color: colors.textPrimary,
                   marginBottom: spacing.md
@@ -771,7 +781,8 @@ export default function AnalyticsArticle() {
                   {article.article.subjectName || '-'}
                 </div>
                 <div style={{ 
-                  ...typography.bodySmall, 
+                  ...typography.body,
+                  ...FONT_PAGE_SMALL, 
                   color: colors.textSecondary,
                   marginBottom: spacing.xs,
                   fontWeight: 500
@@ -779,7 +790,8 @@ export default function AnalyticsArticle() {
                   Бренд
                 </div>
                 <div style={{ 
-                  ...typography.body, 
+                  ...typography.body,
+                  ...FONT_PAGE, 
                   fontWeight: 600,
                   color: colors.textPrimary
                 }}>
@@ -791,14 +803,16 @@ export default function AnalyticsArticle() {
               {article.article.imtId && (
                 <div>
                   <div style={{ 
-                    ...typography.bodySmall, 
+                    ...typography.body,
+                  ...FONT_PAGE_SMALL, 
                     color: colors.textSecondary,
                     marginBottom: spacing.xs
                   }}>
                     IMT ID
                   </div>
                   <div style={{ 
-                    ...typography.body, 
+                    ...typography.body,
+                  ...FONT_PAGE, 
                     fontWeight: 500,
                     color: colors.textPrimary
                   }}>
@@ -819,7 +833,8 @@ export default function AnalyticsArticle() {
                   justifyContent: 'center'
                 }}>
                   <div style={{ 
-                    ...typography.bodySmall, 
+                    ...typography.body,
+                  ...FONT_PAGE_SMALL, 
                     color: colors.textSecondary,
                     marginBottom: spacing.xs,
                     fontWeight: 500
@@ -827,7 +842,9 @@ export default function AnalyticsArticle() {
                     Рейтинг
                   </div>
                   <div style={{ 
-                    ...typography.h3, 
+                    ...typography.h3,
+                  ...FONT_PAGE,
+                  ...FONT_PAGE, 
                     color: colors.success,
                     fontWeight: 700
                   }}>
@@ -848,7 +865,8 @@ export default function AnalyticsArticle() {
                   justifyContent: 'center'
                 }}>
                   <div style={{ 
-                    ...typography.bodySmall, 
+                    ...typography.body,
+                  ...FONT_PAGE_SMALL, 
                     color: colors.textSecondary,
                     marginBottom: spacing.xs,
                     fontWeight: 500
@@ -856,7 +874,9 @@ export default function AnalyticsArticle() {
                     Отзывов
                   </div>
                   <div style={{ 
-                    ...typography.h3, 
+                    ...typography.h3,
+                  ...FONT_PAGE,
+                  ...FONT_PAGE, 
                     color: colors.primary,
                     fontWeight: 700
                   }}>
@@ -877,6 +897,8 @@ export default function AnalyticsArticle() {
               }}>
                 <div style={{
                   ...typography.h3,
+                  ...FONT_PAGE,
+                  ...FONT_PAGE,
                   marginBottom: spacing.md,
                   color: colors.textPrimary,
                   fontWeight: 600
@@ -915,6 +937,7 @@ export default function AnalyticsArticle() {
                     >
                       <div style={{
                         ...typography.body,
+                  ...FONT_PAGE,
                         fontWeight: 500,
                         color: colors.textPrimary,
                         marginBottom: spacing.xs,
@@ -923,7 +946,8 @@ export default function AnalyticsArticle() {
                         {campaign.name}
                       </div>
                       <div style={{
-                        ...typography.bodySmall,
+                        ...typography.body,
+                  ...FONT_PAGE_SMALL,
                         color: colors.textSecondary,
                         display: 'flex',
                         flexWrap: 'wrap',
@@ -1333,7 +1357,8 @@ export default function AnalyticsArticle() {
           </table>
           </div>
           ) : (
-            <div style={{ ...typography.body, color: colors.textSecondary, textAlign: 'center', padding: spacing.xl }}>
+            <div style={{ ...typography.body,
+                  ...FONT_PAGE, color: colors.textSecondary, textAlign: 'center', padding: spacing.xl }}>
               Выберите до 2 воронок (Общая, Реклама, Цены)
             </div>
           )}
@@ -1387,7 +1412,8 @@ export default function AnalyticsArticle() {
                 flexWrap: 'wrap'
               }}>
                 <h2 style={{ 
-                  ...typography.h2, 
+                  ...typography.h2,
+                  ...FONT_PAGE, 
                   margin: 0,
                   flex: '0 0 auto'
                 }}>
@@ -1447,6 +1473,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `2px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     fontWeight: 600,
                     width: '35%'
                   }}>
@@ -1459,6 +1486,7 @@ export default function AnalyticsArticle() {
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     fontWeight: 600,
                     backgroundColor: colors.bgGrayLight,
                     width: '22%'
@@ -1471,6 +1499,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `2px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     fontWeight: 600,
                     backgroundColor: colors.bgGrayLight,
                     width: '22%'
@@ -1483,6 +1512,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `2px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     fontWeight: 600,
                     backgroundColor: colors.bgGrayLight,
                     width: '21%'
@@ -1517,7 +1547,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     Переходы в карточку
                   </td>
@@ -1527,7 +1558,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatValue(period1Data.transitions)}
                   </td>
@@ -1537,7 +1569,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatValue(period2Data.transitions)}
                   </td>
@@ -1547,6 +1580,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.transitions, period2Data.transitions)
                       if (diff === null) return colors.textPrimary
@@ -1576,7 +1610,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     Положили в корзину
                   </td>
@@ -1586,7 +1621,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatValue(period1Data.cart)}
                   </td>
@@ -1596,7 +1632,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatValue(period2Data.cart)}
                   </td>
@@ -1606,6 +1643,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.cart, period2Data.cart)
                       if (diff === null) return colors.textPrimary
@@ -1635,7 +1673,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     Заказали товаров
                   </td>
@@ -1645,7 +1684,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatValue(period1Data.orders)}
                   </td>
@@ -1655,7 +1695,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatValue(period2Data.orders)}
                   </td>
@@ -1665,6 +1706,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.orders, period2Data.orders)
                       if (diff === null) return colors.textPrimary
@@ -1694,7 +1736,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     Заказали на сумму
                   </td>
@@ -1704,7 +1747,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatCurrency(period1Data.ordersAmount)}
                   </td>
@@ -1714,7 +1758,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatCurrency(period2Data.ordersAmount)}
                   </td>
@@ -1724,6 +1769,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.ordersAmount, period2Data.ordersAmount, 2)
                       if (diff === null) return colors.textPrimary
@@ -1753,7 +1799,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     Конверсия в корзину
                   </td>
@@ -1763,7 +1810,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period1Data.cartConversion !== null ? formatPercent(period1Data.cartConversion) : '-'}
                   </td>
@@ -1773,7 +1821,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period2Data.cartConversion !== null ? formatPercent(period2Data.cartConversion) : '-'}
                   </td>
@@ -1783,6 +1832,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.cartConversion, period2Data.cartConversion)
                       if (diff === null) return colors.textPrimary
@@ -1812,7 +1862,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     Конверсия в заказ
                   </td>
@@ -1822,7 +1873,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period1Data.orderConversion !== null ? formatPercent(period1Data.orderConversion) : '-'}
                   </td>
@@ -1832,7 +1884,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period2Data.orderConversion !== null ? formatPercent(period2Data.orderConversion) : '-'}
                   </td>
@@ -1842,6 +1895,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.orderConversion, period2Data.orderConversion)
                       if (diff === null) return colors.textPrimary
@@ -1869,6 +1923,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `2px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     fontWeight: 600,
                     width: '35%'
                   }}>
@@ -1881,6 +1936,7 @@ export default function AnalyticsArticle() {
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     fontWeight: 600,
                     backgroundColor: colors.advertisingBg,
                     width: '22%'
@@ -1894,6 +1950,7 @@ export default function AnalyticsArticle() {
                     borderLeft: `1px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     fontWeight: 600,
                     backgroundColor: colors.advertisingBg,
                     width: '22%'
@@ -1906,6 +1963,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `2px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     fontWeight: 600,
                     backgroundColor: colors.advertisingBg,
                     width: '21%'
@@ -1940,7 +1998,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     Просмотры
                   </td>
@@ -1950,7 +2009,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatValue(period1Data.views)}
                   </td>
@@ -1960,7 +2020,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatValue(period2Data.views)}
                   </td>
@@ -1970,6 +2031,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.views, period2Data.views)
                       if (diff === null) return colors.textPrimary
@@ -2007,7 +2069,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     Клики
                   </td>
@@ -2017,7 +2080,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatValue(period1Data.clicks)}
                   </td>
@@ -2027,7 +2091,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {formatValue(period2Data.clicks)}
                   </td>
@@ -2037,6 +2102,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.clicks, period2Data.clicks)
                       if (diff === null) return colors.textPrimary
@@ -2074,7 +2140,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     Затраты
                   </td>
@@ -2084,7 +2151,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period1Data.costs !== null ? formatCurrency(period1Data.costs) : '-'}
                   </td>
@@ -2093,7 +2161,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period2Data.costs !== null ? formatCurrency(period2Data.costs) : '-'}
                   </td>
@@ -2103,6 +2172,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.costs, period2Data.costs, 2)
                       if (diff === null) return colors.textPrimary
@@ -2140,7 +2210,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     СРС
                   </td>
@@ -2150,7 +2221,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period1Data.cpc !== null ? formatCurrency(period1Data.cpc) : '-'}
                   </td>
@@ -2159,7 +2231,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period2Data.cpc !== null ? formatCurrency(period2Data.cpc) : '-'}
                   </td>
@@ -2169,6 +2242,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.cpc, period2Data.cpc)
                       if (diff === null) return colors.textPrimary
@@ -2206,7 +2280,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     CTR
                   </td>
@@ -2216,7 +2291,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period1Data.ctr !== null ? formatPercent(period1Data.ctr) : '-'}
                   </td>
@@ -2225,7 +2301,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period2Data.ctr !== null ? formatPercent(period2Data.ctr) : '-'}
                   </td>
@@ -2234,7 +2311,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     -
                   </td>
@@ -2264,7 +2342,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     СРО
                   </td>
@@ -2274,7 +2353,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period1Data.cpo !== null ? formatCurrency(period1Data.cpo) : '-'}
                   </td>
@@ -2283,7 +2363,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period2Data.cpo !== null ? formatCurrency(period2Data.cpo) : '-'}
                   </td>
@@ -2293,6 +2374,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.cpo, period2Data.cpo, 2)
                       if (diff === null) return colors.textPrimary
@@ -2330,7 +2412,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     ДРР
                   </td>
@@ -2340,7 +2423,8 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period1Data.drr !== null ? formatPercent(period1Data.drr) : '-'}
                   </td>
@@ -2349,7 +2433,8 @@ export default function AnalyticsArticle() {
                     padding: spacing.md,
                     borderBottom: `1px solid ${colors.border}`,
                     borderRight: `2px solid ${colors.border}`,
-                    ...typography.body
+                    ...typography.body,
+                  ...FONT_PAGE
                   }}>
                     {period2Data.drr !== null ? formatPercent(period2Data.drr) : '-'}
                   </td>
@@ -2359,6 +2444,7 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
+                  ...FONT_PAGE,
                     color: (() => {
                       const diff = calculateDifference(period1Data.drr, period2Data.drr)
                       if (diff === null) return colors.textPrimary
@@ -2408,7 +2494,8 @@ export default function AnalyticsArticle() {
                     whiteSpace: 'nowrap'
                   }}>
                     <h2 style={{ 
-                      ...typography.h2, 
+                      ...typography.h2,
+                  ...FONT_PAGE, 
                       margin: 0,
                       color: colors.textPrimary,
                       whiteSpace: 'nowrap',
@@ -2431,6 +2518,8 @@ export default function AnalyticsArticle() {
                       >
                         <div style={{
                           ...typography.h3,
+                  ...FONT_PAGE,
+                  ...FONT_PAGE,
                           color: colors.bgWhite,
                           backgroundColor: colors.primary,
                           padding: `${spacing.xs} ${spacing.sm}`,
@@ -2450,6 +2539,7 @@ export default function AnalyticsArticle() {
                       textAlign: 'center',
                       padding: spacing.xl,
                       ...typography.body,
+                  ...FONT_PAGE,
                       color: colors.textSecondary
                     }}>
                       нет данных
@@ -2469,6 +2559,7 @@ export default function AnalyticsArticle() {
                       padding: spacing.md,
                       borderBottom: `2px solid ${colors.primary}`,
                       ...typography.body,
+                  ...FONT_PAGE,
                       fontWeight: 600,
                       color: colors.primary
                     }}>
@@ -2479,6 +2570,7 @@ export default function AnalyticsArticle() {
                       padding: spacing.md,
                       borderBottom: `2px solid ${colors.primary}`,
                       ...typography.body,
+                  ...FONT_PAGE,
                       fontWeight: 600,
                       backgroundColor: colors.primaryLight,
                       color: colors.primary
@@ -2545,6 +2637,7 @@ export default function AnalyticsArticle() {
                           padding: spacing.md,
                           borderBottom: `1px solid ${colors.border}`,
                           ...typography.body,
+                  ...FONT_PAGE,
                           fontWeight: 500,
                           display: 'flex',
                           alignItems: 'center',
@@ -2562,6 +2655,7 @@ export default function AnalyticsArticle() {
                           padding: spacing.md,
                           borderBottom: `1px solid ${colors.border}`,
                           ...typography.body,
+                  ...FONT_PAGE,
                           fontWeight: 600,
                           color: isLowStock ? colors.error : colors.textPrimary
                         }}>
@@ -2588,7 +2682,8 @@ export default function AnalyticsArticle() {
                                         textAlign: 'left',
                                         padding: `${spacing.xs} ${spacing.sm}`,
                                         borderBottom: `1px solid ${colors.border}`,
-                                        ...typography.bodySmall,
+                                        ...typography.body,
+                  ...FONT_PAGE_SMALL,
                                         fontWeight: 600,
                                         color: colors.textSecondary
                                       }}>
@@ -2598,7 +2693,8 @@ export default function AnalyticsArticle() {
                                         textAlign: 'center',
                                         padding: `${spacing.xs} ${spacing.sm}`,
                                         borderBottom: `1px solid ${colors.border}`,
-                                        ...typography.bodySmall,
+                                        ...typography.body,
+                  ...FONT_PAGE_SMALL,
                                         fontWeight: 600,
                                         color: colors.textSecondary
                                       }}>
@@ -2614,7 +2710,8 @@ export default function AnalyticsArticle() {
                                         <td style={{
                                           padding: `${spacing.xs} ${spacing.sm}`,
                                           borderBottom: `1px solid ${colors.border}`,
-                                          ...typography.bodySmall
+                                          ...typography.body,
+                  ...FONT_PAGE_SMALL
                                         }}>
                                           {size.wbSize || size.techSize || 'Неизвестно'}
                                         </td>
@@ -2622,7 +2719,8 @@ export default function AnalyticsArticle() {
                                           textAlign: 'center',
                                           padding: `${spacing.xs} ${spacing.sm}`,
                                           borderBottom: `1px solid ${colors.border}`,
-                                          ...typography.bodySmall,
+                                          ...typography.body,
+                  ...FONT_PAGE_SMALL,
                                           fontWeight: 500
                                         }}>
                                           {size.amount.toLocaleString('ru-RU')}
@@ -2636,7 +2734,8 @@ export default function AnalyticsArticle() {
                               <div style={{
                                 textAlign: 'center',
                                 padding: spacing.md,
-                                ...typography.bodySmall,
+                                ...typography.body,
+                  ...FONT_PAGE_SMALL,
                                 color: colors.textSecondary
                               }}>
                                 Нет данных по размерам
@@ -2677,7 +2776,8 @@ export default function AnalyticsArticle() {
             marginBottom: spacing.md
           }}>
             <h2 style={{ 
-              ...typography.h2, 
+              ...typography.h2,
+                  ...FONT_PAGE, 
               margin: 0,
               color: colors.textPrimary
             }}>
@@ -2700,7 +2800,7 @@ export default function AnalyticsArticle() {
             <div style={{
               textAlign: 'center',
               padding: spacing.xl,
-              fontSize: typography.body.fontSize,
+              fontSize: '12px',
               fontWeight: typography.body.fontWeight,
               lineHeight: typography.body.lineHeight,
               color: colors.textSecondary
@@ -2727,7 +2827,8 @@ export default function AnalyticsArticle() {
                   }}>
                     <div style={{ flex: 1 }}>
                       <div style={{
-                        ...typography.bodySmall,
+                        ...typography.body,
+                  ...FONT_PAGE_SMALL,
                         color: colors.textSecondary,
                         marginBottom: spacing.xs
                       }}>
@@ -2736,6 +2837,7 @@ export default function AnalyticsArticle() {
                       </div>
                       <div style={{
                         ...typography.body,
+                  ...FONT_PAGE,
                         color: colors.textPrimary,
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-word'
@@ -2783,10 +2885,12 @@ export default function AnalyticsArticle() {
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
                               <PaperClipOutlined style={{ color: colors.textSecondary }} />
-                              <span style={{ ...typography.bodySmall, color: colors.textPrimary }}>
+                              <span style={{ ...typography.body,
+                  ...FONT_PAGE_SMALL, color: colors.textPrimary }}>
                                 {file.fileName}
                               </span>
-                              <span style={{ ...typography.bodySmall, color: colors.textSecondary }}>
+                              <span style={{ ...typography.body,
+                  ...FONT_PAGE_SMALL, color: colors.textSecondary }}>
                                 ({(file.fileSize / 1024).toFixed(2)} КБ)
                               </span>
                             </div>
@@ -2853,7 +2957,8 @@ export default function AnalyticsArticle() {
             placeholder="Введите текст заметки..."
           />
           <div>
-            <div style={{ marginBottom: spacing.xs, ...typography.bodySmall, color: colors.textSecondary }}>
+            <div style={{ marginBottom: spacing.xs, ...typography.body,
+                  ...FONT_PAGE_SMALL, color: colors.textSecondary }}>
               Прикрепить файлы:
             </div>
             <Upload
