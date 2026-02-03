@@ -1225,14 +1225,15 @@ export default function AnalyticsArticle() {
                           {change !== null && change !== 0 && changeColor && (
                             <div style={{
                               position: 'absolute',
-                              top: 2,
-                              right: 4,
+                              top: 1,
+                              right: 2,
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 1,
+                              gap: 0,
                               fontSize: '9px',
                               fontWeight: 600,
-                              color: changeColor
+                              color: changeColor,
+                              lineHeight: 1
                             }}>
                               {showChangeNumber && (
                                 <span>{change > 0 ? '+' : ''}{change}</span>
@@ -1271,14 +1272,15 @@ export default function AnalyticsArticle() {
                           {change !== null && change !== 0 && changeColor && (
                             <div style={{
                               position: 'absolute',
-                              top: 2,
-                              right: 4,
+                              top: 1,
+                              right: 2,
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 1,
+                              gap: 0,
                               fontSize: '9px',
                               fontWeight: 600,
-                              color: changeColor
+                              color: changeColor,
+                              lineHeight: 1
                             }}>
                               {showChangeNumber && (
                                 <span>{change > 0 ? '+' : ''}{change}</span>
