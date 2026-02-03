@@ -1413,7 +1413,7 @@ export default function AnalyticsArticle() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: spacing.xl,
+                marginBottom: spacing.sm,
                 gap: spacing.lg,
                 flexWrap: 'wrap'
               }}>
@@ -1421,7 +1421,10 @@ export default function AnalyticsArticle() {
                   ...typography.h2,
                   ...FONT_PAGE, 
                   margin: 0,
-                  flex: '0 0 auto'
+                  flex: '0 0 auto',
+                  fontSize: '16px',
+                  lineHeight: '1.4',
+                  color: colors.textPrimary
                 }}>
                   Сравнение периодов
                 </h2>
