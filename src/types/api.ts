@@ -64,3 +64,27 @@ export interface UpdateUserRequest {
   isActive?: boolean
 }
 
+export interface CabinetApiKeyInfo {
+  apiKey: string | null
+  isValid: boolean | null
+  lastValidatedAt: string | null
+  validationError: string | null
+  lastDataUpdateAt: string | null
+}
+
+export interface CabinetDto {
+  id: number
+  name: string
+  createdAt: string
+  updatedAt: string
+  apiKey: CabinetApiKeyInfo | null
+}
+
+export interface CreateCabinetRequest {
+  name: string
+}
+
+export interface UpdateCabinetRequest {
+  name?: string
+  apiKey?: string
+}

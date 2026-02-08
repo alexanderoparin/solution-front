@@ -7,6 +7,7 @@ import locale from 'antd/locale/ru_RU'
 import { useQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { userApi } from '../api/user'
+import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, getStoredCabinetIdForSeller, setStoredCabinetIdForSeller } from '../api/cabinets'
 import { generateDefaultPeriods, validatePeriods } from '../utils/periodGenerator'
 import { analyticsRequestQueue } from '../utils/requestQueue'
 import type { SummaryResponse, MetricGroupResponse, Period, ArticleSummary } from '../types/analytics'
@@ -171,7 +172,57 @@ export default function AnalyticsSummary() {
     }
     return undefined
   })
-  
+
+  // Кабинеты: для SELLER/WORKER — свои, для MANAGER/ADMIN — кабинеты выбранного селлера
+  const { data: myCabinets = [], isLoading: myCabinetsLoading } = useQuery({
+    queryKey: ['cabinets'],
+    queryFn: () => cabinetsApi.list(),
+    enabled: !isManagerOrAdmin,
+  })
+
+  const { data: sellerCabinets = [], isLoading: sellerCabinetsLoading } = useQuery({
+    queryKey: ['sellerCabinets', selectedSellerId],
+    queryFn: () => userApi.getSellerCabinets(selectedSellerId!),
+    enabled: isManagerOrAdmin && selectedSellerId != null,
+  })
+
+  const cabinets = isManagerOrAdmin ? sellerCabinets : myCabinets
+  const cabinetsLoading = isManagerOrAdmin ? sellerCabinetsLoading : myCabinetsLoading
+
+  // Выбранный кабинет
+  const [selectedCabinetId, setSelectedCabinetIdState] = useState<number | null>(() => {
+    if (isManagerOrAdmin && selectedSellerId != null) {
+      return getStoredCabinetIdForSeller(selectedSellerId)
+    }
+    return getStoredCabinetId()
+  })
+
+  const setSelectedCabinetId = useCallback((id: number | null) => {
+    setSelectedCabinetIdState(id)
+    if (isManagerOrAdmin && selectedSellerId != null) {
+      setStoredCabinetIdForSeller(selectedSellerId, id)
+    } else {
+      setStoredCabinetId(id)
+    }
+  }, [isManagerOrAdmin, selectedSellerId])
+
+  // Синхронизируем selectedCabinetId с хранилищем при смене селлера (manager)
+  useEffect(() => {
+    if (isManagerOrAdmin && selectedSellerId != null) {
+      const stored = getStoredCabinetIdForSeller(selectedSellerId)
+      setSelectedCabinetIdState(stored)
+    } else if (!isManagerOrAdmin) {
+      setSelectedCabinetIdState(getStoredCabinetId())
+    }
+  }, [selectedSellerId, isManagerOrAdmin])
+
+  // По умолчанию — первый кабинет в списке (последний созданный)
+  useEffect(() => {
+    if (cabinets.length > 0 && selectedCabinetId === null) {
+      setSelectedCabinetId(cabinets[0].id)
+    }
+  }, [cabinets, selectedCabinetId])
+
   // Устанавливаем первого селлера по умолчанию
   useEffect(() => {
     if (isManagerOrAdmin && activeSellers.length > 0 && !selectedSellerId) {
@@ -180,7 +231,7 @@ export default function AnalyticsSummary() {
       localStorage.setItem('analytics_selected_seller_id', lastSeller.id.toString())
     }
   }, [activeSellers, isManagerOrAdmin, selectedSellerId])
-  
+
   // Сохраняем выбранного селлера в localStorage
   useEffect(() => {
     if (isManagerOrAdmin && selectedSellerId) {
@@ -301,13 +352,13 @@ export default function AnalyticsSummary() {
 
   // Загружаем исходный список артикулов без фильтрации
   const loadOriginalArticles = useCallback(async () => {
-    // Для менеджера/админа нужен выбранный селлер
     if (isManagerOrAdmin && selectedSellerId === undefined) return
     try {
       const data = await analyticsApi.getSummary({
         periods,
         excludedNmIds: undefined,
         sellerId: selectedSellerId,
+        cabinetId: selectedCabinetId ?? undefined,
       })
       if (data && data.articles) {
         setOriginalArticles(data.articles)
@@ -318,7 +369,7 @@ export default function AnalyticsSummary() {
       console.error('Ошибка при загрузке исходного списка артикулов:', err)
       setOriginalArticles([])
     }
-  }, [periods, selectedSellerId, isManagerOrAdmin])
+  }, [periods, selectedSellerId, selectedCabinetId, isManagerOrAdmin])
 
   const loadSummary = useCallback(async () => {
     // Для менеджера/админа нужен выбранный селлер
@@ -341,6 +392,7 @@ export default function AnalyticsSummary() {
         periods,
         excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
         sellerId: selectedSellerId,
+        cabinetId: selectedCabinetId ?? undefined,
       })
       setSummary(data)
       // Очищаем загруженные метрики при изменении фильтра или периодов
@@ -352,7 +404,7 @@ export default function AnalyticsSummary() {
     } finally {
       setLoading(false)
     }
-  }, [excludedNmIds, periods, selectedSellerId, originalArticles.length, loadOriginalArticles, isManagerOrAdmin])
+  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, originalArticles.length, loadOriginalArticles, isManagerOrAdmin])
 
   useEffect(() => {
     loadSummary()
@@ -415,6 +467,7 @@ export default function AnalyticsSummary() {
           periods,
           excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
           sellerId: selectedSellerId,
+          cabinetId: selectedCabinetId ?? undefined,
         })
       )
       setMetricGroups(prev => new Map(prev).set(metricName, data))
@@ -572,6 +625,16 @@ export default function AnalyticsSummary() {
                 selectedSellerId,
                 activeSellers,
                 onSellerChange: setSelectedSellerId,
+              }
+            : undefined
+        }
+        cabinetSelectProps={
+          (isManagerOrAdmin && selectedSellerId != null) || !isManagerOrAdmin
+            ? {
+                cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
+                selectedCabinetId,
+                onCabinetChange: setSelectedCabinetId,
+                loading: cabinetsLoading,
               }
             : undefined
         }

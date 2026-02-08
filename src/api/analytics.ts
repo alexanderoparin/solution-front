@@ -15,6 +15,7 @@ export interface SummaryRequest {
   periods: Period[]
   excludedNmIds?: number[]
   sellerId?: number
+  cabinetId?: number
 }
 
 export const analyticsApi = {
@@ -44,10 +45,10 @@ export const analyticsApi = {
   /**
    * Получает детальную информацию по артикулу.
    */
-  getArticle: async (nmId: number, periods: Period[], sellerId?: number): Promise<ArticleResponse> => {
+  getArticle: async (nmId: number, periods: Period[], sellerId?: number, cabinetId?: number): Promise<ArticleResponse> => {
     const response = await apiClient.post<ArticleResponse>(
       `/analytics/article/${nmId}`,
-      { periods, sellerId }
+      { periods, sellerId, cabinetId }
     )
     return response.data
   },
@@ -55,9 +56,13 @@ export const analyticsApi = {
   /**
    * Получает детализацию остатков по размерам для товара на конкретном складе.
    */
-  getStockSizes: async (nmId: number, warehouseName: string, sellerId?: number): Promise<StockSize[]> => {
+  getStockSizes: async (nmId: number, warehouseName: string, sellerId?: number, cabinetId?: number): Promise<StockSize[]> => {
     const encodedWarehouseName = encodeURIComponent(warehouseName)
-    const params = sellerId ? `?sellerId=${sellerId}` : ''
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
     const response = await apiClient.get<StockSize[]>(
       `/analytics/article/${nmId}/stocks/${encodedWarehouseName}/sizes${params}`
     )
@@ -67,8 +72,12 @@ export const analyticsApi = {
   /**
    * Получает все заметки для артикула.
    */
-  getNotes: async (nmId: number, sellerId?: number): Promise<ArticleNote[]> => {
-    const params = sellerId ? `?sellerId=${sellerId}` : ''
+  getNotes: async (nmId: number, sellerId?: number, cabinetId?: number): Promise<ArticleNote[]> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
     const response = await apiClient.get<ArticleNote[]>(
       `/analytics/article/${nmId}/notes${params}`
     )
@@ -78,8 +87,12 @@ export const analyticsApi = {
   /**
    * Создает новую заметку для артикула.
    */
-  createNote: async (nmId: number, request: CreateNoteRequest, sellerId?: number): Promise<ArticleNote> => {
-    const params = sellerId ? `?sellerId=${sellerId}` : ''
+  createNote: async (nmId: number, request: CreateNoteRequest, sellerId?: number, cabinetId?: number): Promise<ArticleNote> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
     const response = await apiClient.post<ArticleNote>(
       `/analytics/article/${nmId}/notes${params}`,
       request
@@ -90,8 +103,12 @@ export const analyticsApi = {
   /**
    * Обновляет заметку.
    */
-  updateNote: async (nmId: number, noteId: number, request: UpdateNoteRequest, sellerId?: number): Promise<ArticleNote> => {
-    const params = sellerId ? `?sellerId=${sellerId}` : ''
+  updateNote: async (nmId: number, noteId: number, request: UpdateNoteRequest, sellerId?: number, cabinetId?: number): Promise<ArticleNote> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
     const response = await apiClient.put<ArticleNote>(
       `/analytics/article/${nmId}/notes/${noteId}${params}`,
       request
@@ -102,18 +119,26 @@ export const analyticsApi = {
   /**
    * Удаляет заметку.
    */
-  deleteNote: async (nmId: number, noteId: number, sellerId?: number): Promise<void> => {
-    const params = sellerId ? `?sellerId=${sellerId}` : ''
+  deleteNote: async (nmId: number, noteId: number, sellerId?: number, cabinetId?: number): Promise<void> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
     await apiClient.delete(`/analytics/article/${nmId}/notes/${noteId}${params}`)
   },
 
   /**
    * Загружает файл для заметки.
    */
-  uploadFile: async (nmId: number, noteId: number, file: File, sellerId?: number): Promise<ArticleNoteFile> => {
+  uploadFile: async (nmId: number, noteId: number, file: File, sellerId?: number, cabinetId?: number): Promise<ArticleNoteFile> => {
     const formData = new FormData()
     formData.append('file', file)
-    const params = sellerId ? `?sellerId=${sellerId}` : ''
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
     const response = await apiClient.post<ArticleNoteFile>(
       `/analytics/article/${nmId}/notes/${noteId}/files${params}`,
       formData,
@@ -129,8 +154,12 @@ export const analyticsApi = {
   /**
    * Получает файл как blob (для просмотра изображений).
    */
-  getFileBlob: async (nmId: number, noteId: number, fileId: number, sellerId?: number): Promise<Blob> => {
-    const params = sellerId ? `?sellerId=${sellerId}` : ''
+  getFileBlob: async (nmId: number, noteId: number, fileId: number, sellerId?: number, cabinetId?: number): Promise<Blob> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
     const response = await apiClient.get(
       `/analytics/article/${nmId}/notes/${noteId}/files/${fileId}${params}`,
       {
@@ -143,8 +172,8 @@ export const analyticsApi = {
   /**
    * Скачивает файл заметки.
    */
-  downloadFile: async (nmId: number, noteId: number, fileId: number, fileName: string, sellerId?: number): Promise<void> => {
-    const blob = await analyticsApi.getFileBlob(nmId, noteId, fileId, sellerId)
+  downloadFile: async (nmId: number, noteId: number, fileId: number, fileName: string, sellerId?: number, cabinetId?: number): Promise<void> => {
+    const blob = await analyticsApi.getFileBlob(nmId, noteId, fileId, sellerId, cabinetId)
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -158,8 +187,12 @@ export const analyticsApi = {
   /**
    * Удаляет файл заметки.
    */
-  deleteFile: async (nmId: number, noteId: number, fileId: number, sellerId?: number): Promise<void> => {
-    const params = sellerId ? `?sellerId=${sellerId}` : ''
+  deleteFile: async (nmId: number, noteId: number, fileId: number, sellerId?: number, cabinetId?: number): Promise<void> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
     await apiClient.delete(`/analytics/article/${nmId}/notes/${noteId}/files/${fileId}${params}`)
   },
 }

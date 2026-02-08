@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip } from 'antd'
-import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, LogoutOutlined, SyncOutlined } from '@ant-design/icons'
+import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
-import type { UserProfileResponse, UpdateApiKeyRequest, ChangePasswordRequest } from '../types/api'
+import { cabinetsApi } from '../api/cabinets'
+import type { UserProfileResponse, ChangePasswordRequest, CabinetDto } from '../types/api'
 import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
 import Header from '../components/Header'
@@ -16,11 +17,14 @@ export default function Profile() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const clearAuth = useAuthStore((state) => state.clearAuth)
-  const [apiKeyForm] = Form.useForm()
   const [passwordForm] = Form.useForm()
-  const [isApiKeyExpanded, setIsApiKeyExpanded] = useState(false)
-  const [showApiKeyForm, setShowApiKeyForm] = useState(false)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [editingCabinetId, setEditingCabinetId] = useState<number | null>(null)
+  const [editingCabinetName, setEditingCabinetName] = useState('')
+  const [newCabinetName, setNewCabinetName] = useState('')
+  const [expandedKeyCabinetId, setExpandedKeyCabinetId] = useState<number | null>(null)
+  const [showApiKeyFormForCabinetId, setShowApiKeyFormForCabinetId] = useState<number | null>(null)
+  const [cabinetNewKeyValue, setCabinetNewKeyValue] = useState('')
   
   const handleLogout = () => {
     clearAuth()
@@ -32,17 +36,10 @@ export default function Profile() {
     queryFn: () => userApi.getProfile(),
   })
 
-  const updateApiKeyMutation = useMutation({
-    mutationFn: (data: UpdateApiKeyRequest) => userApi.updateApiKey(data),
-    onSuccess: (data) => {
-      message.success(data.message)
-      apiKeyForm.resetFields()
-      setShowApiKeyForm(false)
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] })
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Ошибка обновления API ключа')
-    },
+  const { data: cabinets = [], isLoading: cabinetsLoading } = useQuery<CabinetDto[]>({
+    queryKey: ['cabinets'],
+    queryFn: () => cabinetsApi.list(),
+    enabled: profile?.role === 'SELLER',
   })
 
   const changePasswordMutation = useMutation({
@@ -57,14 +54,45 @@ export default function Profile() {
     },
   })
 
-  const validateApiKeyMutation = useMutation({
-    mutationFn: () => userApi.validateApiKey(),
+  const createCabinetMutation = useMutation({
+    mutationFn: (name: string) => cabinetsApi.create({ name }),
+    onSuccess: () => {
+      setNewCabinetName('')
+      queryClient.invalidateQueries({ queryKey: ['cabinets'] })
+      message.success('Кабинет создан')
+    },
+    onError: (err: any) => {
+      message.error(err.response?.data?.message || 'Ошибка создания кабинета')
+    },
+  })
+
+  const updateCabinetMutation = useMutation({
+    mutationFn: ({ id, name, apiKey }: { id: number; name?: string; apiKey?: string }) =>
+      cabinetsApi.update(id, { ...(name !== undefined && { name }), ...(apiKey !== undefined && { apiKey }) }),
+    onSuccess: (_, variables) => {
+      setEditingCabinetId(null)
+      if (variables.apiKey !== undefined) {
+        setShowApiKeyFormForCabinetId(null)
+        setCabinetNewKeyValue('')
+      }
+      queryClient.invalidateQueries({ queryKey: ['cabinets'] })
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+      message.success('Кабинет обновлён')
+    },
+    onError: (err: any) => {
+      message.error(err.response?.data?.message || 'Ошибка обновления кабинета')
+    },
+  })
+
+  const validateCabinetKeyMutation = useMutation({
+    mutationFn: (cabinetId: number) => cabinetsApi.validateApiKey(cabinetId),
     onSuccess: (data) => {
       message.success(data.message)
+      queryClient.invalidateQueries({ queryKey: ['cabinets'] })
       queryClient.invalidateQueries({ queryKey: ['userProfile'] })
     },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Ошибка проверки API ключа')
+    onError: (err: any) => {
+      message.error(err.response?.data?.message || 'Ошибка проверки ключа')
     },
   })
 
@@ -87,10 +115,6 @@ export default function Profile() {
       }
     },
   })
-
-  const handleApiKeySubmit = (values: { wbApiKey: string }) => {
-    updateApiKeyMutation.mutate({ wbApiKey: values.wbApiKey })
-  }
 
   const handlePasswordSubmit = (values: {
     currentPassword: string
@@ -288,199 +312,273 @@ export default function Profile() {
           </Row>
         </Card>
 
-        {/* WB API Ключ (только для продавцов) */}
+        {/* Мои кабинеты и WB API ключи (только для продавцов) */}
         {profile.role === 'SELLER' && (
-          <Card 
+          <Card
             title={
               <Space>
+                <AppstoreOutlined />
                 <KeyOutlined />
-                <span>WB API Ключ</span>
+                <span>Мои кабинеты и WB API ключи</span>
               </Space>
             }
             style={{ marginBottom: '24px' }}
           >
-            {profile.apiKey && (
-              <Row gutter={24} style={{ marginBottom: '16px' }}>
-                {/* Первый столбец: API Ключ и под ним "Сменить ключ" */}
-                <Col xs={24} sm={8}>
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
-                    <div style={{ textAlign: 'center', width: '100%' }}>
-                      <Text type="secondary">API Ключ:</Text>
-                      <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'center' }}>
-                        <Space>
-                          <Text 
-                            code 
-                            copyable={{ text: profile.apiKey.apiKey || '' }}
-                            style={{ 
-                              cursor: 'pointer',
-                              fontSize: '13px',
-                              fontFamily: 'monospace',
-                              maxWidth: '100%',
-                              wordBreak: 'break-all'
-                            }}
-                            onClick={() => setIsApiKeyExpanded(!isApiKeyExpanded)}
-                          >
-                            {profile.apiKey.apiKey && !isApiKeyExpanded
-                              ? `${profile.apiKey.apiKey.substring(0, 8)}...${profile.apiKey.apiKey.substring(profile.apiKey.apiKey.length - 8)}`
-                              : profile.apiKey.apiKey}
-                          </Text>
-                          <Button
-                            type="text"
-                            size="small"
-                            icon={isApiKeyExpanded ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                            onClick={() => setIsApiKeyExpanded(!isApiKeyExpanded)}
-                            style={{ padding: '0 4px' }}
-                          />
-                        </Space>
-                      </div>
-                    </div>
-                    <Button
-                      type="default"
-                      icon={<EditOutlined />}
-                      onClick={() => setShowApiKeyForm(true)}
-                      style={{ width: '100%' }}
-                    >
-                      Сменить ключ
-                    </Button>
-                  </Space>
-                </Col>
-
-                {/* Второй столбец: Дата последней проверки и кнопка "Проверить ключ" */}
-                <Col xs={24} sm={8}>
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
-                    {profile.apiKey.lastValidatedAt ? (
-                      <div style={{ textAlign: 'center', width: '100%' }}>
-                        <Text type="secondary" style={{ fontSize: '12px' }}>Последняя проверка:</Text>
-                        <div style={{ marginTop: '4px' }}>
-                          <Text style={{ fontSize: '12px' }}>{formatDate(profile.apiKey.lastValidatedAt)}</Text>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ height: '40px' }}></div>
-                    )}
-                    <Button
-                      type="default"
-                      icon={<CheckCircleOutlined />}
-                      onClick={() => validateApiKeyMutation.mutate()}
-                      loading={validateApiKeyMutation.isPending}
-                      style={{ width: '100%' }}
-                    >
-                      Проверить ключ
-                    </Button>
-                  </Space>
-                </Col>
-
-                {/* Третий столбец: Дата последнего обновления и кнопка "Обновить данные" */}
-                <Col xs={24} sm={8}>
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
-                    {profile.apiKey.lastDataUpdateAt ? (
-                      <div style={{ textAlign: 'center', width: '100%' }}>
-                        <Text type="secondary" style={{ fontSize: '12px' }}>Последнее обновление:</Text>
-                        <div style={{ marginTop: '4px' }}>
-                          <Text style={{ fontSize: '12px' }}>{formatDate(profile.apiKey.lastDataUpdateAt)}</Text>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ height: '40px' }}></div>
-                    )}
-                    {(() => {
-                      const canUpdate = canUpdateData()
-                      const remainingTime = getRemainingTime()
-                      const tooltipTitle = canUpdate
-                        ? 'Запускает обновление карточек, кампаний и аналитики. Процесс выполняется в фоновом режиме.'
-                        : `Обновление данных можно запускать не чаще одного раза в ${MIN_UPDATE_INTERVAL_HOURS} часов. Следующее обновление будет доступно через ${remainingTime || 'несколько минут'}.`
-                      
-                      return (
-                        <Tooltip title={tooltipTitle}>
-                          <Button
-                            type="default"
-                            icon={<SyncOutlined />}
-                            onClick={() => triggerDataUpdateMutation.mutate()}
-                            loading={triggerDataUpdateMutation.isPending}
-                            disabled={!canUpdate || triggerDataUpdateMutation.isPending}
-                            style={{ width: '100%' }}
-                          >
-                            Обновить данные
-                          </Button>
-                        </Tooltip>
-                      )
-                    })()}
-                  </Space>
-                </Col>
-              </Row>
-            )}
-
-            {profile.apiKey?.validationError && (
-              <div>
-                <Text type="secondary">Ошибка валидации:</Text>
-                <div style={{ marginTop: '4px' }}>
-                  <Text type="danger">{profile.apiKey.validationError}</Text>
-                </div>
-              </div>
-            )}
-
-            {!showApiKeyForm && !profile.apiKey && (
-              <Button
-                type="default"
-                icon={<EditOutlined />}
-                onClick={() => setShowApiKeyForm(true)}
-                block
-                size="large"
-              >
-                Добавить ключ
-              </Button>
-            )}
-
-            {showApiKeyForm && (
+            {cabinetsLoading ? (
+              <Spin />
+            ) : (
               <>
-                <Divider />
-                <Form
-                  form={apiKeyForm}
-                  onFinish={handleApiKeySubmit}
-                  layout="vertical"
-                  autoComplete="off"
-                >
-                  <Form.Item
-                    label="Новый WB API ключ"
-                    name="wbApiKey"
-                    rules={[
-                      { required: true, message: 'Введите WB API ключ' },
-                      { min: 10, message: 'API ключ должен содержать минимум 10 символов' },
-                    ]}
-                  >
-                    <Input.Password
-                      prefix={<KeyOutlined />}
-                      placeholder="Введите новый WB API ключ"
-                      size="large"
+                <div style={{ marginBottom: '20px' }}>
+                  <Space>
+                    <Input
+                      placeholder="Название кабинета"
+                      value={newCabinetName}
+                      onChange={(e) => setNewCabinetName(e.target.value)}
+                      style={{ width: 260 }}
+                      onPressEnter={() => {
+                        if (newCabinetName.trim()) createCabinetMutation.mutate(newCabinetName.trim())
+                      }}
                     />
-                  </Form.Item>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => {
+                        if (newCabinetName.trim()) {
+                          createCabinetMutation.mutate(newCabinetName.trim())
+                        } else {
+                          message.warning('Введите название кабинета')
+                        }
+                      }}
+                      loading={createCabinetMutation.isPending}
+                      style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
+                    >
+                      Добавить кабинет
+                    </Button>
+                  </Space>
+                </div>
 
-                  <Form.Item style={{ marginBottom: 0 }}>
-                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                      <Button
-                        onClick={() => {
-                          setShowApiKeyForm(false)
-                          apiKeyForm.resetFields()
-                        }}
-                        size="large"
-                      >
-                        Отмена
-                      </Button>
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        loading={updateApiKeyMutation.isPending}
-                        size="large"
+                {cabinets.length === 0 ? (
+                  <Text type="secondary">Нет кабинетов. Добавьте кабинет и привяжите к нему WB API ключ.</Text>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {cabinets.map((cab) => (
+                      <div
+                        key={cab.id}
                         style={{
-                          backgroundColor: '#7C3AED',
-                          borderColor: '#7C3AED',
+                          border: '1px solid #E2E8F0',
+                          borderRadius: '8px',
+                          padding: '16px',
+                          backgroundColor: '#FAFAFA',
                         }}
                       >
-                        Обновить API ключ
-                      </Button>
-                    </Space>
-                  </Form.Item>
-                </Form>
+                        {/* Название кабинета */}
+                        <div style={{ marginBottom: '16px' }}>
+                          {editingCabinetId === cab.id ? (
+                            <Space>
+                              <Input
+                                value={editingCabinetName}
+                                onChange={(e) => setEditingCabinetName(e.target.value)}
+                                style={{ width: 220 }}
+                                onPressEnter={() => {
+                                  const v = editingCabinetName.trim()
+                                  if (v) {
+                                    updateCabinetMutation.mutate({ id: cab.id, name: v })
+                                    setEditingCabinetId(null)
+                                  }
+                                }}
+                              />
+                              <Button
+                                size="small"
+                                onClick={() => {
+                                  const v = editingCabinetName.trim()
+                                  if (v) {
+                                    updateCabinetMutation.mutate({ id: cab.id, name: v })
+                                    setEditingCabinetId(null)
+                                  }
+                                }}
+                              >
+                                Сохранить
+                              </Button>
+                              <Button size="small" onClick={() => { setEditingCabinetId(null); setEditingCabinetName(''); }}>
+                                Отмена
+                              </Button>
+                            </Space>
+                          ) : (
+                            <Space>
+                              <Text strong style={{ fontSize: '16px' }}>{cab.name}</Text>
+                              <Button
+                                type="link"
+                                size="small"
+                                icon={<EditOutlined />}
+                                onClick={() => {
+                                  setEditingCabinetId(cab.id)
+                                  setEditingCabinetName(cab.name)
+                                }}
+                              />
+                            </Space>
+                          )}
+                        </div>
+
+                        {/* Под кабинетом — инфо по ключу как раньше */}
+                        {showApiKeyFormForCabinetId === cab.id ? (
+                          <>
+                            <Divider style={{ margin: '12px 0' }} />
+                            <Space align="start">
+                              <Input.Password
+                                prefix={<KeyOutlined />}
+                                placeholder="Введите новый WB API ключ"
+                                value={cabinetNewKeyValue}
+                                onChange={(e) => setCabinetNewKeyValue(e.target.value)}
+                                style={{ width: 320 }}
+                                autoComplete="off"
+                              />
+                              <Button
+                                onClick={() => {
+                                  setShowApiKeyFormForCabinetId(null)
+                                  setCabinetNewKeyValue('')
+                                }}
+                              >
+                                Отмена
+                              </Button>
+                              <Button
+                                type="primary"
+                                loading={updateCabinetMutation.isPending}
+                                style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
+                                onClick={() => {
+                                  const key = cabinetNewKeyValue.trim()
+                                  if (key) {
+                                    updateCabinetMutation.mutate({ id: cab.id, apiKey: key })
+                                  } else {
+                                    message.warning('Введите ключ')
+                                  }
+                                }}
+                              >
+                                Сохранить ключ
+                              </Button>
+                            </Space>
+                          </>
+                        ) : (
+                          <>
+                            {cab.apiKey?.validationError && (
+                              <div style={{ marginBottom: '8px' }}>
+                                <Text type="danger">{cab.apiKey.validationError}</Text>
+                              </div>
+                            )}
+                            <Row gutter={24} style={{ marginBottom: 0 }}>
+                              <Col xs={24} sm={8}>
+                                <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
+                                  <div style={{ textAlign: 'center', width: '100%' }}>
+                                    <Text type="secondary">API Ключ:</Text>
+                                    <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
+                                      {cab.apiKey?.apiKey ? (
+                                        <Space>
+                                          <Text
+                                            code
+                                            copyable={{ text: cab.apiKey.apiKey }}
+                                            style={{
+                                              cursor: 'pointer',
+                                              fontSize: '13px',
+                                              fontFamily: 'monospace',
+                                              maxWidth: '100%',
+                                              wordBreak: 'break-all',
+                                            }}
+                                            onClick={() => setExpandedKeyCabinetId(expandedKeyCabinetId === cab.id ? null : cab.id)}
+                                          >
+                                            {expandedKeyCabinetId === cab.id
+                                              ? cab.apiKey.apiKey
+                                              : `${cab.apiKey.apiKey.substring(0, 8)}...${cab.apiKey.apiKey.substring(cab.apiKey.apiKey.length - 8)}`}
+                                          </Text>
+                                          <Button
+                                            type="text"
+                                            size="small"
+                                            icon={expandedKeyCabinetId === cab.id ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                                            onClick={() => setExpandedKeyCabinetId(expandedKeyCabinetId === cab.id ? null : cab.id)}
+                                            style={{ padding: '0 4px' }}
+                                          />
+                                        </Space>
+                                      ) : (
+                                        <Text type="secondary">Не задан</Text>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <Button
+                                    type="default"
+                                    icon={<EditOutlined />}
+                                    onClick={() => {
+                                      setShowApiKeyFormForCabinetId(cab.id)
+                                      setCabinetNewKeyValue('')
+                                    }}
+                                    style={{ width: '100%' }}
+                                  >
+                                    Сменить ключ
+                                  </Button>
+                                </Space>
+                              </Col>
+                              <Col xs={24} sm={8}>
+                                <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
+                                  {cab.apiKey?.lastValidatedAt ? (
+                                    <div style={{ textAlign: 'center', width: '100%' }}>
+                                      <Text type="secondary" style={{ fontSize: '12px' }}>Последняя проверка:</Text>
+                                      <div style={{ marginTop: '4px' }}>
+                                        <Text style={{ fontSize: '12px' }}>{formatDate(cab.apiKey.lastValidatedAt)}</Text>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div style={{ height: '40px' }} />
+                                  )}
+                                  <Button
+                                    type="default"
+                                    icon={<CheckCircleOutlined />}
+                                    onClick={() => validateCabinetKeyMutation.mutate(cab.id)}
+                                    loading={validateCabinetKeyMutation.isPending}
+                                    style={{ width: '100%' }}
+                                  >
+                                    Проверить ключ
+                                  </Button>
+                                </Space>
+                              </Col>
+                              <Col xs={24} sm={8}>
+                                <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
+                                  {cab.apiKey?.lastDataUpdateAt ? (
+                                    <div style={{ textAlign: 'center', width: '100%' }}>
+                                      <Text type="secondary" style={{ fontSize: '12px' }}>Последнее обновление:</Text>
+                                      <div style={{ marginTop: '4px' }}>
+                                        <Text style={{ fontSize: '12px' }}>{formatDate(cab.apiKey.lastDataUpdateAt)}</Text>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div style={{ height: '40px' }} />
+                                  )}
+                                  {(() => {
+                                    const canUpdate = canUpdateData()
+                                    const remainingTime = getRemainingTime()
+                                    const tooltipTitle = canUpdate
+                                      ? 'Запускает обновление карточек, кампаний и аналитики.'
+                                      : `Обновление не чаще одного раза в ${MIN_UPDATE_INTERVAL_HOURS} ч. Через ${remainingTime || '…'}.`
+                                    return (
+                                      <Tooltip title={tooltipTitle}>
+                                        <Button
+                                          type="default"
+                                          icon={<SyncOutlined />}
+                                          onClick={() => triggerDataUpdateMutation.mutate()}
+                                          loading={triggerDataUpdateMutation.isPending}
+                                          disabled={!canUpdate || triggerDataUpdateMutation.isPending}
+                                          style={{ width: '100%' }}
+                                        >
+                                          Обновить данные
+                                        </Button>
+                                      </Tooltip>
+                                    )
+                                  })()}
+                                </Space>
+                              </Col>
+                            </Row>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </Card>

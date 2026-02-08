@@ -6,6 +6,7 @@ import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
 import { analyticsApi } from '../api/analytics'
+import { getStoredCabinetId, getStoredCabinetIdForSeller } from '../api/cabinets'
 import type { ArticleResponse, StockSize, ArticleNote } from '../types/analytics'
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
@@ -80,21 +81,28 @@ export default function AnalyticsArticle() {
   const role = useAuthStore((state) => state.role)
   const isManagerOrAdmin = role === 'MANAGER' || role === 'ADMIN'
   
-  // Получаем выбранного селлера из localStorage (если есть)
   const getSelectedSellerId = (): number | undefined => {
     if (!isManagerOrAdmin) return undefined
     const saved = localStorage.getItem('analytics_selected_seller_id')
     if (saved) {
       try {
         const sellerId = parseInt(saved, 10)
-        if (!isNaN(sellerId)) {
-          return sellerId
-        }
+        if (!isNaN(sellerId)) return sellerId
       } catch {
-        // Игнорируем ошибку
+        // ignore
       }
     }
     return undefined
+  }
+
+  const getSelectedCabinetId = (): number | undefined => {
+    const sid = getSelectedSellerId()
+    if (isManagerOrAdmin && sid != null) {
+      const cid = getStoredCabinetIdForSeller(sid)
+      return cid ?? undefined
+    }
+    const cid = getStoredCabinetId()
+    return cid ?? undefined
   }
 
   // Общий диапазон дат для графика и воронок (по умолчанию последние 2 недели)
@@ -174,7 +182,7 @@ export default function AnalyticsArticle() {
       setError(null)
       const sellerId = getSelectedSellerId()
       // TODO: Обновить API для получения данных за последние 14 дней
-      const data = await analyticsApi.getArticle(id, [], sellerId)
+      const data = await analyticsApi.getArticle(id, [], sellerId, getSelectedCabinetId())
       setArticle(data)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Ошибка при загрузке данных')
@@ -201,7 +209,7 @@ export default function AnalyticsArticle() {
     try {
       setLoadingNotes(true)
       const sellerId = getSelectedSellerId()
-      const data = await analyticsApi.getNotes(id, sellerId)
+      const data = await analyticsApi.getNotes(id, sellerId, getSelectedCabinetId())
       setNotes(data)
     } catch (err: any) {
       message.error(err.response?.data?.message || 'Ошибка при загрузке заметок')
@@ -233,14 +241,14 @@ export default function AnalyticsArticle() {
     try {
       setUploadingNoteFiles(true)
       const sellerId = getSelectedSellerId()
-      const createdNote = await analyticsApi.createNote(Number(nmId), { content: noteContent }, sellerId)
+      const createdNote = await analyticsApi.createNote(Number(nmId), { content: noteContent }, sellerId, getSelectedCabinetId())
       message.success('Заметка создана')
       
       // Загружаем файлы, если они были выбраны
       if (noteFiles.length > 0) {
         for (const file of noteFiles) {
           try {
-            await analyticsApi.uploadFile(Number(nmId), createdNote.id, file, sellerId)
+            await analyticsApi.uploadFile(Number(nmId), createdNote.id, file, sellerId, getSelectedCabinetId())
           } catch (err: any) {
             message.error(`Ошибка при загрузке файла ${file.name}: ${err.response?.data?.message || 'Неизвестная ошибка'}`)
           }
@@ -272,14 +280,14 @@ export default function AnalyticsArticle() {
     try {
       setUploadingNoteFiles(true)
       const sellerId = getSelectedSellerId()
-      await analyticsApi.updateNote(Number(nmId), editingNote.id, { content: noteContent }, sellerId)
+      await analyticsApi.updateNote(Number(nmId), editingNote.id, { content: noteContent }, sellerId, getSelectedCabinetId())
       message.success('Заметка обновлена')
       
       // Загружаем файлы, если они были выбраны
       if (noteFiles.length > 0) {
         for (const file of noteFiles) {
           try {
-            await analyticsApi.uploadFile(Number(nmId), editingNote.id, file, sellerId)
+            await analyticsApi.uploadFile(Number(nmId), editingNote.id, file, sellerId, getSelectedCabinetId())
           } catch (err: any) {
             message.error(`Ошибка при загрузке файла ${file.name}: ${err.response?.data?.message || 'Неизвестная ошибка'}`)
           }
@@ -313,7 +321,7 @@ export default function AnalyticsArticle() {
       onOk: async () => {
         try {
           const sellerId = getSelectedSellerId()
-          await analyticsApi.deleteNote(Number(nmId), noteId, sellerId)
+          await analyticsApi.deleteNote(Number(nmId), noteId, sellerId, getSelectedCabinetId())
           message.success('Заметка удалена')
           await loadNotes(Number(nmId))
         } catch (err: any) {
@@ -328,7 +336,7 @@ export default function AnalyticsArticle() {
 
     try {
       const sellerId = getSelectedSellerId()
-      await analyticsApi.downloadFile(Number(nmId), noteId, fileId, fileName, sellerId)
+      await analyticsApi.downloadFile(Number(nmId), noteId, fileId, fileName, sellerId, getSelectedCabinetId())
     } catch (err: any) {
       message.error(err.response?.data?.message || 'Ошибка при скачивании файла')
     }
@@ -346,7 +354,7 @@ export default function AnalyticsArticle() {
       onOk: async () => {
         try {
           const sellerId = getSelectedSellerId()
-          await analyticsApi.deleteFile(Number(nmId), noteId, fileId, sellerId)
+          await analyticsApi.deleteFile(Number(nmId), noteId, fileId, sellerId, getSelectedCabinetId())
           message.success('Файл удален')
           await loadNotes(Number(nmId))
         } catch (err: any) {
@@ -369,7 +377,7 @@ export default function AnalyticsArticle() {
     try {
       const sellerId = getSelectedSellerId()
       // Получаем файл как blob
-      const blob = await analyticsApi.getFileBlob(Number(nmId), noteId, fileId, sellerId)
+      const blob = await analyticsApi.getFileBlob(Number(nmId), noteId, fileId, sellerId, getSelectedCabinetId())
       // Создаем blob URL для просмотра
       const url = window.URL.createObjectURL(blob)
       setImagePreview({ url, fileName })
@@ -2612,7 +2620,7 @@ export default function AnalyticsArticle() {
                         setLoadingSizes(prev => ({ ...prev, [stock.warehouseName]: true }))
                         try {
                           const sellerId = getSelectedSellerId()
-                          const sizesData = await analyticsApi.getStockSizes(Number(nmId), stock.warehouseName, sellerId)
+                          const sizesData = await analyticsApi.getStockSizes(Number(nmId), stock.warehouseName, sellerId, getSelectedCabinetId())
                           setStockSizes(prev => ({ ...prev, [stock.warehouseName]: sizesData }))
                         } catch (err) {
                           console.error('Ошибка при загрузке размеров:', err)

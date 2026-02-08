@@ -6,6 +6,7 @@ import {
   UserListItem,
   CreateUserRequest,
   UpdateUserRequest,
+  CabinetDto,
 } from '../types/api'
 
 export const userApi = {
@@ -69,6 +70,14 @@ export const userApi = {
    */
   triggerSellerDataUpdate: async (sellerId: number): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>(`/users/${sellerId}/trigger-update`)
+    return response.data
+  },
+
+  /**
+   * Список кабинетов селлера (для ADMIN/MANAGER при просмотре аналитики селлера).
+   */
+  getSellerCabinets: async (sellerId: number): Promise<CabinetDto[]> => {
+    const response = await apiClient.get<CabinetDto[]>(`/users/${sellerId}/cabinets`)
     return response.data
   },
 }

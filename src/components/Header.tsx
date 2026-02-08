@@ -17,6 +17,13 @@ interface SellerSelectProps {
   onSellerChange: (sellerId: number | undefined) => void
 }
 
+interface CabinetSelectProps {
+  cabinets: { id: number; name: string }[]
+  selectedCabinetId: number | null
+  onCabinetChange: (cabinetId: number | null) => void
+  loading?: boolean
+}
+
 interface ArticleFilterProps {
   articles: ArticleSummary[]
   excludedNmIds: Set<number>
@@ -28,10 +35,11 @@ interface ArticleFilterProps {
 interface HeaderProps {
   articleTitle?: string
   sellerSelectProps?: SellerSelectProps
+  cabinetSelectProps?: CabinetSelectProps
   articleFilterProps?: ArticleFilterProps
 }
 
-export default function Header({ articleTitle, sellerSelectProps, articleFilterProps }: HeaderProps = {}) {
+export default function Header({ articleTitle, sellerSelectProps, cabinetSelectProps, articleFilterProps }: HeaderProps = {}) {
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
@@ -204,6 +212,19 @@ export default function Header({ articleTitle, sellerSelectProps, articleFilterP
                     value: seller.id,
                   }))}
                 />
+                {cabinetSelectProps && cabinetSelectProps.cabinets.length > 0 && (
+                  <Select
+                    value={cabinetSelectProps.selectedCabinetId ?? undefined}
+                    onChange={(id) => cabinetSelectProps.onCabinetChange(id ?? null)}
+                    loading={cabinetSelectProps.loading}
+                    style={{ minWidth: 200, marginLeft: '12px' }}
+                    placeholder="Кабинет"
+                    options={cabinetSelectProps.cabinets.map(c => ({
+                      label: c.name,
+                      value: c.id,
+                    }))}
+                  />
+                )}
                 {isManagerOrAdmin && sellerSelectProps.selectedSellerId && (() => {
                   const canUpdate = canUpdateSellerData()
                   const remainingTime = getRemainingTime()
