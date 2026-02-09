@@ -112,6 +112,8 @@ export default function AnalyticsArticle() {
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([defaultDateFrom, defaultDateTo])
 
   const rangeDates = useMemo(() => getDatesInRange(dateRange[0], dateRange[1]), [dateRange])
+  /** Даты для блока воронок: сверху «сегодня» (самая новая), далее по нисходящей */
+  const rangeDatesDesc = useMemo(() => [...rangeDates].reverse(), [rangeDates])
 
   // Выбранные воронки (максимум 2), порядок: Общая (1) → Реклама (2) → Цены (3)
   const [selectedFunnelKeys, setSelectedFunnelKeys] = useState<FunnelKey[]>(['general', 'advertising'])
@@ -448,11 +450,12 @@ export default function AnalyticsArticle() {
   // Метрики, у которых показываем число изменения (остальные — только стрелка)
   const METRICS_WITH_CHANGE_NUMBER = ['transitions', 'cart', 'orders', 'views', 'clicks']
 
-  // Изменение значения метрики по отношению к предыдущему дню (для первой даты — null)
-  const getMetricChangeVsPreviousDay = (dateIndex: number, metricKey: string): number | null => {
-    if (dateIndex === 0) return null
-    const prevDate = rangeDates[dateIndex - 1]
-    const current = getMetricValueForDate(metricKey, rangeDates[dateIndex])
+  /** Изменение к хронологически предыдущему дню при отображении дат по убыванию (rangeDatesDesc) */
+  const getMetricChangeVsPreviousDayDesc = (dateIndex: number, metricKey: string): number | null => {
+    if (dateIndex >= rangeDatesDesc.length - 1) return null
+    const currentDate = rangeDatesDesc[dateIndex]
+    const prevDate = rangeDatesDesc[dateIndex + 1]
+    const current = getMetricValueForDate(metricKey, currentDate)
     const prev = getMetricValueForDate(metricKey, prevDate)
     if (current === null || prev === null) return null
     return current - prev
@@ -470,7 +473,7 @@ export default function AnalyticsArticle() {
       }
     }
     const rows: (string | number)[][] = [headers]
-    for (const date of rangeDates) {
+    for (const date of rangeDatesDesc) {
       const row: (string | number)[] = [dayjs(date).format('DD.MM.YYYY')]
       for (const metricKey of metricKeys) {
         const v = getMetricValueForDate(metricKey, date)
@@ -1141,7 +1144,7 @@ export default function AnalyticsArticle() {
               </tr>
             </thead>
             <tbody>
-              {rangeDates.map((date, dateIndex) => {
+              {rangeDatesDesc.map((date, dateIndex) => {
                 const isGeneralFunnel1 = selectedFunnel1 === 'general'
                 const isAdvertisingFunnel1 = selectedFunnel1 === 'advertising'
                 const isGeneralFunnel2 = selectedFunnel2 === 'general'
@@ -1207,7 +1210,7 @@ export default function AnalyticsArticle() {
                     </td>
                     {FUNNELS[selectedFunnel1].metrics.map((metric, index) => {
                       const value = getMetricValueForDate(metric.key, date)
-                      const change = getMetricChangeVsPreviousDay(dateIndex, metric.key)
+                      const change = getMetricChangeVsPreviousDayDesc(dateIndex, metric.key)
                       const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                       const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
                       const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(metric.key)
@@ -1254,7 +1257,7 @@ export default function AnalyticsArticle() {
                     })}
                     {selectedFunnel2 && FUNNELS[selectedFunnel2].metrics.map((metric, index) => {
                       const value = getMetricValueForDate(metric.key, date)
-                      const change = getMetricChangeVsPreviousDay(dateIndex, metric.key)
+                      const change = getMetricChangeVsPreviousDayDesc(dateIndex, metric.key)
                       const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                       const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
                       const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(metric.key)
