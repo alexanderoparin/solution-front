@@ -900,104 +900,6 @@ export default function AnalyticsArticle() {
                 </div>
               )}
             </div>
-            
-            {article.campaigns.length > 0 && (
-              <div style={{
-                width: '450px',
-                flexShrink: 0,
-                padding: spacing.md,
-                backgroundColor: colors.bgGrayLight,
-                borderRadius: borderRadius.md,
-                border: `1px solid ${colors.borderLight}`
-              }}>
-                <div style={{
-                  ...typography.h3,
-                  ...FONT_PAGE,
-                  ...FONT_PAGE,
-                  marginBottom: spacing.md,
-                  color: colors.textPrimary,
-                  fontWeight: 600
-                }}>
-                  Рекламные кампании
-                </div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: spacing.md,
-                  alignContent: 'start'
-                }}>
-                  {article.campaigns.map(campaign => (
-                    <div
-                      key={campaign.id}
-                      style={{
-                        padding: spacing.md,
-                        border: `1px solid ${colors.borderLight}`,
-                        borderRadius: borderRadius.sm,
-                        backgroundColor: colors.bgWhite,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        transition: transitions.fast,
-                        boxShadow: shadows.sm
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.boxShadow = shadows.md
-                        e.currentTarget.style.borderColor = colors.primary
-                        e.currentTarget.style.transform = 'translateY(-2px)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.boxShadow = shadows.sm
-                        e.currentTarget.style.borderColor = colors.borderLight
-                        e.currentTarget.style.transform = 'translateY(0)'
-                      }}
-                    >
-                      <div style={{
-                        ...typography.body,
-                  ...FONT_PAGE,
-                        fontWeight: 500,
-                        color: colors.textPrimary,
-                        marginBottom: spacing.xs,
-                        lineHeight: 1.3
-                      }}>
-                        {campaign.name}
-                      </div>
-                      <div style={{
-                        ...typography.body,
-                  ...FONT_PAGE_SMALL,
-                        color: colors.textSecondary,
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        alignItems: 'center',
-                        gap: spacing.xs,
-                        lineHeight: 1.3
-                      }}>
-                        <span>ID: {campaign.id}</span>
-                        {campaign.type && <span>• {campaign.type}</span>}
-                        {campaign.statusName && (
-                          <span style={{
-                            padding: `2px ${spacing.xs}`,
-                            backgroundColor: campaign.status === 9 
-                              ? colors.successLight 
-                              : campaign.status === 11 
-                                ? colors.warningLight 
-                                : colors.bgWhite,
-                            color: campaign.status === 9 
-                              ? colors.success 
-                              : campaign.status === 11 
-                                ? colors.warning 
-                                : colors.textSecondary,
-                            borderRadius: borderRadius.sm,
-                            fontSize: '11px',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {campaign.statusName}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -1384,7 +1286,7 @@ export default function AnalyticsArticle() {
 
       {/* Сравнение периодов и остатки */}
       {article && period1Data && period2Data && (() => {
-        const nonZeroStocks = article?.stocks?.filter(stock => stock.amount > 0) || []
+        const allStocks = article?.stocks ?? []
         return (
           <div style={{
             backgroundColor: colors.bgWhite,
@@ -2493,14 +2395,14 @@ export default function AnalyticsArticle() {
                 minWidth: '280px'
               }}>
                 {(() => {
-                  const latestUpdate = nonZeroStocks.length > 0
-                    ? nonZeroStocks
+                  const latestUpdate = allStocks.length > 0
+                    ? allStocks
                         .map(s => s.updatedAt)
-                        .filter(d => d !== null)
+                        .filter((d): d is string => d !== null)
                         .sort()
                         .reverse()[0]
                     : null
-                  const totalAmount = nonZeroStocks.reduce((sum, stock) => sum + stock.amount, 0)
+                  const totalAmount = allStocks.reduce((sum, stock) => sum + stock.amount, 0)
                   
                   return (
                     <>
@@ -2528,7 +2430,7 @@ export default function AnalyticsArticle() {
                     }}>
                       Остатки на {latestUpdate ? dayjs(latestUpdate).format('DD.MM.YY HH:mm') : 'дату'}
                     </h2>
-                    {nonZeroStocks.length > 0 && (
+                    {allStocks.length > 0 && (
                       <div 
                         style={{
                           position: 'relative',
@@ -2554,7 +2456,7 @@ export default function AnalyticsArticle() {
                       </div>
                     )}
                   </div>
-                  {nonZeroStocks.length === 0 ? (
+                  {allStocks.length === 0 ? (
                     <div style={{
                       textAlign: 'center',
                       padding: spacing.xl,
@@ -2600,8 +2502,9 @@ export default function AnalyticsArticle() {
                   </tr>
                 </thead>
                 <tbody>
-                {nonZeroStocks.map((stock, index) => {
-                  const isLowStock = stock.amount <= 1
+                {allStocks.map((stock, index) => {
+                  const isZeroStock = stock.amount === 0
+                  const isLowStock = stock.amount > 0 && stock.amount <= 1
                   const isExpanded = expandedStocks.has(stock.warehouseName)
                   const sizes = stockSizes[stock.warehouseName] || []
                   const isLoading = loadingSizes[stock.warehouseName] || false
@@ -2677,7 +2580,7 @@ export default function AnalyticsArticle() {
                           ...typography.body,
                   ...FONT_PAGE,
                           fontWeight: 600,
-                          color: isLowStock ? colors.error : colors.textPrimary
+                          color: isZeroStock ? colors.error : isLowStock ? colors.error : colors.textPrimary
                         }}>
                           {stock.amount.toLocaleString('ru-RU')}
                         </td>
@@ -2723,7 +2626,9 @@ export default function AnalyticsArticle() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {sizes.map((size: StockSize, sizeIndex: number) => (
+                                    {sizes.map((size: StockSize, sizeIndex: number) => {
+                                      const isZeroSize = size.amount === 0
+                                      return (
                                       <tr key={sizeIndex} style={{
                                         backgroundColor: sizeIndex % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
                                       }}>
@@ -2741,12 +2646,14 @@ export default function AnalyticsArticle() {
                                           borderBottom: `1px solid ${colors.border}`,
                                           ...typography.body,
                   ...FONT_PAGE_SMALL,
-                                          fontWeight: 500
+                                          fontWeight: 500,
+                                          color: isZeroSize ? colors.error : undefined
                                         }}>
                                           {size.amount.toLocaleString('ru-RU')}
                                         </td>
                                       </tr>
-                                    ))}
+                                      );
+                                    })}
                                   </tbody>
                                 </table>
                               </div>
