@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip } from 'antd'
-import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined } from '@ant-design/icons'
+import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal } from 'antd'
+import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
-import { cabinetsApi } from '../api/cabinets'
+import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import type { UserProfileResponse, ChangePasswordRequest, CabinetDto } from '../types/api'
 import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
@@ -93,6 +93,20 @@ export default function Profile() {
     },
     onError: (err: any) => {
       message.error(err.response?.data?.message || 'Ошибка проверки ключа')
+    },
+  })
+
+  const deleteCabinetMutation = useMutation({
+    mutationFn: (id: number) => cabinetsApi.delete(id),
+    onSuccess: (_, deletedId) => {
+      if (getStoredCabinetId() === deletedId) {
+        setStoredCabinetId(null)
+      }
+      queryClient.invalidateQueries({ queryKey: ['cabinets'] })
+      message.success('Кабинет удалён')
+    },
+    onError: (err: any) => {
+      message.error(err.response?.data?.message || 'Ошибка удаления кабинета')
     },
   })
 
@@ -413,6 +427,23 @@ export default function Profile() {
                                 onClick={() => {
                                   setEditingCabinetId(cab.id)
                                   setEditingCabinetName(cab.name)
+                                }}
+                              />
+                              <Button
+                                type="link"
+                                size="small"
+                                danger
+                                icon={<DeleteOutlined />}
+                                loading={deleteCabinetMutation.isPending}
+                                onClick={() => {
+                                  Modal.confirm({
+                                    title: 'Удалить кабинет?',
+                                    content: `Кабинет «${cab.name}» и все связанные данные (остатки, аналитика, кампании, заметки) будут удалены. Это действие нельзя отменить.`,
+                                    okText: 'Удалить',
+                                    okType: 'danger',
+                                    cancelText: 'Отмена',
+                                    onOk: () => deleteCabinetMutation.mutate(cab.id),
+                                  })
                                 }}
                               />
                             </Space>

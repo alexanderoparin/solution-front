@@ -28,6 +28,10 @@ export const cabinetsApi = {
     const response = await apiClient.post<MessageResponse>(`/cabinets/${id}/api-key/validate`)
     return response.data
   },
+
+  delete: async (id: number): Promise<void> => {
+    await apiClient.delete(`/cabinets/${id}`)
+  },
 }
 
 export function getStoredCabinetId(): number | null {

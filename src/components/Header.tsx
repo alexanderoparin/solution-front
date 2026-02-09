@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useMemo } from 'react'
-import { Button, Space, Typography, Select, Tooltip, message, Popover, Checkbox, Input } from 'antd'
-import { UserOutlined, BarChartOutlined, ArrowLeftOutlined, TeamOutlined, SyncOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons'
+import { Button, Space, Typography, Select, Tooltip, message, Popover, Checkbox, Input, Dropdown } from 'antd'
+import { UserOutlined, BarChartOutlined, ArrowLeftOutlined, TeamOutlined, SyncOutlined, FilterOutlined, SearchOutlined, DownOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/authStore'
 import { userApi } from '../api/user'
@@ -10,6 +10,21 @@ import type { ArticleSummary } from '../types/analytics'
 import dayjs from 'dayjs'
 
 const { Text, Title } = Typography
+
+/** Инициалы для логотипа: из названия кабинета или "ЛК" по умолчанию */
+function getLogoInitials(cabinetName: string | undefined): string {
+  if (!cabinetName || !cabinetName.trim()) return 'ЛК'
+  const words = cabinetName.trim().split(/\s+/).filter(Boolean)
+  if (words.length >= 2) {
+    const a = words[0][0] ?? ''
+    const b = words[1][0] ?? ''
+    return (a + b).toUpperCase()
+  }
+  if (words[0].length >= 2) {
+    return words[0].slice(0, 2).toUpperCase()
+  }
+  return (words[0][0] ?? 'ЛК').toUpperCase()
+}
 
 interface SellerSelectProps {
   selectedSellerId?: number
@@ -70,6 +85,16 @@ export default function Header({ articleTitle, sellerSelectProps, cabinetSelectP
       s => s.id === sellerSelectProps.selectedSellerId
     )
   }, [sellerSelectProps?.selectedSellerId, sellerSelectProps?.activeSellers])
+
+  // Название выбранного кабинета и инициалы для логотипа
+  const selectedCabinetName = useMemo(() => {
+    if (!cabinetSelectProps?.selectedCabinetId || !cabinetSelectProps.cabinets.length) return undefined
+    return cabinetSelectProps.cabinets.find(c => c.id === cabinetSelectProps.selectedCabinetId)?.name
+  }, [cabinetSelectProps?.selectedCabinetId, cabinetSelectProps?.cabinets])
+
+  const logoInitials = useMemo(() => {
+    return getLogoInitials(selectedCabinetName)
+  }, [selectedCabinetName])
 
   // Проверяет, можно ли запустить обновление (прошло ли 6 часов)
   const canUpdateSellerData = (): boolean => {
@@ -173,6 +198,25 @@ export default function Header({ articleTitle, sellerSelectProps, cabinetSelectP
       }}
     >
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
+        {/* Логотип — инициалы кабинета или "ЛК" */}
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 8,
+            backgroundColor: '#7C3AED',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '14px',
+            fontWeight: 700,
+            flexShrink: 0,
+          }}
+        >
+          {logoInitials}
+        </div>
+
         {isArticlePage && (
           <Button
             type="default"
@@ -212,19 +256,6 @@ export default function Header({ articleTitle, sellerSelectProps, cabinetSelectP
                     value: seller.id,
                   }))}
                 />
-                {cabinetSelectProps && cabinetSelectProps.cabinets.length > 0 && (
-                  <Select
-                    value={cabinetSelectProps.selectedCabinetId ?? undefined}
-                    onChange={(id) => cabinetSelectProps.onCabinetChange(id ?? null)}
-                    loading={cabinetSelectProps.loading}
-                    style={{ minWidth: 200, marginLeft: '12px' }}
-                    placeholder="Кабинет"
-                    options={cabinetSelectProps.cabinets.map(c => ({
-                      label: c.name,
-                      value: c.id,
-                    }))}
-                  />
-                )}
                 {isManagerOrAdmin && sellerSelectProps.selectedSellerId && (() => {
                   const canUpdate = canUpdateSellerData()
                   const remainingTime = getRemainingTime()
@@ -249,6 +280,47 @@ export default function Header({ articleTitle, sellerSelectProps, cabinetSelectP
                   )
                 })()}
               </>
+            )}
+            {cabinetSelectProps && cabinetSelectProps.cabinets.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: sellerSelectProps ? '12px' : '16px' }}>
+                {cabinetSelectProps.cabinets.length > 1 ? (
+                  <Dropdown
+                    menu={{
+                      items: cabinetSelectProps.cabinets.map((c) => ({
+                        key: String(c.id),
+                        label: c.name,
+                        onClick: () => cabinetSelectProps.onCabinetChange(c.id),
+                      })),
+                    }}
+                    trigger={['click']}
+                    disabled={cabinetSelectProps.loading}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: '14px',
+                        color: '#1E293B',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Кабинет ({cabinetSelectProps.cabinets.length})
+                      <DownOutlined style={{ fontSize: 10, color: '#64748B' }} />
+                    </span>
+                  </Dropdown>
+                ) : (
+                  <span style={{ fontSize: '14px', color: '#1E293B', fontWeight: 500 }}>
+                    Кабинет (1)
+                  </span>
+                )}
+                {selectedCabinetName && (
+                  <span style={{ fontSize: '14px', color: '#64748B' }}>
+                    {selectedCabinetName}
+                  </span>
+                )}
+              </div>
             )}
             {articleFilterProps && articleFilterProps.articles.length > 0 && (
               <Popover
