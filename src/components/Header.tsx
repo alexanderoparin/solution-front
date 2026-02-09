@@ -9,7 +9,7 @@ import type { UserListItem } from '../types/api'
 import type { ArticleSummary } from '../types/analytics'
 import dayjs from 'dayjs'
 
-const { Text, Title } = Typography
+const { Title } = Typography
 
 /** Инициалы для логотипа: из названия кабинета или "ЛК" по умолчанию */
 function getLogoInitials(cabinetName: string | undefined): string {
@@ -58,7 +58,6 @@ export default function Header({ articleTitle, sellerSelectProps, cabinetSelectP
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
-  const email = useAuthStore((state) => state.email)
   const role = useAuthStore((state) => state.role)
   
   // Проверяем, может ли пользователь управлять другими пользователями
@@ -474,12 +473,6 @@ export default function Header({ articleTitle, sellerSelectProps, cabinetSelectP
       </div>
       
       <Space size="middle" align="center">
-        {email && (
-          <Text type="secondary" style={{ fontSize: '14px' }}>
-            {email}
-          </Text>
-        )}
-        
         {isProfilePage && (
           <Button
             type="default"
