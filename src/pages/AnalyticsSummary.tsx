@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { DatePicker, Spin, Tooltip } from 'antd'
-import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined } from '@ant-design/icons'
+import { DatePicker, Spin, Tooltip, Popover, Button, Input, Checkbox } from 'antd'
+import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -638,17 +638,6 @@ export default function AnalyticsSummary() {
               }
             : undefined
         }
-        articleFilterProps={
-          originalArticles.length > 0
-            ? {
-                articles: originalArticles,
-                excludedNmIds,
-                onExcludedNmIdsChange: setExcludedNmIds,
-                articleSearchText,
-                onArticleSearchTextChange: setArticleSearchText,
-              }
-            : undefined
-        }
       />
       <div style={{ 
         padding: `${spacing.lg} ${spacing.md}`, 
@@ -666,13 +655,103 @@ export default function AnalyticsSummary() {
         marginBottom: spacing.xl,
         boxShadow: shadows.md
       }}>
-        <h2 style={{ 
-          ...typography.h2, 
-          marginBottom: spacing.md, 
-          textAlign: 'center' 
-        }}>
-          Укажите желаемые периоды для сравнения данных
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.md }}>
+          <h2 style={{ ...typography.h2, margin: 0 }}>
+            Укажите желаемые периоды для сравнения данных
+          </h2>
+          {originalArticles.length > 0 && (
+            <Popover
+              content={
+                <div style={{ width: '400px', maxHeight: '400px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <Input
+                    placeholder="Поиск по артикулу или названию"
+                    prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
+                    value={articleSearchText}
+                    onChange={(e) => setArticleSearchText(e.target.value)}
+                    style={{ marginBottom: '12px' }}
+                    allowClear
+                  />
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                    <Button size="small" onClick={() => setExcludedNmIds(new Set())}>
+                      Выбрать все
+                    </Button>
+                    <Button size="small" onClick={() => setExcludedNmIds(new Set(originalArticles.map((a) => a.nmId)))}>
+                      Снять все
+                    </Button>
+                  </div>
+                  <div style={{ flex: 1, overflowY: 'auto', maxHeight: '300px' }}>
+                    {originalArticles
+                      .filter((article) => {
+                        const searchLower = articleSearchText.toLowerCase()
+                        return article.nmId.toString().includes(searchLower) || article.title.toLowerCase().includes(searchLower)
+                      })
+                      .map((article) => (
+                        <div
+                          key={article.nmId}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '8px 0',
+                            borderBottom: '1px solid #F1F5F9',
+                          }}
+                        >
+                          <Checkbox
+                            checked={!excludedNmIds.has(article.nmId)}
+                            onChange={(e) => {
+                              const next = new Set(excludedNmIds)
+                              if (e.target.checked) next.delete(article.nmId)
+                              else next.add(article.nmId)
+                              setExcludedNmIds(next)
+                            }}
+                            style={{ marginRight: '12px' }}
+                          />
+                          {article.photoTm && (
+                            <img
+                              src={article.photoTm}
+                              alt=""
+                              style={{
+                                width: '40px',
+                                height: '40px',
+                                objectFit: 'cover',
+                                borderRadius: '4px',
+                                marginRight: '12px',
+                              }}
+                            />
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '12px', color: '#64748B' }}>{article.nmId}</div>
+                            <div style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {article.title}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              }
+              title="Фильтр артикулов"
+              trigger="click"
+              placement="bottomRight"
+              overlayStyle={{ maxWidth: '450px' }}
+            >
+              <Button icon={<FilterOutlined />} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                Фильтр
+                <span
+                  style={{
+                    backgroundColor: '#7C3AED',
+                    color: 'white',
+                    borderRadius: '10px',
+                    padding: '0 8px',
+                    fontSize: '12px',
+                    marginLeft: '4px',
+                  }}
+                >
+                  {originalArticles.length - excludedNmIds.size}/{originalArticles.length}
+                </span>
+              </Button>
+            </Popover>
+          )}
+        </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           {periods.map((period) => (
             <PeriodItem
