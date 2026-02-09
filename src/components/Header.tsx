@@ -48,13 +48,12 @@ interface ArticleFilterProps {
 }
 
 interface HeaderProps {
-  articleTitle?: string
   sellerSelectProps?: SellerSelectProps
   cabinetSelectProps?: CabinetSelectProps
   articleFilterProps?: ArticleFilterProps
 }
 
-export default function Header({ articleTitle, sellerSelectProps, cabinetSelectProps, articleFilterProps }: HeaderProps = {}) {
+export default function Header({ sellerSelectProps, cabinetSelectProps, articleFilterProps }: HeaderProps = {}) {
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
@@ -216,20 +215,6 @@ export default function Header({ articleTitle, sellerSelectProps, cabinetSelectP
           {logoInitials}
         </div>
 
-        {isArticlePage && (
-          <Button
-            type="default"
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate('/analytics')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            Вернуться к сводной
-          </Button>
-        )}
         {isAnalyticsPage && (
           <>
           <Title 
@@ -455,19 +440,6 @@ export default function Header({ articleTitle, sellerSelectProps, cabinetSelectP
              role === 'MANAGER' ? 'Управление селлерами' : 
              role === 'SELLER' ? 'Управление работниками' : 
              'Управление пользователями'}
-          </Title>
-        )}
-        {isArticlePage && articleTitle && (
-          <Title 
-            level={2} 
-            style={{ 
-              margin: 0,
-              fontSize: '24px',
-              fontWeight: 600,
-              color: '#1E293B'
-            }}
-          >
-            {articleTitle}
           </Title>
         )}
       </div>
