@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useMemo } from 'react'
 import { Button, Space, Typography, Select, Tooltip, message, Popover, Checkbox, Input, Dropdown } from 'antd'
-import { UserOutlined, BarChartOutlined, ArrowLeftOutlined, TeamOutlined, SyncOutlined, FilterOutlined, SearchOutlined, DownOutlined } from '@ant-design/icons'
+import { UserOutlined, BarChartOutlined, TeamOutlined, SyncOutlined, FilterOutlined, SearchOutlined, DownOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/authStore'
 import { userApi } from '../api/user'
