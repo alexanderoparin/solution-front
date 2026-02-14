@@ -9,6 +9,7 @@ import type {
   ArticleNoteFile,
   CreateNoteRequest,
   UpdateNoteRequest,
+  Campaign,
 } from '../types/analytics'
 
 export interface SummaryRequest {
@@ -39,6 +40,19 @@ export const analyticsApi = {
       `/analytics/summary/metrics/${encodedMetricName}`,
       request
     )
+    return response.data
+  },
+
+  /**
+   * Список рекламных кампаний кабинета (статистика за последние 30 дней).
+   */
+  getCampaigns: async (sellerId?: number, cabinetId?: number): Promise<Campaign[]> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    const response = await apiClient.get<Campaign[]>(`/advertising/campaigns${params}`)
     return response.data
   },
 
