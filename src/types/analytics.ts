@@ -18,6 +18,7 @@ export interface ArticleSummary {
   brand: string
   subjectName: string
   photoTm: string | null // URL миниатюры первой фотографии товара
+  vendorCode?: string | null // Артикул продавца
 }
 
 export interface AggregatedMetrics {

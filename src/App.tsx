@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import AnalyticsSummary from './pages/AnalyticsSummary'
 import AnalyticsArticle from './pages/AnalyticsArticle'
-import AnalyticsProductsStub from './pages/AnalyticsProductsStub'
+import AnalyticsProducts from './pages/AnalyticsProducts'
 import AdvertisingCampaigns from './pages/AdvertisingCampaigns'
 import Profile from './pages/Profile'
 import { useAuthStore } from './store/authStore'
@@ -11,7 +11,7 @@ function App() {
   const token = useAuthStore((state) => state.token)
 
   const getInitialRoute = () => {
-    return '/profile'
+    return '/analytics/products'
   }
 
   return (
@@ -30,7 +30,7 @@ function App() {
         />
         <Route
           path="/analytics/products"
-          element={token ? <AnalyticsProductsStub /> : <Navigate to="/login" replace />}
+          element={token ? <AnalyticsProducts /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/analytics/article/:nmId"

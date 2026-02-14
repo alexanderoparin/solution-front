@@ -80,9 +80,7 @@ export interface CabinetApiKeyInfo {
 
 export interface CreateCabinetRequest {
   name: string
-}
-
-export interface UpdateCabinetRequest {
+}export interface UpdateCabinetRequest {
   name?: string
   apiKey?: string
 }
