@@ -423,7 +423,7 @@ export default function Header({ sellerSelectProps, cabinetSelectProps, articleF
               color: '#1E293B'
             }}
           >
-            Личный кабинет
+            Профиль
           </Title>
         )}
         {isUsersPage && (
@@ -485,7 +485,7 @@ export default function Header({ sellerSelectProps, cabinetSelectProps, articleF
               gap: '6px',
             }}
           >
-            Личный кабинет
+            Профиль
           </Button>
         )}
         {isArticlePage && (
@@ -499,7 +499,7 @@ export default function Header({ sellerSelectProps, cabinetSelectProps, articleF
               gap: '6px',
             }}
           >
-            Личный кабинет
+            Профиль
           </Button>
         )}
         {isUsersPage && (
@@ -526,7 +526,7 @@ export default function Header({ sellerSelectProps, cabinetSelectProps, articleF
               gap: '6px',
             }}
           >
-            Личный кабинет
+            Профиль
           </Button>
           </>
         )}

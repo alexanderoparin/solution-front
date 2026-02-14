@@ -70,9 +70,7 @@ export interface CabinetApiKeyInfo {
   lastValidatedAt: string | null
   validationError: string | null
   lastDataUpdateAt: string | null
-}
-
-export interface CabinetDto {
+}export interface CabinetDto {
   id: number
   name: string
   createdAt: string
