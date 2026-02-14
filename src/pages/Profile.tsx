@@ -10,6 +10,8 @@ import type { UserProfileResponse, ChangePasswordRequest, CabinetDto } from '../
 import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
 import Header from '../components/Header'
+import Breadcrumbs from '../components/Breadcrumbs'
+import UsersManagementSection from '../components/UsersManagementSection'
 
 const { Text } = Typography
 
@@ -245,7 +247,19 @@ export default function Profile() {
 
   return (
     <>
-      <Header />
+      <Header
+        cabinetSelectProps={
+          cabinets.length > 0
+            ? {
+                cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
+                selectedCabinetId: getStoredCabinetId(),
+                onCabinetChange: setStoredCabinetId,
+                loading: cabinetsLoading,
+              }
+            : undefined
+        }
+      />
+      <Breadcrumbs />
       <div style={{ 
         width: '100%',
         padding: '24px',
@@ -326,14 +340,14 @@ export default function Profile() {
           </Row>
         </Card>
 
-        {/* Мои кабинеты и WB API ключи (только для продавцов) */}
+        {/* Управление кабинетами (только для продавцов) */}
         {profile.role === 'SELLER' && (
           <Card
             title={
               <Space>
                 <AppstoreOutlined />
                 <KeyOutlined />
-                <span>Мои кабинеты и WB API ключи</span>
+                <span>Управление кабинетами</span>
               </Space>
             }
             style={{ marginBottom: '24px' }}
@@ -612,6 +626,22 @@ export default function Profile() {
                 )}
               </>
             )}
+          </Card>
+        )}
+
+        {/* Работники / Селлеры / Менеджеры */}
+        {(profile.role === 'ADMIN' || profile.role === 'MANAGER' || profile.role === 'SELLER') && (
+          <Card
+            title={
+              profile.role === 'ADMIN'
+                ? 'Менеджеры'
+                : profile.role === 'MANAGER'
+                  ? 'Селлеры'
+                  : 'Работники'
+            }
+            style={{ marginBottom: '24px' }}
+          >
+            <UsersManagementSection />
           </Card>
         )}
 

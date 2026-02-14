@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox } from 'antd'
-import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined, ArrowLeftOutlined } from '@ant-design/icons'
+import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -11,6 +11,7 @@ import type { ArticleResponse, StockSize, ArticleNote } from '../types/analytics
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
+import Breadcrumbs from '../components/Breadcrumbs'
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
 
@@ -647,36 +648,13 @@ export default function AnalyticsArticle() {
   return (
     <>
       <Header />
+      <Breadcrumbs />
       <div style={{ 
         padding: `${spacing.lg} ${spacing.md}`, 
         width: '100%',
         backgroundColor: colors.bgGray,
         minHeight: '100vh'
       }}>
-      {/* Навигация назад и название товара — под хедером */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: spacing.md,
-        marginBottom: spacing.xl,
-        flexWrap: 'wrap',
-      }}>
-        <Button
-          type="default"
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/analytics')}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-        >
-          Вернуться к сводной
-        </Button>
-        <span style={{
-          fontSize: '24px',
-          fontWeight: 600,
-          color: '#1E293B',
-        }}>
-          {article.article.title}
-        </span>
-      </div>
       {/* Информация о карточке товара */}
       <div style={{
         backgroundColor: colors.bgWhite,

@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { DatePicker, Spin, Tooltip, Popover, Button, Input, Checkbox } from 'antd'
-import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons'
+import { DatePicker, Spin, Tooltip, Popover, Button, Input, Checkbox, Select, message } from 'antd'
+import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined, FilterOutlined, SearchOutlined, SyncOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { userApi } from '../api/user'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, getStoredCabinetIdForSeller, setStoredCabinetIdForSeller } from '../api/cabinets'
@@ -14,6 +14,7 @@ import type { SummaryResponse, MetricGroupResponse, Period, ArticleSummary } fro
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
+import Breadcrumbs from '../components/Breadcrumbs'
 
 dayjs.locale('ru')
 
@@ -410,6 +411,40 @@ export default function AnalyticsSummary() {
     loadSummary()
   }, [loadSummary])
 
+  const queryClient = useQueryClient()
+  const selectedSeller = useMemo(
+    () => (selectedSellerId != null ? activeSellers.find((s) => s.id === selectedSellerId) : undefined),
+    [selectedSellerId, activeSellers]
+  )
+  const MIN_UPDATE_INTERVAL_HOURS = 6
+  const canUpdateSellerData = (): boolean => {
+    if (!selectedSeller?.lastDataUpdateAt) return true
+    return dayjs().diff(dayjs(selectedSeller.lastDataUpdateAt), 'hour') >= MIN_UPDATE_INTERVAL_HOURS
+  }
+  const getHoursWord = (h: number) => (h % 10 === 1 && h % 100 !== 11 ? 'час' : h % 10 >= 2 && h % 10 <= 4 && (h % 100 < 10 || h % 100 >= 20) ? 'часа' : 'часов')
+  const getMinutesWord = (m: number) => (m % 10 === 1 && m % 100 !== 11 ? 'минута' : m % 10 >= 2 && m % 10 <= 4 && (m % 100 < 10 || m % 100 >= 20) ? 'минуты' : 'минут')
+  const getRemainingTime = (): string | null => {
+    if (!selectedSeller?.lastDataUpdateAt) return null
+    const lastUpdate = dayjs(selectedSeller.lastDataUpdateAt)
+    const mins = MIN_UPDATE_INTERVAL_HOURS * 60 - dayjs().diff(lastUpdate, 'minute')
+    if (mins <= 0) return null
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    return h > 0 ? `${h} ${getHoursWord(h)}${m > 0 ? ` и ${m} ${getMinutesWord(m)}` : ''}` : `${m} ${getMinutesWord(m)}`
+  }
+  const triggerUpdateMutation = useMutation({
+    mutationFn: (sellerId: number) => userApi.triggerSellerDataUpdate(sellerId),
+    onSuccess: (data) => {
+      message.success(data.message)
+      queryClient.invalidateQueries({ queryKey: ['activeSellers'] })
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.message || 'Ошибка запуска обновления'
+      if (err.response?.status === 429) message.warning(msg)
+      else message.error(msg)
+    },
+  })
+
   // Порядок периодов слева направо: старый → новый (для таблицы)
   const periodsSorted = useMemo(
     () => [...periods].sort((a, b) => a.dateFrom.localeCompare(b.dateFrom)),
@@ -618,16 +653,7 @@ export default function AnalyticsSummary() {
 
   return (
     <>
-      <Header 
-        sellerSelectProps={
-          isManagerOrAdmin && activeSellers.length > 0
-            ? {
-                selectedSellerId,
-                activeSellers,
-                onSellerChange: setSelectedSellerId,
-              }
-            : undefined
-        }
+      <Header
         cabinetSelectProps={
           (isManagerOrAdmin && selectedSellerId != null) || !isManagerOrAdmin
             ? {
@@ -639,12 +665,43 @@ export default function AnalyticsSummary() {
             : undefined
         }
       />
+      <Breadcrumbs />
       <div style={{ 
         padding: `${spacing.lg} ${spacing.md}`, 
         width: '100%',
         backgroundColor: colors.bgGray,
         minHeight: '100vh'
       }}>
+      {/* Выбор селлера и синхронизация (для менеджера/админа) */}
+      {isManagerOrAdmin && activeSellers.length > 0 && (
+        <div style={{ marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Select
+            value={selectedSellerId}
+            onChange={setSelectedSellerId}
+            style={{ minWidth: 250 }}
+            placeholder="Выберите селлера"
+            options={activeSellers.map((s) => ({ label: s.email, value: s.id }))}
+          />
+          {selectedSellerId != null && (
+            <Tooltip
+              title={
+                canUpdateSellerData()
+                  ? 'Запускает обновление карточек, кампаний и аналитики.'
+                  : `Обновление не чаще раза в ${MIN_UPDATE_INTERVAL_HOURS} ч. Через ${getRemainingTime() || '…'}`
+              }
+            >
+              <Button
+                type="default"
+                icon={<SyncOutlined spin={triggerUpdateMutation.isPending} />}
+                onClick={() => triggerUpdateMutation.mutate(selectedSellerId)}
+                loading={triggerUpdateMutation.isPending}
+                disabled={!canUpdateSellerData() || triggerUpdateMutation.isPending}
+                style={{ color: '#7C3AED', borderColor: '#7C3AED' }}
+              />
+            </Tooltip>
+          )}
+        </div>
+      )}
 
       {/* Периоды */}
       <div style={{

@@ -2,8 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import AnalyticsSummary from './pages/AnalyticsSummary'
 import AnalyticsArticle from './pages/AnalyticsArticle'
+import AnalyticsProductsStub from './pages/AnalyticsProductsStub'
+import AdvertisingCampaignsStub from './pages/AdvertisingCampaignsStub'
 import Profile from './pages/Profile'
-import UsersManagement from './pages/UsersManagement'
 import { useAuthStore } from './store/authStore'
 
 function App() {
@@ -28,17 +29,22 @@ function App() {
           element={token ? <AnalyticsSummary /> : <Navigate to="/login" replace />}
         />
         <Route
+          path="/analytics/products"
+          element={token ? <AnalyticsProductsStub /> : <Navigate to="/login" replace />}
+        />
+        <Route
           path="/analytics/article/:nmId"
           element={token ? <AnalyticsArticle /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/advertising/campaigns"
+          element={token ? <AdvertisingCampaignsStub /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/profile"
           element={token ? <Profile /> : <Navigate to="/login" replace />}
         />
-        <Route
-          path="/users"
-          element={token ? <UsersManagement /> : <Navigate to="/login" replace />}
-        />
+        <Route path="/users" element={token ? <Navigate to="/profile" replace /> : <Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   )
