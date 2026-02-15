@@ -158,8 +158,8 @@ export default function Profile() {
 
   // Более поздняя из двух дат: реальный старт обновления или запрос (кнопка нажата, задача в очереди)
   const getLastUpdateOrRequested = (cab: CabinetDto): string | null => {
-    const a = cab.apiKey?.lastDataUpdateAt ?? null
-    const b = cab.apiKey?.lastDataUpdateRequestedAt ?? null
+    const a = cab.lastDataUpdateAt ?? cab.apiKey?.lastDataUpdateAt ?? null
+    const b = cab.lastDataUpdateRequestedAt ?? cab.apiKey?.lastDataUpdateRequestedAt ?? null
     if (!a && !b) return null
     if (!a) return b
     if (!b) return a

@@ -422,12 +422,12 @@ export default function AnalyticsSummary() {
   )
   const MIN_UPDATE_INTERVAL_HOURS = 6
   const getLastUpdateOrRequested = (): string | null => {
-    if (selectedCabinet?.apiKey) {
-      const a = selectedCabinet.apiKey.lastDataUpdateAt ?? null
-      const b = selectedCabinet.apiKey.lastDataUpdateRequestedAt ?? null
-      if (a || b) {
-        if (!a) return b
-        if (!b) return a
+    if (selectedCabinet != null) {
+      const a = selectedCabinet.lastDataUpdateAt ?? selectedCabinet.apiKey?.lastDataUpdateAt ?? null
+      const b = selectedCabinet.lastDataUpdateRequestedAt ?? selectedCabinet.apiKey?.lastDataUpdateRequestedAt ?? null
+      if (a != null || b != null) {
+        if (a == null) return b!
+        if (b == null) return a
         return dayjs(a).isAfter(dayjs(b)) ? a : b
       }
     }

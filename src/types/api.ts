@@ -79,6 +79,10 @@ export interface CabinetDto {
   name: string
   createdAt: string
   updatedAt: string
+  /** Дата последнего обновления данных по кабинету (всегда в ответе). */
+  lastDataUpdateAt: string | null
+  /** Время запроса обновления по кабинету (всегда в ответе). */
+  lastDataUpdateRequestedAt: string | null
   apiKey: CabinetApiKeyInfo | null
 }
 
