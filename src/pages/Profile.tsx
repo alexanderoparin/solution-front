@@ -156,43 +156,32 @@ export default function Profile() {
   // Минимальный интервал между обновлениями (6 часов)
   const MIN_UPDATE_INTERVAL_HOURS = 6
 
-  // Проверяет, можно ли запустить обновление (прошло ли 6 часов)
-  const canUpdateData = (): boolean => {
-    if (!profile?.apiKey?.lastDataUpdateAt) {
-      return true // Если обновление еще не запускалось, разрешаем
+  // Проверяет, можно ли запустить обновление для данного кабинета (прошло ли 6 часов с его lastDataUpdateAt)
+  const canUpdateData = (cab: CabinetDto): boolean => {
+    const lastAt = cab.apiKey?.lastDataUpdateAt
+    if (!lastAt) {
+      return true // Если обновление еще не запускалось по этому кабинету, разрешаем
     }
-    
-    const lastUpdate = dayjs(profile.apiKey.lastDataUpdateAt)
-    const now = dayjs()
-    const hoursSinceLastUpdate = now.diff(lastUpdate, 'hour')
-    
+    const lastUpdate = dayjs(lastAt)
+    const hoursSinceLastUpdate = dayjs().diff(lastUpdate, 'hour')
     return hoursSinceLastUpdate >= MIN_UPDATE_INTERVAL_HOURS
   }
 
-  // Вычисляет оставшееся время до следующего обновления
-  const getRemainingTime = (): string | null => {
-    if (!profile?.apiKey?.lastDataUpdateAt) {
-      return null
-    }
-    
-    const lastUpdate = dayjs(profile.apiKey.lastDataUpdateAt)
-    const now = dayjs()
-    const hoursSinceLastUpdate = now.diff(lastUpdate, 'hour')
-    const minutesSinceLastUpdate = now.diff(lastUpdate, 'minute')
-    
-    if (hoursSinceLastUpdate >= MIN_UPDATE_INTERVAL_HOURS) {
-      return null
-    }
-    
+  // Вычисляет оставшееся время до следующего обновления для данного кабинета
+  const getRemainingTime = (cab: CabinetDto): string | null => {
+    const lastAt = cab.apiKey?.lastDataUpdateAt
+    if (!lastAt) return null
+    const lastUpdate = dayjs(lastAt)
+    const hoursSinceLastUpdate = dayjs().diff(lastUpdate, 'hour')
+    const minutesSinceLastUpdate = dayjs().diff(lastUpdate, 'minute')
+    if (hoursSinceLastUpdate >= MIN_UPDATE_INTERVAL_HOURS) return null
     const remainingMinutes = MIN_UPDATE_INTERVAL_HOURS * 60 - minutesSinceLastUpdate
     const remainingHours = Math.floor(remainingMinutes / 60)
     const remainingMins = remainingMinutes % 60
-    
     if (remainingHours > 0) {
       return `${remainingHours} ${getHoursWord(remainingHours)} ${remainingMins > 0 ? `и ${remainingMins} ${getMinutesWord(remainingMins)}` : ''}`
-    } else {
-      return `${remainingMins} ${getMinutesWord(remainingMins)}`
     }
+    return `${remainingMins} ${getMinutesWord(remainingMins)}`
   }
 
   // Возвращает правильное склонение слова "час/часа/часов"
@@ -595,8 +584,8 @@ export default function Profile() {
                                     <div style={{ height: '40px' }} />
                                   )}
                                   {(() => {
-                                    const canUpdate = canUpdateData()
-                                    const remainingTime = getRemainingTime()
+                                    const canUpdate = canUpdateData(cab)
+                                    const remainingTime = getRemainingTime(cab)
                                     const tooltipTitle = canUpdate
                                       ? 'Запускает обновление карточек, кампаний и аналитики.'
                                       : `Обновление не чаще одного раза в ${MIN_UPDATE_INTERVAL_HOURS} ч. Через ${remainingTime || '…'}.`
