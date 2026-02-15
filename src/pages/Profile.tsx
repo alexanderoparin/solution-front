@@ -116,8 +116,8 @@ export default function Profile() {
     mutationFn: () => userApi.triggerDataUpdate(),
     onSuccess: (data) => {
       message.success(data.message)
-      // Обновляем профиль, чтобы получить актуальное время последнего обновления
       queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+      queryClient.invalidateQueries({ queryKey: ['cabinets'] })
     },
     onError: (error: any) => {
       // Обрабатываем ошибку 429 (Too Many Requests) - слишком частые обновления
@@ -156,20 +156,27 @@ export default function Profile() {
   // Минимальный интервал между обновлениями (6 часов)
   const MIN_UPDATE_INTERVAL_HOURS = 6
 
-  // Проверяет, можно ли запустить обновление для данного кабинета (прошло ли 6 часов с его lastDataUpdateAt)
+  // Более поздняя из двух дат: реальный старт обновления или запрос (кнопка нажата, задача в очереди)
+  const getLastUpdateOrRequested = (cab: CabinetDto): string | null => {
+    const a = cab.apiKey?.lastDataUpdateAt ?? null
+    const b = cab.apiKey?.lastDataUpdateRequestedAt ?? null
+    if (!a && !b) return null
+    if (!a) return b
+    if (!b) return a
+    return dayjs(a).isAfter(dayjs(b)) ? a : b
+  }
+
+  // Проверяет, можно ли запустить обновление (6 ч с последнего старта или запроса)
   const canUpdateData = (cab: CabinetDto): boolean => {
-    const lastAt = cab.apiKey?.lastDataUpdateAt
-    if (!lastAt) {
-      return true // Если обновление еще не запускалось по этому кабинету, разрешаем
-    }
-    const lastUpdate = dayjs(lastAt)
-    const hoursSinceLastUpdate = dayjs().diff(lastUpdate, 'hour')
+    const lastAt = getLastUpdateOrRequested(cab)
+    if (!lastAt) return true
+    const hoursSinceLastUpdate = dayjs().diff(dayjs(lastAt), 'hour')
     return hoursSinceLastUpdate >= MIN_UPDATE_INTERVAL_HOURS
   }
 
-  // Вычисляет оставшееся время до следующего обновления для данного кабинета
+  // Оставшееся время до следующего обновления
   const getRemainingTime = (cab: CabinetDto): string | null => {
-    const lastAt = cab.apiKey?.lastDataUpdateAt
+    const lastAt = getLastUpdateOrRequested(cab)
     if (!lastAt) return null
     const lastUpdate = dayjs(lastAt)
     const hoursSinceLastUpdate = dayjs().diff(lastUpdate, 'hour')
@@ -623,7 +630,7 @@ export default function Profile() {
           <Card
             title={
               profile.role === 'ADMIN'
-                ? 'Менеджеры'
+                ? 'Пользователи'
                 : profile.role === 'MANAGER'
                   ? 'Селлеры'
                   : 'Работники'

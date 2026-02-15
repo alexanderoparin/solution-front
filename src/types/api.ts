@@ -70,7 +70,10 @@ export interface CabinetApiKeyInfo {
   lastValidatedAt: string | null
   validationError: string | null
   lastDataUpdateAt: string | null
-}export interface CabinetDto {
+  /** Время запроса обновления (кнопка нажата, задача в очереди). Для блокировки кнопки. */
+  lastDataUpdateRequestedAt: string | null
+}
+export interface CabinetDto {
   id: number
   name: string
   createdAt: string

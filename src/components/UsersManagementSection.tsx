@@ -17,6 +17,7 @@ import {
   EditOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  SearchOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
@@ -41,10 +42,18 @@ const ROLE_COLORS: Record<UserRole, string> = {
   WORKER: 'green',
 }
 
+const ROLE_ORDER: Record<UserRole, number> = {
+  ADMIN: 0,
+  MANAGER: 1,
+  SELLER: 2,
+  WORKER: 3,
+}
+
 export default function UsersManagementSection() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserListItem | null>(null)
+  const [searchEmail, setSearchEmail] = useState('')
   const [createForm] = Form.useForm()
   const [editForm] = Form.useForm()
   const queryClient = useQueryClient()
@@ -68,6 +77,10 @@ export default function UsersManagementSection() {
     queryKey: ['managedUsers'],
     queryFn: userApi.getManagedUsers,
   })
+
+  const filteredUsers = searchEmail.trim()
+    ? users.filter((u) => u.email.toLowerCase().includes(searchEmail.trim().toLowerCase()))
+    : users
 
   const createMutation = useMutation({
     mutationFn: userApi.createUser,
@@ -143,6 +156,7 @@ export default function UsersManagementSection() {
       dataIndex: 'role',
       key: 'role',
       render: (roleVal: UserRole) => <Tag color={ROLE_COLORS[roleVal]}>{ROLE_LABELS[roleVal]}</Tag>,
+      sorter: (a: UserListItem, b: UserListItem) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role],
     },
     {
       title: 'Статус',
@@ -155,6 +169,7 @@ export default function UsersManagementSection() {
           {record.isTemporaryPassword && <Tag color="orange">Временный пароль</Tag>}
         </Space>
       ),
+      sorter: (a: UserListItem, b: UserListItem) => Number(b.isActive) - Number(a.isActive),
     },
     {
       title: 'Дата создания',
@@ -163,6 +178,7 @@ export default function UsersManagementSection() {
       render: (date: string) => dayjs(date).format('DD.MM.YYYY HH:mm'),
       sorter: (a: UserListItem, b: UserListItem) =>
         dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix(),
+      defaultSortOrder: 'descend' as const,
     },
     {
       title: 'Действия',
@@ -199,7 +215,15 @@ export default function UsersManagementSection() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+        <Input
+          placeholder="Поиск по email"
+          prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+          value={searchEmail}
+          onChange={(e) => setSearchEmail(e.target.value)}
+          allowClear
+          style={{ width: 260 }}
+        />
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -211,7 +235,7 @@ export default function UsersManagementSection() {
       </div>
       <Table
         columns={columns}
-        dataSource={users}
+        dataSource={filteredUsers}
         rowKey="id"
         loading={isLoading}
         pagination={{ pageSize: 20, showSizeChanger: true, showTotal: (total) => `Всего: ${total}` }}
