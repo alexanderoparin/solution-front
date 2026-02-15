@@ -74,6 +74,15 @@ export const userApi = {
   },
 
   /**
+   * Запускает обновление данных для указанного кабинета (даты и ограничение 6 ч по кабинету).
+   * Доступно для ADMIN и MANAGER.
+   */
+  triggerCabinetDataUpdate: async (cabinetId: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(`/users/cabinets/${cabinetId}/trigger-update`)
+    return response.data
+  },
+
+  /**
    * Список кабинетов селлера (для ADMIN/MANAGER при просмотре аналитики селлера).
    */
   getSellerCabinets: async (sellerId: number): Promise<CabinetDto[]> => {

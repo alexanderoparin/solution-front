@@ -416,8 +416,21 @@ export default function AnalyticsSummary() {
     () => (selectedSellerId != null ? activeSellers.find((s) => s.id === selectedSellerId) : undefined),
     [selectedSellerId, activeSellers]
   )
+  const selectedCabinet = useMemo(
+    () => (selectedCabinetId != null ? cabinets.find((c) => c.id === selectedCabinetId) : undefined),
+    [cabinets, selectedCabinetId]
+  )
   const MIN_UPDATE_INTERVAL_HOURS = 6
   const getLastUpdateOrRequested = (): string | null => {
+    if (selectedCabinet?.apiKey) {
+      const a = selectedCabinet.apiKey.lastDataUpdateAt ?? null
+      const b = selectedCabinet.apiKey.lastDataUpdateRequestedAt ?? null
+      if (a || b) {
+        if (!a) return b
+        if (!b) return a
+        return dayjs(a).isAfter(dayjs(b)) ? a : b
+      }
+    }
     if (!selectedSeller) return null
     const a = selectedSeller.lastDataUpdateAt ?? null
     const b = selectedSeller.lastDataUpdateRequestedAt ?? null
@@ -444,10 +457,14 @@ export default function AnalyticsSummary() {
     return h > 0 ? `${h} ${getHoursWord(h)}${m > 0 ? ` и ${m} ${getMinutesWord(m)}` : ''}` : `${m} ${getMinutesWord(m)}`
   }
   const triggerUpdateMutation = useMutation({
-    mutationFn: (sellerId: number) => userApi.triggerSellerDataUpdate(sellerId),
-    onSuccess: (data) => {
+    mutationFn: (payload: { sellerId: number; cabinetId?: number | null }) =>
+      payload.cabinetId != null ? userApi.triggerCabinetDataUpdate(payload.cabinetId) : userApi.triggerSellerDataUpdate(payload.sellerId),
+    onSuccess: (data, variables) => {
       message.success(data.message)
       queryClient.invalidateQueries({ queryKey: ['activeSellers'] })
+      if (variables.sellerId != null) {
+        queryClient.invalidateQueries({ queryKey: ['sellerCabinets', variables.sellerId] })
+      }
     },
     onError: (err: any) => {
       const msg = err.response?.data?.message || 'Ошибка запуска обновления'
@@ -704,7 +721,7 @@ export default function AnalyticsSummary() {
               <Button
                 type="default"
                 icon={<SyncOutlined spin={triggerUpdateMutation.isPending} />}
-                onClick={() => triggerUpdateMutation.mutate(selectedSellerId)}
+                onClick={() => triggerUpdateMutation.mutate({ sellerId: selectedSellerId, cabinetId: selectedCabinetId ?? undefined })}
                 loading={triggerUpdateMutation.isPending}
                 disabled={!canUpdateSellerData() || triggerUpdateMutation.isPending}
                 style={{ color: '#7C3AED', borderColor: '#7C3AED' }}
