@@ -417,15 +417,26 @@ export default function AnalyticsSummary() {
     [selectedSellerId, activeSellers]
   )
   const MIN_UPDATE_INTERVAL_HOURS = 6
+  const getLastUpdateOrRequested = (): string | null => {
+    if (!selectedSeller) return null
+    const a = selectedSeller.lastDataUpdateAt ?? null
+    const b = selectedSeller.lastDataUpdateRequestedAt ?? null
+    if (!a && !b) return null
+    if (!a) return b
+    if (!b) return a
+    return dayjs(a).isAfter(dayjs(b)) ? a : b
+  }
   const canUpdateSellerData = (): boolean => {
-    if (!selectedSeller?.lastDataUpdateAt) return true
-    return dayjs().diff(dayjs(selectedSeller.lastDataUpdateAt), 'hour') >= MIN_UPDATE_INTERVAL_HOURS
+    const lastAt = getLastUpdateOrRequested()
+    if (!lastAt) return true
+    return dayjs().diff(dayjs(lastAt), 'hour') >= MIN_UPDATE_INTERVAL_HOURS
   }
   const getHoursWord = (h: number) => (h % 10 === 1 && h % 100 !== 11 ? 'час' : h % 10 >= 2 && h % 10 <= 4 && (h % 100 < 10 || h % 100 >= 20) ? 'часа' : 'часов')
   const getMinutesWord = (m: number) => (m % 10 === 1 && m % 100 !== 11 ? 'минута' : m % 10 >= 2 && m % 10 <= 4 && (m % 100 < 10 || m % 100 >= 20) ? 'минуты' : 'минут')
   const getRemainingTime = (): string | null => {
-    if (!selectedSeller?.lastDataUpdateAt) return null
-    const lastUpdate = dayjs(selectedSeller.lastDataUpdateAt)
+    const lastAt = getLastUpdateOrRequested()
+    if (!lastAt) return null
+    const lastUpdate = dayjs(lastAt)
     const mins = MIN_UPDATE_INTERVAL_HOURS * 60 - dayjs().diff(lastUpdate, 'minute')
     if (mins <= 0) return null
     const h = Math.floor(mins / 60)

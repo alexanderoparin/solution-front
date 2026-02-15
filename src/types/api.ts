@@ -51,6 +51,7 @@ export interface UserListItem {
   createdAt: string
   ownerEmail: string | null
   lastDataUpdateAt: string | null
+  lastDataUpdateRequestedAt: string | null
 }
 
 export interface CreateUserRequest {
