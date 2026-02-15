@@ -698,7 +698,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
     enabled: !!firstStockWarehouse,
   })
 
-  const inPromotion = (articleDetail?.campaigns?.length ?? 0) > 0
+  const inPromotion = articleDetail?.inWbPromotion === true
   const rating = articleDetail?.article?.rating ?? null
   const reviewsCount = articleDetail?.article?.reviewsCount ?? null
   const stocksTotal = useMemo(

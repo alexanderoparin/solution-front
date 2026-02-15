@@ -180,6 +180,8 @@ export interface ArticleResponse {
   metrics: Metric[]
   dailyData: DailyData[]
   campaigns: Campaign[]
+  /** Участвует ли товар в акции WB (по скидке продавца), не путать с рекламными кампаниями */
+  inWbPromotion?: boolean | null
   stocks: Stock[]
 }
 
