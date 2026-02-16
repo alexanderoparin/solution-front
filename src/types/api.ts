@@ -84,9 +84,7 @@ export interface CabinetDto {
   /** Время запроса обновления по кабинету (всегда в ответе). */
   lastDataUpdateRequestedAt: string | null
   apiKey: CabinetApiKeyInfo | null
-}
-
-export interface CreateCabinetRequest {
+}export interface CreateCabinetRequest {
   name: string
 }export interface UpdateCabinetRequest {
   name?: string
