@@ -8,7 +8,7 @@ import locale from 'antd/locale/ru_RU'
 import { analyticsApi } from '../api/analytics'
 import { getStoredCabinetId, getStoredCabinetIdForSeller } from '../api/cabinets'
 import type { ArticleResponse, StockSize, ArticleNote } from '../types/analytics'
-import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
+import { colors, typography, spacing, shadows, borderRadius, transitions, ARTICLE_HEADER_PHOTO_HEIGHT } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -655,12 +655,12 @@ export default function AnalyticsArticle() {
         backgroundColor: colors.bgGray,
         minHeight: '100vh'
       }}>
-      {/* Шапка артикула: компактно, как в кабинете — фото без полей, название, категория·бренд, артикулы, В акции; справа — товары в связке */}
+      {/* Шапка артикула: крупное фото вплотную к границам, название, категория·бренд, артикулы, В акции; справа — товары в связке */}
       <div style={{
         backgroundColor: colors.bgWhite,
         border: `1px solid ${colors.borderLight}`,
         borderRadius: borderRadius.md,
-        padding: spacing.md,
+        padding: spacing.sm,
         marginBottom: spacing.xl,
         boxShadow: shadows.md,
         transition: transitions.normal
@@ -685,8 +685,7 @@ export default function AnalyticsArticle() {
               style={{
                 display: 'block',
                 flexShrink: 0,
-                width: 80,
-                height: 80,
+                height: ARTICLE_HEADER_PHOTO_HEIGHT,
                 borderRadius: borderRadius.sm,
                 overflow: 'hidden',
                 border: `1px solid ${colors.borderLight}`,
@@ -704,10 +703,10 @@ export default function AnalyticsArticle() {
                 src={article.article.photoTm}
                 alt={article.article.title}
                 style={{
-                  width: '100%',
+                  display: 'block',
                   height: '100%',
-                  objectFit: 'cover',
-                  display: 'block'
+                  width: 'auto',
+                  objectFit: 'contain'
                 }}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none'
@@ -715,7 +714,7 @@ export default function AnalyticsArticle() {
               />
             </a>
           )}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: '0 1 auto', minWidth: 0 }}>
             <div style={{
               ...typography.body,
               ...FONT_PAGE,
@@ -760,35 +759,59 @@ export default function AnalyticsArticle() {
             </span>
           </div>
 
-          {/* Товары в связке: по высоте основного фото (80px), два ряда, горизонтальная прокрутка, клик — переход на аналитику артикула */}
-          {(article.bundleProducts?.length ?? 0) > 0 && (
-            <div style={{ flexShrink: 0 }}>
-              <div style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 4, fontWeight: 500 }}>В связке</div>
+          {/* Товары в связке: по схеме — справа от основного, сетка 2 ряда × колонки, скролл влево-вправо; фото в 2 раза меньше основного */}
+          {(article.bundleProducts?.length ?? 0) > 0 && (() => {
+            const bundlePhotoH = Math.round(ARTICLE_HEADER_PHOTO_HEIGHT / 2)
+            const bundlePhotoW = 80
+            const rowHeight = Math.floor(ARTICLE_HEADER_PHOTO_HEIGHT / 2)
+            const list = article.bundleProducts ?? []
+            const pairs: typeof list[] = []
+            for (let i = 0; i < list.length; i += 2) pairs.push(list.slice(i, i + 2))
+            return (
+            <div style={{
+              flexShrink: 0,
+              height: ARTICLE_HEADER_PHOTO_HEIGHT,
+              display: 'flex',
+              alignItems: 'stretch',
+              gap: 8
+            }}>
               <div style={{
-                width: 220,
-                height: 80,
+                width: 36,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                fontSize: 11,
+                color: colors.textSecondary,
+                fontWeight: 500,
+                writingMode: 'vertical-rl',
+                transform: 'rotate(180deg)',
+                textAlign: 'center'
+              }}>
+                В связке
+              </div>
+              <div style={{
+                flex: '0 1 auto',
+                minWidth: 0,
+                maxWidth: 320,
+                height: ARTICLE_HEADER_PHOTO_HEIGHT,
                 overflowX: 'auto',
                 overflowY: 'hidden',
                 display: 'flex',
+                flexDirection: 'row',
                 gap: 8,
                 paddingRight: 4
               }}>
-              {(() => {
-                const list = article.bundleProducts ?? []
-                const pairs: typeof list[] = []
-                for (let i = 0; i < list.length; i += 2) {
-                  pairs.push(list.slice(i, i + 2))
-                }
-                return pairs.map((pair, colIndex) => (
+                {pairs.map((pair, colIndex) => (
                   <div
                     key={colIndex}
                     style={{
                       flexShrink: 0,
-                      width: 100,
-                      height: 80,
+                      width: bundlePhotoW + 140,
+                      height: ARTICLE_HEADER_PHOTO_HEIGHT,
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 0
+                      gap: 4
                     }}
                   >
                     {pair.map((item) => (
@@ -801,8 +824,9 @@ export default function AnalyticsArticle() {
                         href={`/analytics/article/${item.nmId}`}
                         style={{
                           flexShrink: 0,
-                          height: 40,
+                          height: rowHeight,
                           display: 'flex',
+                          flexDirection: 'row',
                           alignItems: 'center',
                           gap: 6,
                           padding: '2px 4px',
@@ -826,34 +850,35 @@ export default function AnalyticsArticle() {
                             src={item.photoTm}
                             alt=""
                             style={{
-                              width: 32,
-                              height: 32,
-                              objectFit: 'cover',
+                              width: bundlePhotoW,
+                              height: bundlePhotoH,
+                              objectFit: 'contain',
                               borderRadius: 4,
                               flexShrink: 0
                             }}
                             onError={(ev) => { ev.currentTarget.style.display = 'none' }}
                           />
                         ) : (
-                          <div style={{ width: 32, height: 32, backgroundColor: colors.bgGrayLight, borderRadius: 4, flexShrink: 0 }} />
+                          <div style={{ width: bundlePhotoW, height: bundlePhotoH, backgroundColor: colors.bgGrayLight, borderRadius: 4, flexShrink: 0 }} />
                         )}
-                        <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                           <div style={{ fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {item.title || '-'}
                           </div>
-                          <div style={{ fontSize: 10, color: colors.textSecondary }}>
+                          <div style={{ fontSize: 10, color: colors.textSecondary, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {item.nmId}
+                            {item.vendorCode ? ` · ${item.vendorCode}` : ''}
                           </div>
                         </div>
                       </a>
                     ))}
-                    {pair.length < 2 && <div style={{ height: 40, flexShrink: 0 }} />}
+                    {pair.length < 2 && <div style={{ height: rowHeight, flexShrink: 0 }} />}
                   </div>
-                ))
-              })()}
+                ))}
               </div>
             </div>
-          )}
+            )
+          })() }
         </div>
       </div>
 

@@ -65,6 +65,15 @@ export const userApi = {
   },
 
   /**
+   * Полное удаление пользователя и всех связанных данных. Только для ADMIN.
+   * Таймаут увеличен (2 мин): коммит большой транзакции на бэкенде может занимать много времени.
+   */
+  deleteUser: async (userId: number): Promise<MessageResponse> => {
+    const response = await apiClient.delete<MessageResponse>(`/users/${userId}`)
+    return response.data
+  },
+
+  /**
    * Запускает обновление данных для указанного селлера.
    * Доступно только для ADMIN и MANAGER.
    */

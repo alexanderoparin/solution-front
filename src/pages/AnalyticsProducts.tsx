@@ -9,7 +9,7 @@ import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, getStoredCabinetIdForSeller, setStoredCabinetIdForSeller } from '../api/cabinets'
 import { userApi } from '../api/user'
 import type { ArticleSummary, Period } from '../types/analytics'
-import { colors, typography, spacing, borderRadius, transitions, shadows } from '../styles/analytics'
+import { colors, typography, spacing, borderRadius, transitions, shadows, PRODUCT_PHOTO_WIDTH, PRODUCT_PHOTO_HEIGHT } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -515,7 +515,7 @@ function getCellBorderRight(colIndex: number, dateColsCount: number): string {
 
 /** Ширины колонок (px) для выравнивания шапки и тела таблицы */
 const COL_WIDTHS = {
-  photo: 76,
+  photo: PRODUCT_PHOTO_WIDTH + 20, /* фото PRODUCT_PHOTO_WIDTH + padding 10+10 */
   name: 220,
   rating: 88,
   stock: 72,
@@ -755,7 +755,8 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
           verticalAlign: 'top',
           width: COL_WIDTHS.photo,
           position: 'relative',
-          minHeight: 64,
+          minHeight: PRODUCT_PHOTO_HEIGHT + 12,
+          overflow: 'hidden',
         }}
       >
         <div
@@ -763,9 +764,10 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
             position: 'absolute',
             top: 6,
             left: 10,
-            bottom: 6,
-            width: 64,
-            minHeight: 64,
+            width: PRODUCT_PHOTO_WIDTH,
+            height: PRODUCT_PHOTO_HEIGHT,
+            maxWidth: PRODUCT_PHOTO_WIDTH,
+            maxHeight: PRODUCT_PHOTO_HEIGHT,
             borderRadius: borderRadius.sm,
             overflow: 'hidden',
           }}
@@ -776,7 +778,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
             rel="noopener noreferrer"
             onClick={stopProp}
             className="products-table-link products-table-link--img"
-            style={{ display: 'block', width: '100%', height: '100%' }}
+            style={{ display: 'block', width: '100%', height: '100%', overflow: 'hidden' }}
           >
             {article.photoTm ? (
               <img
@@ -786,7 +788,10 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
                   display: 'block',
                   width: '100%',
                   height: '100%',
+                  maxWidth: PRODUCT_PHOTO_WIDTH,
+                  maxHeight: PRODUCT_PHOTO_HEIGHT,
                   objectFit: 'cover',
+                  objectPosition: 'center',
                 }}
               />
             ) : (

@@ -18,6 +18,7 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   SearchOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
@@ -121,6 +122,17 @@ export default function UsersManagementSection() {
     },
   })
 
+  const deleteUserMutation = useMutation({
+    mutationFn: userApi.deleteUser,
+    onSuccess: () => {
+      message.success('Пользователь удалён')
+      queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
+    },
+    onError: (error: any) => {
+      message.error(error.response?.data?.message || 'Ошибка при удалении пользователя')
+    },
+  })
+
   const handleCreate = (values: CreateUserRequest) => {
     createMutation.mutate(values)
   }
@@ -142,6 +154,21 @@ export default function UsersManagementSection() {
 
   const handleToggleActive = (user: UserListItem) => {
     toggleActiveMutation.mutate(user.id)
+  }
+
+  const handleDeleteUser = (user: UserListItem) => {
+    Modal.confirm({
+      title: 'Удалить пользователя?',
+      content: (
+        <>
+          Будет полностью удалена запись пользователя <strong>{user.email}</strong> и все связанные данные (кабинеты, карточки товаров, аналитика, заметки и т.д.). Это действие нельзя отменить.
+        </>
+      ),
+      okText: 'Удалить',
+      okType: 'danger',
+      cancelText: 'Отмена',
+      onOk: () => deleteUserMutation.mutate(user.id),
+    })
   }
 
   const columns = [
@@ -204,10 +231,22 @@ export default function UsersManagementSection() {
               icon={record.isActive ? <CloseCircleOutlined /> : <CheckCircleOutlined />}
               danger={record.isActive}
               size="small"
+              style={{ minWidth: 140 }}
             >
               {record.isActive ? 'Деактивировать' : 'Активировать'}
             </Button>
           </Popconfirm>
+          {role === 'ADMIN' && (
+            <Button
+              type="link"
+              icon={<DeleteOutlined />}
+              danger
+              size="small"
+              onClick={() => handleDeleteUser(record)}
+            >
+              Удалить
+            </Button>
+          )}
         </Space>
       ),
     },

@@ -108,6 +108,13 @@ export const transitions = {
   slow: '300ms ease-in-out',
 }
 
+/** Размер фото товара в списке (/analytics/products) — как в консоли: ~80×114 */
+export const PRODUCT_PHOTO_WIDTH = 80
+export const PRODUCT_PHOTO_HEIGHT = 114
+
+/** Высота фото в шапке страницы артикула; ширина не задаём — подстраивается под соотношение сторон */
+export const ARTICLE_HEADER_PHOTO_HEIGHT = 120
+
 export const breakpoints = {
   mobile: '768px',
   tablet: '1024px',
