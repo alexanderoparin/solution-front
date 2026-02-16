@@ -655,12 +655,12 @@ export default function AnalyticsArticle() {
         backgroundColor: colors.bgGray,
         minHeight: '100vh'
       }}>
-      {/* Информация о карточке товара */}
+      {/* Шапка артикула: компактно, как в кабинете — фото без полей, название, категория·бренд, артикулы, В акции; справа — товары в связке */}
       <div style={{
         backgroundColor: colors.bgWhite,
         border: `1px solid ${colors.borderLight}`,
         borderRadius: borderRadius.md,
-        padding: spacing.xl,
+        padding: spacing.md,
         marginBottom: spacing.xl,
         boxShadow: shadows.md,
         transition: transitions.normal
@@ -674,7 +674,7 @@ export default function AnalyticsArticle() {
       >
         <div style={{
           display: 'flex',
-          gap: spacing.xl,
+          gap: spacing.lg,
           alignItems: 'flex-start'
         }}>
           {article.article.photoTm && (
@@ -685,30 +685,28 @@ export default function AnalyticsArticle() {
               style={{
                 display: 'block',
                 flexShrink: 0,
+                width: 80,
+                height: 80,
+                borderRadius: borderRadius.sm,
+                overflow: 'hidden',
+                border: `1px solid ${colors.borderLight}`,
                 cursor: 'pointer',
                 transition: transitions.fast
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '0.8'
-                e.currentTarget.style.transform = 'scale(1.02)'
+                e.currentTarget.style.opacity = '0.9'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.opacity = '1'
-                e.currentTarget.style.transform = 'scale(1)'
               }}
             >
               <img
                 src={article.article.photoTm}
                 alt={article.article.title}
                 style={{
-                  width: 'auto',
-                  height: 'auto',
-                  maxWidth: '300px',
-                  maxHeight: '300px',
-                  objectFit: 'contain',
-                  borderRadius: borderRadius.md,
-                  border: `1px solid ${colors.borderLight}`,
-                  boxShadow: shadows.md,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
                   display: 'block'
                 }}
                 onError={(e) => {
@@ -717,192 +715,145 @@ export default function AnalyticsArticle() {
               />
             </a>
           )}
-          
-          <div style={{
-            display: 'flex',
-            gap: spacing.xl,
-            flex: 1,
-            alignItems: 'flex-start'
-          }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: spacing.lg,
-              flex: 1,
-              alignContent: 'start'
+              ...typography.body,
+              ...FONT_PAGE,
+              fontWeight: 700,
+              color: colors.textPrimary,
+              marginBottom: 4
             }}>
-              {/* Первая колонка */}
-              <div>
-                <div style={{ 
-                  ...typography.body,
-                  ...FONT_PAGE_SMALL, 
-                  color: colors.textSecondary,
-                  marginBottom: spacing.xs
-                }}>
-                  Артикул
-                </div>
-                <div style={{ 
-                  ...typography.body,
-                  ...FONT_PAGE, 
-                  fontWeight: 600,
-                  color: colors.textPrimary,
-                  marginBottom: spacing.md
-                }}>
-                  {article.article.nmId}
-                </div>
-                {article.article.vendorCode && (
-                  <>
-                    <div style={{ 
-                      ...typography.body,
-                  ...FONT_PAGE_SMALL, 
-                      color: colors.textSecondary,
-                      marginBottom: spacing.xs
-                    }}>
-                      Артикул продавца
-                    </div>
-                    <div style={{ 
-                      ...typography.body,
-                  ...FONT_PAGE, 
-                      fontWeight: 500,
-                      color: colors.textPrimary
-                    }}>
-                      {article.article.vendorCode}
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              {/* Вторая колонка */}
-              <div style={{
-                padding: spacing.md,
-                backgroundColor: colors.bgGrayLight,
-                borderRadius: borderRadius.sm,
-                border: `1px solid ${colors.borderLight}`
-              }}>
-                <div style={{ 
-                  ...typography.body,
-                  ...FONT_PAGE_SMALL, 
-                  color: colors.textSecondary,
-                  marginBottom: spacing.xs,
-                  fontWeight: 500
-                }}>
-                  Категория
-                </div>
-                <div style={{ 
-                  ...typography.body,
-                  ...FONT_PAGE, 
-                  fontWeight: 600,
-                  color: colors.textPrimary,
-                  marginBottom: spacing.md
-                }}>
-                  {article.article.subjectName || '-'}
-                </div>
-                <div style={{ 
-                  ...typography.body,
-                  ...FONT_PAGE_SMALL, 
-                  color: colors.textSecondary,
-                  marginBottom: spacing.xs,
-                  fontWeight: 500
-                }}>
-                  Бренд
-                </div>
-                <div style={{ 
-                  ...typography.body,
-                  ...FONT_PAGE, 
-                  fontWeight: 600,
-                  color: colors.textPrimary
-                }}>
-                  {article.article.brand || '-'}
-                </div>
-              </div>
-              
-              {/* Третья колонка */}
-              {article.article.imtId && (
-                <div>
-                  <div style={{ 
-                    ...typography.body,
-                  ...FONT_PAGE_SMALL, 
-                    color: colors.textSecondary,
-                    marginBottom: spacing.xs
-                  }}>
-                    IMT ID
-                  </div>
-                  <div style={{ 
-                    ...typography.body,
-                  ...FONT_PAGE, 
-                    fontWeight: 500,
-                    color: colors.textPrimary
-                  }}>
-                    {article.article.imtId}
-                  </div>
-                </div>
-              )}
-              
-              {article.article.rating !== null && (
-                <div style={{
-                  padding: spacing.md,
-                  backgroundColor: colors.successLight,
-                  borderRadius: borderRadius.sm,
-                  border: `1px solid ${colors.success}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <div style={{ 
-                    ...typography.body,
-                  ...FONT_PAGE_SMALL, 
-                    color: colors.textSecondary,
-                    marginBottom: spacing.xs,
-                    fontWeight: 500
-                  }}>
-                    Рейтинг
-                  </div>
-                  <div style={{ 
-                    ...typography.h3,
-                  ...FONT_PAGE,
-                  ...FONT_PAGE, 
-                    color: colors.success,
-                    fontWeight: 700
-                  }}>
-                    {article.article.rating.toFixed(1)} ⭐
-                  </div>
-                </div>
-              )}
-              
-              {article.article.reviewsCount !== null && (
-                <div style={{
-                  padding: spacing.md,
-                  backgroundColor: colors.primaryLight,
-                  borderRadius: borderRadius.sm,
-                  border: `1px solid ${colors.primary}`,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <div style={{ 
-                    ...typography.body,
-                  ...FONT_PAGE_SMALL, 
-                    color: colors.textSecondary,
-                    marginBottom: spacing.xs,
-                    fontWeight: 500
-                  }}>
-                    Отзывов
-                  </div>
-                  <div style={{ 
-                    ...typography.h3,
-                  ...FONT_PAGE,
-                  ...FONT_PAGE, 
-                    color: colors.primary,
-                    fontWeight: 700
-                  }}>
-                    {article.article.reviewsCount.toLocaleString('ru-RU')}
-                  </div>
-                </div>
-              )}
+              {article.article.title || '-'}
             </div>
+            <div style={{ color: colors.textSecondary, marginBottom: 2, fontSize: 12 }}>
+              {[article.article.subjectName, article.article.brand].filter(Boolean).join(' · ') || '-'}
+            </div>
+            <div style={{ color: colors.textSecondary, marginBottom: 2, fontSize: 12 }}>
+              Артикул WB:{' '}
+              <a
+                href={article.article.productUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: colors.primary, fontWeight: 500 }}
+              >
+                {article.article.nmId}
+              </a>
+            </div>
+            <div style={{ color: colors.textSecondary, marginBottom: 6, fontSize: 12 }}>
+              Артикул продавца:{' '}
+              <span style={{ color: colors.primary, fontWeight: 500 }}>
+                {article.article.vendorCode ?? '-'}
+              </span>
+            </div>
+            <span
+              style={{
+                display: 'inline-block',
+                padding: '2px 8px',
+                borderRadius: borderRadius.sm,
+                fontSize: 11,
+                fontWeight: 500,
+                backgroundColor: article.inWbPromotion ? colors.successLight : colors.bgGray,
+                color: article.inWbPromotion ? colors.success : colors.textSecondary,
+              }}
+            >
+              {article.inWbPromotion ? 'В акции' : 'Не в акции'}
+            </span>
           </div>
+
+          {/* Товары в связке: по высоте основного фото (80px), два ряда, горизонтальная прокрутка, клик — переход на аналитику артикула */}
+          {(article.bundleProducts?.length ?? 0) > 0 && (
+            <div style={{ flexShrink: 0 }}>
+              <div style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 4, fontWeight: 500 }}>В связке</div>
+              <div style={{
+                width: 220,
+                height: 80,
+                overflowX: 'auto',
+                overflowY: 'hidden',
+                display: 'flex',
+                gap: 8,
+                paddingRight: 4
+              }}>
+              {(() => {
+                const list = article.bundleProducts ?? []
+                const pairs: typeof list[] = []
+                for (let i = 0; i < list.length; i += 2) {
+                  pairs.push(list.slice(i, i + 2))
+                }
+                return pairs.map((pair, colIndex) => (
+                  <div
+                    key={colIndex}
+                    style={{
+                      flexShrink: 0,
+                      width: 100,
+                      height: 80,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 0
+                    }}
+                  >
+                    {pair.map((item) => (
+                      <a
+                        key={item.nmId}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          navigate(`/analytics/article/${item.nmId}`)
+                        }}
+                        href={`/analytics/article/${item.nmId}`}
+                        style={{
+                          flexShrink: 0,
+                          height: 40,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '2px 4px',
+                          borderRadius: borderRadius.sm,
+                          textDecoration: 'none',
+                          color: colors.textPrimary,
+                          border: `1px solid transparent`,
+                          transition: transitions.fast
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = colors.bgGrayLight
+                          e.currentTarget.style.borderColor = colors.borderLight
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent'
+                          e.currentTarget.style.borderColor = 'transparent'
+                        }}
+                      >
+                        {item.photoTm ? (
+                          <img
+                            src={item.photoTm}
+                            alt=""
+                            style={{
+                              width: 32,
+                              height: 32,
+                              objectFit: 'cover',
+                              borderRadius: 4,
+                              flexShrink: 0
+                            }}
+                            onError={(ev) => { ev.currentTarget.style.display = 'none' }}
+                          />
+                        ) : (
+                          <div style={{ width: 32, height: 32, backgroundColor: colors.bgGrayLight, borderRadius: 4, flexShrink: 0 }} />
+                        )}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.title || '-'}
+                          </div>
+                          <div style={{ fontSize: 10, color: colors.textSecondary }}>
+                            {item.nmId}
+                          </div>
+                        </div>
+                      </a>
+                    ))}
+                    {pair.length < 2 && <div style={{ height: 40, flexShrink: 0 }} />}
+                  </div>
+                ))
+              })()}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

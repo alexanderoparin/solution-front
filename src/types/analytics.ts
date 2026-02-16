@@ -183,5 +183,7 @@ export interface ArticleResponse {
   /** Участвует ли товар в акции WB (по скидке продавца), не путать с рекламными кампаниями */
   inWbPromotion?: boolean | null
   stocks: Stock[]
+  /** Товары «в связке» для отображения справа от шапки артикула */
+  bundleProducts?: ArticleSummary[]
 }
 
