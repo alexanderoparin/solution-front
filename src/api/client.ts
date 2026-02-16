@@ -1,10 +1,9 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 
-// Используем переменную окружения или дефолтное значение
-// В production используем относительный путь /api (проксируется через nginx)
-// В dev режиме используем прямой URL на localhost:8080
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:8080/api')
+// Относительный /api: в production проксируется nginx, в dev — Vite proxy (vite.config.ts → localhost:8080).
+// Переопределение: VITE_API_BASE_URL (например, http://localhost:8080/api при отдельном запуске бэкенда).
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

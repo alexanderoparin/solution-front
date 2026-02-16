@@ -224,9 +224,19 @@ export default function AnalyticsSummary() {
     }
   }, [cabinets, selectedCabinetId])
 
-  // Устанавливаем первого селлера по умолчанию
+  // Сбрасываем выбранного селлера, если он не в списке активных (деактивирован)
   useEffect(() => {
-    if (isManagerOrAdmin && activeSellers.length > 0 && !selectedSellerId) {
+    if (!isManagerOrAdmin || activeSellers.length === 0) return
+    const activeIds = new Set(activeSellers.map((s) => s.id))
+    if (selectedSellerId != null && !activeIds.has(selectedSellerId)) {
+      setSelectedSellerId(undefined)
+      localStorage.removeItem('analytics_selected_seller_id')
+    }
+  }, [activeSellers, isManagerOrAdmin, selectedSellerId])
+
+  // Устанавливаем селлера по умолчанию, если никто не выбран
+  useEffect(() => {
+    if (isManagerOrAdmin && activeSellers.length > 0 && selectedSellerId == null) {
       const lastSeller = activeSellers[activeSellers.length - 1]
       setSelectedSellerId(lastSeller.id)
       localStorage.setItem('analytics_selected_seller_id', lastSeller.id.toString())
