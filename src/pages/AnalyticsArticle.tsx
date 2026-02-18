@@ -745,6 +745,9 @@ export default function AnalyticsArticle() {
               </span>
             </div>
             <span
+              title={article.inWbPromotion && (article.wbPromotionNames?.length ?? 0) > 0
+                ? article.wbPromotionNames!.join('\n')
+                : undefined}
               style={{
                 display: 'inline-block',
                 padding: '2px 8px',
@@ -753,6 +756,7 @@ export default function AnalyticsArticle() {
                 fontWeight: 500,
                 backgroundColor: article.inWbPromotion ? colors.successLight : colors.bgGray,
                 color: article.inWbPromotion ? colors.success : colors.textSecondary,
+                cursor: article.inWbPromotion && (article.wbPromotionNames?.length ?? 0) > 0 ? 'help' : undefined,
               }}
             >
               {article.inWbPromotion ? 'В акции' : 'Не в акции'}

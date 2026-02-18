@@ -180,8 +180,10 @@ export interface ArticleResponse {
   metrics: Metric[]
   dailyData: DailyData[]
   campaigns: Campaign[]
-  /** Участвует ли товар в акции WB (по скидке продавца), не путать с рекламными кампаниями */
+  /** Участвует ли товар в акции WB (календарь акций и/или скидка), не путать с рекламными кампаниями */
   inWbPromotion?: boolean | null
+  /** Названия акций календаря WB для тултипа */
+  wbPromotionNames?: string[] | null
   stocks: Stock[]
   /** Товары «в связке» для отображения справа от шапки артикула */
   bundleProducts?: ArticleSummary[]

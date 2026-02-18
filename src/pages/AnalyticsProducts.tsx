@@ -699,6 +699,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
   })
 
   const inPromotion = articleDetail?.inWbPromotion === true
+  const promotionNames = articleDetail?.wbPromotionNames?.filter(Boolean).join(', ') ?? ''
   const rating = articleDetail?.article?.rating ?? null
   const reviewsCount = articleDetail?.article?.reviewsCount ?? null
   const stocksTotal = useMemo(
@@ -833,6 +834,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
           </Link>
         </div>
         <span
+          title={inPromotion && promotionNames ? promotionNames : undefined}
           style={{
             display: 'inline-block',
             padding: '2px 8px',
@@ -841,6 +843,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
             fontWeight: 500,
             backgroundColor: inPromotion ? colors.successLight : colors.bgGray,
             color: inPromotion ? colors.success : colors.textSecondary,
+            cursor: inPromotion && promotionNames ? 'help' : undefined,
           }}
         >
           {inPromotion ? 'В акции' : 'Не в акции'}
