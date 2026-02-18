@@ -24,13 +24,36 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
+const MAX_RETRIES = 2
+const RETRY_DELAY_MS = 1000
+
+function isRetryableNetworkError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const err = error as { code?: string; message?: string; response?: unknown }
+  if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNABORTED') return true
+  if (err.message?.includes('Network Error') || err.message?.includes('Connection reset')) return true
+  if (!err.response && err.message) return true // нет ответа от сервера
+  return false
+}
+
 // Перехватчик для обработки ошибок
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config
     const status = error.response?.status
-    const url = error.config?.url || ''
-    
+    const url = config?.url || ''
+
+    // Автоповтор при обрыве соединения (Connection reset by peer и т.п.)
+    if (config && isRetryableNetworkError(error)) {
+      const retryCount = config.__retryCount ?? 0
+      if (retryCount < MAX_RETRIES) {
+        config.__retryCount = retryCount + 1
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS))
+        return apiClient.request(config)
+      }
+    }
+
     // 401 - неавторизован, редиректим на логин
     // Исключаем эндпоинт логина, чтобы пользователь мог увидеть сообщение об ошибке
     if (status === 401 && !url.includes('/auth/login')) {
