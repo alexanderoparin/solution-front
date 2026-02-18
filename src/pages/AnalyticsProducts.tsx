@@ -16,7 +16,6 @@ import Breadcrumbs from '../components/Breadcrumbs'
 
 dayjs.locale('ru')
 
-const FONT_PAGE = { fontSize: '12px' as const }
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
 const PAGE_SIZE = 10
 
@@ -189,8 +188,9 @@ export default function AnalyticsProducts() {
     getNextPageParam: (lastPage, allPages) => {
       const total = lastPage.totalArticles ?? 0
       const loaded = allPages.reduce((s, p) => s + p.articles.length, 0)
-      if (loaded >= total) return undefined
-      return allPages.length
+      const next = (total > 0 && loaded >= total) || lastPage.articles.length < PAGE_SIZE ? undefined : allPages.length
+      console.log('[ProductsScroll] getNextPageParam', { total, loaded, pages: allPages.length, next })
+      return next
     },
     initialPageParam: 0,
     enabled: selectedCabinetId != null,
@@ -221,7 +221,10 @@ export default function AnalyticsProducts() {
   }, [selectedCabinetId, selectedNmIds])
 
   const loadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) fetchNextPage()
+    if (hasNextPage && !isFetchingNextPage) {
+      console.log('[ProductsScroll] fetchNextPage()')
+      fetchNextPage()
+    }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const autoLoadCountRef = useRef(0)
@@ -230,9 +233,24 @@ export default function AnalyticsProducts() {
   const scrollHandler = useCallback(
     (fromUserScroll: boolean) => {
       const el = containerRef.current
+      const distToBottom = el ? el.scrollHeight - el.scrollTop - el.clientHeight : null
+      const nearBottom = el != null && distToBottom != null && distToBottom < 300
+      const wouldLoad =
+        nearBottom && hasNextPage && !isFetchingNextPage && (fromUserScroll || autoLoadCountRef.current < MAX_AUTO_LOAD)
+      console.log('[ProductsScroll] scrollHandler', {
+        fromUserScroll,
+        hasEl: !!el,
+        scrollTop: el?.scrollTop,
+        scrollHeight: el?.scrollHeight,
+        clientHeight: el?.clientHeight,
+        distToBottom,
+        nearBottom,
+        hasNextPage,
+        isFetchingNextPage,
+        autoLoadCount: autoLoadCountRef.current,
+        wouldLoad,
+      })
       if (!el) return
-      const { scrollTop, scrollHeight, clientHeight } = el
-      const nearBottom = scrollHeight - scrollTop - clientHeight < 300
       if (!nearBottom || !hasNextPage || isFetchingNextPage) return
       if (!fromUserScroll && autoLoadCountRef.current >= MAX_AUTO_LOAD) return
       if (!fromUserScroll) autoLoadCountRef.current += 1
@@ -240,14 +258,6 @@ export default function AnalyticsProducts() {
     },
     [loadMore, hasNextPage, isFetchingNextPage]
   )
-
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const onScroll = () => scrollHandler(true)
-    el.addEventListener('scroll', onScroll, { passive: true })
-    return () => el.removeEventListener('scroll', onScroll)
-  }, [scrollHandler])
 
   useEffect(() => {
     if (articles.length === PAGE_SIZE) autoLoadCountRef.current = 0
@@ -310,40 +320,6 @@ export default function AnalyticsProducts() {
               transition: transitions.normal,
             }}
           >
-          <h2
-            style={{
-              ...typography.h2,
-              ...FONT_PAGE,
-              margin: 0,
-              marginBottom: spacing.md,
-              color: colors.textPrimary,
-            }}
-          >
-            Товары
-          </h2>
-
-          {isManagerOrAdmin && activeSellers.length > 0 && (
-            <div style={{ marginBottom: spacing.md, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <Select
-                value={selectedSellerId}
-                onChange={setSelectedSellerId}
-                style={{ minWidth: 250 }}
-                placeholder="Выберите продавца"
-                options={activeSellers.map((s) => ({ label: s.email, value: s.id }))}
-              />
-              {selectedSellerId != null && cabinets.length > 0 && (
-                <Select
-                  value={selectedCabinetId}
-                  onChange={setSelectedCabinetId}
-                  style={{ minWidth: 220 }}
-                  placeholder="Выберите кабинет"
-                  options={cabinets.map((c) => ({ label: c.name, value: c.id }))}
-                  loading={cabinetsLoadingState}
-                />
-              )}
-            </div>
-          )}
-
           <div
             style={{
               display: 'flex',
@@ -461,6 +437,28 @@ export default function AnalyticsProducts() {
                 )}
               </Button>
             </Popover>
+            {isManagerOrAdmin && activeSellers.length > 0 && (
+              <>
+                <div style={{ flex: 1, minWidth: 80 }} />
+                <Select
+                  value={selectedSellerId}
+                  onChange={setSelectedSellerId}
+                  style={{ minWidth: 220 }}
+                  placeholder="Продавец"
+                  options={activeSellers.map((s) => ({ label: s.email, value: s.id }))}
+                />
+                {selectedSellerId != null && cabinets.length > 0 && (
+                  <Select
+                    value={selectedCabinetId}
+                    onChange={setSelectedCabinetId}
+                    style={{ minWidth: 180 }}
+                    placeholder="Кабинет"
+                    options={cabinets.map((c) => ({ label: c.name, value: c.id }))}
+                    loading={cabinetsLoadingState}
+                  />
+                )}
+              </>
+            )}
           </div>
 
           {selectedNmIds.length > 0 && (
@@ -598,6 +596,19 @@ function ProductsTable({
   onScroll,
 }: ProductsTableProps) {
   const [scrollbarWidth, setScrollbarWidth] = useState(0)
+  const onScrollRef = useRef(onScroll)
+  onScrollRef.current = onScroll
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const handler = () => {
+      console.log('[ProductsScroll] native scroll event')
+      onScrollRef.current?.()
+    }
+    el.addEventListener('scroll', handler, { passive: true })
+    return () => el.removeEventListener('scroll', handler)
+  }, [containerRef])
 
   useEffect(() => {
     const el = containerRef.current
@@ -621,7 +632,9 @@ function ProductsTable({
         flexDirection: 'column',
         flex: 1,
         minHeight: 0,
+        maxHeight: 'calc(100vh - 220px)',
         width: '100%',
+        overflow: 'hidden',
         overflowX: 'auto',
       }}
     >
