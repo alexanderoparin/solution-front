@@ -235,15 +235,8 @@ export default function AnalyticsProducts() {
     const el = containerRef.current
     if (!el) return
     el.addEventListener('scroll', scrollHandler, { passive: true })
-    scrollHandler()
     return () => el.removeEventListener('scroll', scrollHandler)
-  }, [scrollHandler, articles.length])
-
-  useEffect(() => {
-    if (!hasNextPage || isFetchingNextPage) return
-    const id = requestAnimationFrame(() => scrollHandler())
-    return () => cancelAnimationFrame(id)
-  }, [articles.length, hasNextPage, isFetchingNextPage, scrollHandler])
+  }, [scrollHandler])
 
   const toggleFilterNmId = useCallback((nmId: number, checked: boolean) => {
     setSelectedNmIds((prev) =>
