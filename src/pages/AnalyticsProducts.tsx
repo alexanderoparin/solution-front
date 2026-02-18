@@ -256,28 +256,35 @@ export default function AnalyticsProducts() {
         .products-table-link--img { display: block; opacity: 1; }
         .products-table-link--img:hover { opacity: 0.85; }
       `}</style>
-      <Header cabinetSelectProps={cabinetSelectProps} />
-      <Breadcrumbs />
-      <div
-        style={{
-          padding: `${spacing.lg} ${spacing.md}`,
-          width: '100%',
-          backgroundColor: colors.bgGray,
-          minHeight: '100vh',
-        }}
-      >
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Header cabinetSelectProps={cabinetSelectProps} />
+        <Breadcrumbs />
         <div
           style={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            padding: `${spacing.lg}px 0`,
             width: '100%',
-            backgroundColor: colors.bgWhite,
-            border: `1px solid ${colors.borderLight}`,
-            borderRadius: borderRadius.md,
-            padding: spacing.lg,
-            marginBottom: spacing.xl,
-            boxShadow: shadows.md,
-            transition: transitions.normal,
+            backgroundColor: colors.bgGray,
           }}
         >
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              width: '100%',
+              backgroundColor: colors.bgWhite,
+              borderTop: `1px solid ${colors.borderLight}`,
+              borderBottom: `1px solid ${colors.borderLight}`,
+              padding: spacing.lg,
+              boxShadow: shadows.md,
+              transition: transitions.normal,
+            }}
+          >
           <h2
             style={{
               ...typography.h2,
@@ -481,7 +488,8 @@ export default function AnalyticsProducts() {
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                maxHeight: '70vh',
+                flex: 1,
+                minHeight: 0,
                 width: '100%',
               }}
             >
@@ -498,6 +506,7 @@ export default function AnalyticsProducts() {
               />
             </div>
           )}
+          </div>
         </div>
       </div>
     </>
