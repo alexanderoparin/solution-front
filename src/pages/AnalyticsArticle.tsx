@@ -773,7 +773,8 @@ export default function AnalyticsArticle() {
             for (let i = 0; i < list.length; i += 2) pairs.push(list.slice(i, i + 2))
             return (
             <div style={{
-              flexShrink: 0,
+              flex: 1,
+              minWidth: 0,
               height: ARTICLE_HEADER_PHOTO_HEIGHT,
               display: 'flex',
               alignItems: 'stretch',
@@ -794,18 +795,20 @@ export default function AnalyticsArticle() {
               }}>
                 В связке
               </div>
-              <div style={{
-                flex: '0 1 auto',
-                minWidth: 0,
-                maxWidth: 320,
-                height: ARTICLE_HEADER_PHOTO_HEIGHT,
-                overflowX: 'auto',
-                overflowY: 'hidden',
-                display: 'flex',
-                flexDirection: 'row',
-                gap: 8,
-                paddingRight: 4
-              }}>
+              <div
+                className="hide-scrollbar"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  height: ARTICLE_HEADER_PHOTO_HEIGHT,
+                  overflowX: 'auto',
+                  overflowY: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  gap: 8,
+                  paddingRight: 4
+                }}
+              >
                 {pairs.map((pair, colIndex) => (
                   <div
                     key={colIndex}

@@ -26,3 +26,12 @@ body {
   min-height: 100vh;
 }
 
+/* Скрытие полосы прокрутки с сохранением возможности скролла */
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
