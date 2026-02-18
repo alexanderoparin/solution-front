@@ -224,19 +224,37 @@ export default function AnalyticsProducts() {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage()
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  const scrollHandler = useCallback(() => {
-    const el = containerRef.current
-    if (!el) return
-    const { scrollTop, scrollHeight, clientHeight } = el
-    if (scrollHeight - scrollTop - clientHeight < 300) loadMore()
-  }, [loadMore])
+  const autoLoadCountRef = useRef(0)
+  const MAX_AUTO_LOAD = 2
+
+  const scrollHandler = useCallback(
+    (fromUserScroll: boolean) => {
+      const el = containerRef.current
+      if (!el) return
+      const { scrollTop, scrollHeight, clientHeight } = el
+      const nearBottom = scrollHeight - scrollTop - clientHeight < 300
+      if (!nearBottom || !hasNextPage || isFetchingNextPage) return
+      if (!fromUserScroll && autoLoadCountRef.current >= MAX_AUTO_LOAD) return
+      if (!fromUserScroll) autoLoadCountRef.current += 1
+      loadMore()
+    },
+    [loadMore, hasNextPage, isFetchingNextPage]
+  )
 
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    el.addEventListener('scroll', scrollHandler, { passive: true })
-    return () => el.removeEventListener('scroll', scrollHandler)
+    const onScroll = () => scrollHandler(true)
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
   }, [scrollHandler])
+
+  useEffect(() => {
+    if (articles.length === PAGE_SIZE) autoLoadCountRef.current = 0
+    if (!hasNextPage || isFetchingNextPage) return
+    const id = requestAnimationFrame(() => scrollHandler(false))
+    return () => cancelAnimationFrame(id)
+  }, [articles.length, hasNextPage, isFetchingNextPage, scrollHandler])
 
   const toggleFilterNmId = useCallback((nmId: number, checked: boolean) => {
     setSelectedNmIds((prev) =>
@@ -529,7 +547,7 @@ export default function AnalyticsProducts() {
                 selectedCabinetId={selectedCabinetId}
                 selectedSellerId={selectedSellerId}
                 containerRef={containerRef}
-                onScroll={scrollHandler}
+                onScroll={() => scrollHandler(true)}
               />
             </div>
           )}
