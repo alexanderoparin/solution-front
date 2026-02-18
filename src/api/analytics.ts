@@ -17,6 +17,14 @@ export interface SummaryRequest {
   excludedNmIds?: number[]
   sellerId?: number
   cabinetId?: number
+  /** Номер страницы (0-based). Вместе с size — пагинация. */
+  page?: number
+  /** Размер страницы. */
+  size?: number
+  /** Поиск по названию, nmId, артикулу продавца. */
+  search?: string
+  /** Если задан — только артикулы с этими nmId (фильтр по чипам). */
+  includedNmIds?: number[]
 }
 
 export const analyticsApi = {

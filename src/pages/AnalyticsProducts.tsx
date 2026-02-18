@@ -4,7 +4,7 @@ import { Spin, Input, Button, Popover, Checkbox, Select } from 'antd'
 import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, getStoredCabinetIdForSeller, setStoredCabinetIdForSeller } from '../api/cabinets'
 import { userApi } from '../api/user'
@@ -79,7 +79,6 @@ export default function AnalyticsProducts() {
   const isManagerOrAdmin = role === 'ADMIN' || role === 'MANAGER'
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedNmIds, setSelectedNmIds] = useState<number[]>(() => [])
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [filterSearch, setFilterSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -161,18 +160,47 @@ export default function AnalyticsProducts() {
 
   const last7DaysPeriod = useMemo(() => getLast7DaysPeriod(), [])
 
-  const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['analytics-products-summary', selectedCabinetId, selectedSellerId, last7DaysPeriod],
-    queryFn: () =>
+  const searchTrimmed = searchQuery.trim()
+  const {
+    data: summaryData,
+    isLoading: summaryLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: [
+      'analytics-products-summary',
+      selectedCabinetId,
+      selectedSellerId,
+      last7DaysPeriod,
+      searchTrimmed,
+      selectedNmIds.length > 0 ? [...selectedNmIds].sort((a, b) => a - b) : null,
+    ],
+    queryFn: ({ pageParam }) =>
       analyticsApi.getSummary({
         periods: [last7DaysPeriod],
         cabinetId: selectedCabinetId ?? undefined,
         sellerId: selectedSellerId,
+        page: pageParam as number,
+        size: PAGE_SIZE,
+        search: searchTrimmed || undefined,
+        includedNmIds: selectedNmIds.length > 0 ? selectedNmIds : undefined,
       }),
+    getNextPageParam: (lastPage, allPages) => {
+      const total = lastPage.totalArticles ?? 0
+      const loaded = allPages.reduce((s, p) => s + p.articles.length, 0)
+      if (loaded >= total) return undefined
+      return allPages.length
+    },
+    initialPageParam: 0,
     enabled: selectedCabinetId != null,
   })
 
-  const articles = summary?.articles ?? []
+  const articles = useMemo(
+    () => summaryData?.pages.flatMap((p) => p.articles) ?? [],
+    [summaryData]
+  )
+
   const cabinetSelectProps =
     cabinets.length > 0 && (role === 'SELLER' || role === 'WORKER')
       ? {
@@ -192,44 +220,30 @@ export default function AnalyticsProducts() {
     setStoredSelectedNmIds(selectedCabinetId, selectedNmIds)
   }, [selectedCabinetId, selectedNmIds])
 
-  const searchLower = searchQuery.trim().toLowerCase()
-  const filteredArticles = useMemo(() => {
-    let list = selectedNmIds.length > 0
-      ? articles.filter((a) => selectedNmIds.includes(a.nmId))
-      : articles
-    if (searchLower) {
-      list = list.filter(
-        (a) =>
-          a.title?.toLowerCase().includes(searchLower) ||
-          String(a.nmId).includes(searchQuery.trim()) ||
-          (a.vendorCode && a.vendorCode.toLowerCase().includes(searchLower))
-      )
-    }
-    return list
-  }, [articles, selectedNmIds, searchLower, searchQuery])
-
-  const visibleArticles = useMemo(
-    () => filteredArticles.slice(0, visibleCount),
-    [filteredArticles, visibleCount]
-  )
-
   const loadMore = useCallback(() => {
-    setVisibleCount((c) => Math.min(c + PAGE_SIZE, filteredArticles.length))
-  }, [filteredArticles.length])
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const scrollHandler = useCallback(() => {
     const el = containerRef.current
     if (!el) return
     const { scrollTop, scrollHeight, clientHeight } = el
-    if (scrollHeight - scrollTop - clientHeight < 200) loadMore()
+    if (scrollHeight - scrollTop - clientHeight < 300) loadMore()
   }, [loadMore])
 
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
     el.addEventListener('scroll', scrollHandler, { passive: true })
+    scrollHandler()
     return () => el.removeEventListener('scroll', scrollHandler)
-  }, [scrollHandler])
+  }, [scrollHandler, articles.length])
+
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return
+    const id = requestAnimationFrame(() => scrollHandler())
+    return () => cancelAnimationFrame(id)
+  }, [articles.length, hasNextPage, isFetchingNextPage, scrollHandler])
 
   const toggleFilterNmId = useCallback((nmId: number, checked: boolean) => {
     setSelectedNmIds((prev) =>
@@ -472,7 +486,7 @@ export default function AnalyticsProducts() {
             <div style={{ textAlign: 'center', padding: spacing.xxl }}>
               <Spin />
             </div>
-          ) : filteredArticles.length === 0 ? (
+          ) : articles.length === 0 ? (
             <div
               style={{
                 textAlign: 'center',
@@ -494,13 +508,11 @@ export default function AnalyticsProducts() {
               }}
             >
               <ProductsTable
-                visibleArticles={visibleArticles}
+                visibleArticles={articles}
                 last7Dates={last7Dates}
                 last7DaysPeriod={last7DaysPeriod}
                 selectedCabinetId={selectedCabinetId}
                 selectedSellerId={selectedSellerId}
-                onLoadMore={loadMore}
-                hasMore={visibleCount < filteredArticles.length}
                 containerRef={containerRef}
                 onScroll={scrollHandler}
               />
@@ -539,8 +551,6 @@ interface ProductsTableProps {
   last7DaysPeriod: Period
   selectedCabinetId: number | null
   selectedSellerId: number | undefined
-  onLoadMore: () => void
-  hasMore: boolean
   containerRef: RefObject<HTMLDivElement>
   onScroll: () => void
 }
@@ -551,8 +561,6 @@ function ProductsTable({
   last7DaysPeriod,
   selectedCabinetId,
   selectedSellerId,
-  onLoadMore,
-  hasMore,
   containerRef,
   onScroll,
 }: ProductsTableProps) {
@@ -658,13 +666,6 @@ function ProductsTable({
             ))}
           </tbody>
         </table>
-        {hasMore && (
-          <div style={{ textAlign: 'center', padding: spacing.md }}>
-            <Button type="link" onClick={onLoadMore} style={{ color: colors.primary }}>
-              Загрузить ещё
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   )

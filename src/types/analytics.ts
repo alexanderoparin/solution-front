@@ -41,6 +41,8 @@ export interface SummaryResponse {
   periods: Period[]
   articles: ArticleSummary[]
   aggregatedMetrics: Record<number, AggregatedMetrics>
+  /** При пагинации — общее число артикулов после фильтров. */
+  totalArticles?: number | null
 }
 
 export interface PeriodMetricValue {
