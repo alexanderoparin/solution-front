@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { DatePicker, Spin, Tooltip, Popover, Button, Input, Checkbox, Select, message } from 'antd'
+import { DatePicker, Spin, Tooltip, Popover, Button, Input, Checkbox, message } from 'antd'
 import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined, FilterOutlined, SearchOutlined, SyncOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
@@ -702,25 +702,18 @@ export default function AnalyticsSummary() {
               }
             : undefined
         }
-      />
-      <Breadcrumbs />
-      <div style={{ 
-        padding: `${spacing.lg} ${spacing.md}`, 
-        width: '100%',
-        backgroundColor: colors.bgGray,
-        minHeight: '100vh'
-      }}>
-      {/* Выбор селлера и синхронизация (для менеджера/админа) */}
-      {isManagerOrAdmin && activeSellers.length > 0 && (
-        <div style={{ marginBottom: spacing.lg, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <Select
-            value={selectedSellerId}
-            onChange={setSelectedSellerId}
-            style={{ minWidth: 250 }}
-            placeholder="Выберите селлера"
-            options={activeSellers.map((s) => ({ label: s.email, value: s.id }))}
-          />
-          {selectedSellerId != null && (
+        sellerSelectProps={
+          isManagerOrAdmin && activeSellers.length > 0
+            ? {
+                sellers: activeSellers.map((s) => ({ id: s.id, email: s.email })),
+                selectedSellerId,
+                onSellerChange: (id) => setSelectedSellerId(id),
+                loading: sellersLoading,
+              }
+            : undefined
+        }
+        headerRightExtra={
+          isManagerOrAdmin && selectedSellerId != null ? (
             <Tooltip
               title={
                 canUpdateSellerData()
@@ -737,10 +730,16 @@ export default function AnalyticsSummary() {
                 style={{ color: '#7C3AED', borderColor: '#7C3AED' }}
               />
             </Tooltip>
-          )}
-        </div>
-      )}
-
+          ) : null
+        }
+      />
+      <Breadcrumbs />
+      <div style={{ 
+        padding: `${spacing.lg} ${spacing.md}`, 
+        width: '100%',
+        backgroundColor: colors.bgGray,
+        minHeight: '100vh'
+      }}>
       {/* Периоды */}
       <div style={{
         backgroundColor: colors.bgWhite,

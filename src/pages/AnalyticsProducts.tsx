@@ -292,7 +292,30 @@ export default function AnalyticsProducts() {
         .products-table-link--img:hover { opacity: 0.85; }
       `}</style>
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Header cabinetSelectProps={cabinetSelectProps} />
+        <Header
+          cabinetSelectProps={cabinetSelectProps}
+          sellerSelectProps={
+            isManagerOrAdmin && activeSellers.length > 0
+              ? {
+                  sellers: activeSellers.map((s) => ({ id: s.id, email: s.email })),
+                  selectedSellerId: selectedSellerId ?? undefined,
+                  onSellerChange: (id) => setSelectedSellerId(id),
+                }
+              : undefined
+          }
+          headerRightExtra={
+            isManagerOrAdmin && selectedSellerId != null && cabinets.length > 0 ? (
+              <Select
+                value={selectedCabinetId}
+                onChange={setSelectedCabinetId}
+                style={{ minWidth: 180 }}
+                placeholder="Кабинет"
+                options={cabinets.map((c) => ({ label: c.name, value: c.id }))}
+                loading={cabinetsLoadingState}
+              />
+            ) : null
+          }
+        />
         <Breadcrumbs />
         <div
           style={{
@@ -437,28 +460,6 @@ export default function AnalyticsProducts() {
                 )}
               </Button>
             </Popover>
-            {isManagerOrAdmin && activeSellers.length > 0 && (
-              <>
-                <div style={{ flex: 1, minWidth: 80 }} />
-                <Select
-                  value={selectedSellerId}
-                  onChange={setSelectedSellerId}
-                  style={{ minWidth: 220 }}
-                  placeholder="Продавец"
-                  options={activeSellers.map((s) => ({ label: s.email, value: s.id }))}
-                />
-                {selectedSellerId != null && cabinets.length > 0 && (
-                  <Select
-                    value={selectedCabinetId}
-                    onChange={setSelectedCabinetId}
-                    style={{ minWidth: 180 }}
-                    placeholder="Кабинет"
-                    options={cabinets.map((c) => ({ label: c.name, value: c.id }))}
-                    loading={cabinetsLoadingState}
-                  />
-                )}
-              </>
-            )}
           </div>
 
           {selectedNmIds.length > 0 && (

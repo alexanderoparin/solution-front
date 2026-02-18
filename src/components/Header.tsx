@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useMemo } from 'react'
-import { Button, Space, Dropdown } from 'antd'
+import { Button, Space, Dropdown, Select } from 'antd'
 import { UserOutlined, BarChartOutlined, RiseOutlined, DownOutlined } from '@ant-design/icons'
 import { useAuthStore } from '../store/authStore'
 
@@ -11,8 +11,19 @@ interface CabinetSelectProps {
   loading?: boolean
 }
 
+export interface SellerSelectProps {
+  sellers: { id: number; email: string }[]
+  selectedSellerId: number | undefined
+  onSellerChange: (id: number) => void
+  loading?: boolean
+}
+
 interface HeaderProps {
   cabinetSelectProps?: CabinetSelectProps
+  /** Для админа/менеджера: выбор продавца и опциональный блок (например кнопка синхронизации) — отображаются слева от «Профиль». */
+  sellerSelectProps?: SellerSelectProps
+  /** Доп. контент справа (кнопка синхронизации и т.п.), показывается рядом с выбором продавца. */
+  headerRightExtra?: React.ReactNode
 }
 
 /** Инициалы для логотипа: из названия кабинета или "ЛК" по умолчанию */
@@ -30,7 +41,7 @@ function getLogoInitials(cabinetName: string | undefined): string {
   return (words[0][0] ?? 'ЛК').toUpperCase()
 }
 
-export default function Header({ cabinetSelectProps }: HeaderProps = {}) {
+export default function Header({ cabinetSelectProps, sellerSelectProps, headerRightExtra }: HeaderProps = {}) {
   const navigate = useNavigate()
   const location = useLocation()
   const role = useAuthStore((state) => state.role)
@@ -193,6 +204,19 @@ export default function Header({ cabinetSelectProps }: HeaderProps = {}) {
       </div>
 
       <Space size="middle" align="center">
+        {sellerSelectProps && sellerSelectProps.sellers.length > 0 && (
+          <>
+            <Select
+              value={sellerSelectProps.selectedSellerId}
+              onChange={sellerSelectProps.onSellerChange}
+              style={{ minWidth: 200 }}
+              placeholder="Продавец"
+              options={sellerSelectProps.sellers.map((s) => ({ label: s.email, value: s.id }))}
+              loading={sellerSelectProps.loading}
+            />
+            {headerRightExtra}
+          </>
+        )}
         <Button
           type="text"
           icon={<UserOutlined />}
