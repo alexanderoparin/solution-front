@@ -366,6 +366,28 @@ export default function AnalyticsProducts() {
                     style={{ marginBottom: 12 }}
                     allowClear
                   />
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexShrink: 0 }}>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        const filtered = articles.filter((a) => {
+                          const q = filterSearch.trim().toLowerCase()
+                          if (!q) return true
+                          return (
+                            String(a.nmId).includes(filterSearch.trim()) ||
+                            a.vendorCode?.toLowerCase().includes(q) ||
+                            a.title?.toLowerCase().includes(q)
+                          )
+                        })
+                        setSelectedNmIds(filtered.map((a) => a.nmId))
+                      }}
+                    >
+                      Выбрать все
+                    </Button>
+                    <Button size="small" onClick={() => setSelectedNmIds([])}>
+                      Снять все
+                    </Button>
+                  </div>
                   <div style={{ flex: 1, overflowY: 'auto', maxHeight: 320 }}>
                     {articles
                       .filter((a) => {
