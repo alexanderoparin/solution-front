@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef, type RefObject } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Spin, Input, Button, Popover, Checkbox, Select } from 'antd'
+import { Spin, Input, Button, Popover, Checkbox } from 'antd'
 import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -202,7 +202,8 @@ export default function AnalyticsProducts() {
   )
 
   const cabinetSelectProps =
-    cabinets.length > 0 && (role === 'SELLER' || role === 'WORKER')
+    cabinets.length > 0 &&
+    ((role === 'SELLER' || role === 'WORKER') || (isManagerOrAdmin && selectedSellerId != null))
       ? {
           cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
           selectedCabinetId,
@@ -302,18 +303,6 @@ export default function AnalyticsProducts() {
                   onSellerChange: (id) => setSelectedSellerId(id),
                 }
               : undefined
-          }
-          headerRightExtra={
-            isManagerOrAdmin && selectedSellerId != null && cabinets.length > 0 ? (
-              <Select
-                value={selectedCabinetId}
-                onChange={setSelectedCabinetId}
-                style={{ minWidth: 180 }}
-                placeholder="Кабинет"
-                options={cabinets.map((c) => ({ label: c.name, value: c.id }))}
-                loading={cabinetsLoadingState}
-              />
-            ) : null
           }
         />
         <Breadcrumbs />
