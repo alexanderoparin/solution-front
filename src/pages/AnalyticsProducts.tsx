@@ -746,8 +746,8 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
 
   const inPromotion = articleDetail?.inWbPromotion === true
   const promotionNames = articleDetail?.wbPromotionNames?.filter(Boolean).join(', ') ?? ''
-  const rating = articleDetail?.article?.rating ?? null
-  const reviewsCount = articleDetail?.article?.reviewsCount ?? null
+  const rating = articleDetail?.article?.rating ?? article?.rating ?? null
+  const reviewsCount = articleDetail?.article?.reviewsCount ?? article?.reviewsCount ?? null
   const stocksTotal = useMemo(
     () => (articleDetail?.stocks ?? []).reduce((s, st) => s + (st.amount ?? 0), 0),
     [articleDetail?.stocks]
@@ -896,14 +896,18 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
         </span>
       </td>
       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(2, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
-        {isLoading ? (
+        {isLoading && rating == null && reviewsCount == null ? (
           <Spin size="small" />
         ) : (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <StarFilled style={{ color: '#FBBF24', fontSize: 12 }} />
-            <span>{rating != null ? Number(rating).toFixed(1) : '-'}</span>
-            {reviewsCount != null && (
-              <span style={{ color: colors.textSecondary }}>({reviewsCount})</span>
+          <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <StarFilled style={{ color: '#FBBF24', fontSize: 12 }} />
+              <span>{rating != null ? Number(rating).toFixed(1) : '-'}</span>
+            </span>
+            {reviewsCount != null && reviewsCount > 0 && (
+              <span style={{ color: colors.textSecondary, fontSize: '0.85em' }}>
+                {reviewsCount} {reviewsCount % 10 === 1 && reviewsCount % 100 !== 11 ? 'отзыв' : reviewsCount % 10 >= 2 && reviewsCount % 10 <= 4 && (reviewsCount % 100 < 10 || reviewsCount % 100 >= 20) ? 'отзыва' : 'отзывов'}
+              </span>
             )}
           </span>
         )}

@@ -19,6 +19,10 @@ export interface ArticleSummary {
   subjectName: string
   photoTm: string | null // URL миниатюры первой фотографии товара
   vendorCode?: string | null // Артикул продавца
+  /** Средний рейтинг по отзывам WB (1–5). */
+  rating?: number | null
+  /** Количество отзывов по товару. */
+  reviewsCount?: number | null
 }
 
 export interface AggregatedMetrics {

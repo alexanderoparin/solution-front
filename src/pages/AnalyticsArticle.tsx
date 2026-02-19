@@ -961,13 +961,13 @@ export default function AnalyticsArticle() {
             overflowY: 'auto',
             overflowX: 'auto'
           }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th style={{
                   textAlign: 'center',
                   padding: '6px 8px',
-                  borderBottom: `2px solid ${colors.border}`,
+                  borderBottom: `1px solid ${colors.border}`,
                   borderRight: `2px solid ${colors.border}`,
                   fontSize: '12px',
                   fontWeight: 600,
@@ -976,7 +976,8 @@ export default function AnalyticsArticle() {
                   left: 0,
                   backgroundColor: colors.bgWhite,
                   zIndex: 2,
-                  width: '90px'
+                  width: '90px',
+                  boxShadow: `0 1px 0 0 ${colors.border}`
                 }}>
                   Дата
                 </th>
@@ -988,7 +989,8 @@ export default function AnalyticsArticle() {
                     <th key={metric.key} style={{
                       textAlign: 'center',
                       padding: '4px 6px',
-                      borderBottom: `2px solid ${colors.border}`,
+                      borderBottom: `1px solid ${colors.border}`,
+                      boxShadow: `0 1px 0 0 ${colors.border}`,
                       borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 && !selectedFunnel2 ? 'none' : index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
                       fontSize: '10px',
                       fontWeight: 600,
@@ -1012,7 +1014,8 @@ export default function AnalyticsArticle() {
                     <th key={metric.key} style={{
                       textAlign: 'center',
                       padding: '4px 6px',
-                      borderBottom: `2px solid ${colors.border}`,
+                      borderBottom: `1px solid ${colors.border}`,
+                      boxShadow: `0 1px 0 0 ${colors.border}`,
                       borderRight: `1px solid ${colors.border}`,
                       fontSize: '10px',
                       fontWeight: 600,
@@ -1084,6 +1087,7 @@ export default function AnalyticsArticle() {
                   >
                     <td style={{
                       padding: '6px 8px',
+                      borderTop: dateIndex === 0 ? 'none' : undefined,
                       borderBottom: `1px solid ${colors.border}`,
                       borderRight: `2px solid ${colors.border}`,
                       fontSize: '12px',
@@ -1106,6 +1110,7 @@ export default function AnalyticsArticle() {
                         <td key={metric.key} style={{
                           textAlign: 'center',
                           padding: '4px 6px',
+                          borderTop: dateIndex === 0 ? 'none' : undefined,
                           borderBottom: `1px solid ${colors.border}`,
                           borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 && !selectedFunnel2 ? 'none' : index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
                           backgroundColor: isGeneralFunnel1 ? colors.funnelBg : isAdvertisingFunnel1 ? colors.advertisingBg : colors.pricingBg,
@@ -1153,6 +1158,7 @@ export default function AnalyticsArticle() {
                         <td key={metric.key} style={{
                           textAlign: 'center',
                           padding: '4px 6px',
+                          borderTop: dateIndex === 0 ? 'none' : undefined,
                           borderBottom: `1px solid ${colors.border}`,
                           borderRight: index === FUNNELS[selectedFunnel2].metrics.length - 1 ? 'none' : `1px solid ${colors.border}`,
                           backgroundColor: isGeneralFunnel2 ? colors.funnelBg : isAdvertisingFunnel2 ? colors.advertisingBg : colors.pricingBg,
@@ -1377,7 +1383,7 @@ export default function AnalyticsArticle() {
                   <th style={{
                     textAlign: 'left',
                     padding: spacing.md,
-                    borderBottom: `2px solid ${colors.border}`,
+                    borderBottom: `2px solid ${colors.borderHeader}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
                   ...FONT_PAGE,
@@ -1389,7 +1395,7 @@ export default function AnalyticsArticle() {
                   <th style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `2px solid ${colors.border}`,
+                    borderBottom: `2px solid ${colors.borderHeader}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
@@ -1403,7 +1409,7 @@ export default function AnalyticsArticle() {
                   <th style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `2px solid ${colors.border}`,
+                    borderBottom: `2px solid ${colors.borderHeader}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
                   ...FONT_PAGE,
@@ -1416,7 +1422,7 @@ export default function AnalyticsArticle() {
                   <th style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `2px solid ${colors.border}`,
+                    borderBottom: `2px solid ${colors.borderHeader}`,
                     borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
                   ...FONT_PAGE,
@@ -1827,7 +1833,7 @@ export default function AnalyticsArticle() {
                   <th style={{
                     textAlign: 'left',
                     padding: spacing.md,
-                    borderBottom: `2px solid ${colors.border}`,
+                    borderBottom: `2px solid ${colors.borderHeader}`,
                     borderRight: `2px solid ${colors.border}`,
                     ...typography.body,
                   ...FONT_PAGE,
@@ -1839,7 +1845,7 @@ export default function AnalyticsArticle() {
                   <th style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `2px solid ${colors.border}`,
+                    borderBottom: `2px solid ${colors.borderHeader}`,
                     borderLeft: `2px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
@@ -1853,7 +1859,7 @@ export default function AnalyticsArticle() {
                   <th style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `2px solid ${colors.border}`,
+                    borderBottom: `2px solid ${colors.borderHeader}`,
                     borderLeft: `1px solid ${colors.border}`,
                     borderRight: `1px solid ${colors.border}`,
                     ...typography.body,
@@ -1867,7 +1873,7 @@ export default function AnalyticsArticle() {
                   <th style={{
                     textAlign: 'center',
                     padding: spacing.md,
-                    borderBottom: `2px solid ${colors.border}`,
+                    borderBottom: `2px solid ${colors.borderHeader}`,
                     borderLeft: `1px solid ${colors.border}`,
                     ...typography.body,
                   ...FONT_PAGE,
@@ -2765,18 +2771,18 @@ export default function AnalyticsArticle() {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
                 <thead>
                   <tr style={{ backgroundColor: colors.bgGray }}>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Дата создания</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Кампания</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>ID</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Тип</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Статус</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Показы</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Клики</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>CTR</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>CPC</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Затраты</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Корзины</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Заказы</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Дата создания</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Кампания</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>ID</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Тип</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Статус</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Показы</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Клики</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>CTR</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>CPC</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Затраты</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Корзины</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Заказы</th>
                   </tr>
                 </thead>
                 <tbody>

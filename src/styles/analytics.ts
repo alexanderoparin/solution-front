@@ -35,6 +35,8 @@ export const colors = {
   // Границы
   border: '#E2E8F0',
   borderLight: '#F1F5F9',
+  /** Линия под заголовками таблиц (выраженнее, чтобы не терялась при скролле). */
+  borderHeader: '#94A3B8',
 }
 
 export const typography = {
