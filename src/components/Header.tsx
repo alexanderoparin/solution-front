@@ -196,7 +196,7 @@ export default function Header({ cabinetSelectProps, sellerSelectProps, headerRi
                 Кабинет (1)
               </span>
             )}
-            {selectedCabinetName && (
+            {selectedCabinetName && (role === 'ADMIN' || role === 'MANAGER') && (
               <span style={{ fontSize: '14px', color: '#64748B' }}>{selectedCabinetName}</span>
             )}
           </div>

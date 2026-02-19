@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Spin, Input, Select } from 'antd'
 import { SearchOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { useQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
-import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, getStoredCabinetIdForSeller, setStoredCabinetIdForSeller } from '../api/cabinets'
+import { userApi } from '../api/user'
 import type { Campaign } from '../types/analytics'
 import { colors, typography, spacing, borderRadius, transitions, shadows } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
@@ -53,40 +54,97 @@ const COL_WIDTHS_PCT = {
 
 export default function AdvertisingCampaigns() {
   const role = useAuthStore((state) => state.role)
+  const isManagerOrAdmin = role === 'ADMIN' || role === 'MANAGER'
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('createdAt')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'paused'>('all')
   const [filterType, setFilterType] = useState<string | null>(null)
 
-  const { data: cabinets = [], isLoading: cabinetsLoading } = useQuery({
+  const { data: activeSellers = [] } = useQuery({
+    queryKey: ['activeSellers'],
+    queryFn: () => userApi.getActiveSellers(),
+    enabled: isManagerOrAdmin,
+  })
+
+  const [selectedSellerId, setSelectedSellerId] = useState<number | undefined>(() => {
+    if (!isManagerOrAdmin) return undefined
+    const saved = localStorage.getItem('analytics_selected_seller_id')
+    if (saved) {
+      const id = parseInt(saved, 10)
+      if (!Number.isNaN(id)) return id
+    }
+    return undefined
+  })
+
+  const { data: myCabinets = [], isLoading: cabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
     enabled: role === 'SELLER' || role === 'WORKER',
   })
 
-  const storedCabinetId = getStoredCabinetId()
-  const selectedCabinetId = cabinets.length > 0 && (role === 'SELLER' || role === 'WORKER')
+  const { data: sellerCabinets = [], isLoading: sellerCabinetsLoading } = useQuery({
+    queryKey: ['sellerCabinets', selectedSellerId],
+    queryFn: () => userApi.getSellerCabinets(selectedSellerId!),
+    enabled: isManagerOrAdmin && selectedSellerId != null,
+  })
+
+  const cabinets = isManagerOrAdmin ? sellerCabinets : myCabinets
+  const cabinetsLoadingState = isManagerOrAdmin ? sellerCabinetsLoading : cabinetsLoading
+
+  const storedCabinetId = isManagerOrAdmin && selectedSellerId != null
+    ? getStoredCabinetIdForSeller(selectedSellerId)
+    : getStoredCabinetId()
+  const selectedCabinetId = cabinets.length > 0
     ? (storedCabinetId != null && cabinets.some((c) => c.id === storedCabinetId) ? storedCabinetId : cabinets[0].id)
     : null
 
   const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
     queryKey: ['advertising-campaigns', selectedCabinetId],
     queryFn: () => analyticsApi.getCampaigns(undefined, selectedCabinetId ?? undefined),
-    enabled: selectedCabinetId != null || role === 'ADMIN' || role === 'MANAGER',
+    enabled: selectedCabinetId != null,
   })
 
-  const setSelectedCabinetId = (id: number | null) => {
-    setStoredCabinetId(id)
-  }
+  const setSelectedCabinetId = useCallback(
+    (id: number | null) => {
+      if (isManagerOrAdmin && selectedSellerId != null) {
+        setStoredCabinetIdForSeller(selectedSellerId, id)
+      } else {
+        setStoredCabinetId(id)
+      }
+    },
+    [isManagerOrAdmin, selectedSellerId]
+  )
+
+  const handleSellerChange = useCallback((sellerId: number) => {
+    setSelectedSellerId(sellerId)
+    localStorage.setItem('analytics_selected_seller_id', String(sellerId))
+  }, [])
 
   const cabinetSelectProps =
-    cabinets.length > 0 && (role === 'SELLER' || role === 'WORKER')
+    cabinets.length > 0
       ? {
           cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
           selectedCabinetId,
           onCabinetChange: setSelectedCabinetId,
-          loading: cabinetsLoading,
+          loading: cabinetsLoadingState,
+        }
+      : undefined
+
+  useEffect(() => {
+    if (isManagerOrAdmin && activeSellers.length > 0 && selectedSellerId == null) {
+      const firstId = activeSellers[0].id
+      setSelectedSellerId(firstId)
+      localStorage.setItem('analytics_selected_seller_id', String(firstId))
+    }
+  }, [isManagerOrAdmin, activeSellers, selectedSellerId])
+
+  const sellerSelectProps =
+    isManagerOrAdmin && activeSellers.length > 0
+      ? {
+          sellers: activeSellers.map((s) => ({ id: s.id, email: s.email })),
+          selectedSellerId: selectedSellerId ?? undefined,
+          onSellerChange: handleSellerChange,
         }
       : undefined
 
@@ -211,7 +269,7 @@ export default function AdvertisingCampaigns() {
 
   return (
     <>
-      <Header cabinetSelectProps={cabinetSelectProps} />
+      <Header cabinetSelectProps={cabinetSelectProps} sellerSelectProps={sellerSelectProps} />
       <Breadcrumbs />
       <div
         style={{
