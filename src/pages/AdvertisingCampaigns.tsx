@@ -14,13 +14,42 @@ import Breadcrumbs from '../components/Breadcrumbs'
 
 dayjs.locale('ru')
 
-const FONT_PAGE = { fontSize: '12px' as const }
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
 
-type SortField = 'createdAt' | 'name' | 'id' | 'type' | 'status' | 'views' | 'clicks' | 'ctr' | 'cpc' | 'costs' | 'cart' | 'orders'
+type SortField = 'createdAt' | 'name' | 'id' | 'type' | 'articlesCount' | 'status' | 'views' | 'clicks' | 'ctr' | 'cpc' | 'costs' | 'cart' | 'orders'
 type SortOrder = 'asc' | 'desc'
 
-const thStyle = { textAlign: 'left' as const, padding: '8px 10px', borderBottom: `2px solid ${colors.border}`, cursor: 'pointer' as const, userSelect: 'none' as const }
+const thStyle = {
+  textAlign: 'left' as const,
+  padding: '8px 10px',
+  borderBottom: `2px solid ${colors.border}`,
+  cursor: 'pointer' as const,
+  userSelect: 'none' as const,
+  overflow: 'hidden',
+  wordBreak: 'break-word' as const,
+  whiteSpace: 'normal' as const,
+  boxSizing: 'border-box' as const,
+}
+
+/** Стиль ячейки таблицы: текст не выходит за границы, не налезает на соседние колонки */
+const tdOverflowStyle = { overflow: 'hidden', wordBreak: 'break-word' as const, boxSizing: 'border-box' as const }
+
+/** Ширины колонок таблицы в % (сумма 100), чтобы заполнение было примерно равномерным */
+const COL_WIDTHS_PCT = {
+  createdAt: 8,
+  name: 14,
+  id: 6,
+  type: 8,
+  articlesCount: 8,
+  status: 9,
+  views: 8,
+  clicks: 7,
+  ctr: 6,
+  cpc: 7,
+  costs: 8,
+  cart: 6,
+  orders: 5,
+} as const
 
 export default function AdvertisingCampaigns() {
   const role = useAuthStore((state) => state.role)
@@ -98,6 +127,10 @@ export default function AdvertisingCampaigns() {
         case 'type':
           aVal = (a.type ?? '').toLowerCase()
           bVal = (b.type ?? '').toLowerCase()
+          break
+        case 'articlesCount':
+          aVal = a.articlesCount ?? 0
+          bVal = b.articlesCount ?? 0
           break
         case 'status':
           aVal = a.status ?? -1
@@ -182,35 +215,36 @@ export default function AdvertisingCampaigns() {
       <Breadcrumbs />
       <div
         style={{
-          padding: `${spacing.lg} ${spacing.md}`,
-          width: '100%',
-          backgroundColor: colors.bgGray,
+          display: 'flex',
+          flexDirection: 'column',
           minHeight: '100vh',
         }}
       >
         <div
           style={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
             width: '100%',
-            backgroundColor: colors.bgWhite,
-            border: `1px solid ${colors.borderLight}`,
-            borderRadius: borderRadius.md,
-            padding: spacing.lg,
-            marginBottom: spacing.xl,
-            boxShadow: shadows.md,
-            transition: transitions.normal,
+            backgroundColor: colors.bgGray,
           }}
         >
-          <h2
+          <div
             style={{
-              ...typography.h2,
-              ...FONT_PAGE,
-              margin: 0,
-              marginBottom: spacing.md,
-              color: colors.textPrimary,
+              flex: 1,
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              width: '100%',
+              backgroundColor: colors.bgWhite,
+              borderTop: `1px solid ${colors.borderLight}`,
+              borderBottom: `1px solid ${colors.borderLight}`,
+              padding: spacing.lg,
+              boxShadow: shadows.md,
+              transition: transitions.normal,
             }}
           >
-            Рекламные компании
-          </h2>
           <div
             style={{
               display: 'flex',
@@ -266,22 +300,24 @@ export default function AdvertisingCampaigns() {
               Нет рекламных кампаний за последние 30 дней
             </div>
           ) : (
-            <div style={{ overflowX: 'auto', width: '100%' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', width: '100%' }}>
+              <div style={{ overflowX: 'auto', width: '100%' }}>
+              <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 900 }}>
                 <thead>
                   <tr style={{ backgroundColor: colors.bgGray }}>
-                    <th style={{ ...thStyle, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('createdAt')}>Дата создания <SortIcon field="createdAt" /></th>
-                    <th style={{ ...thStyle, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('name')}>Кампания <SortIcon field="name" /></th>
-                    <th style={{ ...thStyle, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('id')}>ID <SortIcon field="id" /></th>
-                    <th style={{ ...thStyle, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('type')}>Тип <SortIcon field="type" /></th>
-                    <th style={{ ...thStyle, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('status')}>Статус <SortIcon field="status" /></th>
-                    <th style={{ ...thStyle, textAlign: 'right', ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('views')}>Показы <SortIcon field="views" /></th>
-                    <th style={{ ...thStyle, textAlign: 'right', ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('clicks')}>Клики <SortIcon field="clicks" /></th>
-                    <th style={{ ...thStyle, textAlign: 'right', ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('ctr')}>CTR <SortIcon field="ctr" /></th>
-                    <th style={{ ...thStyle, textAlign: 'right', ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('cpc')}>CPC <SortIcon field="cpc" /></th>
-                    <th style={{ ...thStyle, textAlign: 'right', ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('costs')}>Затраты <SortIcon field="costs" /></th>
-                    <th style={{ ...thStyle, textAlign: 'right', ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('cart')}>Корзины <SortIcon field="cart" /></th>
-                    <th style={{ ...thStyle, textAlign: 'right', ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('orders')}>Заказы <SortIcon field="orders" /></th>
+                    <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.createdAt}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('createdAt')}>Дата создания <SortIcon field="createdAt" /></th>
+                    <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.name}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('name')}>Кампания <SortIcon field="name" /></th>
+                    <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.id}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('id')}>ID <SortIcon field="id" /></th>
+                    <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.type}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('type')}>Тип <SortIcon field="type" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.articlesCount}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('articlesCount')}>Количество артикулов <SortIcon field="articlesCount" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.status}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('status')}>Статус <SortIcon field="status" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.views}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('views')}>Показы <SortIcon field="views" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.clicks}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('clicks')}>Клики <SortIcon field="clicks" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.ctr}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('ctr')}>CTR <SortIcon field="ctr" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.cpc}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('cpc')}>CPC <SortIcon field="cpc" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.costs}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('costs')}>Затраты <SortIcon field="costs" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.cart}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('cart')}>Корзины <SortIcon field="cart" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.orders}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('orders')}>Заказы <SortIcon field="orders" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -299,11 +335,12 @@ export default function AdvertisingCampaigns() {
                         e.currentTarget.style.backgroundColor = idx % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
                       }}
                     >
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDate(c.createdAt)}</td>
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 500, color: colors.primary }}>{c.name}</td>
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, color: colors.textSecondary }}>{c.id}</td>
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.type || '-'}</td>
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}` }}>
+                      <td style={{ width: `${COL_WIDTHS_PCT.createdAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDate(c.createdAt)}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.name}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 500, color: colors.primary }}>{c.name}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.id}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL, color: colors.textSecondary }}>{c.id}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.type}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.type || '-'}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.articlesCount}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.articlesCount)}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.status}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle }}>
                         <span
                           style={{
                             display: 'inline-block',
@@ -319,19 +356,21 @@ export default function AdvertisingCampaigns() {
                           {statusLabel(c)}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.views)}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.clicks)}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.ctr != null ? formatPct(c.ctr) : '-'}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.cpc != null ? formatCur(c.cpc) : '-'}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.costs != null ? formatCur(c.costs) : '-'}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.cart)}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.orders)}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.views}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.views)}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.clicks}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.clicks)}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.ctr}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.ctr != null ? formatPct(c.ctr) : '-'}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.cpc}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.cpc != null ? formatCur(c.cpc) : '-'}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.costs}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.costs != null ? formatCur(c.costs) : '-'}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.cart}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.cart)}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.orders}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.orders)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
+          </div>
         </div>
       </div>
     </>

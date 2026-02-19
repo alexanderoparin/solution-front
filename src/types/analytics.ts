@@ -130,6 +130,8 @@ export interface Campaign {
   status: number | null
   statusName: string | null
   createdAt: string
+  /** Количество артикулов в кампании. */
+  articlesCount?: number | null
   // Опциональные метрики (суммы за период или за весь срок РК), пока бэкенд может не отдавать
   views?: number | null
   clicks?: number | null
