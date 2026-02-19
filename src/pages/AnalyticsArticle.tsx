@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox } from 'antd'
+import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox, Switch } from 'antd'
 import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
@@ -111,6 +111,7 @@ export default function AnalyticsArticle() {
   const defaultDateFrom = yesterday.subtract(13, 'day')
   const defaultDateTo = yesterday
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([defaultDateFrom, defaultDateTo])
+  const [showChart, setShowChart] = useState(false)
 
   const rangeDates = useMemo(() => getDatesInRange(dateRange[0], dateRange[1]), [dateRange])
   /** Даты для блока воронок: сверху «сегодня» (самая новая), далее по нисходящей */
@@ -889,17 +890,6 @@ export default function AnalyticsArticle() {
         </div>
       </div>
 
-      {/* График */}
-      {article && article.dailyData && article.dailyData.length > 0 && (
-        <AnalyticsChart 
-          dailyData={article.dailyData} 
-          nmId={Number(nmId)}
-          sellerId={getSelectedSellerId()}
-          dateRange={dateRange}
-          onDateRangeChange={setDateRange}
-        />
-      )}
-
       {/* Блоки воронок */}
       <div style={{
         backgroundColor: colors.bgWhite,
@@ -921,12 +911,24 @@ export default function AnalyticsArticle() {
           <div style={{
             display: 'flex',
             marginBottom: spacing.md,
-            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: spacing.md,
-            flexWrap: 'wrap'
+            gap: spacing.lg,
+            flexWrap: 'wrap',
+            justifyContent: 'space-between'
           }}>
-            <div style={{ display: 'flex', gap: spacing.lg, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
+              <DatePicker.RangePicker
+                locale={locale.DatePicker}
+                value={dateRange}
+                onChange={(dates) => {
+                  if (dates && dates[0] && dates[1]) {
+                    setDateRange([dates[0], dates[1]])
+                  }
+                }}
+                format="DD.MM.YYYY"
+                separator="→"
+                style={{ width: 220 }}
+              />
               <Checkbox
                 checked={selectedFunnelKeys.includes('general')}
                 onChange={() => toggleFunnel('general')}
@@ -946,14 +948,24 @@ export default function AnalyticsArticle() {
                 Цены
               </Checkbox>
             </div>
-            <Button
-              type="primary"
-              icon={<DownloadOutlined />}
-              onClick={handleExportFunnelsExcel}
-              disabled={!article}
-            >
-              Выгрузить
-            </Button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, ...typography.body }}>
+                <Switch
+                  checked={showChart}
+                  onChange={setShowChart}
+                  size="small"
+                />
+                <span>График</span>
+              </span>
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                onClick={handleExportFunnelsExcel}
+                disabled={!article}
+              >
+                Выгрузить
+              </Button>
+            </div>
           </div>
           {selectedFunnel1 ? (
           <div style={{
@@ -1274,6 +1286,17 @@ export default function AnalyticsArticle() {
           )}
         </div>
       </div>
+
+      {/* График (виден при включённом тумблере «График») */}
+      {showChart && article && article.dailyData && article.dailyData.length > 0 && (
+        <AnalyticsChart 
+          dailyData={article.dailyData} 
+          nmId={Number(nmId)}
+          sellerId={getSelectedSellerId()}
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+        />
+      )}
 
       {/* Сравнение периодов и остатки */}
       {article && period1Data && period2Data && (() => {

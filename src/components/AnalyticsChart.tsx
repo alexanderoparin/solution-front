@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react'
-import { DatePicker } from 'antd'
+import { Select } from 'antd'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import locale from 'antd/locale/ru_RU'
 import type { DailyData } from '../types/analytics'
-import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
+import { colors, typography, spacing, shadows, borderRadius } from '../styles/analytics'
 
 dayjs.locale('ru')
 
@@ -26,8 +25,7 @@ const METRIC_OPTIONS = [
   { key: 'drr', name: 'ДРР', category: 'advertising' },
 ]
 
-const LEFT_COLUMN_WIDTH = 240 // Ширина: выбор дат (DD.MM.YYYY) + список показателей
-const CHART_HEIGHT = 300 // ~6 показателей в списке слева, остальное под скролл
+const CHART_HEIGHT = 300
 
 interface AnalyticsChartProps {
   dailyData: DailyData[]
@@ -37,7 +35,7 @@ interface AnalyticsChartProps {
   onDateRangeChange: (range: [dayjs.Dayjs, dayjs.Dayjs]) => void
 }
 
-export default function AnalyticsChart({ dailyData, dateRange, onDateRangeChange }: AnalyticsChartProps) {
+export default function AnalyticsChart({ dailyData, dateRange }: AnalyticsChartProps) {
   const [selectedMetric, setSelectedMetric] = useState<string>('transitions')
 
   // Фильтруем данные по выбранному периоду
@@ -156,86 +154,17 @@ export default function AnalyticsChart({ dailyData, dateRange, onDateRangeChange
       marginBottom: spacing.xl,
       boxShadow: shadows.md
     }}>
-      {/* Основной контент: левый столбец + график */}
-      <div style={{
-        display: 'flex',
-        gap: spacing.lg,
-        alignItems: 'stretch',
-        height: CHART_HEIGHT
-      }}>
-        {/* Левый столбец: выбор даты + показатели */}
-        <div style={{
-          width: `${LEFT_COLUMN_WIDTH}px`,
-          flexShrink: 0,
-          borderRight: `1px solid ${colors.borderLight}`,
-          paddingRight: spacing.lg,
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0
-        }}>
-          <div style={{ marginBottom: spacing.lg }}>
-            <DatePicker.RangePicker
-              locale={locale.DatePicker}
-              value={dateRange}
-              onChange={(dates) => {
-                if (dates && dates[0] && dates[1]) {
-                  onDateRangeChange([dates[0], dates[1]])
-                }
-              }}
-              format="DD.MM.YYYY"
-              separator="→"
-              style={{ width: '100%', minWidth: 220 }}
-            />
-          </div>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            flex: 1,
-            minHeight: 0,
-            overflowY: 'auto',
-            overflowX: 'hidden'
-          }}
-          >
-            {METRIC_OPTIONS.map((metric) => {
-              const isSelected = selectedMetric === metric.key
-              return (
-                <div
-                  key={metric.key}
-                  onClick={() => setSelectedMetric(metric.key)}
-                  style={{
-                    ...typography.bodySmall,
-                    fontSize: '14px',
-                    padding: spacing.sm,
-                    marginBottom: spacing.xs,
-                    borderRadius: borderRadius.sm,
-                    cursor: 'pointer',
-                    backgroundColor: isSelected ? colors.primaryLight : 'transparent',
-                    color: isSelected ? colors.primary : colors.textPrimary,
-                    fontWeight: isSelected ? 600 : 400,
-                    transition: transitions.fast
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = colors.bgGrayLight
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = 'transparent'
-                    }
-                  }}
-                >
-                  {metric.name}
-                </div>
-              )
-            })}
-          </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+          <span style={{ ...typography.body, color: colors.textSecondary }}>Показатель:</span>
+          <Select
+            value={selectedMetric}
+            onChange={setSelectedMetric}
+            options={METRIC_OPTIONS.map((m) => ({ value: m.key, label: m.name }))}
+            style={{ minWidth: 200 }}
+          />
         </div>
-
-        {/* График */}
         <div style={{
-          flex: '1 1 0',
-          minWidth: 0,
           width: '100%',
           height: CHART_HEIGHT
         }}>
@@ -250,7 +179,7 @@ export default function AnalyticsChart({ dailyData, dateRange, onDateRangeChange
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-              <LineChart data={filteredData} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+              <LineChart data={filteredData} margin={{ top: 8, right: 0, left: 8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
                 <XAxis 
                   dataKey="dateFormatted" 
@@ -260,15 +189,17 @@ export default function AnalyticsChart({ dailyData, dateRange, onDateRangeChange
                 <YAxis 
                   yAxisId="right"
                   orientation="right"
+                  width={48}
                   stroke={colors.textSecondary}
                   style={{ ...typography.bodySmall }}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke={colors.primary} 
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke={colors.primary}
                   strokeWidth={2}
+                  connectNulls
                   dot={{ fill: colors.primary, r: 4 }}
                   activeDot={{ r: 6 }}
                   yAxisId="right"
