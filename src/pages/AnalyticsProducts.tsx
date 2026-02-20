@@ -189,7 +189,6 @@ export default function AnalyticsProducts() {
       const total = lastPage.totalArticles ?? 0
       const loaded = allPages.reduce((s, p) => s + p.articles.length, 0)
       const next = (total > 0 && loaded >= total) || lastPage.articles.length < PAGE_SIZE ? undefined : allPages.length
-      console.log('[ProductsScroll] getNextPageParam', { total, loaded, pages: allPages.length, next })
       return next
     },
     initialPageParam: 0,
@@ -223,7 +222,6 @@ export default function AnalyticsProducts() {
 
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
-      console.log('[ProductsScroll] fetchNextPage()')
       fetchNextPage()
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
@@ -236,21 +234,6 @@ export default function AnalyticsProducts() {
       const el = containerRef.current
       const distToBottom = el ? el.scrollHeight - el.scrollTop - el.clientHeight : null
       const nearBottom = el != null && distToBottom != null && distToBottom < 300
-      const wouldLoad =
-        nearBottom && hasNextPage && !isFetchingNextPage && (fromUserScroll || autoLoadCountRef.current < MAX_AUTO_LOAD)
-      console.log('[ProductsScroll] scrollHandler', {
-        fromUserScroll,
-        hasEl: !!el,
-        scrollTop: el?.scrollTop,
-        scrollHeight: el?.scrollHeight,
-        clientHeight: el?.clientHeight,
-        distToBottom,
-        nearBottom,
-        hasNextPage,
-        isFetchingNextPage,
-        autoLoadCount: autoLoadCountRef.current,
-        wouldLoad,
-      })
       if (!el) return
       if (!nearBottom || !hasNextPage || isFetchingNextPage) return
       if (!fromUserScroll && autoLoadCountRef.current >= MAX_AUTO_LOAD) return
@@ -593,7 +576,6 @@ function ProductsTable({
     const el = containerRef.current
     if (!el) return
     const handler = () => {
-      console.log('[ProductsScroll] native scroll event')
       onScrollRef.current?.()
     }
     el.addEventListener('scroll', handler, { passive: true })

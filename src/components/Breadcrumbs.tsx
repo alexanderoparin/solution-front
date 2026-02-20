@@ -13,7 +13,7 @@ interface BreadcrumbItem {
  */
 export default function Breadcrumbs() {
   const location = useLocation()
-  const params = useParams<{ nmId?: string }>()
+  const params = useParams<{ nmId?: string; id?: string }>()
   const pathname = location.pathname
 
   const items: BreadcrumbItem[] = []
@@ -32,6 +32,12 @@ export default function Breadcrumbs() {
     )
   } else if (pathname === '/advertising/campaigns') {
     items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Рекламные компании' })
+  } else if (pathname.match(/^\/advertising\/campaigns\/\d+$/) && params.id) {
+    items.push(
+      { label: 'Реклама', path: '/advertising/campaigns' },
+      { label: 'Рекламные компании', path: '/advertising/campaigns' },
+      { label: `Кампания ${params.id}` }
+    )
   } else {
     items.push({ label: 'Профиль' })
   }

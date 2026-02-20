@@ -10,6 +10,8 @@ import type {
   CreateNoteRequest,
   UpdateNoteRequest,
   Campaign,
+  CampaignDetail,
+  CampaignNote,
 } from '../types/analytics'
 
 export interface SummaryRequest {
@@ -62,6 +64,61 @@ export const analyticsApi = {
     const params = query ? `?${query}` : ''
     const response = await apiClient.get<Campaign[]>(`/advertising/campaigns${params}`)
     return response.data
+  },
+
+  /**
+   * Детали комбо-кампании: название, статус, список артикулов.
+   */
+  getCampaignDetail: async (campaignId: number, sellerId?: number, cabinetId?: number): Promise<CampaignDetail> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    const response = await apiClient.get<CampaignDetail>(`/advertising/campaigns/${campaignId}${params}`)
+    return response.data
+  },
+
+  /**
+   * Заметки по рекламной кампании (РК).
+   */
+  getCampaignNotes: async (campaignId: number, sellerId?: number, cabinetId?: number): Promise<CampaignNote[]> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    const response = await apiClient.get<CampaignNote[]>(`/advertising/campaigns/${campaignId}/notes${params}`)
+    return response.data
+  },
+
+  createCampaignNote: async (campaignId: number, request: CreateNoteRequest, sellerId?: number, cabinetId?: number): Promise<CampaignNote> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    const response = await apiClient.post<CampaignNote>(`/advertising/campaigns/${campaignId}/notes${params}`, request)
+    return response.data
+  },
+
+  updateCampaignNote: async (campaignId: number, noteId: number, request: UpdateNoteRequest, sellerId?: number, cabinetId?: number): Promise<CampaignNote> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    const response = await apiClient.put<CampaignNote>(`/advertising/campaigns/${campaignId}/notes/${noteId}${params}`, request)
+    return response.data
+  },
+
+  deleteCampaignNote: async (campaignId: number, noteId: number, sellerId?: number, cabinetId?: number): Promise<void> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    await apiClient.delete(`/advertising/campaigns/${campaignId}/notes/${noteId}${params}`)
   },
 
   /**

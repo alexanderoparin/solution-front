@@ -4,6 +4,7 @@ import AnalyticsSummary from './pages/AnalyticsSummary'
 import AnalyticsArticle from './pages/AnalyticsArticle'
 import AnalyticsProducts from './pages/AnalyticsProducts'
 import AdvertisingCampaigns from './pages/AdvertisingCampaigns'
+import AdvertisingCampaignDetail from './pages/AdvertisingCampaignDetail'
 import Profile from './pages/Profile'
 import { useAuthStore } from './store/authStore'
 
@@ -39,6 +40,10 @@ function App() {
         <Route
           path="/advertising/campaigns"
           element={token ? <AdvertisingCampaigns /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/advertising/campaigns/:id"
+          element={token ? <AdvertisingCampaignDetail /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/profile"

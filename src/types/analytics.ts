@@ -142,6 +142,17 @@ export interface Campaign {
   orders?: number | null
 }
 
+/** Детали страницы комбо-кампании: название, статус, артикулы. */
+export interface CampaignDetail {
+  id: number
+  name: string
+  status: number | null
+  statusName: string | null
+  articlesCount: number
+  articles: ArticleSummary[]
+  createdAt: string
+}
+
 export interface Stock {
   warehouseName: string
   amount: number
@@ -180,6 +191,17 @@ export interface CreateNoteRequest {
 
 export interface UpdateNoteRequest {
   content: string
+}
+
+/** Заметка к рекламной кампании (РК). */
+export interface CampaignNote {
+  id: number
+  campaignId: number
+  userId: number
+  userEmail: string
+  content: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ArticleResponse {
