@@ -36,7 +36,7 @@ export default function Breadcrumbs() {
     items.push(
       { label: 'Реклама', path: '/advertising/campaigns' },
       { label: 'Рекламные компании', path: '/advertising/campaigns' },
-      { label: `Кампания ${params.id}` }
+      { label: params.id }
     )
   } else {
     items.push({ label: 'Профиль' })

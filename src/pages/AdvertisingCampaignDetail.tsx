@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { Spin, DatePicker, Checkbox, Switch, Button, Radio, Select, message, Input, Modal } from 'antd'
-import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { useParams, Link } from 'react-router-dom'
+import { Spin, DatePicker, Checkbox, Switch, Button, Select, message, Input, Modal } from 'antd'
+import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -10,7 +10,7 @@ import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, getStoredCabinetIdForSeller, setStoredCabinetIdForSeller } from '../api/cabinets'
 import { userApi } from '../api/user'
 import type { ArticleSummary, ArticleResponse, DailyData, Stock, CampaignNote } from '../types/analytics'
-import { colors, typography, spacing, borderRadius, shadows } from '../styles/analytics'
+import { colors, typography, spacing, borderRadius, shadows, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -22,8 +22,6 @@ dayjs.locale('ru')
 const COMBO_PHOTO_SIZE = 80
 const FONT_PAGE = { fontSize: '12px' as const }
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
-const WB_CATALOG_URL = (nmId: number) => `https://www.wildberries.ru/catalog/${nmId}/detail.aspx`
-
 const FUNNELS = {
   general: {
     name: 'Общая воронка',
@@ -321,6 +319,21 @@ export default function AdvertisingCampaignDetail() {
   }
 
   const funnelDailyData = funnelArticle?.dailyData
+
+  /** Метрики, у которых показываем число изменения (остальные — только стрелка) */
+  const METRICS_WITH_CHANGE_NUMBER = ['transitions', 'cart', 'orders', 'views', 'clicks']
+
+  /** Изменение к хронологически предыдущему дню при отображении дат по убыванию (rangeDatesDesc) */
+  const getMetricChangeVsPreviousDayDesc = useCallback((dateIndex: number, metricKey: string): number | null => {
+    if (!funnelDailyData?.length || dateIndex >= rangeDatesDesc.length - 1) return null
+    const currentDate = rangeDatesDesc[dateIndex]
+    const prevDate = rangeDatesDesc[dateIndex + 1]
+    const current = getMetricValueForDate(funnelDailyData, metricKey, currentDate)
+    const prev = getMetricValueForDate(funnelDailyData, metricKey, prevDate)
+    if (current === null || prev === null) return null
+    return current - prev
+  }, [funnelDailyData, rangeDatesDesc, getMetricValueForDate])
+
   const sortedFunnelKeys = useMemo(
     () => [...selectedFunnelKeys].sort((a, b) => FUNNEL_ORDER.indexOf(a) - FUNNEL_ORDER.indexOf(b)),
     [selectedFunnelKeys]
@@ -492,15 +505,16 @@ export default function AdvertisingCampaignDetail() {
           </div>
         ) : campaign ? (
           <>
-            {/* Блок 1: Название, статус, ID, кол-во товаров */}
+            {/* Блок 1: название, статус, артикулы — привязан к странице, без лишних отступов сверху/снизу */}
             <div
               style={{
                 backgroundColor: colors.bgWhite,
-                border: `1px solid ${colors.borderLight}`,
-                borderRadius: borderRadius.md,
-                padding: spacing.lg,
-                marginBottom: spacing.lg,
-                boxShadow: shadows.md,
+                borderBottom: `1px solid ${colors.borderLight}`,
+                paddingTop: spacing.sm,
+                paddingBottom: spacing.sm,
+                paddingLeft: spacing.lg,
+                paddingRight: spacing.lg,
+                marginBottom: spacing.sm,
               }}
             >
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
@@ -569,70 +583,114 @@ export default function AdvertisingCampaignDetail() {
                     </Button>
                   </div>
                 </div>
-                <div style={{ marginBottom: spacing.md }}>
-                  <span style={{ marginRight: spacing.sm, ...typography.body }}>Артикул для воронки:</span>
-                  <Radio.Group
-                    value={selectedFunnelArticleNmId ?? undefined}
-                    onChange={(e) => setSelectedFunnelArticleNmId(e.target.value)}
-                    optionType="button"
-                    size="small"
-                  >
-                    {articles.map((art) => (
-                      <Radio.Button key={art.nmId} value={art.nmId}>
-                        {art.title ? (art.title.length > 25 ? art.title.slice(0, 25) + '…' : art.title) : art.nmId}
-                      </Radio.Button>
-                    ))}
-                  </Radio.Group>
+                <div style={{ marginBottom: spacing.md, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }}>
+                  {articles.map((art) => (
+                    <Checkbox
+                      key={art.nmId}
+                      checked={selectedFunnelArticleNmId === art.nmId}
+                      onChange={() => setSelectedFunnelArticleNmId(art.nmId)}
+                    >
+                      {art.nmId}
+                    </Checkbox>
+                  ))}
                 </div>
                 {funnelArticleLoading && <Spin size="small" style={{ marginBottom: spacing.md }} />}
-                {selectedFunnel1 && funnelArticle?.dailyData && (
+                {selectedFunnel1 && funnelArticle?.dailyData && (() => {
+                  const metricsWithFunnel = FUNNEL_ORDER.filter((k) => selectedFunnelKeys.includes(k)).flatMap((funnelKey) =>
+                    FUNNELS[funnelKey].metrics.map((m) => ({ funnelKey, m }))
+                  )
+                  const totalCols = metricsWithFunnel.length
+                  return (
                   <div style={{ maxHeight: 438, overflowY: 'auto', overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
                       <thead>
                         <tr>
-                          <th style={{ textAlign: 'center', padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 600, position: 'sticky', top: 0, left: 0, backgroundColor: colors.bgWhite, zIndex: 2, width: 90 }}>Дата</th>
-                          {FUNNEL_ORDER.filter((k) => selectedFunnelKeys.includes(k)).flatMap((key) =>
-                            FUNNELS[key].metrics.map((m) => (
-                              <th key={m.key} style={{ textAlign: 'center', padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `1px solid ${colors.border}`, fontSize: 12, fontWeight: 600, position: 'sticky', top: 0, backgroundColor: colors.bgWhite, zIndex: 2, minWidth: 70 }}>
-                                {m.name.split('\n').map((line, i) => (<span key={i}>{line}<br /></span>))}
+                          <th style={{ textAlign: 'center', padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 600, position: 'sticky', top: 0, left: 0, backgroundColor: colors.bgWhite, zIndex: 2, width: 90, boxShadow: `0 1px 0 0 ${colors.border}` }}>Дата</th>
+                          {metricsWithFunnel.map(({ funnelKey, m }, index) => {
+                            const isGeneral = funnelKey === 'general'
+                            const isAdvertising = funnelKey === 'advertising'
+                            return (
+                              <th key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderBottom: `1px solid ${colors.border}`, boxShadow: `0 1px 0 0 ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, fontSize: 10, fontWeight: 600, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: isGeneral ? colors.funnelBg : isAdvertising ? colors.advertisingBg : colors.bgWhite, position: 'sticky', top: 0, zIndex: 2, width: totalCols ? `${100 / totalCols}%` : undefined }}>
+                                {m.name}
                               </th>
-                            ))
-                          )}
+                            )
+                          })}
                         </tr>
                       </thead>
                       <tbody>
-                        {rangeDatesDesc.map((date) => (
-                          <tr key={date}>
-                            <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, ...FONT_PAGE_SMALL }}>{dayjs(date).format('DD.MM.YYYY')}</td>
-                            {FUNNEL_ORDER.filter((k) => selectedFunnelKeys.includes(k)).flatMap((key) =>
-                              FUNNELS[key].metrics.map((m) => {
-                                const v = getMetricValueForDate(funnelDailyData, m.key, date)
-                                return (
-                                  <td key={m.key} style={{ textAlign: 'center', padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `1px solid ${colors.border}`, ...FONT_PAGE_SMALL }}>
-                                    {v === null ? '-' : m.key.includes('conversion') || m.key === 'ctr' || m.key === 'drr' ? formatPercent(v) : m.key === 'orders_amount' || m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo' ? formatCurrency(v) : formatValue(v)}
-                                  </td>
-                                )
+                        {rangeDatesDesc.map((date, dateIndex) => (
+                          <tr
+                            key={date}
+                            style={{ transition: transitions.fast, backgroundColor: 'transparent' }}
+                            onMouseEnter={(e) => {
+                              const row = e.currentTarget
+                              row.style.backgroundColor = colors.bgGrayLight
+                              Array.from(row.querySelectorAll('td')).forEach((cell: Element, cellIndex: number) => {
+                                const td = cell as HTMLElement
+                                if (cellIndex === 0) td.style.backgroundColor = metricsWithFunnel[0] ? (metricsWithFunnel[0].funnelKey === 'general' ? colors.funnelBgHover : colors.advertisingBgHover) : colors.bgGrayLight
+                                else {
+                                  const item = metricsWithFunnel[cellIndex - 1]
+                                  td.style.backgroundColor = item ? (item.funnelKey === 'general' ? colors.funnelBgHover : colors.advertisingBgHover) : colors.bgGrayLight
+                                }
                               })
-                            )}
-                          </tr>
-                        ))}
-                        <tr style={{ backgroundColor: colors.bgGrayLight, fontWeight: 600 }}>
-                          <td style={{ textAlign: 'center', padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, ...FONT_PAGE }}>Весь период</td>
-                          {FUNNEL_ORDER.filter((k) => selectedFunnelKeys.includes(k)).flatMap((key) =>
-                            FUNNELS[key].metrics.map((m) => {
-                              const v = getMetricTotalForPeriod(funnelDailyData, rangeDates, m.key)
+                            }}
+                            onMouseLeave={(e) => {
+                              const row = e.currentTarget
+                              row.style.backgroundColor = 'transparent'
+                              Array.from(row.querySelectorAll('td')).forEach((cell: Element, cellIndex: number) => {
+                                const td = cell as HTMLElement
+                                if (cellIndex === 0) td.style.backgroundColor = colors.bgWhite
+                                else {
+                                  const item = metricsWithFunnel[cellIndex - 1]
+                                  td.style.backgroundColor = item ? (item.funnelKey === 'general' ? colors.funnelBg : colors.advertisingBg) : colors.bgWhite
+                                }
+                              })
+                            }}
+                          >
+                            <td style={{ padding: '6px 8px', borderTop: dateIndex === 0 ? 'none' : undefined, borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 500, position: 'sticky', left: 0, backgroundColor: colors.bgWhite, zIndex: 1 }}>
+                              {dayjs(date).format('DD.MM.YYYY')}
+                            </td>
+                            {metricsWithFunnel.map(({ funnelKey, m }, index) => {
+                              const v = getMetricValueForDate(funnelDailyData, m.key, date)
+                              const change = getMetricChangeVsPreviousDayDesc(dateIndex, m.key)
+                              const isPercent = m.key.includes('conversion') || m.key === 'ctr' || m.key === 'drr'
+                              const isCurrency = m.key === 'orders_amount' || m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo'
+                              const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(m.key)
+                              const changeColor = change !== null && change !== 0 ? (change > 0 ? colors.success : colors.error) : undefined
+                              const isGeneral = funnelKey === 'general'
+                              const isAdvertising = funnelKey === 'advertising'
                               return (
-                                <td key={m.key} style={{ textAlign: 'center', padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `1px solid ${colors.border}`, ...FONT_PAGE }}>
-                                  {v === null ? '-' : m.key.includes('conversion') || m.key === 'ctr' || m.key === 'drr' ? formatPercent(v) : m.key === 'orders_amount' || m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo' ? formatCurrency(v) : formatValue(v)}
+                                <td key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderTop: dateIndex === 0 ? 'none' : undefined, borderBottom: `1px solid ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, backgroundColor: isGeneral ? colors.funnelBg : isAdvertising ? colors.advertisingBg : colors.bgWhite, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', transition: transitions.fast, position: 'relative' }}>
+                                  {v === null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)}
+                                  {change !== null && change !== 0 && changeColor && (
+                                    <div style={{ position: 'absolute', top: 1, right: 2, display: 'flex', alignItems: 'center', gap: 0, fontSize: '9px', fontWeight: 600, color: changeColor, lineHeight: 1 }}>
+                                      {showChangeNumber && <span>{change > 0 ? '+' : ''}{change}</span>}
+                                      {change > 0 ? <ArrowUpOutlined style={{ fontSize: '9px' }} /> : <ArrowDownOutlined style={{ fontSize: '9px' }} />}
+                                    </div>
+                                  )}
                                 </td>
                               )
-                            })
-                          )}
+                            })}
+                          </tr>
+                        ))}
+                        <tr style={{ backgroundColor: colors.bgGray }}>
+                          <td style={{ padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, borderTop: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 700, position: 'sticky', left: 0, backgroundColor: colors.bgGray, zIndex: 1 }}>
+                            Весь период
+                          </td>
+                          {metricsWithFunnel.map(({ m }, index) => {
+                            const v = getMetricTotalForPeriod(funnelDailyData, rangeDates, m.key)
+                            return (
+                              <td key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderBottom: `1px solid ${colors.border}`, borderTop: `2px solid ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, backgroundColor: colors.bgGray, fontSize: 11, fontWeight: 500 }}>
+                                {v === null ? '-' : m.key.includes('conversion') || m.key === 'ctr' || m.key === 'drr' ? formatPercent(v) : m.key === 'orders_amount' || m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo' ? formatCurrency(v) : formatValue(v)}
+                              </td>
+                            )
+                          })}
                         </tr>
                       </tbody>
                     </table>
                   </div>
-                )}
+                  )
+                })()}
               </div>
               {showChart && funnelArticle?.dailyData?.length && (
                 <AnalyticsChart
@@ -980,12 +1038,10 @@ function CampaignNotesBlock({
 }
 
 function ComboProductItem({ article, photoSize }: { article: ArticleSummary; photoSize: number }) {
-  const href = WB_CATALOG_URL(article.nmId)
+  const articlePath = `/analytics/article/${article.nmId}`
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      to={articlePath}
       style={{
         display: 'flex',
         alignItems: 'flex-start',
@@ -1025,6 +1081,6 @@ function ComboProductItem({ article, photoSize }: { article: ArticleSummary; pho
           {article.nmId}
         </span>
       </div>
-    </a>
+    </Link>
   )
 }
