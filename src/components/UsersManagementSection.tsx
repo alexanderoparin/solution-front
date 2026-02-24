@@ -11,6 +11,7 @@ import {
   message,
   Tag,
   Popconfirm,
+  Tooltip,
 } from 'antd'
 import {
   PlusOutlined,
@@ -19,6 +20,7 @@ import {
   CloseCircleOutlined,
   SearchOutlined,
   DeleteOutlined,
+  SyncOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
@@ -108,6 +110,17 @@ export default function UsersManagementSection() {
     },
     onError: (error: any) => {
       message.error(error.response?.data?.message || 'Ошибка при обновлении пользователя')
+    },
+  })
+
+  const triggerSellerUpdateMutation = useMutation({
+    mutationFn: userApi.triggerSellerDataUpdate,
+    onSuccess: (data) => {
+      message.success(data.message || 'Обновление кабинетов запущено')
+      queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
+    },
+    onError: (error: any) => {
+      message.error(error.response?.data?.message || 'Ошибка при запуске обновления')
     },
   })
 
@@ -250,6 +263,38 @@ export default function UsersManagementSection() {
         </Space>
       ),
     },
+    ...(role === 'ADMIN'
+      ? [
+          {
+            title: 'Обновить кабинеты',
+            key: 'triggerUpdate',
+            width: 160,
+            align: 'center' as const,
+            render: (_: any, record: UserListItem) =>
+              record.role === 'SELLER' ? (
+                <Tooltip
+                  title={
+                    record.lastDataUpdateRequestedAt
+                      ? `Последний запуск: ${dayjs(record.lastDataUpdateRequestedAt).format('DD.MM.YYYY HH:mm')}`
+                      : 'Последний запуск: не запускалось'
+                  }
+                >
+                  <Button
+                    type="link"
+                    icon={<SyncOutlined />}
+                    size="small"
+                    onClick={() => triggerSellerUpdateMutation.mutate(record.id)}
+                    disabled={triggerSellerUpdateMutation.isPending}
+                  >
+                    Обновить
+                  </Button>
+                </Tooltip>
+              ) : (
+                '—'
+              ),
+          },
+        ]
+      : []),
   ]
 
   return (
