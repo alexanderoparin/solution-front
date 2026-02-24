@@ -46,9 +46,22 @@ const FUNNELS = {
       { key: 'drr', name: 'ДРР, %' },
     ],
   },
+  pricing: {
+    name: 'Ценообразование',
+    metrics: [
+      { key: 'price_before_discount', name: 'Цена до\nскидки, руб' },
+      { key: 'seller_discount', name: 'Скидка\nпродавца, %' },
+      { key: 'price_with_discount', name: 'Цена со\nскидкой, руб' },
+      { key: 'wb_club_discount', name: 'Скидка\nWB Клуба, %' },
+      { key: 'price_with_wb_club', name: 'Цена со скидкой\nWB Клуба, руб' },
+      { key: 'price_with_spp', name: 'Цена с СПП,\nруб' },
+      { key: 'spp_amount', name: 'СПП,\nруб' },
+      { key: 'spp_percent', name: 'СПП, %' },
+    ],
+  },
 } as const
 type FunnelKey = keyof typeof FUNNELS
-const FUNNEL_ORDER: FunnelKey[] = ['general', 'advertising']
+const FUNNEL_ORDER: FunnelKey[] = ['general', 'advertising', 'pricing']
 
 function getDatesInRange(from: Dayjs, to: Dayjs): string[] {
   const days: string[] = []
@@ -258,6 +271,10 @@ export default function AdvertisingCampaignDetail() {
       transitions: d.transitions, cart: d.cart, orders: d.orders, orders_amount: d.ordersAmount,
       cart_conversion: d.cartConversion, order_conversion: d.orderConversion,
       views: d.views, clicks: d.clicks, costs: d.costs, cpc: d.cpc, ctr: d.ctr, cpo: d.cpo, drr: d.drr,
+      price_before_discount: d.priceBeforeDiscount, seller_discount: d.sellerDiscount,
+      price_with_discount: d.priceWithDiscount, wb_club_discount: d.wbClubDiscount,
+      price_with_wb_club: d.priceWithWbClub, price_with_spp: d.priceWithSpp,
+      spp_amount: d.sppAmount, spp_percent: d.sppPercent,
     }
     const v = map[metricKey]
     return v != null ? v : null
@@ -271,7 +288,9 @@ export default function AdvertisingCampaignDetail() {
     if (!dailyData?.length) return null
     const values = dates.map((date) => getMetricValueForDate(dailyData, metricKey, date)).filter((v): v is number => v !== null)
     if (values.length === 0) return null
-    if (metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr' || metricKey === 'cpc' || metricKey === 'cpo') {
+    if (metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr' || metricKey === 'cpc' || metricKey === 'cpo' ||
+        metricKey === 'seller_discount' || metricKey === 'wb_club_discount' || metricKey === 'spp_percent' ||
+        metricKey.startsWith('price_') || metricKey === 'spp_amount') {
       return values.reduce((a, b) => a + b, 0) / values.length
     }
     return values.reduce((a, b) => a + b, 0)
@@ -420,8 +439,8 @@ export default function AdvertisingCampaignDetail() {
       const row: (string | number)[] = [dayjs(date).format('DD.MM.YYYY')]
       for (const metricKey of metricKeys) {
         const v = getMetricValueForDate(funnelDailyData, metricKey, date)
-        const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
-        const isCurrency = metricKey === 'orders_amount' || metricKey === 'costs' || metricKey === 'cpc' || metricKey === 'cpo'
+        const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr' || metricKey === 'seller_discount' || metricKey === 'wb_club_discount' || metricKey === 'spp_percent'
+        const isCurrency = metricKey === 'orders_amount' || metricKey === 'costs' || metricKey === 'cpc' || metricKey === 'cpo' || metricKey.startsWith('price_') || metricKey === 'spp_amount'
         row.push(v === null ? '' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v))
       }
       rows.push(row)
@@ -429,8 +448,8 @@ export default function AdvertisingCampaignDetail() {
     const totalRow: (string | number)[] = ['Весь период']
     for (const metricKey of metricKeys) {
       const v = getMetricTotalForPeriod(funnelDailyData, rangeDates, metricKey)
-      const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
-      const isCurrency = metricKey === 'orders_amount' || metricKey === 'costs' || metricKey === 'cpc' || metricKey === 'cpo'
+      const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr' || metricKey === 'seller_discount' || metricKey === 'wb_club_discount' || metricKey === 'spp_percent'
+      const isCurrency = metricKey === 'orders_amount' || metricKey === 'costs' || metricKey === 'cpc' || metricKey === 'cpo' || metricKey.startsWith('price_') || metricKey === 'spp_amount'
       totalRow.push(v === null ? '' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v))
     }
     rows.push(totalRow)
@@ -505,16 +524,22 @@ export default function AdvertisingCampaignDetail() {
           </div>
         ) : campaign ? (
           <>
-            {/* Блок 1: название, статус, артикулы — привязан к странице, без лишних отступов сверху/снизу */}
+            {/* Блок 1: название, статус, артикулы — как в инфо об артикуле: тень, закругление */}
             <div
               style={{
                 backgroundColor: colors.bgWhite,
-                borderBottom: `1px solid ${colors.borderLight}`,
-                paddingTop: spacing.sm,
-                paddingBottom: spacing.sm,
-                paddingLeft: spacing.lg,
-                paddingRight: spacing.lg,
-                marginBottom: spacing.sm,
+                border: `1px solid ${colors.borderLight}`,
+                borderRadius: borderRadius.md,
+                padding: spacing.lg,
+                marginBottom: spacing.lg,
+                boxShadow: shadows.md,
+                transition: transitions.normal,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = shadows.lg
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = shadows.md
               }}
             >
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
@@ -572,6 +597,7 @@ export default function AdvertisingCampaignDetail() {
                     />
                     <Checkbox checked={selectedFunnelKeys.includes('general')} onChange={() => toggleFunnel('general')}>Общая</Checkbox>
                     <Checkbox checked={selectedFunnelKeys.includes('advertising')} onChange={() => toggleFunnel('advertising')}>Реклама</Checkbox>
+                    <Checkbox checked={selectedFunnelKeys.includes('pricing')} onChange={() => toggleFunnel('pricing')}>Цены</Checkbox>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, ...typography.body }}>
@@ -609,8 +635,10 @@ export default function AdvertisingCampaignDetail() {
                           {metricsWithFunnel.map(({ funnelKey, m }, index) => {
                             const isGeneral = funnelKey === 'general'
                             const isAdvertising = funnelKey === 'advertising'
+                            const isPricing = funnelKey === 'pricing'
+                            const headerBg = isGeneral ? colors.funnelBg : isAdvertising ? colors.advertisingBg : isPricing ? colors.pricingBg : colors.bgWhite
                             return (
-                              <th key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderBottom: `1px solid ${colors.border}`, boxShadow: `0 1px 0 0 ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, fontSize: 10, fontWeight: 600, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: isGeneral ? colors.funnelBg : isAdvertising ? colors.advertisingBg : colors.bgWhite, position: 'sticky', top: 0, zIndex: 2, width: totalCols ? `${100 / totalCols}%` : undefined }}>
+                              <th key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderBottom: `1px solid ${colors.border}`, boxShadow: `0 1px 0 0 ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, fontSize: 10, fontWeight: 600, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: headerBg, position: 'sticky', top: 0, zIndex: 2, width: totalCols ? `${100 / totalCols}%` : undefined }}>
                                 {m.name}
                               </th>
                             )
@@ -627,10 +655,11 @@ export default function AdvertisingCampaignDetail() {
                               row.style.backgroundColor = colors.bgGrayLight
                               Array.from(row.querySelectorAll('td')).forEach((cell: Element, cellIndex: number) => {
                                 const td = cell as HTMLElement
-                                if (cellIndex === 0) td.style.backgroundColor = metricsWithFunnel[0] ? (metricsWithFunnel[0].funnelKey === 'general' ? colors.funnelBgHover : colors.advertisingBgHover) : colors.bgGrayLight
+                                const hoverBg = (key: FunnelKey) => key === 'general' ? colors.funnelBgHover : key === 'advertising' ? colors.advertisingBgHover : colors.pricingBgHover
+                                if (cellIndex === 0) td.style.backgroundColor = metricsWithFunnel[0] ? hoverBg(metricsWithFunnel[0].funnelKey) : colors.bgGrayLight
                                 else {
                                   const item = metricsWithFunnel[cellIndex - 1]
-                                  td.style.backgroundColor = item ? (item.funnelKey === 'general' ? colors.funnelBgHover : colors.advertisingBgHover) : colors.bgGrayLight
+                                  td.style.backgroundColor = item ? hoverBg(item.funnelKey) : colors.bgGrayLight
                                 }
                               })
                             }}
@@ -639,10 +668,11 @@ export default function AdvertisingCampaignDetail() {
                               row.style.backgroundColor = 'transparent'
                               Array.from(row.querySelectorAll('td')).forEach((cell: Element, cellIndex: number) => {
                                 const td = cell as HTMLElement
+                                const cellBg = (key: FunnelKey) => key === 'general' ? colors.funnelBg : key === 'advertising' ? colors.advertisingBg : colors.pricingBg
                                 if (cellIndex === 0) td.style.backgroundColor = colors.bgWhite
                                 else {
                                   const item = metricsWithFunnel[cellIndex - 1]
-                                  td.style.backgroundColor = item ? (item.funnelKey === 'general' ? colors.funnelBg : colors.advertisingBg) : colors.bgWhite
+                                  td.style.backgroundColor = item ? cellBg(item.funnelKey) : colors.bgWhite
                                 }
                               })
                             }}
@@ -653,14 +683,16 @@ export default function AdvertisingCampaignDetail() {
                             {metricsWithFunnel.map(({ funnelKey, m }, index) => {
                               const v = getMetricValueForDate(funnelDailyData, m.key, date)
                               const change = getMetricChangeVsPreviousDayDesc(dateIndex, m.key)
-                              const isPercent = m.key.includes('conversion') || m.key === 'ctr' || m.key === 'drr'
-                              const isCurrency = m.key === 'orders_amount' || m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo'
+                              const isPercent = m.key.includes('conversion') || m.key === 'ctr' || m.key === 'drr' || m.key === 'seller_discount' || m.key === 'wb_club_discount' || m.key === 'spp_percent'
+                              const isCurrency = m.key === 'orders_amount' || m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo' || m.key.startsWith('price_') || m.key === 'spp_amount'
                               const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(m.key)
                               const changeColor = change !== null && change !== 0 ? (change > 0 ? colors.success : colors.error) : undefined
                               const isGeneral = funnelKey === 'general'
                               const isAdvertising = funnelKey === 'advertising'
+                              const isPricing = funnelKey === 'pricing'
+                              const cellBg = isGeneral ? colors.funnelBg : isAdvertising ? colors.advertisingBg : isPricing ? colors.pricingBg : colors.bgWhite
                               return (
-                                <td key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderTop: dateIndex === 0 ? 'none' : undefined, borderBottom: `1px solid ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, backgroundColor: isGeneral ? colors.funnelBg : isAdvertising ? colors.advertisingBg : colors.bgWhite, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', transition: transitions.fast, position: 'relative' }}>
+                                <td key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderTop: dateIndex === 0 ? 'none' : undefined, borderBottom: `1px solid ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, backgroundColor: cellBg, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', transition: transitions.fast, position: 'relative' }}>
                                   {v === null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)}
                                   {change !== null && change !== 0 && changeColor && (
                                     <div style={{ position: 'absolute', top: 1, right: 2, display: 'flex', alignItems: 'center', gap: 0, fontSize: '9px', fontWeight: 600, color: changeColor, lineHeight: 1 }}>
@@ -679,9 +711,11 @@ export default function AdvertisingCampaignDetail() {
                           </td>
                           {metricsWithFunnel.map(({ m }, index) => {
                             const v = getMetricTotalForPeriod(funnelDailyData, rangeDates, m.key)
+                            const isPercent = m.key.includes('conversion') || m.key === 'ctr' || m.key === 'drr' || m.key === 'seller_discount' || m.key === 'wb_club_discount' || m.key === 'spp_percent'
+                            const isCurrency = m.key === 'orders_amount' || m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo' || m.key.startsWith('price_') || m.key === 'spp_amount'
                             return (
                               <td key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderBottom: `1px solid ${colors.border}`, borderTop: `2px solid ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, backgroundColor: colors.bgGray, fontSize: 11, fontWeight: 500 }}>
-                                {v === null ? '-' : m.key.includes('conversion') || m.key === 'ctr' || m.key === 'drr' ? formatPercent(v) : m.key === 'orders_amount' || m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo' ? formatCurrency(v) : formatValue(v)}
+                                {v === null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)}
                               </td>
                             )
                           })}

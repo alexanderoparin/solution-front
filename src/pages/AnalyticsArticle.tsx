@@ -1,12 +1,14 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox, Switch } from 'antd'
 import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
+import { useQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
-import { getStoredCabinetId, getStoredCabinetIdForSeller } from '../api/cabinets'
+import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, getStoredCabinetIdForSeller, setStoredCabinetIdForSeller } from '../api/cabinets'
+import { userApi } from '../api/user'
 import type { ArticleResponse, StockSize, ArticleNote } from '../types/analytics'
 import { colors, typography, spacing, shadows, borderRadius, transitions, ARTICLE_HEADER_PHOTO_HEIGHT } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
@@ -80,23 +82,97 @@ export default function AnalyticsArticle() {
   const { nmId } = useParams<{ nmId: string }>()
   const navigate = useNavigate()
   const role = useAuthStore((state) => state.role)
+  const userId = useAuthStore((state) => state.userId)
   const isManagerOrAdmin = role === 'MANAGER' || role === 'ADMIN'
-  
-  const getSelectedSellerId = (): number | undefined => {
+
+  const [selectedSellerId, setSelectedSellerIdState] = useState<number | undefined>(() => {
     if (!isManagerOrAdmin) return undefined
     const saved = localStorage.getItem('analytics_selected_seller_id')
     if (saved) {
-      try {
-        const sellerId = parseInt(saved, 10)
-        if (!isNaN(sellerId)) return sellerId
-      } catch {
-        // ignore
-      }
+      const parsed = parseInt(saved, 10)
+      if (!Number.isNaN(parsed)) return parsed
     }
     return undefined
-  }
+  })
+  const [cabinetReloadTrigger, setCabinetReloadTrigger] = useState(0)
 
-  const getSelectedCabinetId = (): number | undefined => {
+  const { data: myCabinets = [], isLoading: myCabinetsLoading } = useQuery({
+    queryKey: ['cabinets'],
+    queryFn: () => cabinetsApi.list(),
+    enabled: role === 'SELLER' || role === 'WORKER',
+  })
+
+  const { data: activeSellers = [], isLoading: activeSellersLoading } = useQuery({
+    queryKey: ['activeSellers'],
+    queryFn: () => userApi.getActiveSellers(),
+    enabled: isManagerOrAdmin,
+  })
+
+  const { data: sellerCabinets = [], isLoading: sellerCabinetsLoading } = useQuery({
+    queryKey: ['sellerCabinets', selectedSellerId],
+    queryFn: () => userApi.getSellerCabinets(selectedSellerId!),
+    enabled: isManagerOrAdmin && selectedSellerId != null,
+  })
+
+  const cabinets = isManagerOrAdmin ? sellerCabinets : myCabinets
+  const cabinetsLoading = isManagerOrAdmin
+    ? (selectedSellerId == null ? activeSellersLoading : sellerCabinetsLoading)
+    : myCabinetsLoading
+  const storedCabinetId = isManagerOrAdmin && selectedSellerId != null
+    ? getStoredCabinetIdForSeller(selectedSellerId)
+    : getStoredCabinetId()
+  const selectedCabinetId = cabinets.length > 0
+    ? (storedCabinetId != null && cabinets.some((c) => c.id === storedCabinetId) ? storedCabinetId : cabinets[0].id)
+    : null
+
+  useEffect(() => {
+    if (isManagerOrAdmin && activeSellers.length > 0 && selectedSellerId == null) {
+      setSelectedSellerIdState(activeSellers[0].id)
+      localStorage.setItem('analytics_selected_seller_id', String(activeSellers[0].id))
+    }
+  }, [isManagerOrAdmin, activeSellers, selectedSellerId])
+
+  const setSelectedCabinetId = useCallback(
+    (cid: number | null) => {
+      if (isManagerOrAdmin && selectedSellerId != null) {
+        setStoredCabinetIdForSeller(selectedSellerId, cid)
+      } else {
+        setStoredCabinetId(cid)
+      }
+      setCabinetReloadTrigger((t) => t + 1)
+    },
+    [isManagerOrAdmin, selectedSellerId]
+  )
+
+  const cabinetSelectProps =
+    cabinets.length > 0
+      ? {
+          cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
+          selectedCabinetId,
+          onCabinetChange: setSelectedCabinetId,
+          loading: cabinetsLoading,
+        }
+      : undefined
+
+  const sellerSelectProps =
+    isManagerOrAdmin && activeSellers.length > 0
+      ? {
+          sellers: activeSellers.map((s) => ({ id: s.id, email: s.email })),
+          selectedSellerId: selectedSellerId ?? undefined,
+          onSellerChange: (sid: number) => {
+            setSelectedSellerIdState(sid)
+            localStorage.setItem('analytics_selected_seller_id', String(sid))
+          },
+          loading: activeSellersLoading,
+        }
+      : undefined
+
+  const getSelectedSellerId = useCallback((): number | undefined => {
+    if (isManagerOrAdmin) return selectedSellerId ?? undefined
+    return userId ?? undefined
+  }, [isManagerOrAdmin, selectedSellerId, userId])
+
+  const getSelectedCabinetId = useCallback((): number | undefined => {
     const sid = getSelectedSellerId()
     if (isManagerOrAdmin && sid != null) {
       const cid = getStoredCabinetIdForSeller(sid)
@@ -104,7 +180,7 @@ export default function AnalyticsArticle() {
     }
     const cid = getStoredCabinetId()
     return cid ?? undefined
-  }
+  }, [isManagerOrAdmin, getSelectedSellerId])
 
   // Общий диапазон дат для графика и воронок (по умолчанию последние 2 недели)
   const yesterday = dayjs().subtract(1, 'day')
@@ -178,7 +254,7 @@ export default function AnalyticsArticle() {
 
     loadArticle(Number(nmId))
     loadNotes(Number(nmId))
-  }, [nmId])
+  }, [nmId, selectedSellerId, cabinetReloadTrigger])
 
   const loadArticle = async (id: number) => {
     try {
@@ -648,7 +724,7 @@ export default function AnalyticsArticle() {
 
   return (
     <>
-      <Header />
+      <Header cabinetSelectProps={cabinetSelectProps} sellerSelectProps={sellerSelectProps} />
       <Breadcrumbs />
       <div style={{ 
         padding: `${spacing.lg} ${spacing.md}`, 
