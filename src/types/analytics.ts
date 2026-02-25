@@ -217,5 +217,7 @@ export interface ArticleResponse {
   stocks: Stock[]
   /** Товары «в связке» для отображения справа от шапки артикула */
   bundleProducts?: ArticleSummary[]
+  /** Дата-время последнего запуска обновления остатков по кабинету (для кнопки «Обновить остатки») */
+  lastStocksUpdateTriggeredAt?: string | null
 }
 

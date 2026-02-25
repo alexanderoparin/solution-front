@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox, Switch } from 'antd'
-import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined } from '@ant-design/icons'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox, Switch, Tooltip } from 'antd'
+import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -242,9 +242,10 @@ export default function AnalyticsArticle() {
     defaultDateTo
   ])
 
-  // Блок «Список РК»: поиск и период для метрик (null = за весь срок РК)
+  // Блок «Список РК»: поиск и период для метрик (по умолчанию — последняя неделя)
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
-  const [campaignDateRange, setCampaignDateRange] = useState<[Dayjs, Dayjs] | null>(null)
+  const [campaignDateRange, setCampaignDateRange] = useState<[Dayjs, Dayjs]>(() => [dayjs().subtract(6, 'day'), dayjs()])
+  const [stocksUpdateLoading, setStocksUpdateLoading] = useState(false)
 
   useEffect(() => {
     if (!nmId) {
@@ -253,17 +254,18 @@ export default function AnalyticsArticle() {
       return
     }
 
-    loadArticle(Number(nmId))
+    loadArticle(Number(nmId), campaignDateRange)
     loadNotes(Number(nmId))
-  }, [nmId, selectedSellerId, cabinetReloadTrigger])
+  }, [nmId, selectedSellerId, cabinetReloadTrigger, campaignDateRange])
 
-  const loadArticle = async (id: number) => {
+  const loadArticle = async (id: number, campaignPeriod: [Dayjs, Dayjs] | null) => {
     try {
       setLoading(true)
       setError(null)
       const sellerId = getSelectedSellerId()
-      // TODO: Обновить API для получения данных за последние 14 дней
-      const data = await analyticsApi.getArticle(id, [], sellerId, getSelectedCabinetId())
+      const campaignDateFrom = campaignPeriod ? campaignPeriod[0].format('YYYY-MM-DD') : undefined
+      const campaignDateTo = campaignPeriod ? campaignPeriod[1].format('YYYY-MM-DD') : undefined
+      const data = await analyticsApi.getArticle(id, [], sellerId, getSelectedCabinetId(), campaignDateFrom, campaignDateTo)
       setArticle(data)
     } catch (err: any) {
       setError(err.response?.data?.message || 'Ошибка при загрузке данных')
@@ -2610,16 +2612,33 @@ export default function AnalyticsArticle() {
                     : null
                   const totalAmount = allStocks.reduce((sum, stock) => sum + stock.amount, 0)
                   
+                  const cabinetId = selectedCabinetId ?? undefined
+                  const stocksTooRecent = (article?.lastStocksUpdateTriggeredAt != null) && dayjs(article.lastStocksUpdateTriggeredAt).isAfter(dayjs().subtract(1, 'hour'))
+                  const stocksButtonDisabled = !cabinetId || stocksTooRecent || stocksUpdateLoading
+                  const lastStocksTriggeredAt = article?.lastStocksUpdateTriggeredAt ?? null
+                  const stocksTooltipTitle = !cabinetId
+                    ? 'Выберите кабинет для обновления остатков'
+                    : stocksTooRecent && lastStocksTriggeredAt
+                      ? (() => {
+                          const nextAt = dayjs(lastStocksTriggeredAt).add(1, 'hour')
+                          const remainingMin = Math.max(0, nextAt.diff(dayjs(), 'minute', true))
+                          const mins = Math.ceil(remainingMin)
+                          if (mins >= 60) {
+                            const h = Math.ceil(mins / 60)
+                            return `Повторное обновление доступно через ${h} ${h === 1 ? 'час' : h < 5 ? 'часа' : 'часов'}`
+                          }
+                          return `Повторное обновление доступно через ${mins} ${mins === 1 ? 'минуту' : mins < 5 ? 'минуты' : 'минут'}`
+                        })()
+                      : 'Запустить обновление остатков'
                   return (
                     <>
                       <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
+                    gap: spacing.sm,
                     marginBottom: spacing.md,
-                    gap: spacing.md,
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap'
+                    flexWrap: 'nowrap',
+                    minWidth: 0
                   }}>
                     <h2 style={{ 
                       ...typography.h2,
@@ -2629,18 +2648,40 @@ export default function AnalyticsArticle() {
                       whiteSpace: 'nowrap',
                       fontSize: '16px',
                       lineHeight: '1.4',
-                      flex: '1 1 auto',
-                      minWidth: 0,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
+                      flexShrink: 0
                     }}>
                       Остатки на {latestUpdate ? dayjs(latestUpdate).format('DD.MM.YY HH:mm') : 'дату'}
                     </h2>
+                    <Tooltip title={stocksTooltipTitle}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<ReloadOutlined style={{ fontSize: 14 }} />}
+                        loading={stocksUpdateLoading}
+                        disabled={stocksButtonDisabled}
+                        onClick={async () => {
+                          if (!cabinetId) return
+                          setStocksUpdateLoading(true)
+                          try {
+                            await userApi.triggerCabinetStocksUpdate(cabinetId)
+                            message.success('Обновление остатков запущено. Данные обновятся в течение нескольких минут.')
+                            await loadArticle(Number(nmId), campaignDateRange)
+                          } catch (err: any) {
+                            const msg = err.response?.data?.message ?? 'Не удалось запустить обновление остатков'
+                            message.error(msg)
+                          } finally {
+                            setStocksUpdateLoading(false)
+                          }
+                        }}
+                        style={{ width: 28, height: 28, padding: 0, flexShrink: 0 }}
+                      />
+                    </Tooltip>
                     {allStocks.length > 0 && (
                       <div 
                         style={{
                           position: 'relative',
-                          flexShrink: 0
+                          flexShrink: 0,
+                          marginLeft: 'auto'
                         }}
                         title={latestUpdate ? `Дата обновления ${dayjs(latestUpdate).format('DD.MM.YY HH:mm')}` : ''}
                       >
@@ -2956,20 +2997,6 @@ export default function AnalyticsArticle() {
                 marginBottom: spacing.md
               }}
             >
-              <DatePicker.RangePicker
-                locale={locale.DatePicker}
-                value={campaignDateRange}
-                onChange={(dates) => {
-                  if (dates && dates[0] && dates[1]) {
-                    setCampaignDateRange([dates[0], dates[1]])
-                  } else {
-                    setCampaignDateRange(null)
-                  }
-                }}
-                format="DD.MM.YYYY"
-                placeholder={['Дата начала', 'Дата окончания']}
-                style={{ minWidth: 220 }}
-              />
               <Input
                 placeholder="Поиск по ID кампании или названию"
                 prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
@@ -2981,6 +3008,22 @@ export default function AnalyticsArticle() {
                   borderRadius: borderRadius.sm
                 }}
               />
+              <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                <span style={{ ...typography.body, fontSize: 12, color: colors.textSecondary }}>Период для метрик:</span>
+                <DatePicker.RangePicker
+                  locale={locale.DatePicker}
+                  value={campaignDateRange}
+                  onChange={(dates) => {
+                    if (dates && dates[0] && dates[1]) {
+                      setCampaignDateRange([dates[0], dates[1]])
+                    }
+                  }}
+                  format="DD.MM.YYYY"
+                  separator="→"
+                  placeholder={['Дата начала', 'Дата окончания']}
+                  style={{ width: 220 }}
+                />
+              </span>
             </div>
             <div style={{ overflowX: 'auto', width: '100%' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
@@ -3016,8 +3059,12 @@ export default function AnalyticsArticle() {
                       }}
                     >
                       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDate(c.createdAt)}</td>
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 500, color: colors.primary }}>{c.name}</td>
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, color: colors.textSecondary }}>{c.id}</td>
+                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>
+                        <Link to={`/advertising/campaigns/${c.id}`} style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}>{c.name}</Link>
+                      </td>
+                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>
+                        <Link to={`/advertising/campaigns/${c.id}`} style={{ color: colors.primary, textDecoration: 'none' }}>{c.id}</Link>
+                      </td>
                       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.type || '-'}</td>
                       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}` }}>
                         <span

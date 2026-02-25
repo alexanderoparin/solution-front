@@ -1,11 +1,11 @@
 import { useState, useMemo, useCallback, useEffect, Fragment } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Spin, DatePicker, Checkbox, Switch, Button, Select, message, Input, Modal } from 'antd'
-import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, RightOutlined, DownOutlined } from '@ant-design/icons'
+import { Spin, DatePicker, Checkbox, Switch, Button, Select, message, Input, Modal, Tooltip } from 'antd'
+import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, RightOutlined, DownOutlined, ReloadOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
-import { useQuery, useQueries } from '@tanstack/react-query'
+import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, getStoredCabinetIdForSeller, setStoredCabinetIdForSeller } from '../api/cabinets'
 import { userApi } from '../api/user'
@@ -204,6 +204,8 @@ export default function AdvertisingCampaignDetail() {
   const [expandedStocks, setExpandedStocks] = useState<Set<string>>(new Set())
   const [stockSizes, setStockSizes] = useState<Record<string, StockSize[]>>({})
   const [loadingSizes, setLoadingSizes] = useState<Record<string, boolean>>({})
+  const [stocksUpdateLoading, setStocksUpdateLoading] = useState(false)
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (firstNmId != null && selectedStockNmId == null) setSelectedStockNmId(firstNmId)
@@ -1037,19 +1039,63 @@ export default function AdvertisingCampaignDetail() {
                 )
               })()}
 
-              {/* Блок 5 — Остатки: заголовок с датой обновления, справа выбор артикула */}
+              {/* Блок 5 — Остатки: заголовок, кнопка и выбор артикула в одну строку */}
               <div style={{ flex: '1 1 280px', minWidth: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginBottom: spacing.md, flexWrap: 'wrap' }}>
-                  <h2 style={{ ...typography.h2, margin: 0, fontSize: 16, color: colors.textPrimary }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md, flexWrap: 'nowrap', minWidth: 0 }}>
+                  <h2 style={{ ...typography.h2, margin: 0, fontSize: 16, color: colors.textPrimary, flexShrink: 0 }}>
                     {(() => {
-                      const updatedAt = stockArticle?.stocks?.find((s: Stock) => s.updatedAt)?.updatedAt
-                      return updatedAt ? `Остатки на ${dayjs(updatedAt).format('DD.MM.YY HH:mm')}` : 'Остатки'
+                      const stocks = stockArticle?.stocks ?? []
+                      const latestStocksUpdate = stocks.length > 0
+                        ? stocks.map((s: Stock) => s.updatedAt).filter((d): d is string => d != null).sort().reverse()[0]
+                        : null
+                      return latestStocksUpdate ? `Остатки на ${dayjs(latestStocksUpdate).format('DD.MM.YY HH:mm')}` : 'Остатки'
                     })()}
                   </h2>
+                  {cabinetIdForRequest != null && (() => {
+                      const triggeredAt = stockArticle?.lastStocksUpdateTriggeredAt ?? null
+                      const tooRecent = triggeredAt != null && dayjs(triggeredAt).isAfter(dayjs().subtract(1, 'hour'))
+                      const tooltipTitle = tooRecent && triggeredAt
+                        ? (() => {
+                            const nextAt = dayjs(triggeredAt).add(1, 'hour')
+                            const remainingMin = Math.max(0, nextAt.diff(dayjs(), 'minute', true))
+                            const mins = Math.ceil(remainingMin)
+                            if (mins >= 60) {
+                              const h = Math.ceil(mins / 60)
+                              return `Повторное обновление доступно через ${h} ${h === 1 ? 'час' : h < 5 ? 'часа' : 'часов'}`
+                            }
+                            return `Повторное обновление доступно через ${mins} ${mins === 1 ? 'минуту' : mins < 5 ? 'минуты' : 'минут'}`
+                          })()
+                        : 'Запустить обновление остатков'
+                      return (
+                    <Tooltip title={tooltipTitle}>
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={<ReloadOutlined style={{ fontSize: 14 }} />}
+                        loading={stocksUpdateLoading}
+                        disabled={tooRecent || stocksUpdateLoading}
+                        onClick={async () => {
+                          if (cabinetIdForRequest == null) return
+                          setStocksUpdateLoading(true)
+                          try {
+                            await userApi.triggerCabinetStocksUpdate(cabinetIdForRequest)
+                            message.success('Обновление остатков запущено. Данные обновятся в течение нескольких минут.')
+                            await queryClient.invalidateQueries({ queryKey: ['article-stocks', selectedStockNmId, cabinetIdForRequest] })
+                          } catch (err: any) {
+                            message.error(err.response?.data?.message ?? 'Не удалось запустить обновление остатков')
+                          } finally {
+                            setStocksUpdateLoading(false)
+                          }
+                        }}
+                        style={{ width: 28, height: 28, padding: 0, flexShrink: 0 }}
+                      />
+                    </Tooltip>
+                  )
+                  })()}
                   <Select
                     value={selectedStockNmId ?? undefined}
                     onChange={(v) => setSelectedStockNmId(v ?? null)}
-                    style={{ width: 200 }}
+                    style={{ width: 115, minWidth: 115, flexShrink: 0, marginLeft: 'auto' }}
                     options={articles.map((a) => ({ value: a.nmId, label: String(a.nmId) }))}
                     placeholder="Артикул"
                   />

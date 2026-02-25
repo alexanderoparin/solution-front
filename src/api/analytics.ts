@@ -123,12 +123,20 @@ export const analyticsApi = {
 
   /**
    * Получает детальную информацию по артикулу.
+   * campaignDateFrom/To — период для метрик РК в блоке «Список РК» (опционально).
    */
-  getArticle: async (nmId: number, periods: Period[], sellerId?: number, cabinetId?: number): Promise<ArticleResponse> => {
-    const response = await apiClient.post<ArticleResponse>(
-      `/analytics/article/${nmId}`,
-      { periods, sellerId, cabinetId }
-    )
+  getArticle: async (
+    nmId: number,
+    periods: Period[],
+    sellerId?: number,
+    cabinetId?: number,
+    campaignDateFrom?: string,
+    campaignDateTo?: string
+  ): Promise<ArticleResponse> => {
+    const body: Record<string, unknown> = { periods, sellerId, cabinetId }
+    if (campaignDateFrom != null) body.campaignDateFrom = campaignDateFrom
+    if (campaignDateTo != null) body.campaignDateTo = campaignDateTo
+    const response = await apiClient.post<ArticleResponse>(`/analytics/article/${nmId}`, body)
     return response.data
   },
 

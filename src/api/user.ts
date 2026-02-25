@@ -92,6 +92,15 @@ export const userApi = {
   },
 
   /**
+   * Запускает только обновление остатков по кабинету (не чаще раза в час).
+   * Доступно владельцу кабинета, ADMIN и MANAGER.
+   */
+  triggerCabinetStocksUpdate: async (cabinetId: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(`/users/cabinets/${cabinetId}/trigger-stocks-update`)
+    return response.data
+  },
+
+  /**
    * Список кабинетов селлера (для ADMIN/MANAGER при просмотре аналитики селлера).
    */
   getSellerCabinets: async (sellerId: number): Promise<CabinetDto[]> => {
