@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, Fragment } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Spin, DatePicker, Checkbox, Switch, Button, Select, message, Input, Modal } from 'antd'
-import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons'
+import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, RightOutlined, DownOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -9,7 +9,7 @@ import { useQuery, useQueries } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, getStoredCabinetIdForSeller, setStoredCabinetIdForSeller } from '../api/cabinets'
 import { userApi } from '../api/user'
-import type { ArticleSummary, ArticleResponse, DailyData, Stock, CampaignNote } from '../types/analytics'
+import type { ArticleSummary, ArticleResponse, DailyData, Stock, StockSize, CampaignNote } from '../types/analytics'
 import { colors, typography, spacing, borderRadius, shadows, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
@@ -201,10 +201,19 @@ export default function AdvertisingCampaignDetail() {
   /** При наведении на строку в таблице периодов — подсвечиваем эту строку и строку с тем же артикулом в соседней таблице. */
   const [hoveredPeriodNmId, setHoveredPeriodNmId] = useState<number | null>(null)
   const [selectedStockNmId, setSelectedStockNmId] = useState<number | null>(null)
+  const [expandedStocks, setExpandedStocks] = useState<Set<string>>(new Set())
+  const [stockSizes, setStockSizes] = useState<Record<string, StockSize[]>>({})
+  const [loadingSizes, setLoadingSizes] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     if (firstNmId != null && selectedStockNmId == null) setSelectedStockNmId(firstNmId)
   }, [firstNmId, selectedStockNmId])
+
+  useEffect(() => {
+    setExpandedStocks(new Set())
+    setStockSizes({})
+    setLoadingSizes({})
+  }, [selectedStockNmId])
 
   const toggleFunnel = useCallback((key: FunnelKey) => {
     setSelectedFunnelKeys((prev) =>
@@ -384,20 +393,6 @@ export default function AdvertisingCampaignDetail() {
       drr: ordersAmount > 0 ? (costs / ordersAmount) * 100 : null,
     }
   }, [])
-
-  const calculateDifference = (value1: number | null, value2: number | null, roundToDecimals?: number): number | null => {
-    if (value1 === null || value2 === null || value1 === 0) return null
-    let v1 = value1, v2 = value2
-    if (roundToDecimals !== undefined) {
-      const m = Math.pow(10, roundToDecimals)
-      v1 = Math.round(value1 * m) / m
-      v2 = Math.round(value2 * m) / m
-    }
-    if (Math.abs(v2 - v1) < 0.001) return null
-    const diff = ((v2 - v1) / v1) * 100
-    if (Math.abs(diff) < 0.01) return null
-    return diff
-  }
 
   const funnelDailyData =
     selectedFunnelArticleNmId === ALL_ARTICLES_NM_ID ? aggregatedFunnelDailyData : funnelArticle?.dailyData
@@ -702,15 +697,15 @@ export default function AdvertisingCampaignDetail() {
                   <div style={{ maxHeight: 438, overflowY: 'auto', overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
                       <thead>
-                        <tr>
-                          <th style={{ textAlign: 'center', padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 600, position: 'sticky', top: 0, left: 0, backgroundColor: colors.bgWhite, zIndex: 2, width: 90, boxShadow: `0 1px 0 0 ${colors.border}` }}>Дата</th>
+                        <tr style={{ fontWeight: 700 }}>
+                          <th style={{ textAlign: 'center', padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 700, position: 'sticky', top: 0, left: 0, backgroundColor: colors.bgWhite, zIndex: 2, width: 90, boxShadow: `0 1px 0 0 ${colors.border}` }}>Дата</th>
                           {metricsWithFunnel.map(({ funnelKey, m }, index) => {
                             const isGeneral = funnelKey === 'general'
                             const isAdvertising = funnelKey === 'advertising'
                             const isPricing = funnelKey === 'pricing'
                             const headerBg = isGeneral ? colors.funnelBg : isAdvertising ? colors.advertisingBg : isPricing ? colors.pricingBg : colors.bgWhite
                             return (
-                              <th key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderBottom: `1px solid ${colors.border}`, boxShadow: `0 1px 0 0 ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, fontSize: 10, fontWeight: 600, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: headerBg, position: 'sticky', top: 0, zIndex: 2, width: totalCols ? `${100 / totalCols}%` : undefined }}>
+                              <th key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderBottom: `1px solid ${colors.border}`, boxShadow: `0 1px 0 0 ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, fontSize: 10, fontWeight: 700, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: headerBg, position: 'sticky', top: 0, zIndex: 2, width: totalCols ? `${100 / totalCols}%` : undefined }}>
                                 {m.name}
                               </th>
                             )
@@ -765,7 +760,7 @@ export default function AdvertisingCampaignDetail() {
                               const cellBg = isGeneral ? colors.funnelBg : isAdvertising ? colors.advertisingBg : isPricing ? colors.pricingBg : colors.bgWhite
                               return (
                                 <td key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderTop: dateIndex === 0 ? 'none' : undefined, borderBottom: `1px solid ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, backgroundColor: cellBg, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', transition: transitions.fast, position: 'relative' }}>
-                                  {v === null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)}
+                                  {(v === null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)}
                                   {change !== null && change !== 0 && changeColor && (
                                     <div style={{ position: 'absolute', top: 1, right: 2, display: 'flex', alignItems: 'center', gap: 0, fontSize: '9px', fontWeight: 600, color: changeColor, lineHeight: 1 }}>
                                       {showChangeNumber && <span>{change > 0 ? '+' : ''}{change}</span>}
@@ -787,7 +782,7 @@ export default function AdvertisingCampaignDetail() {
                             const isCurrency = m.key === 'orders_amount' || m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo' || m.key.startsWith('price_') || m.key === 'spp_amount'
                             return (
                               <td key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderBottom: `1px solid ${colors.border}`, borderTop: `2px solid ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, backgroundColor: colors.bgGray, fontSize: 11, fontWeight: 500 }}>
-                                {v === null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)}
+                                {(v === null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)}
                               </td>
                             )
                           })}
@@ -809,259 +804,348 @@ export default function AdvertisingCampaignDetail() {
               )}
             </div>
 
-            {/* Блок 3 — Два периода (таблицы по артикулам + СУММАРНО) */}
+            {/* Блок 3 — Сравнение периодов: слева артикулы, потом блок периода 1, потом периода 2 */}
             <div style={{ backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, marginBottom: spacing.lg, boxShadow: shadows.md }}>
-              <h2 style={{ ...typography.h2, margin: '0 0 16px 0', fontSize: 16, color: colors.textPrimary }}>Периоды</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.xl }}>
-                <div>
-                  <div style={{ marginBottom: spacing.sm }}>
-                    <DatePicker.RangePicker
-                      locale={locale.DatePicker}
-                      value={period1}
-                      onChange={(dates) => dates?.[0] && dates?.[1] && setPeriod1([dates[0], dates[1]])}
-                      format="DD.MM.YYYY"
-                      separator="→"
-                      style={{ width: 220 }}
-                    />
+              <h2 style={{ ...typography.h2, margin: '0 0 16px 0', fontSize: 16, color: colors.textPrimary }}>Сравнение периодов</h2>
+              <div style={{ overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+                <div style={{ minWidth: 2200, width: '100%', boxSizing: 'border-box' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr', alignItems: 'center', marginBottom: spacing.sm, width: '100%' }}>
+                    <div />
+                    <div style={{ paddingRight: spacing.md, minWidth: 0 }}>
+                      <DatePicker.RangePicker
+                        locale={locale.DatePicker}
+                        value={period1}
+                        onChange={(dates) => dates?.[0] && dates?.[1] && setPeriod1([dates[0], dates[1]])}
+                        format="DD.MM.YYYY"
+                        separator="→"
+                        style={{ width: 220 }}
+                      />
+                    </div>
+                    <div style={{ paddingRight: spacing.md, minWidth: 0 }}>
+                      <DatePicker.RangePicker
+                        locale={locale.DatePicker}
+                        value={period2}
+                        onChange={(dates) => dates?.[0] && dates?.[1] && setPeriod2([dates[0], dates[1]])}
+                        format="DD.MM.YYYY"
+                        separator="→"
+                        style={{ width: 220 }}
+                      />
+                    </div>
                   </div>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                      <thead>
-                        <tr style={{ backgroundColor: colors.bgGrayLight }}>
-                          <th style={{ padding: '6px 8px', textAlign: 'left', border: `1px solid ${colors.border}` }}>Товар</th>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col style={{ width: 120 }} />
+                    <col span={FUNNELS.general.metrics.length + FUNNELS.advertising.metrics.length} style={{ width: 'calc((100% - 120px) / 2)' }} />
+                    <col span={FUNNELS.general.metrics.length + FUNNELS.advertising.metrics.length} style={{ width: 'calc((100% - 120px) / 2)' }} />
+                  </colgroup>
+                  <thead>
+                    <tr style={{ backgroundColor: colors.bgGrayLight }}>
+                      <th style={{ padding: '6px 12px', textAlign: 'left', border: `1px solid ${colors.border}`, borderRight: 'none', boxShadow: `inset -3px 0 0 0 ${colors.border}`, position: 'sticky', left: 0, zIndex: 2, backgroundColor: colors.bgGrayLight, width: 120, boxSizing: 'border-box' }}>Товар</th>
+                      {[1, 2].map((period) => (
+                        <Fragment key={period}>
                           {FUNNELS.general.metrics.map((m, i) => (
-                            <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{m.name}</th>
+                            <th key={`p${period}-${m.key}`} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{m.name}</th>
                           ))}
                           {FUNNELS.advertising.metrics.map((m, i) => (
-                            <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{m.name}</th>
+                            <th key={`p${period}-${m.key}`} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? (period === 2 ? 'none' : `3px solid ${colors.border}`) : undefined }}>{m.name}</th>
                           ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {articles.map((art) => {
-                          const agg = periodAggregatesByNmId[art.nmId]?.p1
-                          const isHovered = hoveredPeriodNmId === art.nmId
-                          const getVal = (key: string) => {
-                            if (!agg) return null
-                            const map: Record<string, number | null | undefined> = {
-                              transitions: agg.transitions, cart: agg.cart, orders: agg.orders, orders_amount: agg.ordersAmount,
-                              cart_conversion: agg.cartConversion, order_conversion: agg.orderConversion,
-                              views: agg.views, clicks: agg.clicks, costs: agg.costs, cpc: agg.cpc, ctr: agg.ctr, cpo: agg.cpo, drr: agg.drr,
-                            }
-                            return map[key] != null ? map[key]! : null
-                          }
-                          const fmt = (key: string, v: number | null) => {
-                            if (v === null) return '-'
-                            const isPercent = key.includes('conversion') || key === 'ctr' || key === 'drr'
-                            const isCurrency = key === 'orders_amount' || key === 'costs' || key === 'cpc' || key === 'cpo'
-                            return isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
-                          }
-                          return (
-                            <tr
-                              key={art.nmId}
-                              onMouseEnter={() => setHoveredPeriodNmId(art.nmId)}
-                              onMouseLeave={() => setHoveredPeriodNmId(null)}
-                              style={{ transition: transitions.fast }}
-                            >
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 8, backgroundColor: isHovered ? colors.bgGrayLight : undefined }}>
-                                {art.photoTm && <img src={art.photoTm} alt="" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4 }} />}
-                                <span style={{ fontSize: 11 }}>{art.nmId}</span>
-                              </td>
-                              {FUNNELS.general.metrics.map((m, i) => (
-                                <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', backgroundColor: isHovered ? colors.funnelBgHover : colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{fmt(m.key, getVal(m.key))}</td>
-                              ))}
-                              {FUNNELS.advertising.metrics.map((m, i) => (
-                                <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', backgroundColor: isHovered ? colors.advertisingBgHover : colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{fmt(m.key, getVal(m.key))}</td>
-                              ))}
-                            </tr>
-                          )
-                        })}
-                        <tr style={{ backgroundColor: colors.bgGrayLight, fontWeight: 600 }}>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}` }}>СУММАРНО</td>
-                          {FUNNELS.general.metrics.map((m, i) => {
-                            const v = totalPeriod1 && (m.key === 'transitions' ? totalPeriod1.transitions : m.key === 'cart' ? totalPeriod1.cart : m.key === 'orders' ? totalPeriod1.orders : m.key === 'orders_amount' ? totalPeriod1.ordersAmount : m.key === 'cart_conversion' ? totalPeriod1.cartConversion : totalPeriod1.orderConversion)
-                            const isPercent = m.key.includes('conversion')
-                            const isCurrency = m.key === 'orders_amount'
-                            const display = v == null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
-                            return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', color: colors.primary, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{display}</td>
-                          })}
-                          {FUNNELS.advertising.metrics.map((m, i) => {
-                            const v = totalPeriod1 && (m.key === 'views' ? totalPeriod1.views : m.key === 'clicks' ? totalPeriod1.clicks : m.key === 'costs' ? totalPeriod1.costs : m.key === 'cpc' ? totalPeriod1.cpc : m.key === 'ctr' ? totalPeriod1.ctr : m.key === 'cpo' ? totalPeriod1.cpo : totalPeriod1.drr)
-                            const isPercent = m.key === 'ctr' || m.key === 'drr'
-                            const isCurrency = m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo'
-                            const display = v == null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
-                            return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', color: colors.success, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{display}</td>
-                          })}
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                <div>
-                  <div style={{ marginBottom: spacing.sm }}>
-                    <DatePicker.RangePicker
-                      locale={locale.DatePicker}
-                      value={period2}
-                      onChange={(dates) => dates?.[0] && dates?.[1] && setPeriod2([dates[0], dates[1]])}
-                      format="DD.MM.YYYY"
-                      separator="→"
-                      style={{ width: 220 }}
-                    />
-                  </div>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                      <thead>
-                        <tr style={{ backgroundColor: colors.bgGrayLight }}>
-                          <th style={{ padding: '6px 8px', textAlign: 'left', border: `1px solid ${colors.border}` }}>Товар</th>
+                        </Fragment>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {articles.map((art) => {
+                      const p1 = periodAggregatesByNmId[art.nmId]?.p1
+                      const p2 = periodAggregatesByNmId[art.nmId]?.p2
+                      const isHovered = hoveredPeriodNmId === art.nmId
+                      const getVal = (agg: ReturnType<typeof aggregatePeriodData>, key: string) => {
+                        if (!agg) return null
+                        const map: Record<string, number | null | undefined> = {
+                          transitions: agg.transitions, cart: agg.cart, orders: agg.orders, orders_amount: agg.ordersAmount,
+                          cart_conversion: agg.cartConversion, order_conversion: agg.orderConversion,
+                          views: agg.views, clicks: agg.clicks, costs: agg.costs, cpc: agg.cpc, ctr: agg.ctr, cpo: agg.cpo, drr: agg.drr,
+                        }
+                        return map[key] != null ? map[key]! : null
+                      }
+                      const fmt = (key: string, v: number | null) => {
+                        if (v === null || v === 0) return '-'
+                        const isPercent = key.includes('conversion') || key === 'ctr' || key === 'drr'
+                        const isCurrency = key === 'orders_amount' || key === 'costs' || key === 'cpc' || key === 'cpo'
+                        return isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                      }
+                      return (
+                        <tr
+                          key={art.nmId}
+                          onMouseEnter={() => setHoveredPeriodNmId(art.nmId)}
+                          onMouseLeave={() => setHoveredPeriodNmId(null)}
+                          style={{ transition: transitions.fast }}
+                        >
+                          <td style={{ padding: '6px 12px', border: `1px solid ${colors.border}`, borderRight: 'none', boxShadow: `inset -3px 0 0 0 ${colors.border}`, display: 'flex', alignItems: 'center', gap: 8, backgroundColor: isHovered ? colors.bgGrayLight : colors.bgWhite, position: 'sticky', left: 0, zIndex: 1 }}>
+                            {art.photoTm && <img src={art.photoTm} alt="" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4 }} />}
+                            <span style={{ fontSize: 11 }}>{art.nmId}</span>
+                          </td>
                           {FUNNELS.general.metrics.map((m, i) => (
-                            <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{m.name}</th>
+                            <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', backgroundColor: isHovered ? colors.funnelBgHover : colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{fmt(m.key, getVal(p1, m.key))}</td>
                           ))}
                           {FUNNELS.advertising.metrics.map((m, i) => (
-                            <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{m.name}</th>
+                            <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', backgroundColor: isHovered ? colors.advertisingBgHover : colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? `3px solid ${colors.border}` : undefined }}>{fmt(m.key, getVal(p1, m.key))}</td>
+                          ))}
+                          {FUNNELS.general.metrics.map((m, i) => (
+                            <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', backgroundColor: isHovered ? colors.funnelBgHover : colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{fmt(m.key, getVal(p2, m.key))}</td>
+                          ))}
+                          {FUNNELS.advertising.metrics.map((m, i) => (
+                            <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', backgroundColor: isHovered ? colors.advertisingBgHover : colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{fmt(m.key, getVal(p2, m.key))}</td>
                           ))}
                         </tr>
-                      </thead>
-                      <tbody>
-                        {articles.map((art) => {
-                          const agg = periodAggregatesByNmId[art.nmId]?.p2
-                          const isHovered = hoveredPeriodNmId === art.nmId
-                          const getVal = (key: string) => {
-                            if (!agg) return null
-                            const map: Record<string, number | null | undefined> = {
-                              transitions: agg.transitions, cart: agg.cart, orders: agg.orders, orders_amount: agg.ordersAmount,
-                              cart_conversion: agg.cartConversion, order_conversion: agg.orderConversion,
-                              views: agg.views, clicks: agg.clicks, costs: agg.costs, cpc: agg.cpc, ctr: agg.ctr, cpo: agg.cpo, drr: agg.drr,
-                            }
-                            return map[key] != null ? map[key]! : null
-                          }
-                          const fmt = (key: string, v: number | null) => {
-                            if (v === null) return '-'
-                            const isPercent = key.includes('conversion') || key === 'ctr' || key === 'drr'
-                            const isCurrency = key === 'orders_amount' || key === 'costs' || key === 'cpc' || key === 'cpo'
-                            return isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
-                          }
-                          return (
-                            <tr
-                              key={art.nmId}
-                              onMouseEnter={() => setHoveredPeriodNmId(art.nmId)}
-                              onMouseLeave={() => setHoveredPeriodNmId(null)}
-                              style={{ transition: transitions.fast }}
-                            >
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 8, backgroundColor: isHovered ? colors.bgGrayLight : undefined }}>
-                                {art.photoTm && <img src={art.photoTm} alt="" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4 }} />}
-                                <span style={{ fontSize: 11 }}>{art.nmId}</span>
-                              </td>
-                              {FUNNELS.general.metrics.map((m, i) => (
-                                <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', backgroundColor: isHovered ? colors.funnelBgHover : colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{fmt(m.key, getVal(m.key))}</td>
-                              ))}
-                              {FUNNELS.advertising.metrics.map((m, i) => (
-                                <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', backgroundColor: isHovered ? colors.advertisingBgHover : colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{fmt(m.key, getVal(m.key))}</td>
-                              ))}
-                            </tr>
-                          )
-                        })}
-                        <tr style={{ backgroundColor: colors.bgGrayLight, fontWeight: 600 }}>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}` }}>СУММАРНО</td>
-                          {FUNNELS.general.metrics.map((m, i) => {
-                            const v = totalPeriod2 && (m.key === 'transitions' ? totalPeriod2.transitions : m.key === 'cart' ? totalPeriod2.cart : m.key === 'orders' ? totalPeriod2.orders : m.key === 'orders_amount' ? totalPeriod2.ordersAmount : m.key === 'cart_conversion' ? totalPeriod2.cartConversion : totalPeriod2.orderConversion)
-                            const isPercent = m.key.includes('conversion')
-                            const isCurrency = m.key === 'orders_amount'
-                            const display = v == null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
-                            return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', color: colors.primary, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{display}</td>
-                          })}
-                          {FUNNELS.advertising.metrics.map((m, i) => {
-                            const v = totalPeriod2 && (m.key === 'views' ? totalPeriod2.views : m.key === 'clicks' ? totalPeriod2.clicks : m.key === 'costs' ? totalPeriod2.costs : m.key === 'cpc' ? totalPeriod2.cpc : m.key === 'ctr' ? totalPeriod2.ctr : m.key === 'cpo' ? totalPeriod2.cpo : totalPeriod2.drr)
-                            const isPercent = m.key === 'ctr' || m.key === 'drr'
-                            const isCurrency = m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo'
-                            const display = v == null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
-                            return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', color: colors.success, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{display}</td>
-                          })}
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                      )
+                    })}
+                    <tr style={{ backgroundColor: colors.bgGrayLight, fontWeight: 600 }}>
+                      <td style={{ padding: '6px 12px', border: `1px solid ${colors.border}`, borderRight: 'none', boxShadow: `inset -3px 0 0 0 ${colors.border}`, position: 'sticky', left: 0, zIndex: 1, backgroundColor: colors.bgGray }}>СУММАРНО</td>
+                      {FUNNELS.general.metrics.map((m, i) => {
+                        const v = totalPeriod1 && (m.key === 'transitions' ? totalPeriod1.transitions : m.key === 'cart' ? totalPeriod1.cart : m.key === 'orders' ? totalPeriod1.orders : m.key === 'orders_amount' ? totalPeriod1.ordersAmount : m.key === 'cart_conversion' ? totalPeriod1.cartConversion : totalPeriod1.orderConversion)
+                        const isPercent = m.key.includes('conversion')
+                        const isCurrency = m.key === 'orders_amount'
+                        const display = (v == null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                        return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', color: colors.primary, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{display}</td>
+                      })}
+                      {FUNNELS.advertising.metrics.map((m, i) => {
+                        const v = totalPeriod1 && (m.key === 'views' ? totalPeriod1.views : m.key === 'clicks' ? totalPeriod1.clicks : m.key === 'costs' ? totalPeriod1.costs : m.key === 'cpc' ? totalPeriod1.cpc : m.key === 'ctr' ? totalPeriod1.ctr : m.key === 'cpo' ? totalPeriod1.cpo : totalPeriod1.drr)
+                        const isPercent = m.key === 'ctr' || m.key === 'drr'
+                        const isCurrency = m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo'
+                        const display = (v == null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                        return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', color: colors.success, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? `3px solid ${colors.border}` : undefined }}>{display}</td>
+                      })}
+                      {FUNNELS.general.metrics.map((m, i) => {
+                        const v = totalPeriod2 && (m.key === 'transitions' ? totalPeriod2.transitions : m.key === 'cart' ? totalPeriod2.cart : m.key === 'orders' ? totalPeriod2.orders : m.key === 'orders_amount' ? totalPeriod2.ordersAmount : m.key === 'cart_conversion' ? totalPeriod2.cartConversion : totalPeriod2.orderConversion)
+                        const isPercent = m.key.includes('conversion')
+                        const isCurrency = m.key === 'orders_amount'
+                        const display = (v == null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                        return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', color: colors.primary, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{display}</td>
+                      })}
+                      {FUNNELS.advertising.metrics.map((m, i) => {
+                        const v = totalPeriod2 && (m.key === 'views' ? totalPeriod2.views : m.key === 'clicks' ? totalPeriod2.clicks : m.key === 'costs' ? totalPeriod2.costs : m.key === 'cpc' ? totalPeriod2.cpc : m.key === 'ctr' ? totalPeriod2.ctr : m.key === 'cpo' ? totalPeriod2.cpo : totalPeriod2.drr)
+                        const isPercent = m.key === 'ctr' || m.key === 'drr'
+                        const isCurrency = m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo'
+                        const display = (v == null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                        return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', color: colors.success, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{display}</td>
+                      })}
+                    </tr>
+                  </tbody>
+                </table>
                 </div>
               </div>
             </div>
 
-            {/* Блок 4 — Сравнение периодов (суммарно по комбо, без выбора дат) */}
-            {totalPeriod1 && totalPeriod2 && (
-              <div style={{ backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, marginBottom: spacing.lg, boxShadow: shadows.md }}>
-                <h2 style={{ ...typography.h2, margin: '0 0 16px 0', fontSize: 16, color: colors.textPrimary }}>Сравнение периодов (суммарно по комбо)</h2>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg }}>
-                  <div>
+            {/* Блок 4 + 5 в один ряд: слева — сравнение периодов (суммарно), справа — остатки (оформление как в «Инфа по артикулу») */}
+            <div style={{ display: 'flex', gap: spacing.lg, alignItems: 'stretch', marginBottom: spacing.lg, flexWrap: 'wrap', backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, boxShadow: shadows.md }}>
+              {totalPeriod1 && totalPeriod2 && (() => {
+                const getVal = (key: string, tot: typeof totalPeriod1) => {
+                  if (!tot) return null
+                  const map: Record<string, number | null | undefined> = {
+                    transitions: tot.transitions, cart: tot.cart, orders: tot.orders, orders_amount: tot.ordersAmount,
+                    cart_conversion: tot.cartConversion, order_conversion: tot.orderConversion,
+                    views: tot.views, clicks: tot.clicks, costs: tot.costs, cpc: tot.cpc, ctr: tot.ctr, cpo: tot.cpo, drr: tot.drr,
+                  }
+                  return map[key] != null ? map[key]! : null
+                }
+                const fmt = (key: string, v: number | null) => {
+                  if (v === null || v === 0) return '-'
+                  const isPercent = key.includes('conversion') || key === 'ctr' || key === 'drr'
+                  const isCurrency = key === 'orders_amount' || key === 'costs' || key === 'cpc' || key === 'cpo'
+                  return isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                }
+                const renderDiff = (key: string) => {
+                  const v1 = getVal(key, totalPeriod1)
+                  const v2 = getVal(key, totalPeriod2)
+                  const noData1 = v1 == null || v1 === 0
+                  const noData2 = v2 == null || v2 === 0
+                  const isPercentMetric = key.includes('conversion') || key === 'ctr' || key === 'drr'
+                  if (noData1 || noData2) return { text: '-', color: colors.textPrimary }
+                  if (isPercentMetric) {
+                    const p1 = v1 ?? 0
+                    const p2 = v2 ?? 0
+                    const diffPoints = Math.round((p2 - p1) * 100) / 100
+                    if (Math.abs(diffPoints) < 0.01) return { text: '-', color: colors.textPrimary }
+                    return { text: (diffPoints > 0 ? '+' : '') + formatPercent(diffPoints), color: diffPoints > 0 ? colors.success : colors.error }
+                  }
+                  const diff = Math.round(((v2! - v1!) / v1!) * 10000) / 100
+                  if (Math.abs(diff) < 0.01) return { text: '-', color: colors.textPrimary }
+                  return { text: (diff > 0 ? '+' : '') + formatPercent(diff), color: diff > 0 ? colors.success : colors.error }
+                }
+                const thPeriod = { textAlign: 'center' as const, padding: spacing.md, borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, fontSize: 12, fontWeight: 600 }
+                const tdCell = { padding: spacing.md, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 12 }
+                return (
+                <div style={{ flex: '0 1 75%', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                  <h2 style={{ ...typography.h2, margin: '0 0 12px 0', fontSize: 16, color: colors.textPrimary }}>
+                    Сравнение периодов (суммарно по Рекламной Компании)
+                  </h2>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg, alignContent: 'start' }}>
+                    {/* Таблица: Общая воронка */}
+                    <div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr>
+                            <th style={{ textAlign: 'left', padding: spacing.md, borderBottom: `2px solid ${colors.borderHeader}`, borderRight: `2px solid ${colors.border}`, ...typography.body, fontSize: 12, fontWeight: 600, backgroundColor: colors.funnelBg, width: '35%' }}>Общая воронка</th>
+                            <th style={{ ...thPeriod, borderLeft: `2px solid ${colors.border}`, borderRight: `1px solid ${colors.border}`, backgroundColor: colors.bgGrayLight, width: '22%' }}>{period1[0].format('DD.MM')} – {period1[1].format('DD.MM')}</th>
+                            <th style={{ ...thPeriod, borderRight: `2px solid ${colors.border}`, backgroundColor: colors.bgGrayLight, width: '22%' }}>{period2[0].format('DD.MM')} – {period2[1].format('DD.MM')}</th>
+                            <th style={{ ...thPeriod, borderLeft: `1px solid ${colors.border}`, backgroundColor: colors.bgGrayLight, width: '21%' }}>Разница</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {FUNNELS.general.metrics.map((m) => {
+                            const { text: diffText, color: diffColor } = renderDiff(m.key)
+                            return (
+                              <tr key={m.key} style={{ backgroundColor: colors.bgWhite }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.funnelBgHover; Array.from(e.currentTarget.querySelectorAll('td')).forEach((c) => { (c as HTMLElement).style.backgroundColor = colors.funnelBgHover }) }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = colors.bgWhite; Array.from(e.currentTarget.querySelectorAll('td')).forEach((c) => { (c as HTMLElement).style.backgroundColor = 'transparent' }) }}>
+                                <td style={{ ...tdCell, borderRight: `2px solid ${colors.border}` }}>{m.name.replace(/\n/g, ' ')}</td>
+                                <td style={{ ...tdCell, textAlign: 'center', borderLeft: `2px solid ${colors.border}`, borderRight: `1px solid ${colors.border}` }}>{fmt(m.key, getVal(m.key, totalPeriod1))}</td>
+                                <td style={{ ...tdCell, textAlign: 'center', borderRight: `1px solid ${colors.border}` }}>{fmt(m.key, getVal(m.key, totalPeriod2))}</td>
+                                <td style={{ ...tdCell, textAlign: 'center', borderLeft: `1px solid ${colors.border}`, color: diffColor, fontWeight: 600 }}>{diffText}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* Таблица: Рекламная воронка */}
+                    <div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr>
+                            <th style={{ textAlign: 'left', padding: spacing.md, borderBottom: `2px solid ${colors.borderHeader}`, borderRight: `2px solid ${colors.border}`, ...typography.body, fontSize: 12, fontWeight: 600, backgroundColor: colors.advertisingBg, width: '35%' }}>Рекламная воронка</th>
+                            <th style={{ ...thPeriod, borderLeft: `2px solid ${colors.border}`, borderRight: `1px solid ${colors.border}`, backgroundColor: colors.advertisingBg, width: '22%' }}>{period1[0].format('DD.MM')} – {period1[1].format('DD.MM')}</th>
+                            <th style={{ ...thPeriod, borderRight: `2px solid ${colors.border}`, backgroundColor: colors.advertisingBg, width: '22%' }}>{period2[0].format('DD.MM')} – {period2[1].format('DD.MM')}</th>
+                            <th style={{ ...thPeriod, borderLeft: `1px solid ${colors.border}`, backgroundColor: colors.advertisingBg, width: '21%' }}>Разница</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {FUNNELS.advertising.metrics.map((m) => {
+                            const { text: diffText, color: diffColor } = renderDiff(m.key)
+                            return (
+                              <tr key={m.key} style={{ backgroundColor: colors.bgWhite }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.advertisingBgHover; Array.from(e.currentTarget.querySelectorAll('td')).forEach((c) => { (c as HTMLElement).style.backgroundColor = colors.advertisingBgHover }) }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = colors.bgWhite; Array.from(e.currentTarget.querySelectorAll('td')).forEach((c) => { (c as HTMLElement).style.backgroundColor = 'transparent' }) }}>
+                                <td style={{ ...tdCell, borderRight: `2px solid ${colors.border}` }}>{m.name.replace(/\n/g, ' ')}</td>
+                                <td style={{ ...tdCell, textAlign: 'center', borderLeft: `2px solid ${colors.border}`, borderRight: `1px solid ${colors.border}` }}>{fmt(m.key, getVal(m.key, totalPeriod1))}</td>
+                                <td style={{ ...tdCell, textAlign: 'center', borderRight: `1px solid ${colors.border}` }}>{fmt(m.key, getVal(m.key, totalPeriod2))}</td>
+                                <td style={{ ...tdCell, textAlign: 'center', borderLeft: `1px solid ${colors.border}`, color: diffColor, fontWeight: 600 }}>{diffText}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                )
+              })()}
+
+              {/* Блок 5 — Остатки: заголовок с датой обновления, справа выбор артикула */}
+              <div style={{ flex: '1 1 280px', minWidth: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginBottom: spacing.md, flexWrap: 'wrap' }}>
+                  <h2 style={{ ...typography.h2, margin: 0, fontSize: 16, color: colors.textPrimary }}>
+                    {(() => {
+                      const updatedAt = stockArticle?.stocks?.find((s: Stock) => s.updatedAt)?.updatedAt
+                      return updatedAt ? `Остатки на ${dayjs(updatedAt).format('DD.MM.YY HH:mm')}` : 'Остатки'
+                    })()}
+                  </h2>
+                  <Select
+                    value={selectedStockNmId ?? undefined}
+                    onChange={(v) => setSelectedStockNmId(v ?? null)}
+                    style={{ width: 200 }}
+                    options={articles.map((a) => ({ value: a.nmId, label: String(a.nmId) }))}
+                    placeholder="Артикул"
+                  />
+                </div>
+                {stockArticle?.stocks && stockArticle.stocks.length > 0 ? (
+                  <div style={{ flex: '1 1 0', overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead>
-                        <tr style={{ backgroundColor: colors.bgGrayLight }}>
-                          <th style={{ padding: 8, textAlign: 'left', border: `1px solid ${colors.border}` }}>Метрика</th>
-                          <th style={{ padding: 8, textAlign: 'center', border: `1px solid ${colors.border}` }}>{period1[0].format('DD.MM')}–{period1[1].format('DD.MM')}</th>
-                          <th style={{ padding: 8, textAlign: 'center', border: `1px solid ${colors.border}` }}>{period2[0].format('DD.MM')}–{period2[1].format('DD.MM')}</th>
-                          <th style={{ padding: 8, textAlign: 'center', border: `1px solid ${colors.border}` }}>Разница</th>
+                        <tr style={{ backgroundColor: colors.primaryLight }}>
+                          <th style={{ textAlign: 'left', padding: spacing.md, borderBottom: `2px solid ${colors.primary}`, ...typography.body, fontSize: 12, fontWeight: 600, color: colors.primary }}>Склад</th>
+                          <th style={{ textAlign: 'left', padding: spacing.md, borderBottom: `2px solid ${colors.primary}`, ...typography.body, fontSize: 12, fontWeight: 600, backgroundColor: colors.primaryLight, color: colors.primary }}>Кол-во</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {[
-                          { label: 'Переходы в карточку', v1: totalPeriod1.transitions, v2: totalPeriod2.transitions },
-                          { label: 'Положили в корзину', v1: totalPeriod1.cart, v2: totalPeriod2.cart },
-                          { label: 'Заказали, шт', v1: totalPeriod1.orders, v2: totalPeriod2.orders },
-                          { label: 'Заказали на сумму', v1: totalPeriod1.ordersAmount, v2: totalPeriod2.ordersAmount },
-                          { label: 'Клики', v1: totalPeriod1.clicks, v2: totalPeriod2.clicks },
-                          { label: 'Затраты', v1: totalPeriod1.costs, v2: totalPeriod2.costs },
-                        ].map(({ label, v1, v2 }) => {
-                          const diff = calculateDifference(v1, v2, label.includes('сумму') || label.includes('Затраты') ? 2 : undefined)
+                        {stockArticle.stocks.map((s: Stock, index: number) => {
+                          const isExpanded = expandedStocks.has(s.warehouseName)
+                          const sizes = stockSizes[s.warehouseName] ?? []
+                          const isLoading = loadingSizes[s.warehouseName] ?? false
+                          const handleRowClick = async () => {
+                            if (isExpanded) {
+                              setExpandedStocks((prev) => {
+                                const next = new Set(prev)
+                                next.delete(s.warehouseName)
+                                return next
+                              })
+                            } else {
+                              setExpandedStocks((prev) => new Set(prev).add(s.warehouseName))
+                              if (selectedStockNmId != null && !stockSizes[s.warehouseName] && !loadingSizes[s.warehouseName]) {
+                                setLoadingSizes((prev) => ({ ...prev, [s.warehouseName]: true }))
+                                try {
+                                  const sizesData = await analyticsApi.getStockSizes(selectedStockNmId, s.warehouseName, getSelectedSellerId() ?? undefined, cabinetIdForRequest ?? undefined)
+                                  setStockSizes((prev) => ({ ...prev, [s.warehouseName]: sizesData }))
+                                } catch (err) {
+                                  console.error('Ошибка при загрузке размеров:', err)
+                                } finally {
+                                  setLoadingSizes((prev) => ({ ...prev, [s.warehouseName]: false }))
+                                }
+                              }
+                            }
+                          }
+                          const isZeroStock = s.amount === 0
+                          const isLowStock = s.amount > 0 && s.amount <= 1
                           return (
-                            <tr key={label}>
-                              <td style={{ padding: 8, border: `1px solid ${colors.border}` }}>{label}</td>
-                              <td style={{ padding: 8, textAlign: 'center', border: `1px solid ${colors.border}` }}>{formatValue(v1)}</td>
-                              <td style={{ padding: 8, textAlign: 'center', border: `1px solid ${colors.border}` }}>{formatValue(v2)}</td>
-                              <td style={{ padding: 8, textAlign: 'center', border: `1px solid ${colors.border}`, color: diff != null ? (diff > 0 ? colors.success : colors.error) : colors.textPrimary, fontWeight: 600 }}>
-                                {diff != null ? `${diff > 0 ? '+' : ''}${formatPercent(diff)}` : '-'}
-                              </td>
-                            </tr>
+                            <Fragment key={s.warehouseName}>
+                              <tr
+                                onClick={handleRowClick}
+                                style={{ backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight, transition: transitions.fast, cursor: 'pointer' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = colors.primaryLight }}
+                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight }}
+                              >
+                                <td style={{ padding: spacing.md, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 12, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                                  {isExpanded ? <DownOutlined style={{ fontSize: 12, color: colors.primary }} /> : <RightOutlined style={{ fontSize: 12, color: colors.textSecondary }} />}
+                                  {s.warehouseName}
+                                </td>
+                                <td style={{ textAlign: 'center', padding: spacing.md, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 12, fontWeight: 600, color: isZeroStock ? colors.error : isLowStock ? colors.error : colors.textPrimary }}>{formatValue(s.amount)}</td>
+                              </tr>
+                              {isExpanded && (
+                                <tr>
+                                  <td colSpan={2} style={{ padding: spacing.md, backgroundColor: colors.bgGrayLight, borderBottom: `1px solid ${colors.borderLight}` }}>
+                                    {isLoading ? (
+                                      <div style={{ textAlign: 'center', padding: spacing.md }}><Spin size="small" /></div>
+                                    ) : sizes.length > 0 ? (
+                                      <div style={{ paddingLeft: spacing.lg }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                                          <thead>
+                                            <tr>
+                                              <th style={{ textAlign: 'left', padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11, fontWeight: 600, color: colors.textSecondary }}>Размер</th>
+                                              <th style={{ textAlign: 'center', padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11, fontWeight: 600, color: colors.textSecondary }}>Кол-во</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {sizes.map((size: StockSize, sizeIndex: number) => (
+                                              <tr key={sizeIndex} style={{ backgroundColor: sizeIndex % 2 === 0 ? colors.bgWhite : colors.bgGrayLight }}>
+                                                <td style={{ padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11 }}>{size.wbSize || size.techSize || 'Неизвестно'}</td>
+                                                <td style={{ textAlign: 'center', padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11, fontWeight: 500, color: size.amount === 0 ? colors.error : undefined }}>{formatValue(size.amount)}</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    ) : (
+                                      <div style={{ ...typography.body, fontSize: 11, color: colors.textSecondary }}>Нет данных по размерам</div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
                           )
                         })}
                       </tbody>
                     </table>
                   </div>
-                </div>
+                ) : (
+                  <div style={{ color: colors.textSecondary, padding: spacing.md }}>Нет данных по остаткам</div>
+                )}
               </div>
-            )}
-
-            {/* Блок 5 — Склады: выбор артикула + таблица остатков */}
-            <div style={{ backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, marginBottom: spacing.lg, boxShadow: shadows.md }}>
-              <h2 style={{ ...typography.h2, margin: '0 0 16px 0', fontSize: 16, color: colors.textPrimary }}>Склады</h2>
-              <div style={{ marginBottom: spacing.md }}>
-                <span style={{ marginRight: spacing.sm }}>Артикул: </span>
-                <Select
-                  value={selectedStockNmId ?? undefined}
-                  onChange={(v) => setSelectedStockNmId(v ?? null)}
-                  style={{ width: 280 }}
-                  options={articles.map((a) => ({ value: a.nmId, label: `${a.title || a.nmId} (${a.nmId})` }))}
-                  placeholder="Выберите артикул"
-                />
-              </div>
-              {stockArticle?.stocks && stockArticle.stocks.length > 0 ? (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                    <thead>
-                      <tr style={{ backgroundColor: colors.bgGrayLight }}>
-                        <th style={{ padding: 8, border: `1px solid ${colors.border}` }}>Склад</th>
-                        <th style={{ padding: 8, textAlign: 'center', border: `1px solid ${colors.border}` }}>Остаток</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stockArticle.stocks.map((s: Stock) => (
-                        <tr key={s.warehouseName}>
-                          <td style={{ padding: 8, border: `1px solid ${colors.border}` }}>{s.warehouseName}</td>
-                          <td style={{ padding: 8, textAlign: 'center', border: `1px solid ${colors.border}` }}>{formatValue(s.amount)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div style={{ color: colors.textSecondary }}>Нет данных по остаткам</div>
-              )}
             </div>
 
             {/* Блок 6 — Заметки по кампании (РК) */}
