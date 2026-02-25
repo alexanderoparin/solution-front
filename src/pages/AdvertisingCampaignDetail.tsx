@@ -20,6 +20,8 @@ import * as XLSX from 'xlsx'
 dayjs.locale('ru')
 
 const COMBO_PHOTO_SIZE = 80
+/** Значение «все артикулы» для воронки (таблица/график по сумме по всем артикулам). */
+const ALL_ARTICLES_NM_ID = 0
 const FONT_PAGE = { fontSize: '12px' as const }
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
 const FUNNELS = {
@@ -180,7 +182,7 @@ export default function AdvertisingCampaignDetail() {
   const articles = campaign?.articles ?? []
   const firstNmId = articles.length > 0 ? articles[0].nmId : null
 
-  const [selectedFunnelArticleNmId, setSelectedFunnelArticleNmId] = useState<number | null>(null)
+  const [selectedFunnelArticleNmId, setSelectedFunnelArticleNmId] = useState<number | null>(() => ALL_ARTICLES_NM_ID)
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>(() => {
     const end = dayjs().subtract(1, 'day')
     const start = end.subtract(13, 'day')
@@ -196,11 +198,10 @@ export default function AdvertisingCampaignDetail() {
     const end = dayjs().subtract(1, 'day')
     return [end.subtract(6, 'day'), end]
   })
+  /** При наведении на строку в таблице периодов — подсвечиваем эту строку и строку с тем же артикулом в соседней таблице. */
+  const [hoveredPeriodNmId, setHoveredPeriodNmId] = useState<number | null>(null)
   const [selectedStockNmId, setSelectedStockNmId] = useState<number | null>(null)
 
-  useEffect(() => {
-    if (firstNmId != null && selectedFunnelArticleNmId == null) setSelectedFunnelArticleNmId(firstNmId)
-  }, [firstNmId, selectedFunnelArticleNmId])
   useEffect(() => {
     if (firstNmId != null && selectedStockNmId == null) setSelectedStockNmId(firstNmId)
   }, [firstNmId, selectedStockNmId])
@@ -220,7 +221,7 @@ export default function AdvertisingCampaignDetail() {
         getSelectedSellerId() ?? undefined,
         cabinetIdForRequest
       ),
-    enabled: selectedFunnelArticleNmId != null && cabinetIdForRequest != null,
+    enabled: selectedFunnelArticleNmId != null && selectedFunnelArticleNmId !== ALL_ARTICLES_NM_ID && cabinetIdForRequest != null,
   })
 
   const articleNmIds = useMemo(() => articles.map((a) => a.nmId), [articles])
@@ -262,6 +263,67 @@ export default function AdvertisingCampaignDetail() {
 
   const rangeDates = useMemo(() => getDatesInRange(dateRange[0], dateRange[1]), [dateRange])
   const rangeDatesDesc = useMemo(() => [...rangeDates].reverse(), [rangeDates])
+
+  /** Агрегированные дневные данные по всем артикулам кампании (для режима «все»). */
+  const aggregatedFunnelDailyData = useMemo((): DailyData[] => {
+    if (articles.length === 0) return []
+    const result: DailyData[] = []
+    const priceFields: Array<keyof Pick<DailyData, 'priceBeforeDiscount' | 'sellerDiscount' | 'priceWithDiscount' | 'wbClubDiscount' | 'priceWithWbClub' | 'priceWithSpp' | 'sppAmount' | 'sppPercent'>> = ['priceBeforeDiscount', 'sellerDiscount', 'priceWithDiscount', 'wbClubDiscount', 'priceWithWbClub', 'priceWithSpp', 'sppAmount', 'sppPercent']
+    for (const date of rangeDates) {
+      let transitions = 0, cart = 0, orders = 0, ordersAmount = 0, views = 0, clicks = 0, costs = 0
+      const priceSums: Record<string, number> = {}
+      const priceCounts: Record<string, number> = {}
+      priceFields.forEach((f) => { priceSums[f] = 0; priceCounts[f] = 0 })
+      for (const art of articles) {
+        const data = articleDataByNmId[art.nmId]
+        const daily = data?.dailyData?.find((d) => d.date === date)
+        if (!daily) continue
+        transitions += daily.transitions ?? 0
+        cart += daily.cart ?? 0
+        orders += daily.orders ?? 0
+        ordersAmount += daily.ordersAmount ?? 0
+        views += daily.views ?? 0
+        clicks += daily.clicks ?? 0
+        costs += daily.costs ?? 0
+        for (const f of priceFields) {
+          const v = daily[f]
+          if (v != null) { priceSums[f] += v; priceCounts[f] += 1 }
+        }
+      }
+      const cartConversion = transitions > 0 ? (cart / transitions) * 100 : null
+      const orderConversion = cart > 0 ? (orders / cart) * 100 : null
+      const cpc = clicks > 0 ? costs / clicks : null
+      const ctr = views > 0 ? (clicks / views) * 100 : null
+      const cpo = orders > 0 ? costs / orders : null
+      const drr = ordersAmount > 0 ? (costs / ordersAmount) * 100 : null
+      const getPrice = (f: string): number | null => (priceCounts[f] > 0 ? priceSums[f] / priceCounts[f] : null)
+      result.push({
+        date,
+        transitions: transitions || null,
+        cart: cart || null,
+        orders: orders || null,
+        ordersAmount: ordersAmount || null,
+        cartConversion,
+        orderConversion,
+        views: views || null,
+        clicks: clicks || null,
+        costs: costs || null,
+        cpc,
+        ctr,
+        cpo,
+        drr,
+        priceBeforeDiscount: getPrice('priceBeforeDiscount'),
+        sellerDiscount: getPrice('sellerDiscount'),
+        priceWithDiscount: getPrice('priceWithDiscount'),
+        wbClubDiscount: getPrice('wbClubDiscount'),
+        priceWithWbClub: getPrice('priceWithWbClub'),
+        priceWithSpp: getPrice('priceWithSpp'),
+        sppAmount: getPrice('sppAmount'),
+        sppPercent: getPrice('sppPercent'),
+      })
+    }
+    return result
+  }, [articles, articleDataByNmId, rangeDates])
 
   const getMetricValueForDate = useCallback((dailyData: DailyData[] | undefined, metricKey: string, date: string): number | null => {
     if (!dailyData?.length) return null
@@ -337,7 +399,8 @@ export default function AdvertisingCampaignDetail() {
     return diff
   }
 
-  const funnelDailyData = funnelArticle?.dailyData
+  const funnelDailyData =
+    selectedFunnelArticleNmId === ALL_ARTICLES_NM_ID ? aggregatedFunnelDailyData : funnelArticle?.dailyData
 
   /** Метрики, у которых показываем число изменения (остальные — только стрелка) */
   const METRICS_WITH_CHANGE_NUMBER = ['transitions', 'cart', 'orders', 'views', 'clicks']
@@ -425,7 +488,7 @@ export default function AdvertisingCampaignDetail() {
   }, [periodAggregatesByNmId])
 
   const handleExportFunnelsExcel = useCallback(() => {
-    if (!funnelArticle || !selectedFunnelArticleNmId) return
+    if (!funnelDailyData?.length || selectedFunnelArticleNmId == null) return
     const headers: string[] = ['Дата']
     const metricKeys: string[] = []
     for (const key of FUNNEL_ORDER) {
@@ -456,9 +519,10 @@ export default function AdvertisingCampaignDetail() {
     const ws = XLSX.utils.aoa_to_sheet(rows)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Воронки')
-    XLSX.writeFile(wb, `combo_${selectedFunnelArticleNmId}_воронки_${dateRange[0].format('YYYY-MM-DD')}_${dateRange[1].format('YYYY-MM-DD')}.xlsx`)
+    const fileSuffix = selectedFunnelArticleNmId === ALL_ARTICLES_NM_ID ? 'all' : String(selectedFunnelArticleNmId)
+    XLSX.writeFile(wb, `combo_${fileSuffix}_воронки_${dateRange[0].format('YYYY-MM-DD')}_${dateRange[1].format('YYYY-MM-DD')}.xlsx`)
     message.success('Файл выгружен')
-  }, [funnelArticle, selectedFunnelArticleNmId, funnelDailyData, rangeDatesDesc, rangeDates, dateRange, getMetricValueForDate, getMetricTotalForPeriod, formatValue, formatPercent, formatCurrency])
+  }, [funnelDailyData, selectedFunnelArticleNmId, rangeDatesDesc, rangeDates, dateRange, getMetricValueForDate, getMetricTotalForPeriod, formatValue, formatPercent, formatCurrency])
 
   const isActive = campaign?.status === 9
   const statusLabel = campaign ? (isActive ? 'активна' : 'приостановлена') : ''
@@ -604,12 +668,20 @@ export default function AdvertisingCampaignDetail() {
                       <Switch checked={showChart} onChange={setShowChart} size="small" />
                       <span>График</span>
                     </span>
-                    <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportFunnelsExcel} disabled={!funnelArticle}>
+                    <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportFunnelsExcel} disabled={!funnelDailyData?.length}>
                       Выгрузить
                     </Button>
                   </div>
                 </div>
                 <div style={{ marginBottom: spacing.md, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, marginRight: spacing.md }}>
+                    <Checkbox
+                      checked={selectedFunnelArticleNmId === ALL_ARTICLES_NM_ID}
+                      onChange={() => setSelectedFunnelArticleNmId(ALL_ARTICLES_NM_ID)}
+                    >
+                      <span style={{ marginLeft: -4 }}>Все</span>
+                    </Checkbox>
+                  </span>
                   {articles.map((art) => (
                     <Checkbox
                       key={art.nmId}
@@ -620,8 +692,8 @@ export default function AdvertisingCampaignDetail() {
                     </Checkbox>
                   ))}
                 </div>
-                {funnelArticleLoading && <Spin size="small" style={{ marginBottom: spacing.md }} />}
-                {selectedFunnel1 && funnelArticle?.dailyData && (() => {
+                {funnelArticleLoading && selectedFunnelArticleNmId !== ALL_ARTICLES_NM_ID && <Spin size="small" style={{ marginBottom: spacing.md }} />}
+                {selectedFunnel1 && funnelDailyData?.length !== 0 && (() => {
                   const metricsWithFunnel = FUNNEL_ORDER.filter((k) => selectedFunnelKeys.includes(k)).flatMap((funnelKey) =>
                     FUNNELS[funnelKey].metrics.map((m) => ({ funnelKey, m }))
                   )
@@ -726,10 +798,10 @@ export default function AdvertisingCampaignDetail() {
                   )
                 })()}
               </div>
-              {showChart && funnelArticle?.dailyData?.length && (
+              {showChart && funnelDailyData?.length && (
                 <AnalyticsChart
-                  dailyData={funnelArticle.dailyData}
-                  nmId={selectedFunnelArticleNmId!}
+                  dailyData={funnelDailyData}
+                  nmId={selectedFunnelArticleNmId ?? ALL_ARTICLES_NM_ID}
                   sellerId={getSelectedSellerId() ?? undefined}
                   dateRange={dateRange}
                   onDateRangeChange={setDateRange}
@@ -757,43 +829,69 @@ export default function AdvertisingCampaignDetail() {
                       <thead>
                         <tr style={{ backgroundColor: colors.bgGrayLight }}>
                           <th style={{ padding: '6px 8px', textAlign: 'left', border: `1px solid ${colors.border}` }}>Товар</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Переходы</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Корзина</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Заказы</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Сумма</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Клики</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Затраты</th>
+                          {FUNNELS.general.metrics.map((m, i) => (
+                            <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{m.name}</th>
+                          ))}
+                          {FUNNELS.advertising.metrics.map((m, i) => (
+                            <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{m.name}</th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
                         {articles.map((art) => {
                           const agg = periodAggregatesByNmId[art.nmId]?.p1
+                          const isHovered = hoveredPeriodNmId === art.nmId
+                          const getVal = (key: string) => {
+                            if (!agg) return null
+                            const map: Record<string, number | null | undefined> = {
+                              transitions: agg.transitions, cart: agg.cart, orders: agg.orders, orders_amount: agg.ordersAmount,
+                              cart_conversion: agg.cartConversion, order_conversion: agg.orderConversion,
+                              views: agg.views, clicks: agg.clicks, costs: agg.costs, cpc: agg.cpc, ctr: agg.ctr, cpo: agg.cpo, drr: agg.drr,
+                            }
+                            return map[key] != null ? map[key]! : null
+                          }
+                          const fmt = (key: string, v: number | null) => {
+                            if (v === null) return '-'
+                            const isPercent = key.includes('conversion') || key === 'ctr' || key === 'drr'
+                            const isCurrency = key === 'orders_amount' || key === 'costs' || key === 'cpc' || key === 'cpo'
+                            return isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                          }
                           return (
-                            <tr key={art.nmId}>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <tr
+                              key={art.nmId}
+                              onMouseEnter={() => setHoveredPeriodNmId(art.nmId)}
+                              onMouseLeave={() => setHoveredPeriodNmId(null)}
+                              style={{ transition: transitions.fast }}
+                            >
+                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 8, backgroundColor: isHovered ? colors.bgGrayLight : undefined }}>
                                 {art.photoTm && <img src={art.photoTm} alt="" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4 }} />}
-                                <div>
-                                  <div style={{ fontSize: 11 }}>{art.title || art.nmId}</div>
-                                  <div style={{ fontSize: 10, color: colors.textSecondary }}>{art.nmId}</div>
-                                </div>
+                                <span style={{ fontSize: 11 }}>{art.nmId}</span>
                               </td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.transitions) : '-'}</td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.cart) : '-'}</td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.orders) : '-'}</td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.ordersAmount) : '-'}</td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.clicks) : '-'}</td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.costs) : '-'}</td>
+                              {FUNNELS.general.metrics.map((m, i) => (
+                                <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', backgroundColor: isHovered ? colors.funnelBgHover : colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{fmt(m.key, getVal(m.key))}</td>
+                              ))}
+                              {FUNNELS.advertising.metrics.map((m, i) => (
+                                <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', backgroundColor: isHovered ? colors.advertisingBgHover : colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{fmt(m.key, getVal(m.key))}</td>
+                              ))}
                             </tr>
                           )
                         })}
                         <tr style={{ backgroundColor: colors.bgGrayLight, fontWeight: 600 }}>
                           <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}` }}>СУММАРНО</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod1 ? formatValue(totalPeriod1.transitions) : '-'}</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod1 ? formatValue(totalPeriod1.cart) : '-'}</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod1 ? formatValue(totalPeriod1.orders) : '-'}</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod1 ? formatValue(totalPeriod1.ordersAmount) : '-'}</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod1 ? formatValue(totalPeriod1.clicks) : '-'}</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod1 ? formatValue(totalPeriod1.costs) : '-'}</td>
+                          {FUNNELS.general.metrics.map((m, i) => {
+                            const v = totalPeriod1 && (m.key === 'transitions' ? totalPeriod1.transitions : m.key === 'cart' ? totalPeriod1.cart : m.key === 'orders' ? totalPeriod1.orders : m.key === 'orders_amount' ? totalPeriod1.ordersAmount : m.key === 'cart_conversion' ? totalPeriod1.cartConversion : totalPeriod1.orderConversion)
+                            const isPercent = m.key.includes('conversion')
+                            const isCurrency = m.key === 'orders_amount'
+                            const display = v == null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                            return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', color: colors.primary, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{display}</td>
+                          })}
+                          {FUNNELS.advertising.metrics.map((m, i) => {
+                            const v = totalPeriod1 && (m.key === 'views' ? totalPeriod1.views : m.key === 'clicks' ? totalPeriod1.clicks : m.key === 'costs' ? totalPeriod1.costs : m.key === 'cpc' ? totalPeriod1.cpc : m.key === 'ctr' ? totalPeriod1.ctr : m.key === 'cpo' ? totalPeriod1.cpo : totalPeriod1.drr)
+                            const isPercent = m.key === 'ctr' || m.key === 'drr'
+                            const isCurrency = m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo'
+                            const display = v == null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                            return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', color: colors.success, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{display}</td>
+                          })}
                         </tr>
                       </tbody>
                     </table>
@@ -815,43 +913,69 @@ export default function AdvertisingCampaignDetail() {
                       <thead>
                         <tr style={{ backgroundColor: colors.bgGrayLight }}>
                           <th style={{ padding: '6px 8px', textAlign: 'left', border: `1px solid ${colors.border}` }}>Товар</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Переходы</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Корзина</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Заказы</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Сумма</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Клики</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'center', border: `1px solid ${colors.border}` }}>Затраты</th>
+                          {FUNNELS.general.metrics.map((m, i) => (
+                            <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{m.name}</th>
+                          ))}
+                          {FUNNELS.advertising.metrics.map((m, i) => (
+                            <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{m.name}</th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
                         {articles.map((art) => {
                           const agg = periodAggregatesByNmId[art.nmId]?.p2
+                          const isHovered = hoveredPeriodNmId === art.nmId
+                          const getVal = (key: string) => {
+                            if (!agg) return null
+                            const map: Record<string, number | null | undefined> = {
+                              transitions: agg.transitions, cart: agg.cart, orders: agg.orders, orders_amount: agg.ordersAmount,
+                              cart_conversion: agg.cartConversion, order_conversion: agg.orderConversion,
+                              views: agg.views, clicks: agg.clicks, costs: agg.costs, cpc: agg.cpc, ctr: agg.ctr, cpo: agg.cpo, drr: agg.drr,
+                            }
+                            return map[key] != null ? map[key]! : null
+                          }
+                          const fmt = (key: string, v: number | null) => {
+                            if (v === null) return '-'
+                            const isPercent = key.includes('conversion') || key === 'ctr' || key === 'drr'
+                            const isCurrency = key === 'orders_amount' || key === 'costs' || key === 'cpc' || key === 'cpo'
+                            return isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                          }
                           return (
-                            <tr key={art.nmId}>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <tr
+                              key={art.nmId}
+                              onMouseEnter={() => setHoveredPeriodNmId(art.nmId)}
+                              onMouseLeave={() => setHoveredPeriodNmId(null)}
+                              style={{ transition: transitions.fast }}
+                            >
+                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: 8, backgroundColor: isHovered ? colors.bgGrayLight : undefined }}>
                                 {art.photoTm && <img src={art.photoTm} alt="" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4 }} />}
-                                <div>
-                                  <div style={{ fontSize: 11 }}>{art.title || art.nmId}</div>
-                                  <div style={{ fontSize: 10, color: colors.textSecondary }}>{art.nmId}</div>
-                                </div>
+                                <span style={{ fontSize: 11 }}>{art.nmId}</span>
                               </td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.transitions) : '-'}</td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.cart) : '-'}</td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.orders) : '-'}</td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.ordersAmount) : '-'}</td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.clicks) : '-'}</td>
-                              <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{agg ? formatValue(agg.costs) : '-'}</td>
+                              {FUNNELS.general.metrics.map((m, i) => (
+                                <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', backgroundColor: isHovered ? colors.funnelBgHover : colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{fmt(m.key, getVal(m.key))}</td>
+                              ))}
+                              {FUNNELS.advertising.metrics.map((m, i) => (
+                                <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', backgroundColor: isHovered ? colors.advertisingBgHover : colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{fmt(m.key, getVal(m.key))}</td>
+                              ))}
                             </tr>
                           )
                         })}
                         <tr style={{ backgroundColor: colors.bgGrayLight, fontWeight: 600 }}>
                           <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}` }}>СУММАРНО</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod2 ? formatValue(totalPeriod2.transitions) : '-'}</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod2 ? formatValue(totalPeriod2.cart) : '-'}</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod2 ? formatValue(totalPeriod2.orders) : '-'}</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod2 ? formatValue(totalPeriod2.ordersAmount) : '-'}</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod2 ? formatValue(totalPeriod2.clicks) : '-'}</td>
-                          <td style={{ padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center' }}>{totalPeriod2 ? formatValue(totalPeriod2.costs) : '-'}</td>
+                          {FUNNELS.general.metrics.map((m, i) => {
+                            const v = totalPeriod2 && (m.key === 'transitions' ? totalPeriod2.transitions : m.key === 'cart' ? totalPeriod2.cart : m.key === 'orders' ? totalPeriod2.orders : m.key === 'orders_amount' ? totalPeriod2.ordersAmount : m.key === 'cart_conversion' ? totalPeriod2.cartConversion : totalPeriod2.orderConversion)
+                            const isPercent = m.key.includes('conversion')
+                            const isCurrency = m.key === 'orders_amount'
+                            const display = v == null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                            return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', color: colors.primary, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{display}</td>
+                          })}
+                          {FUNNELS.advertising.metrics.map((m, i) => {
+                            const v = totalPeriod2 && (m.key === 'views' ? totalPeriod2.views : m.key === 'clicks' ? totalPeriod2.clicks : m.key === 'costs' ? totalPeriod2.costs : m.key === 'cpc' ? totalPeriod2.cpc : m.key === 'ctr' ? totalPeriod2.ctr : m.key === 'cpo' ? totalPeriod2.cpo : totalPeriod2.drr)
+                            const isPercent = m.key === 'ctr' || m.key === 'drr'
+                            const isCurrency = m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo'
+                            const display = v == null ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                            return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', color: colors.success, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{display}</td>
+                          })}
                         </tr>
                       </tbody>
                     </table>

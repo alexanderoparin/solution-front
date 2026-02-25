@@ -193,11 +193,12 @@ export default function AnalyticsArticle() {
   /** Даты для блока воронок: сверху «сегодня» (самая новая), далее по нисходящей */
   const rangeDatesDesc = useMemo(() => [...rangeDates].reverse(), [rangeDates])
 
-  // Выбранные воронки (максимум 2), порядок: Общая (1) → Реклама (2) → Цены (3)
+  // Выбранные воронки (максимум 3), порядок: Общая (1) → Реклама (2) → Цены (3)
   const [selectedFunnelKeys, setSelectedFunnelKeys] = useState<FunnelKey[]>(['general', 'advertising'])
   const sortedFunnelKeys = useMemo(() => [...selectedFunnelKeys].sort((a, b) => FUNNEL_ORDER.indexOf(a) - FUNNEL_ORDER.indexOf(b)), [selectedFunnelKeys])
   const selectedFunnel1 = sortedFunnelKeys[0]
   const selectedFunnel2 = sortedFunnelKeys[1]
+  const selectedFunnel3 = sortedFunnelKeys[2]
 
   const toggleFunnel = (key: FunnelKey) => {
     setSelectedFunnelKeys((prev) => {
@@ -205,10 +206,10 @@ export default function AnalyticsArticle() {
       if (has) {
         return prev.filter((k) => k !== key)
       }
-      if (prev.length >= 2) {
+      if (prev.length >= 3) {
         // Убираем воронку с наименьшим порядком
         const sorted = [...prev].sort((a, b) => FUNNEL_ORDER.indexOf(a) - FUNNEL_ORDER.indexOf(b))
-        return [sorted[1], key].sort((a, b) => FUNNEL_ORDER.indexOf(a) - FUNNEL_ORDER.indexOf(b))
+        return [sorted[1], sorted[2], key].sort((a, b) => FUNNEL_ORDER.indexOf(a) - FUNNEL_ORDER.indexOf(b))
       }
       return [...prev, key].sort((a, b) => FUNNEL_ORDER.indexOf(a) - FUNNEL_ORDER.indexOf(b))
     })
@@ -539,12 +540,12 @@ export default function AnalyticsArticle() {
     return current - prev
   }
 
-  // Выгрузка воронок в Excel: все столбцы всех воронок за выбранный диапазон дат
+  // Выгрузка воронок в Excel: столбцы выбранных воронок в том же порядке, что и в таблице
   const handleExportFunnelsExcel = () => {
     if (!article) return
     const headers: string[] = ['Дата']
     const metricKeys: string[] = []
-    for (const key of FUNNEL_ORDER) {
+    for (const key of sortedFunnelKeys) {
       for (const m of FUNNELS[key].metrics) {
         headers.push(m.name.replace(/\n/g, ' '))
         metricKeys.push(m.key)
@@ -1072,14 +1073,18 @@ export default function AnalyticsArticle() {
                 {FUNNELS[selectedFunnel1].metrics.map((metric, index) => {
                   const isGeneralFunnel = selectedFunnel1 === 'general'
                   const isAdvertisingFunnel = selectedFunnel1 === 'advertising'
-                  const totalCols = FUNNELS[selectedFunnel1].metrics.length + (selectedFunnel2 ? FUNNELS[selectedFunnel2].metrics.length : 0)
+                  const len2 = selectedFunnel2 ? FUNNELS[selectedFunnel2].metrics.length : 0
+                  const len3 = selectedFunnel3 ? FUNNELS[selectedFunnel3].metrics.length : 0
+                  const totalCols = FUNNELS[selectedFunnel1].metrics.length + len2 + len3
+                  const isLastInFunnel1 = index === FUNNELS[selectedFunnel1].metrics.length - 1
+                  const borderRight = !isLastInFunnel1 ? `1px solid ${colors.border}` : (!selectedFunnel2 && !selectedFunnel3) ? 'none' : `2px solid ${colors.border}`
                   return (
                     <th key={metric.key} style={{
                       textAlign: 'center',
                       padding: '4px 6px',
                       borderBottom: `1px solid ${colors.border}`,
                       boxShadow: `0 1px 0 0 ${colors.border}`,
-                      borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 && !selectedFunnel2 ? 'none' : index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
+                      borderRight,
                       fontSize: '10px',
                       fontWeight: 600,
                       whiteSpace: 'pre-line',
@@ -1094,17 +1099,50 @@ export default function AnalyticsArticle() {
                     </th>
                   )
                 })}
-                {selectedFunnel2 && FUNNELS[selectedFunnel2].metrics.map(metric => {
+                {selectedFunnel2 && FUNNELS[selectedFunnel2].metrics.map((metric, index) => {
                   const isGeneralFunnel = selectedFunnel2 === 'general'
                   const isAdvertisingFunnel = selectedFunnel2 === 'advertising'
-                  const totalCols = FUNNELS[selectedFunnel1].metrics.length + FUNNELS[selectedFunnel2].metrics.length
+                  const len1 = FUNNELS[selectedFunnel1].metrics.length
+                  const len3 = selectedFunnel3 ? FUNNELS[selectedFunnel3].metrics.length : 0
+                  const totalCols = len1 + FUNNELS[selectedFunnel2].metrics.length + len3
+                  const isLastInFunnel2 = index === FUNNELS[selectedFunnel2].metrics.length - 1
+                  const borderRight = !isLastInFunnel2 ? `1px solid ${colors.border}` : !selectedFunnel3 ? 'none' : `2px solid ${colors.border}`
                   return (
                     <th key={metric.key} style={{
                       textAlign: 'center',
                       padding: '4px 6px',
                       borderBottom: `1px solid ${colors.border}`,
                       boxShadow: `0 1px 0 0 ${colors.border}`,
-                      borderRight: `1px solid ${colors.border}`,
+                      borderRight,
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      whiteSpace: 'pre-line',
+                      lineHeight: 1.2,
+                      backgroundColor: isGeneralFunnel ? colors.funnelBg : isAdvertisingFunnel ? colors.advertisingBg : colors.pricingBg,
+                      width: `${100 / totalCols}%`,
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 2
+                    }}>
+                      {metric.name}
+                    </th>
+                  )
+                })}
+                {selectedFunnel3 && FUNNELS[selectedFunnel3].metrics.map((metric, index) => {
+                  const isGeneralFunnel = selectedFunnel3 === 'general'
+                  const isAdvertisingFunnel = selectedFunnel3 === 'advertising'
+                  const len1 = FUNNELS[selectedFunnel1].metrics.length
+                  const len2 = FUNNELS[selectedFunnel2].metrics.length
+                  const len3 = FUNNELS[selectedFunnel3].metrics.length
+                  const totalCols = len1 + len2 + len3
+                  const isLastInFunnel3 = index === len3 - 1
+                  return (
+                    <th key={metric.key} style={{
+                      textAlign: 'center',
+                      padding: '4px 6px',
+                      borderBottom: `1px solid ${colors.border}`,
+                      boxShadow: `0 1px 0 0 ${colors.border}`,
+                      borderRight: isLastInFunnel3 ? 'none' : `1px solid ${colors.border}`,
                       fontSize: '10px',
                       fontWeight: 600,
                       whiteSpace: 'pre-line',
@@ -1127,6 +1165,19 @@ export default function AnalyticsArticle() {
                 const isAdvertisingFunnel1 = selectedFunnel1 === 'advertising'
                 const isGeneralFunnel2 = selectedFunnel2 === 'general'
                 const isAdvertisingFunnel2 = selectedFunnel2 === 'advertising'
+                const isGeneralFunnel3 = selectedFunnel3 === 'general'
+                const isAdvertisingFunnel3 = selectedFunnel3 === 'advertising'
+                const len1 = FUNNELS[selectedFunnel1].metrics.length
+                const len2 = selectedFunnel2 ? FUNNELS[selectedFunnel2].metrics.length : 0
+                const getHoverBg = (funnelKey: FunnelKey) =>
+                  funnelKey === 'general' ? colors.funnelBgHover : funnelKey === 'advertising' ? colors.advertisingBgHover : colors.pricingBgHover
+                const getBg = (funnelKey: FunnelKey) =>
+                  funnelKey === 'general' ? colors.funnelBg : funnelKey === 'advertising' ? colors.advertisingBg : colors.pricingBg
+                const getFunnelKey = (cellIndex: number): FunnelKey => {
+                  if (cellIndex <= len1) return selectedFunnel1
+                  if (cellIndex <= len1 + len2) return selectedFunnel2!
+                  return selectedFunnel3!
+                }
                 return (
                   <tr 
                     key={date}
@@ -1139,17 +1190,10 @@ export default function AnalyticsArticle() {
                       row.style.backgroundColor = colors.bgGrayLight
                       Array.from(row.querySelectorAll('td')).forEach((cell: Element, cellIndex: number) => {
                         const td = cell as HTMLElement
-                        // Определяем hover цвет на основе типа воронки
                         if (cellIndex === 0) {
-                          // Ячейка с датой - используем цвет первой воронки
-                          td.style.backgroundColor = isGeneralFunnel1 ? colors.funnelBgHover : isAdvertisingFunnel1 ? colors.advertisingBgHover : colors.pricingBgHover
+                          td.style.backgroundColor = getHoverBg(selectedFunnel1)
                         } else {
-                          const isFirstFunnel = cellIndex <= FUNNELS[selectedFunnel1].metrics.length
-                          if (isFirstFunnel) {
-                            td.style.backgroundColor = isGeneralFunnel1 ? colors.funnelBgHover : isAdvertisingFunnel1 ? colors.advertisingBgHover : colors.pricingBgHover
-                          } else {
-                            td.style.backgroundColor = isGeneralFunnel2 ? colors.funnelBgHover : isAdvertisingFunnel2 ? colors.advertisingBgHover : colors.pricingBgHover
-                          }
+                          td.style.backgroundColor = getHoverBg(getFunnelKey(cellIndex))
                         }
                       })
                     }}
@@ -1158,17 +1202,10 @@ export default function AnalyticsArticle() {
                       row.style.backgroundColor = 'transparent'
                       Array.from(row.querySelectorAll('td')).forEach((cell: Element, cellIndex: number) => {
                         const td = cell as HTMLElement
-                        // Восстанавливаем исходный фон ячеек
                         if (cellIndex === 0) {
                           td.style.backgroundColor = colors.bgWhite
                         } else {
-                          // Восстанавливаем исходный фон на основе типа воронки
-                          const isFirstFunnel = cellIndex <= FUNNELS[selectedFunnel1].metrics.length
-                          if (isFirstFunnel) {
-                            td.style.backgroundColor = isGeneralFunnel1 ? colors.funnelBg : isAdvertisingFunnel1 ? colors.advertisingBg : colors.pricingBg
-                          } else {
-                            td.style.backgroundColor = isGeneralFunnel2 ? colors.funnelBg : isAdvertisingFunnel2 ? colors.advertisingBg : colors.pricingBg
-                          }
+                          td.style.backgroundColor = getBg(getFunnelKey(cellIndex))
                         }
                       })
                     }}
@@ -1194,13 +1231,15 @@ export default function AnalyticsArticle() {
                       const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
                       const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(metric.key)
                       const changeColor = change !== null && change !== 0 ? (change > 0 ? colors.success : colors.error) : undefined
+                      const isLast1 = index === len1 - 1
+                      const borderRight1 = !isLast1 ? `1px solid ${colors.border}` : (!selectedFunnel2 && !selectedFunnel3) ? 'none' : `2px solid ${colors.border}`
                       return (
                         <td key={metric.key} style={{
                           textAlign: 'center',
                           padding: '4px 6px',
                           borderTop: dateIndex === 0 ? 'none' : undefined,
                           borderBottom: `1px solid ${colors.border}`,
-                          borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 && !selectedFunnel2 ? 'none' : index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
+                          borderRight: borderRight1,
                           backgroundColor: isGeneralFunnel1 ? colors.funnelBg : isAdvertisingFunnel1 ? colors.advertisingBg : colors.pricingBg,
                           fontSize: '11px',
                           overflow: 'hidden',
@@ -1242,14 +1281,64 @@ export default function AnalyticsArticle() {
                       const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
                       const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(metric.key)
                       const changeColor = change !== null && change !== 0 ? (change > 0 ? colors.success : colors.error) : undefined
+                      const isLast2 = index === FUNNELS[selectedFunnel2].metrics.length - 1
+                      const borderRight2 = !isLast2 ? `1px solid ${colors.border}` : !selectedFunnel3 ? 'none' : `2px solid ${colors.border}`
                       return (
                         <td key={metric.key} style={{
                           textAlign: 'center',
                           padding: '4px 6px',
                           borderTop: dateIndex === 0 ? 'none' : undefined,
                           borderBottom: `1px solid ${colors.border}`,
-                          borderRight: index === FUNNELS[selectedFunnel2].metrics.length - 1 ? 'none' : `1px solid ${colors.border}`,
+                          borderRight: borderRight2,
                           backgroundColor: isGeneralFunnel2 ? colors.funnelBg : isAdvertisingFunnel2 ? colors.advertisingBg : colors.pricingBg,
+                          fontSize: '11px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          transition: transitions.fast,
+                          position: 'relative'
+                        }}>
+                          {value === null ? '-' : (
+                            isPercent ? formatPercent(value) :
+                            isCurrency ? formatCurrency(value) :
+                            formatValue(value)
+                          )}
+                          {change !== null && change !== 0 && changeColor && (
+                            <div style={{
+                              position: 'absolute',
+                              top: 1,
+                              right: 2,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0,
+                              fontSize: '9px',
+                              fontWeight: 600,
+                              color: changeColor,
+                              lineHeight: 1
+                            }}>
+                              {showChangeNumber && (
+                                <span>{change > 0 ? '+' : ''}{change}</span>
+                              )}
+                              {change > 0 ? <ArrowUpOutlined style={{ fontSize: '9px' }} /> : <ArrowDownOutlined style={{ fontSize: '9px' }} />}
+                            </div>
+                          )}
+                        </td>
+                      )
+                    })}
+                    {selectedFunnel3 && FUNNELS[selectedFunnel3].metrics.map((metric, index) => {
+                      const value = getMetricValueForDate(metric.key, date)
+                      const change = getMetricChangeVsPreviousDayDesc(dateIndex, metric.key)
+                      const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
+                      const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
+                      const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(metric.key)
+                      const changeColor = change !== null && change !== 0 ? (change > 0 ? colors.success : colors.error) : undefined
+                      return (
+                        <td key={metric.key} style={{
+                          textAlign: 'center',
+                          padding: '4px 6px',
+                          borderTop: dateIndex === 0 ? 'none' : undefined,
+                          borderBottom: `1px solid ${colors.border}`,
+                          borderRight: index === FUNNELS[selectedFunnel3].metrics.length - 1 ? 'none' : `1px solid ${colors.border}`,
+                          backgroundColor: isGeneralFunnel3 ? colors.funnelBg : isAdvertisingFunnel3 ? colors.advertisingBg : colors.pricingBg,
                           fontSize: '11px',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -1308,13 +1397,15 @@ export default function AnalyticsArticle() {
                   const totalValue = getMetricTotalForPeriod(metric.key)
                   const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                   const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
+                  const isLast1 = index === FUNNELS[selectedFunnel1].metrics.length - 1
+                  const borderRight1 = !isLast1 ? `1px solid ${colors.border}` : (!selectedFunnel2 && !selectedFunnel3) ? 'none' : `2px solid ${colors.border}`
                   return (
                     <td key={metric.key} style={{
                       textAlign: 'center',
                       padding: '4px 6px',
                       borderBottom: `1px solid ${colors.border}`,
                       borderTop: `2px solid ${colors.border}`,
-                      borderRight: index === FUNNELS[selectedFunnel1].metrics.length - 1 && !selectedFunnel2 ? 'none' : index === FUNNELS[selectedFunnel1].metrics.length - 1 ? `2px solid ${colors.border}` : `1px solid ${colors.border}`,
+                      borderRight: borderRight1,
                       backgroundColor: colors.bgGray,
                       fontSize: '11px',
                       fontWeight: 500
@@ -1331,13 +1422,38 @@ export default function AnalyticsArticle() {
                   const totalValue = getMetricTotalForPeriod(metric.key)
                   const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                   const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
+                  const isLast2 = index === FUNNELS[selectedFunnel2].metrics.length - 1
+                  const borderRight2 = !isLast2 ? `1px solid ${colors.border}` : !selectedFunnel3 ? 'none' : `2px solid ${colors.border}`
                   return (
                     <td key={metric.key} style={{
                       textAlign: 'center',
                       padding: '4px 6px',
                       borderBottom: `1px solid ${colors.border}`,
                       borderTop: `2px solid ${colors.border}`,
-                      borderRight: index === FUNNELS[selectedFunnel2].metrics.length - 1 ? 'none' : `1px solid ${colors.border}`,
+                      borderRight: borderRight2,
+                      backgroundColor: colors.bgGray,
+                      fontSize: '11px',
+                      fontWeight: 500
+                    }}>
+                      {totalValue === null ? '-' : (
+                        isPercent ? formatPercent(totalValue) :
+                        isCurrency ? formatCurrency(totalValue) :
+                        formatValue(totalValue)
+                      )}
+                    </td>
+                  )
+                })}
+                {selectedFunnel3 && FUNNELS[selectedFunnel3].metrics.map((metric, index) => {
+                  const totalValue = getMetricTotalForPeriod(metric.key)
+                  const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
+                  const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
+                  return (
+                    <td key={metric.key} style={{
+                      textAlign: 'center',
+                      padding: '4px 6px',
+                      borderBottom: `1px solid ${colors.border}`,
+                      borderTop: `2px solid ${colors.border}`,
+                      borderRight: index === FUNNELS[selectedFunnel3].metrics.length - 1 ? 'none' : `1px solid ${colors.border}`,
                       backgroundColor: colors.bgGray,
                       fontSize: '11px',
                       fontWeight: 500
@@ -1357,7 +1473,7 @@ export default function AnalyticsArticle() {
           ) : (
             <div style={{ ...typography.body,
                   ...FONT_PAGE, color: colors.textSecondary, textAlign: 'center', padding: spacing.xl }}>
-              Выберите до 2 воронок (Общая, Реклама, Цены)
+              Выберите до 3 воронок (Общая, Реклама, Цены)
             </div>
           )}
         </div>
