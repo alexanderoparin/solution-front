@@ -263,7 +263,7 @@ export default function UsersManagementSection() {
         </Space>
       ),
     },
-    ...(role === 'ADMIN'
+    ...((role === 'ADMIN' || role === 'MANAGER')
       ? [
           {
             title: 'Обновить кабинеты',
