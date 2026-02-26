@@ -836,16 +836,14 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
         </div>
       </td>
       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(1, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
-        <a
-          href={wbUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          to={articlePath}
           onClick={stopProp}
           className="products-table-link"
           style={{ fontWeight: 700, fontSize: 13, color: colors.textPrimary, marginBottom: 4, display: 'inline-block' }}
         >
           {article.title || '-'}
-        </a>
+        </Link>
         <div style={{ color: colors.textSecondary, marginBottom: 2 }}>
           {[article.subjectName, article.brand].filter(Boolean).join(' · ') || '-'}
         </div>
