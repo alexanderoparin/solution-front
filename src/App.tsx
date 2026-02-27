@@ -6,6 +6,8 @@ import AnalyticsProducts from './pages/AnalyticsProducts'
 import AdvertisingCampaigns from './pages/AdvertisingCampaigns'
 import AdvertisingCampaignDetail from './pages/AdvertisingCampaignDetail'
 import Profile from './pages/Profile'
+import SubscriptionSuccess from './pages/SubscriptionSuccess'
+import SubscriptionFail from './pages/SubscriptionFail'
 import { useAuthStore } from './store/authStore'
 
 function App() {
@@ -48,6 +50,14 @@ function App() {
         <Route
           path="/profile"
           element={token ? <Profile /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/subscription/success"
+          element={token ? <SubscriptionSuccess /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/subscription/fail"
+          element={token ? <SubscriptionFail /> : <Navigate to="/login" replace />}
         />
         <Route path="/users" element={token ? <Navigate to="/profile" replace /> : <Navigate to="/login" replace />} />
       </Routes>
