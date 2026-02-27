@@ -115,6 +115,17 @@ export default function Login() {
             </Button>
           </Form.Item>
         </Form>
+
+        <div style={{ textAlign: 'center', marginTop: 16 }}>
+          <a
+            href="/oferta.docx"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#64748B', fontSize: 13 }}
+          >
+            Публичная оферта
+          </a>
+        </div>
       </Card>
 
       <ChangePasswordModal
