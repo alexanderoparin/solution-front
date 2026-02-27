@@ -628,11 +628,27 @@ export default function AnalyticsArticle() {
     }
   }
 
-  // Вычисляет разницу в процентах
-  const calculateDifference = (value1: number | null, value2: number | null, roundToDecimals?: number): number | null => {
-    if (value1 === null || value2 === null || value1 === 0) return null
-    
-    // Если указано округление, округляем значения перед вычислением разницы
+  /**
+   * Вычисляет разницу между периодами.
+   * @param absolutePercentPoints — для процентных полей (конверсия, CTR, ДРР): true = фактическая разница в п.п. (10,35 − 8,94 = +1,41), false = процент от процента
+   */
+  const calculateDifference = (
+    value1: number | null,
+    value2: number | null,
+    roundToDecimals?: number,
+    absolutePercentPoints?: boolean
+  ): number | null => {
+    if (value1 === null || value2 === null) return null
+
+    if (absolutePercentPoints) {
+      // Значения уже в процентах — разница в процентных пунктах (например 10,35 − 8,94 = +1,41)
+      const diff = value2 - value1
+      if (Math.abs(diff) < 0.01) return null
+      return diff
+    }
+
+    if (value1 === 0) return null
+
     let v1 = value1
     let v2 = value2
     if (roundToDecimals !== undefined) {
@@ -640,17 +656,10 @@ export default function AnalyticsArticle() {
       v1 = Math.round(value1 * multiplier) / multiplier
       v2 = Math.round(value2 * multiplier) / multiplier
     }
-    
-    // Для очень маленьких значений проверяем абсолютную разницу
-    // Если значения очень близки (разница меньше 0.001), считаем их одинаковыми
     const absDiff = Math.abs(v2 - v1)
     if (absDiff < 0.001) return null
-    
     const diff = ((v2 - v1) / v1) * 100
-    
-    // Если процентная разница очень маленькая (меньше 0.01%), считаем значения одинаковыми
     if (Math.abs(diff) < 0.01) return null
-    
     return diff
   }
 
@@ -1964,14 +1973,14 @@ export default function AnalyticsArticle() {
                     ...typography.body,
                   ...FONT_PAGE,
                     color: (() => {
-                      const diff = calculateDifference(period1Data.cartConversion, period2Data.cartConversion)
+                      const diff = calculateDifference(period1Data.cartConversion, period2Data.cartConversion, undefined, true)
                       if (diff === null) return colors.textPrimary
                       return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
                     })(),
                     fontWeight: 600
                   }}>
-                    {calculateDifference(period1Data.cartConversion, period2Data.cartConversion) !== null 
-                      ? `${calculateDifference(period1Data.cartConversion, period2Data.cartConversion)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.cartConversion, period2Data.cartConversion)!)}`
+                    {calculateDifference(period1Data.cartConversion, period2Data.cartConversion, undefined, true) !== null 
+                      ? `${calculateDifference(period1Data.cartConversion, period2Data.cartConversion, undefined, true)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.cartConversion, period2Data.cartConversion, undefined, true)!)}`
                       : '-'}
                   </td>
                 </tr>
@@ -2027,14 +2036,14 @@ export default function AnalyticsArticle() {
                     ...typography.body,
                   ...FONT_PAGE,
                     color: (() => {
-                      const diff = calculateDifference(period1Data.orderConversion, period2Data.orderConversion)
+                      const diff = calculateDifference(period1Data.orderConversion, period2Data.orderConversion, undefined, true)
                       if (diff === null) return colors.textPrimary
                       return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
                     })(),
                     fontWeight: 600
                   }}>
-                    {calculateDifference(period1Data.orderConversion, period2Data.orderConversion) !== null 
-                      ? `${calculateDifference(period1Data.orderConversion, period2Data.orderConversion)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.orderConversion, period2Data.orderConversion)!)}`
+                    {calculateDifference(period1Data.orderConversion, period2Data.orderConversion, undefined, true) !== null 
+                      ? `${calculateDifference(period1Data.orderConversion, period2Data.orderConversion, undefined, true)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.orderConversion, period2Data.orderConversion, undefined, true)!)}`
                       : '-'}
                   </td>
                 </tr>
@@ -2442,9 +2451,17 @@ export default function AnalyticsArticle() {
                     borderBottom: `1px solid ${colors.border}`,
                     borderLeft: `2px solid ${colors.border}`,
                     ...typography.body,
-                  ...FONT_PAGE
+                  ...FONT_PAGE,
+                    color: (() => {
+                      const diff = calculateDifference(period1Data.ctr, period2Data.ctr, undefined, true)
+                      if (diff === null) return colors.textPrimary
+                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                    })(),
+                    fontWeight: 600
                   }}>
-                    -
+                    {calculateDifference(period1Data.ctr, period2Data.ctr, undefined, true) !== null 
+                      ? `${calculateDifference(period1Data.ctr, period2Data.ctr, undefined, true)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.ctr, period2Data.ctr, undefined, true)!)}`
+                      : '-'}
                   </td>
                 </tr>
                 {/* CPO */}
@@ -2576,14 +2593,14 @@ export default function AnalyticsArticle() {
                     ...typography.body,
                   ...FONT_PAGE,
                     color: (() => {
-                      const diff = calculateDifference(period1Data.drr, period2Data.drr)
+                      const diff = calculateDifference(period1Data.drr, period2Data.drr, undefined, true)
                       if (diff === null) return colors.textPrimary
                       return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
                     })(),
                     fontWeight: 600
                   }}>
-                    {calculateDifference(period1Data.drr, period2Data.drr) !== null 
-                      ? `${calculateDifference(period1Data.drr, period2Data.drr)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.drr, period2Data.drr)!)}`
+                    {calculateDifference(period1Data.drr, period2Data.drr, undefined, true) !== null 
+                      ? `${calculateDifference(period1Data.drr, period2Data.drr, undefined, true)! > 0 ? '+' : ''}${formatPercent(calculateDifference(period1Data.drr, period2Data.drr, undefined, true)!)}`
                       : '-'}
                   </td>
                 </tr>
