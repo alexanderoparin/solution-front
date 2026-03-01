@@ -26,5 +26,10 @@ export const authApi = {
     const response = await apiClient.post<MessageResponse>('/auth/reset-password', { token, newPassword })
     return response.data
   },
+
+  confirmEmail: async (token: string): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/auth/confirm-email', { token })
+    return response.data
+  },
 }
 

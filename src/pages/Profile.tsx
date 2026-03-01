@@ -56,6 +56,18 @@ export default function Profile() {
     },
   })
 
+  const sendEmailConfirmationMutation = useMutation({
+    mutationFn: () => userApi.sendEmailConfirmation(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+      message.success('Письмо для подтверждения отправлено на вашу почту.')
+    },
+    onError: (error: any) => {
+      const msg = error.response?.data?.error ?? error.response?.data?.message ?? 'Ошибка отправки'
+      message.error(msg)
+    },
+  })
+
   const createCabinetMutation = useMutation({
     mutationFn: (name: string) => cabinetsApi.create({ name }),
     onSuccess: () => {
@@ -279,15 +291,43 @@ export default function Profile() {
                 <div style={{ marginTop: '4px' }}>
                   <div><Text strong>{profile.email}</Text></div>
                   {profile.role === 'SELLER' && !profile.isAgencyClient && (
-                    <div style={{ marginTop: 4, fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ marginTop: 6 }}>
                       {profile.emailConfirmed ? (
-                        <span style={{ color: '#52c41a' }}>
-                          <CheckCircleOutlined /> подтверждён
+                        <span style={{ fontSize: 13, color: '#52c41a', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <CheckCircleOutlined /> Подтверждён
                         </span>
                       ) : (
-                        <span style={{ color: '#fa8c16' }}>
-                          <ExclamationCircleOutlined /> не подтверждён
-                        </span>
+                        <div
+                          style={{
+                            marginTop: 4,
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            background: '#F8FAFC',
+                            border: '1px solid #F1F5F9',
+                            display: 'inline-flex',
+                            flexWrap: 'wrap',
+                            alignItems: 'center',
+                            gap: 10,
+                          }}
+                        >
+                          <span style={{ fontSize: 13, color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            <ExclamationCircleOutlined style={{ color: '#f59e0b' }} /> Не подтверждён
+                          </span>
+                          <Button
+                            type="primary"
+                            size="small"
+                            onClick={() => sendEmailConfirmationMutation.mutate()}
+                            loading={sendEmailConfirmationMutation.isPending}
+                            style={{
+                              backgroundColor: '#7C3AED',
+                              borderColor: '#7C3AED',
+                              borderRadius: 6,
+                              fontWeight: 500,
+                            }}
+                          >
+                            Отправить письмо
+                          </Button>
+                        </div>
                       )}
                     </div>
                   )}

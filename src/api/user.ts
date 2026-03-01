@@ -15,6 +15,14 @@ export const userApi = {
     return response.data
   },
 
+  /**
+   * Отправить письмо для подтверждения email (не чаще 1 раза в 24 ч).
+   */
+  sendEmailConfirmation: async (): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/user/send-email-confirmation')
+    return response.data
+  },
+
   updateApiKey: async (data: UpdateApiKeyRequest): Promise<MessageResponse> => {
     const response = await apiClient.put<MessageResponse>('/user/api-key', data)
     return response.data

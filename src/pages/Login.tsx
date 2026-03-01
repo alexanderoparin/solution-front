@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { Form, Input, Button, Card, Typography, message } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
@@ -12,8 +12,17 @@ const { Title, Text } = Typography
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const setAuth = useAuthStore((state) => state.setAuth)
+
+  useEffect(() => {
+    const stateMessage = (location.state as { message?: string })?.message
+    if (stateMessage) {
+      message.success(stateMessage)
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location.state, location.pathname, navigate])
 
   const getInitialRoute = () => {
     return '/profile'
