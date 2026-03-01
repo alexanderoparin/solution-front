@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
+import Landing from './pages/Landing'
 import AnalyticsSummary from './pages/AnalyticsSummary'
 import AnalyticsArticle from './pages/AnalyticsArticle'
 import AnalyticsProducts from './pages/AnalyticsProducts'
@@ -8,6 +9,9 @@ import AdvertisingCampaignDetail from './pages/AdvertisingCampaignDetail'
 import Profile from './pages/Profile'
 import SubscriptionSuccess from './pages/SubscriptionSuccess'
 import SubscriptionFail from './pages/SubscriptionFail'
+import Privacy from './pages/Privacy'
+import Refund from './pages/Refund'
+import Oferta from './pages/Oferta'
 import { useAuthStore } from './store/authStore'
 
 function App() {
@@ -24,7 +28,7 @@ function App() {
         <Route
           path="/"
           element={
-            token ? <Navigate to={getInitialRoute()} replace /> : <Navigate to="/login" replace />
+            token ? <Navigate to={getInitialRoute()} replace /> : <Landing />
           }
         />
         <Route
@@ -59,6 +63,9 @@ function App() {
           path="/subscription/fail"
           element={token ? <SubscriptionFail /> : <Navigate to="/login" replace />}
         />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/refund" element={<Refund />} />
+        <Route path="/oferta" element={<Oferta />} />
         <Route path="/users" element={token ? <Navigate to="/profile" replace /> : <Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>

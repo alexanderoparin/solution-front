@@ -84,7 +84,18 @@ export interface CabinetDto {
   /** Время запроса обновления по кабинету (всегда в ответе). */
   lastDataUpdateRequestedAt: string | null
   apiKey: CabinetApiKeyInfo | null
-}export interface CreateCabinetRequest {
+}
+
+export interface PlanDto {
+  id: number
+  name: string
+  description: string | null
+  priceRub: number
+  periodDays: number
+  maxCabinets: number | null
+}
+
+export interface CreateCabinetRequest {
   name: string
 }export interface UpdateCabinetRequest {
   name?: string
