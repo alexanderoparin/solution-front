@@ -28,7 +28,7 @@ function App() {
   return (
     <BrowserRouter>
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1 }}>
+        <div>
           <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

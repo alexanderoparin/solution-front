@@ -30,6 +30,10 @@ export interface UserProfileResponse {
   email: string
   role: string
   isActive: boolean
+  /** Почта подтверждена (только для сторонних селлеров) */
+  emailConfirmed?: boolean
+  /** Селлер является клиентом агентства */
+  isAgencyClient?: boolean
   apiKey?: ApiKeyInfo
 }
 
