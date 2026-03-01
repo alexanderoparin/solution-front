@@ -1,5 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
+import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Landing from './pages/Landing'
 import AnalyticsSummary from './pages/AnalyticsSummary'
 import AnalyticsArticle from './pages/AnalyticsArticle'
@@ -12,6 +15,7 @@ import SubscriptionFail from './pages/SubscriptionFail'
 import Privacy from './pages/Privacy'
 import Refund from './pages/Refund'
 import Oferta from './pages/Oferta'
+import Footer from './components/Footer'
 import { useAuthStore } from './store/authStore'
 
 function App() {
@@ -23,8 +27,13 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1 }}>
+          <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/"
           element={
@@ -67,7 +76,10 @@ function App() {
         <Route path="/refund" element={<Refund />} />
         <Route path="/oferta" element={<Oferta />} />
         <Route path="/users" element={token ? <Navigate to="/profile" replace /> : <Navigate to="/login" replace />} />
-      </Routes>
+          </Routes>
+        </div>
+        <Footer />
+      </div>
     </BrowserRouter>
   )
 }

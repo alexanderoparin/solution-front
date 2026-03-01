@@ -20,6 +20,11 @@ export interface MessageResponse {
   message: string
 }
 
+export interface RegisterRequest {
+  email: string
+  password: string
+}
+
 export interface UserProfileResponse {
   id: number
   email: string

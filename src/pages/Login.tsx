@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { Form, Input, Button, Card, Typography, message } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
@@ -58,13 +58,35 @@ export default function Login() {
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
         }}
       >
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Title level={2} style={{ marginBottom: 8, color: '#1E293B' }}>
-            Solution
-          </Title>
-          <Text type="secondary" style={{ color: '#64748B' }}>
-            Управление рекламными кампаниями Wildberries
-          </Text>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 32 }}>
+          <Link
+            to="/"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: 18,
+              flexShrink: 0,
+              textDecoration: 'none',
+            }}
+            title="На главную"
+          >
+            S
+          </Link>
+          <div style={{ textAlign: 'center' }}>
+            <Title level={2} style={{ marginBottom: 4, color: '#1E293B', margin: 0 }}>
+              WB-Solution
+            </Title>
+            <Text type="secondary" style={{ color: '#64748B', fontSize: 14 }}>
+              Управление рекламными кампаниями Wildberries
+            </Text>
+          </div>
         </div>
 
         <Form
@@ -115,6 +137,16 @@ export default function Login() {
             </Button>
           </Form.Item>
         </Form>
+
+        <div style={{ textAlign: 'center', marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div>
+            <Text type="secondary" style={{ marginRight: 4 }}>Нет аккаунта?</Text>
+            <Link to="/register" style={{ color: '#7C3AED', fontWeight: 500 }}>Зарегистрироваться</Link>
+          </div>
+          <div>
+            <Link to="/forgot-password" style={{ color: '#64748B', fontSize: 13 }}>Забыли пароль?</Link>
+          </div>
+        </div>
       </Card>
 
       <ChangePasswordModal
