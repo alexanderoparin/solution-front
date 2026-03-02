@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Button, Card, Spin, Typography, message } from 'antd'
-import { CreditCardOutlined } from '@ant-design/icons'
+import { Alert, Button, Card, Spin, Typography, message } from 'antd'
+import { CreditCardOutlined, MailOutlined } from '@ant-design/icons'
+import { userApi } from '../api/user'
 import { subscriptionApi } from '../api/subscription'
 import Header from '../components/Header'
 
@@ -12,10 +13,20 @@ const border = '#E2E8F0'
 export default function Subscribe() {
   const navigate = useNavigate()
 
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => userApi.getProfile(),
+  })
+
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ['subscriptionPlans'],
     queryFn: () => subscriptionApi.getPlans(),
   })
+
+  const showTrialMessage =
+    profile?.role === 'SELLER' &&
+    !profile?.isAgencyClient &&
+    profile?.emailConfirmed === false
 
   const initiateMutation = useMutation({
     mutationFn: (planId: number) => subscriptionApi.initiatePayment(planId),
@@ -44,6 +55,17 @@ export default function Subscribe() {
         <Typography.Paragraph type="secondary" style={{ marginBottom: 24 }}>
           Для доступа к аналитике и рекламе выберите и оплатите подходящий тариф.
         </Typography.Paragraph>
+
+        {showTrialMessage && (
+          <Alert
+            type="info"
+            icon={<MailOutlined />}
+            message="Пробный период после подтверждения почты"
+            description="Мы предоставляем бесплатный пробный период после подтверждения email. Подтвердите почту в разделе «Профиль» — письмо со ссылкой придёт на вашу почту. После перехода по ссылке вам будет доступен пробный доступ."
+            style={{ marginBottom: 24 }}
+            showIcon
+          />
+        )}
 
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>

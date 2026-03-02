@@ -61,6 +61,8 @@ export default function Subscription() {
 
   const hasAccess = access.hasAccess
   const agencyClient = access.agencyClient
+  const subscriptionStatus = access.subscriptionStatus ?? null
+  const isTrial = subscriptionStatus === 'trial'
   const expiresAt = access.subscriptionExpiresAt ? dayjs(access.subscriptionExpiresAt) : null
   const isExpired = expiresAt ? expiresAt.isBefore(dayjs()) : true
 
@@ -147,7 +149,11 @@ export default function Subscription() {
               <Tag color="blue">Клиент агентства</Tag>
             ) : hasAccess && expiresAt ? (
               <>
-                <Tag color="green">Активна</Tag>
+                {isTrial ? (
+                  <Tag color="blue">Пробный период</Tag>
+                ) : (
+                  <Tag color="green">Активна</Tag>
+                )}
                 <span style={{ marginLeft: 8 }}>
                   до {expiresAt.format('DD.MM.YYYY')}
                   {isExpired && ' (истекла)'}

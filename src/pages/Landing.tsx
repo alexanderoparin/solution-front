@@ -207,14 +207,10 @@ export default function Landing() {
                       fontSize: 28,
                       fontWeight: 700,
                       color: accent,
-                      marginBottom: 4,
                       letterSpacing: '-0.02em',
                     }}
                   >
                     {formatPrice(plan.priceRub)}
-                  </div>
-                  <div style={{ fontSize: 13, color: textSecondary }}>
-                    на {plan.periodDays === 30 ? '1 месяц' : plan.periodDays === 365 ? '1 год' : `${plan.periodDays} дн.`}
                   </div>
                 </Card>
               ))}
