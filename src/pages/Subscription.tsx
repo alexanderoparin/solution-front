@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { Button, Card, Spin, Table, Typography, message, Tag } from 'antd'
+import { Button, Card, Spin, Table, Typography, message, Tag, Tooltip } from 'antd'
 import { CreditCardOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { subscriptionApi } from '../api/subscription'
@@ -51,7 +51,8 @@ export default function Subscription() {
     return (
       <>
         <Header />
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+        <Breadcrumbs />
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 48, backgroundColor: '#F8FAFC' }}>
           <Spin size="large" />
         </div>
       </>
@@ -73,13 +74,32 @@ export default function Subscription() {
     {
       title: 'Сумма',
       key: 'amount',
-      render: (_: unknown, r: PaymentDto) => formatPrice(r.amount, r.currency),
+      render: (_: unknown, r: PaymentDto) => (
+        <span style={{ whiteSpace: 'nowrap' }}>{formatPrice(r.amount, r.currency)}</span>
+      ),
     },
     {
       title: 'Назначение',
       dataIndex: 'description',
       key: 'description',
-      render: (v: string | null) => v ?? '—',
+      render: (v: string | null) =>
+        v ? (
+          <Tooltip title={v}>
+            <span
+              style={{
+                display: 'inline-block',
+                maxWidth: 260,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {v}
+            </span>
+          </Tooltip>
+        ) : (
+          '—'
+        ),
     },
     {
       title: 'Статус',
@@ -100,80 +120,105 @@ export default function Subscription() {
   return (
     <>
       <Header />
-      <div style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-        <Breadcrumbs />
+      <Breadcrumbs />
+      <div
+        style={{
+          width: '100%',
+          padding: 24,
+          minHeight: '100vh',
+          backgroundColor: '#F8FAFC',
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: 1200 }}>
+          <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 24 }}>
+            Подписка
+          </Typography.Title>
 
-        <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 24 }}>
-          Подписка
-        </Typography.Title>
+          <Card
+            style={{
+              marginBottom: 24,
+              borderRadius: 8,
+            }}
+          >
+            <Typography.Text strong>Текущий статус: </Typography.Text>
+            {agencyClient ? (
+              <Tag color="blue">Клиент агентства</Tag>
+            ) : hasAccess && expiresAt ? (
+              <>
+                <Tag color="green">Активна</Tag>
+                <span style={{ marginLeft: 8 }}>
+                  до {expiresAt.format('DD.MM.YYYY')}
+                  {isExpired && ' (истекла)'}
+                </span>
+              </>
+            ) : hasAccess ? (
+              <Tag color="green">Доступ есть</Tag>
+            ) : (
+              <>
+                <Tag color="orange">Нет доступа</Tag>
+                <Button
+                  type="link"
+                  size="small"
+                  style={{ marginLeft: 8 }}
+                  onClick={() => navigate('/subscribe')}
+                >
+                  Оформить подписку
+                </Button>
+              </>
+            )}
+          </Card>
 
-        <Card style={{ marginBottom: 24 }}>
-          <Typography.Text strong>Текущий статус: </Typography.Text>
-          {agencyClient ? (
-            <Tag color="blue">Клиент агентства</Tag>
-          ) : hasAccess && expiresAt ? (
-            <>
-              <Tag color="green">Активна</Tag>
-              <span style={{ marginLeft: 8 }}>
-                до {expiresAt.format('DD.MM.YYYY')}
-                {isExpired && ' (истекла)'}
-              </span>
-            </>
-          ) : hasAccess ? (
-            <Tag color="green">Доступ есть</Tag>
-          ) : (
-            <>
-              <Tag color="orange">Нет доступа</Tag>
-              <Button
-                type="link"
+          <Card
+            title="Оплатить или продлить"
+            style={{
+              marginBottom: 24,
+              borderRadius: 8,
+            }}
+          >
+            {plans.length === 0 ? (
+              <Typography.Text type="secondary">Нет доступных тарифов.</Typography.Text>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                {plans.map((plan) => (
+                  <Button
+                    key={plan.id}
+                    type="primary"
+                    icon={<CreditCardOutlined />}
+                    loading={initiateMutation.isPending}
+                    onClick={() => initiateMutation.mutate(plan.id)}
+                    style={{ background: accent, borderColor: accent }}
+                  >
+                    {plan.name} — {plan.priceRub} ₽
+                  </Button>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card
+            title="История платежей"
+            style={{
+              marginBottom: 24,
+              borderRadius: 8,
+            }}
+          >
+            {paymentsLoading ? (
+              <Spin />
+            ) : payments.length === 0 ? (
+              <Typography.Text type="secondary">Платежей пока нет.</Typography.Text>
+            ) : (
+              <Table
+                rowKey="id"
+                columns={paymentColumns}
+                dataSource={payments}
+                pagination={false}
                 size="small"
-                style={{ marginLeft: 8 }}
-                onClick={() => navigate('/subscribe')}
-              >
-                Оформить подписку
-              </Button>
-            </>
-          )}
-        </Card>
-
-        <Typography.Title level={5} style={{ marginBottom: 12 }}>
-          Оплатить или продлить
-        </Typography.Title>
-        {plans.length === 0 ? (
-          <Typography.Text type="secondary">Нет доступных тарифов.</Typography.Text>
-        ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
-            {plans.map((plan) => (
-              <Button
-                key={plan.id}
-                type="primary"
-                icon={<CreditCardOutlined />}
-                loading={initiateMutation.isPending}
-                onClick={() => initiateMutation.mutate(plan.id)}
-                style={{ background: accent, borderColor: accent }}
-              >
-                {plan.name} — {plan.priceRub} ₽
-              </Button>
-            ))}
-          </div>
-        )}
-
-        <Typography.Title level={5} style={{ marginBottom: 12 }}>
-          История платежей
-        </Typography.Title>
-        {paymentsLoading ? (
-          <Spin />
-        ) : payments.length === 0 ? (
-          <Typography.Text type="secondary">Платежей пока нет.</Typography.Text>
-        ) : (
-          <Table
-            rowKey="id"
-            columns={paymentColumns}
-            dataSource={payments}
-            pagination={false}
-            size="small"
-          />
-        )}
+              />
+            )}
+          </Card>
+        </div>
       </div>
     </>
   )
