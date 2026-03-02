@@ -38,6 +38,10 @@ export default function Breadcrumbs() {
       { label: 'Рекламные компании', path: '/advertising/campaigns' },
       { label: params.id }
     )
+  } else if (pathname === '/admin/plans') {
+    items.push({ label: 'Профиль', path: '/profile' }, { label: 'Планы и подписки' })
+  } else if (pathname === '/subscription') {
+    items.push({ label: 'Профиль', path: '/profile' }, { label: 'Подписка' })
   } else {
     items.push({ label: 'Профиль' })
   }

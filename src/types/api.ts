@@ -102,6 +102,69 @@ export interface PlanDto {
   priceRub: number
   periodDays: number
   maxCabinets: number | null
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface CreatePlanRequest {
+  name: string
+  description?: string
+  priceRub: number
+  periodDays: number
+  maxCabinets?: number
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface UpdatePlanRequest {
+  name?: string
+  description?: string
+  priceRub?: number
+  periodDays?: number
+  maxCabinets?: number
+  sortOrder?: number
+  isActive?: boolean
+}
+
+export interface SubscriptionDto {
+  id: number
+  userId: number
+  planId: number | null
+  planName: string | null
+  status: string
+  startedAt: string
+  expiresAt: string
+  createdAt: string
+}
+
+export interface ExtendSubscriptionRequest {
+  userId: number
+  planId: number
+  expiresAt?: string
+}
+
+/** Ответ GET /user/access: доступ к функционалу и статус подписки */
+export interface AccessStatusResponse {
+  hasAccess: boolean
+  agencyClient: boolean
+  subscriptionStatus: string | null
+  subscriptionExpiresAt: string | null
+}
+
+/** Элемент списка платежей GET /user/payments */
+export interface PaymentDto {
+  id: number
+  amount: number
+  currency: string
+  status: string
+  paidAt: string | null
+  createdAt: string
+}
+
+/** Ответ POST /subscription/initiate */
+export interface InitiatePaymentResponse {
+  paymentUrl: string
+  paymentId: number
 }
 
 export interface CreateCabinetRequest {

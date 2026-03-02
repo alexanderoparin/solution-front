@@ -11,8 +11,12 @@ import AnalyticsProducts from './pages/AnalyticsProducts'
 import AdvertisingCampaigns from './pages/AdvertisingCampaigns'
 import AdvertisingCampaignDetail from './pages/AdvertisingCampaignDetail'
 import Profile from './pages/Profile'
+import AdminPlansAndSubscriptions from './pages/AdminPlansAndSubscriptions'
+import Subscribe from './pages/Subscribe'
+import Subscription from './pages/Subscription'
 import SubscriptionSuccess from './pages/SubscriptionSuccess'
 import SubscriptionFail from './pages/SubscriptionFail'
+import AccessGuard from './components/AccessGuard'
 import Privacy from './pages/Privacy'
 import Refund from './pages/Refund'
 import Oferta from './pages/Oferta'
@@ -44,27 +48,39 @@ function App() {
         />
         <Route
           path="/analytics"
-          element={token ? <AnalyticsSummary /> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><AnalyticsSummary /></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/analytics/products"
-          element={token ? <AnalyticsProducts /> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><AnalyticsProducts /></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/analytics/article/:nmId"
-          element={token ? <AnalyticsArticle /> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><AnalyticsArticle /></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/advertising/campaigns"
-          element={token ? <AdvertisingCampaigns /> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><AdvertisingCampaigns /></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/advertising/campaigns/:id"
-          element={token ? <AdvertisingCampaignDetail /> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><AdvertisingCampaignDetail /></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/profile"
           element={token ? <Profile /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/subscribe"
+          element={token ? <Subscribe /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/subscription"
+          element={token ? <Subscription /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/admin/plans"
+          element={token ? <AdminPlansAndSubscriptions /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/subscription/success"

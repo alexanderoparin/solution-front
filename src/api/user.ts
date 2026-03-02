@@ -7,11 +7,25 @@ import {
   CreateUserRequest,
   UpdateUserRequest,
   CabinetDto,
+  AccessStatusResponse,
+  PaymentDto,
 } from '../types/api'
 
 export const userApi = {
   getProfile: async (): Promise<UserProfileResponse> => {
     const response = await apiClient.get<UserProfileResponse>('/user/profile')
+    return response.data
+  },
+
+  /** Доступ к функционалу и статус подписки (для редиректа на «Оформите подписку») */
+  getAccessStatus: async (): Promise<AccessStatusResponse> => {
+    const response = await apiClient.get<AccessStatusResponse>('/user/access')
+    return response.data
+  },
+
+  /** Список платежей текущего пользователя */
+  getMyPayments: async (): Promise<PaymentDto[]> => {
+    const response = await apiClient.get<PaymentDto[]>('/user/payments')
     return response.data
   },
 

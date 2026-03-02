@@ -62,7 +62,7 @@ export default function AdvertisingCampaigns() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'paused'>('all')
   const [filterType, setFilterType] = useState<string | null>(null)
 
-  const { data: activeSellers = [] } = useQuery({
+  const { data: activeSellers = [], isError: activeSellersError, error: activeSellersErr, isFetched: activeSellersFetched } = useQuery({
     queryKey: ['activeSellers'],
     queryFn: () => userApi.getActiveSellers(),
     enabled: isManagerOrAdmin,
@@ -78,6 +78,10 @@ export default function AdvertisingCampaigns() {
     return undefined
   })
 
+  const activeSellerIds = useMemo(() => new Set(activeSellers.map((s) => s.id)), [activeSellers])
+  const validSelectedSellerId =
+    selectedSellerId != null && activeSellerIds.has(selectedSellerId) ? selectedSellerId : undefined
+
   const { data: myCabinets = [], isLoading: cabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
@@ -85,40 +89,52 @@ export default function AdvertisingCampaigns() {
   })
 
   const { data: sellerCabinets = [], isLoading: sellerCabinetsLoading } = useQuery({
-    queryKey: ['sellerCabinets', selectedSellerId],
-    queryFn: () => userApi.getSellerCabinets(selectedSellerId!),
-    enabled: isManagerOrAdmin && selectedSellerId != null,
+    queryKey: ['sellerCabinets', validSelectedSellerId],
+    queryFn: () => userApi.getSellerCabinets(validSelectedSellerId!),
+    enabled: isManagerOrAdmin && validSelectedSellerId != null,
   })
 
   const cabinets = isManagerOrAdmin ? sellerCabinets : myCabinets
   const cabinetsLoadingState = isManagerOrAdmin ? sellerCabinetsLoading : cabinetsLoading
 
-  const storedCabinetId = isManagerOrAdmin && selectedSellerId != null
-    ? getStoredCabinetIdForSeller(selectedSellerId)
+  const storedCabinetId = isManagerOrAdmin && validSelectedSellerId != null
+    ? getStoredCabinetIdForSeller(validSelectedSellerId)
     : getStoredCabinetId()
   const selectedCabinetId = cabinets.length > 0
     ? (storedCabinetId != null && cabinets.some((c) => c.id === storedCabinetId) ? storedCabinetId : cabinets[0].id)
     : null
 
-  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
-    queryKey: ['advertising-campaigns', isManagerOrAdmin ? selectedSellerId : null, selectedCabinetId],
+  const { data: campaigns = [], isLoading: campaignsLoading, isError: campaignsError, error: campaignsErr } = useQuery({
+    queryKey: ['advertising-campaigns', isManagerOrAdmin ? validSelectedSellerId : null, selectedCabinetId],
     queryFn: () =>
       analyticsApi.getCampaigns(
-        isManagerOrAdmin ? selectedSellerId ?? undefined : undefined,
+        isManagerOrAdmin ? validSelectedSellerId ?? undefined : undefined,
         selectedCabinetId ?? undefined
       ),
     enabled: selectedCabinetId != null,
   })
 
+  const backendErrorMessage =
+    (activeSellersError && (activeSellersErr as any)?.response?.data?.error) ||
+    (activeSellersError && (activeSellersErr as any)?.response?.data?.message) ||
+    (campaignsError && (campaignsErr as any)?.response?.data?.error) ||
+    (campaignsError && (campaignsErr as any)?.response?.data?.message) ||
+    null
+
+  const emptyStateMessage =
+    isManagerOrAdmin && activeSellersFetched && activeSellers.length === 0
+      ? 'Не найдено активных селлеров для просмотра аналитики'
+      : backendErrorMessage ?? 'Нет рекламных кампаний за последние 30 дней'
+
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
-      if (isManagerOrAdmin && selectedSellerId != null) {
-        setStoredCabinetIdForSeller(selectedSellerId, id)
+      if (isManagerOrAdmin && validSelectedSellerId != null) {
+        setStoredCabinetIdForSeller(validSelectedSellerId, id)
       } else {
         setStoredCabinetId(id)
       }
     },
-    [isManagerOrAdmin, selectedSellerId]
+    [isManagerOrAdmin, validSelectedSellerId]
   )
 
   const handleSellerChange = useCallback((sellerId: number) => {
@@ -144,11 +160,18 @@ export default function AdvertisingCampaigns() {
     }
   }, [isManagerOrAdmin, activeSellers, selectedSellerId])
 
+  useEffect(() => {
+    if (isManagerOrAdmin && activeSellers.length >= 0 && selectedSellerId != null && !activeSellerIds.has(selectedSellerId)) {
+      setSelectedSellerId(undefined)
+      localStorage.removeItem('analytics_selected_seller_id')
+    }
+  }, [isManagerOrAdmin, activeSellers.length, activeSellerIds, selectedSellerId])
+
   const sellerSelectProps =
     isManagerOrAdmin && activeSellers.length > 0
       ? {
           sellers: activeSellers.map((s) => ({ id: s.id, email: s.email })),
-          selectedSellerId: selectedSellerId ?? undefined,
+          selectedSellerId: validSelectedSellerId ?? undefined,
           onSellerChange: handleSellerChange,
         }
       : undefined
@@ -360,7 +383,7 @@ export default function AdvertisingCampaigns() {
                 color: colors.textSecondary,
               }}
             >
-              Нет рекламных кампаний за последние 30 дней
+              {emptyStateMessage}
             </div>
           ) : (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', width: '100%' }}>

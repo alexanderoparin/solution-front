@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal } from 'antd'
-import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined } from '@ant-design/icons'
+import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined, CreditCardOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
@@ -284,8 +284,8 @@ export default function Profile() {
           }
           style={{ marginBottom: '24px' }}
         >
-          <Row gutter={[24, 16]} align="middle">
-            <Col xs={24} sm={6}>
+          <Row gutter={[24, 16]} align="middle" style={{ width: '100%', display: 'flex', flexWrap: 'wrap' }}>
+            <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 120, maxWidth: '100%' }} className="profile-info-col">
               <div>
                 <Text type="secondary">Email:</Text>
                 <div style={{ marginTop: '4px' }}>
@@ -335,7 +335,7 @@ export default function Profile() {
               </div>
             </Col>
             
-            <Col xs={24} sm={6}>
+            <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 80 }} className="profile-info-col">
               <div>
                 <Text type="secondary">Роль:</Text>
                 <div style={{ marginTop: '4px' }}>
@@ -347,7 +347,7 @@ export default function Profile() {
             </Col>
 
             {profile.role === 'SELLER' && profile.isAgencyClient && (
-              <Col xs={24} sm={6}>
+              <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 100 }} className="profile-info-col">
                 <div>
                   <Text type="secondary">Тип:</Text>
                   <div style={{ marginTop: '4px' }}>
@@ -357,7 +357,7 @@ export default function Profile() {
               </Col>
             )}
 
-            <Col xs={24} sm={6}>
+            <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 80 }} className="profile-info-col">
               <div>
                 <Text type="secondary">Статус:</Text>
                 <div style={{ marginTop: '4px' }}>
@@ -368,30 +368,50 @@ export default function Profile() {
               </div>
             </Col>
 
-            <Col xs={24} sm={6} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 180, display: 'flex', justifyContent: 'flex-end' }} className="profile-info-col">
+              <Space direction="vertical" size="middle" style={{ width: '100%', maxWidth: 220 }}>
                 {!showPasswordForm ? (
                   <Button
                     type="primary"
                     icon={<LockOutlined />}
                     onClick={() => setShowPasswordForm(true)}
-                    block
                     size="large"
                     style={{
                       backgroundColor: '#7C3AED',
                       borderColor: '#7C3AED',
+                      width: '100%',
                     }}
                   >
                     Сменить пароль
                   </Button>
                 ) : null}
+                {profile.role === 'SELLER' && !profile.isAgencyClient && (
+                  <Button
+                    icon={<CreditCardOutlined />}
+                    onClick={() => navigate('/subscription')}
+                    size="large"
+                    style={{ width: '100%' }}
+                  >
+                    Подписка
+                  </Button>
+                )}
+                {profile.role === 'ADMIN' && (
+                  <Button
+                    icon={<CreditCardOutlined />}
+                    onClick={() => navigate('/admin/plans')}
+                    size="large"
+                    style={{ width: '100%' }}
+                  >
+                    Планы и подписки
+                  </Button>
+                )}
                 <Button
                   type="primary"
                   danger
                   icon={<LogoutOutlined />}
                   onClick={handleLogout}
-                  block
                   size="large"
+                  style={{ width: '100%' }}
                 >
                   Выйти из системы
                 </Button>

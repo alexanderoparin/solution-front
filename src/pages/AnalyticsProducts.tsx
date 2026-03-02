@@ -81,7 +81,7 @@ export default function AnalyticsProducts() {
   const [filterSearch, setFilterSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const { data: activeSellers = [] } = useQuery({
+  const { data: activeSellers = [], isFetched: activeSellersFetched } = useQuery({
     queryKey: ['activeSellers'],
     queryFn: () => userApi.getActiveSellers(),
     enabled: isManagerOrAdmin,
@@ -97,6 +97,10 @@ export default function AnalyticsProducts() {
     return undefined
   })
 
+  const activeSellerIds = useMemo(() => new Set(activeSellers.map((s) => s.id)), [activeSellers])
+  const validSelectedSellerId =
+    selectedSellerId != null && activeSellerIds.has(selectedSellerId) ? selectedSellerId : undefined
+
   const { data: myCabinets = [], isLoading: cabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
@@ -104,38 +108,38 @@ export default function AnalyticsProducts() {
   })
 
   const { data: sellerCabinets = [], isLoading: sellerCabinetsLoading } = useQuery({
-    queryKey: ['sellerCabinets', selectedSellerId],
-    queryFn: () => userApi.getSellerCabinets(selectedSellerId!),
-    enabled: isManagerOrAdmin && selectedSellerId != null,
+    queryKey: ['sellerCabinets', validSelectedSellerId],
+    queryFn: () => userApi.getSellerCabinets(validSelectedSellerId!),
+    enabled: isManagerOrAdmin && validSelectedSellerId != null,
   })
 
   const cabinets = isManagerOrAdmin ? sellerCabinets : myCabinets
   const cabinetsLoadingState = isManagerOrAdmin ? sellerCabinetsLoading : cabinetsLoading
 
   const [selectedCabinetId, setSelectedCabinetIdState] = useState<number | null>(() => {
-    if (isManagerOrAdmin && selectedSellerId != null) return getStoredCabinetIdForSeller(selectedSellerId)
+    if (isManagerOrAdmin && validSelectedSellerId != null) return getStoredCabinetIdForSeller(validSelectedSellerId)
     return getStoredCabinetId()
   })
 
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
       setSelectedCabinetIdState(id)
-      if (isManagerOrAdmin && selectedSellerId != null) {
-        setStoredCabinetIdForSeller(selectedSellerId, id)
+      if (isManagerOrAdmin && validSelectedSellerId != null) {
+        setStoredCabinetIdForSeller(validSelectedSellerId, id)
       } else {
         setStoredCabinetId(id)
       }
     },
-    [isManagerOrAdmin, selectedSellerId]
+    [isManagerOrAdmin, validSelectedSellerId]
   )
 
   useEffect(() => {
-    if (isManagerOrAdmin && selectedSellerId != null) {
-      setSelectedCabinetIdState(getStoredCabinetIdForSeller(selectedSellerId))
+    if (isManagerOrAdmin && validSelectedSellerId != null) {
+      setSelectedCabinetIdState(getStoredCabinetIdForSeller(validSelectedSellerId))
     } else if (!isManagerOrAdmin) {
       setSelectedCabinetIdState(getStoredCabinetId())
     }
-  }, [selectedSellerId, isManagerOrAdmin])
+  }, [validSelectedSellerId, isManagerOrAdmin])
 
   useEffect(() => {
     if (cabinets.length > 0 && selectedCabinetId === null) {
@@ -157,6 +161,13 @@ export default function AnalyticsProducts() {
     }
   }, [isManagerOrAdmin, selectedSellerId])
 
+  useEffect(() => {
+    if (isManagerOrAdmin && activeSellers.length >= 0 && selectedSellerId != null && !activeSellerIds.has(selectedSellerId)) {
+      setSelectedSellerId(undefined)
+      localStorage.removeItem('analytics_selected_seller_id')
+    }
+  }, [isManagerOrAdmin, activeSellers.length, activeSellerIds, selectedSellerId])
+
   const last7DaysPeriod = useMemo(() => getLast7DaysPeriod(), [])
 
   const searchTrimmed = searchQuery.trim()
@@ -166,11 +177,13 @@ export default function AnalyticsProducts() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isError: summaryError,
+    error: summaryErr,
   } = useInfiniteQuery({
     queryKey: [
       'analytics-products-summary',
       selectedCabinetId,
-      selectedSellerId,
+      validSelectedSellerId ?? selectedSellerId,
       last7DaysPeriod,
       searchTrimmed,
       selectedNmIds.length > 0 ? [...selectedNmIds].sort((a, b) => a - b) : null,
@@ -179,7 +192,7 @@ export default function AnalyticsProducts() {
       analyticsApi.getSummary({
         periods: [last7DaysPeriod],
         cabinetId: selectedCabinetId ?? undefined,
-        sellerId: selectedSellerId,
+        sellerId: validSelectedSellerId ?? selectedSellerId,
         page: pageParam as number,
         size: PAGE_SIZE,
         search: searchTrimmed || undefined,
@@ -195,6 +208,16 @@ export default function AnalyticsProducts() {
     enabled: selectedCabinetId != null,
   })
 
+  const summaryErrorMessage =
+    summaryError && (summaryErr as any)?.response?.data?.error ||
+    summaryError && (summaryErr as any)?.response?.data?.message ||
+    null
+
+  const emptyStateMessage =
+    isManagerOrAdmin && activeSellersFetched && activeSellers.length === 0
+      ? 'Не найдено активных селлеров для просмотра аналитики'
+      : summaryErrorMessage ?? 'Нет товаров за последние 7 дней'
+
   const articles = useMemo(
     () => summaryData?.pages.flatMap((p) => p.articles) ?? [],
     [summaryData]
@@ -202,7 +225,7 @@ export default function AnalyticsProducts() {
 
   const cabinetSelectProps =
     cabinets.length > 0 &&
-    ((role === 'SELLER' || role === 'WORKER') || (isManagerOrAdmin && selectedSellerId != null))
+    ((role === 'SELLER' || role === 'WORKER') || (isManagerOrAdmin && validSelectedSellerId != null))
       ? {
           cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
           selectedCabinetId,
@@ -282,7 +305,7 @@ export default function AnalyticsProducts() {
             isManagerOrAdmin && activeSellers.length > 0
               ? {
                   sellers: activeSellers.map((s) => ({ id: s.id, email: s.email })),
-                  selectedSellerId: selectedSellerId ?? undefined,
+                  selectedSellerId: validSelectedSellerId ?? undefined,
                   onSellerChange: (id) => setSelectedSellerId(id),
                 }
               : undefined
@@ -499,7 +522,7 @@ export default function AnalyticsProducts() {
                 color: colors.textSecondary,
               }}
             >
-              Нет товаров за последние 7 дней
+              {emptyStateMessage}
             </div>
           ) : (
             <div
@@ -516,7 +539,7 @@ export default function AnalyticsProducts() {
                 last7Dates={last7Dates}
                 last7DaysPeriod={last7DaysPeriod}
                 selectedCabinetId={selectedCabinetId}
-                selectedSellerId={selectedSellerId}
+                selectedSellerId={validSelectedSellerId ?? selectedSellerId}
                 containerRef={containerRef}
                 onScroll={() => scrollHandler(true)}
               />
