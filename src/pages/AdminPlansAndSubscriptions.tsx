@@ -23,6 +23,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '../api/admin'
 import { userApi } from '../api/user'
 import type { PlanDto, SubscriptionDto, PaymentDto, UserListItem } from '../types/api'
+import { getPaymentStatusLabel, getPaymentStatusColor, getSubscriptionStatusLabel } from '../utils/paymentStatus'
 import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
 import Header from '../components/Header'
@@ -176,7 +177,7 @@ export default function AdminPlansAndSubscriptions() {
   const subColumns = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
     { title: 'План', dataIndex: 'planName', key: 'planName' },
-    { title: 'Статус', dataIndex: 'status', key: 'status', render: (s: string) => <Tag>{s}</Tag> },
+    { title: 'Статус', dataIndex: 'status', key: 'status', render: (s: string) => <Tag>{getSubscriptionStatusLabel(s)}</Tag> },
     {
       title: 'Начало',
       dataIndex: 'startedAt',
@@ -204,7 +205,18 @@ export default function AdminPlansAndSubscriptions() {
       key: 'amount',
       render: (_: unknown, r: PaymentDto) => `${Number(r.amount).toFixed(2)} ${r.currency}`,
     },
-    { title: 'Статус', dataIndex: 'status', key: 'status', render: (s: string) => <Tag>{s}</Tag> },
+    {
+      title: 'Назначение',
+      dataIndex: 'description',
+      key: 'description',
+      render: (v: string | null) => v ?? '—',
+    },
+    {
+      title: 'Статус',
+      dataIndex: 'status',
+      key: 'status',
+      render: (s: string) => <Tag color={getPaymentStatusColor(s)}>{getPaymentStatusLabel(s)}</Tag>,
+    },
     {
       title: 'Оплачено',
       dataIndex: 'paidAt',

@@ -156,6 +156,7 @@ export interface PaymentDto {
   id: number
   amount: number
   currency: string
+  description: string | null
   status: string
   paidAt: string | null
   createdAt: string

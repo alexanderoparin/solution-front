@@ -5,6 +5,7 @@ import { CreditCardOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { subscriptionApi } from '../api/subscription'
 import type { PaymentDto } from '../types/api'
+import { getPaymentStatusLabel, getPaymentStatusColor } from '../utils/paymentStatus'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import dayjs from 'dayjs'
@@ -75,11 +76,17 @@ export default function Subscription() {
       render: (_: unknown, r: PaymentDto) => formatPrice(r.amount, r.currency),
     },
     {
+      title: 'Назначение',
+      dataIndex: 'description',
+      key: 'description',
+      render: (v: string | null) => v ?? '—',
+    },
+    {
       title: 'Статус',
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
-        <Tag color={status === 'PAID' ? 'green' : status === 'PENDING' ? 'blue' : 'default'}>{status}</Tag>
+        <Tag color={getPaymentStatusColor(status)}>{getPaymentStatusLabel(status)}</Tag>
       ),
     },
     {
