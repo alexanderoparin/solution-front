@@ -18,6 +18,8 @@ dayjs.locale('ru')
 
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
 const PAGE_SIZE = 10
+/** Размер одной загрузки списка артикулов для выбора в фильтре (без ограничения по выбранным). */
+const FILTER_LIST_PAGE_SIZE = 100
 
 const WB_CATALOG_URL = (nmId: number) => `https://www.wildberries.ru/catalog/${nmId}/detail.aspx`
 
@@ -78,8 +80,10 @@ export default function AnalyticsProducts() {
   const isManagerOrAdmin = role === 'ADMIN' || role === 'MANAGER'
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedNmIds, setSelectedNmIds] = useState<number[]>(() => [])
+  const [allDeselected, setAllDeselected] = useState(false)
   const [filterSearch, setFilterSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
+  const filterListArticlesRef = useRef<ArticleSummary[]>([])
 
   const { data: activeSellers = [], isFetched: activeSellersFetched } = useQuery({
     queryKey: ['activeSellers'],
@@ -186,7 +190,7 @@ export default function AnalyticsProducts() {
       validSelectedSellerId ?? selectedSellerId,
       last7DaysPeriod,
       searchTrimmed,
-      selectedNmIds.length > 0 ? [...selectedNmIds].sort((a, b) => a - b) : null,
+      allDeselected ? 'none' : (selectedNmIds.length > 0 ? [...selectedNmIds].sort((a, b) => a - b) : null),
     ],
     queryFn: ({ pageParam }) =>
       analyticsApi.getSummary({
@@ -196,7 +200,7 @@ export default function AnalyticsProducts() {
         page: pageParam as number,
         size: PAGE_SIZE,
         search: searchTrimmed || undefined,
-        includedNmIds: selectedNmIds.length > 0 ? selectedNmIds : undefined,
+        ...(allDeselected ? { filterToNone: true } : selectedNmIds.length > 0 ? { includedNmIds: selectedNmIds } : {}),
       }),
     getNextPageParam: (lastPage, allPages) => {
       const total = lastPage.totalArticles ?? 0
@@ -207,6 +211,32 @@ export default function AnalyticsProducts() {
     initialPageParam: 0,
     enabled: selectedCabinetId != null,
   })
+
+  const { data: filterListData } = useQuery({
+    queryKey: [
+      'analytics-products-filter-list',
+      selectedCabinetId,
+      validSelectedSellerId ?? selectedSellerId,
+      last7DaysPeriod,
+      searchTrimmed,
+    ],
+    queryFn: () =>
+      analyticsApi.getSummary({
+        periods: [last7DaysPeriod],
+        cabinetId: selectedCabinetId ?? undefined,
+        sellerId: validSelectedSellerId ?? selectedSellerId,
+        page: 0,
+        size: FILTER_LIST_PAGE_SIZE,
+        search: searchTrimmed || undefined,
+      }),
+    enabled: selectedCabinetId != null,
+  })
+
+  const filterListArticles = useMemo(
+    () => filterListData?.articles ?? [],
+    [filterListData]
+  )
+  filterListArticlesRef.current = filterListArticles
 
   const summaryErrorMessage =
     summaryError && (summaryErr as any)?.response?.data?.error ||
@@ -237,6 +267,7 @@ export default function AnalyticsProducts() {
   // Восстановление выбранных артикулов из localStorage при смене кабинета
   useEffect(() => {
     setSelectedNmIds(getStoredSelectedNmIds(selectedCabinetId))
+    setAllDeselected(false)
   }, [selectedCabinetId])
 
   useEffect(() => {
@@ -274,13 +305,15 @@ export default function AnalyticsProducts() {
   }, [articles.length, hasNextPage, isFetchingNextPage, scrollHandler])
 
   const toggleFilterNmId = useCallback((nmId: number, checked: boolean) => {
-    setSelectedNmIds((prev) =>
-      checked ? [...prev, nmId] : prev.filter((id) => id !== nmId)
-    )
-  }, [])
-
-  const removeChip = useCallback((nmId: number) => {
-    setSelectedNmIds((prev) => prev.filter((id) => id !== nmId))
+    setAllDeselected(false)
+    setSelectedNmIds((prev) => {
+      if (checked) return [...prev, nmId]
+      if (prev.length === 0) {
+        const list = filterListArticlesRef.current.map((a) => a.nmId)
+        return list.filter((id) => id !== nmId)
+      }
+      return prev.filter((id) => id !== nmId)
+    })
   }, [])
 
   const last7Dates = useMemo(() => {
@@ -362,73 +395,125 @@ export default function AnalyticsProducts() {
             />
             <Popover
               content={
-                <div style={{ width: 400, maxHeight: 400, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <Input
-                    placeholder="Поиск по арт. продавца или WB"
-                    prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
-                    value={filterSearch}
-                    onChange={(e) => setFilterSearch(e.target.value)}
-                    style={{ marginBottom: 12 }}
-                    allowClear
-                  />
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexShrink: 0 }}>
-                    <Button
-                      size="small"
-                      onClick={() => {
-                        const filtered = articles.filter((a) => {
-                          const q = filterSearch.trim().toLowerCase()
-                          if (!q) return true
-                          return (
-                            String(a.nmId).includes(filterSearch.trim()) ||
-                            a.vendorCode?.toLowerCase().includes(q) ||
-                            a.title?.toLowerCase().includes(q)
-                          )
-                        })
-                        setSelectedNmIds(filtered.map((a) => a.nmId))
-                      }}
-                    >
-                      Выбрать все
-                    </Button>
-                    <Button size="small" onClick={() => setSelectedNmIds([])}>
-                      Снять все
-                    </Button>
-                  </div>
-                  <div style={{ flex: 1, overflowY: 'auto', maxHeight: 320 }}>
-                    {articles
-                      .filter((a) => {
-                        const q = filterSearch.trim().toLowerCase()
-                        if (!q) return true
-                        return (
+                (() => {
+                  const q = filterSearch.trim().toLowerCase()
+                  const filterListFiltered = q
+                    ? filterListArticles.filter(
+                        (a) =>
                           String(a.nmId).includes(filterSearch.trim()) ||
                           a.vendorCode?.toLowerCase().includes(q) ||
                           a.title?.toLowerCase().includes(q)
-                        )
-                      })
-                      .map((a) => (
-                        <div
-                          key={a.nmId}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '8px 0',
-                            borderBottom: `1px solid ${colors.borderLight}`,
+                      )
+                    : filterListArticles
+                  const selectedNotInList = selectedNmIds.filter(
+                    (id) => !filterListArticles.some((a) => a.nmId === id)
+                  )
+                  return (
+                    <div style={{ width: 400, maxHeight: 400, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                      <Input
+                        placeholder="Поиск по арт. продавца или WB"
+                        prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
+                        value={filterSearch}
+                        onChange={(e) => setFilterSearch(e.target.value)}
+                        style={{ marginBottom: 12 }}
+                        allowClear
+                      />
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexShrink: 0 }}>
+                        <Button
+                          size="small"
+                          onClick={() => {
+                            setAllDeselected(false)
+                            setSelectedNmIds((prev) => {
+                              const add = filterListFiltered.map((a) => a.nmId)
+                              const combined = new Set([...prev, ...add])
+                              return [...combined]
+                            })
                           }}
                         >
-                          <Checkbox
-                            checked={selectedNmIds.includes(a.nmId)}
-                            onChange={(e) => toggleFilterNmId(a.nmId, e.target.checked)}
-                            style={{ marginRight: 12 }}
-                          />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, color: colors.textPrimary }}>
-                              {a.vendorCode || a.nmId}
-                            </div>
-                            <div style={{ fontSize: 12, color: colors.textSecondary }}>{a.nmId}</div>
+                          Выбрать все
+                        </Button>
+                        <Button
+                          size="small"
+                          onClick={() => {
+                            setSelectedNmIds([])
+                            setAllDeselected(true)
+                          }}
+                        >
+                          Снять все
+                        </Button>
+                      </div>
+                      {selectedNotInList.length > 0 && (
+                        <div style={{ marginBottom: 8, flexShrink: 0 }}>
+                          <div style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 4 }}>Выбраны (вне списка):</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {selectedNotInList.map((nmId) => (
+                              <span
+                                key={nmId}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  padding: '2px 8px',
+                                  borderRadius: borderRadius.sm,
+                                  backgroundColor: '#E0F2FE',
+                                  color: '#0369A1',
+                                  fontSize: 12,
+                                }}
+                              >
+                                {nmId}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleFilterNmId(nmId, false)}
+                                  style={{
+                                    border: 'none',
+                                    background: 'none',
+                                    padding: 0,
+                                    cursor: 'pointer',
+                                    color: 'inherit',
+                                    display: 'flex',
+                                  }}
+                                  aria-label="Снять выбор"
+                                >
+                                  <CloseOutlined style={{ fontSize: 10 }} />
+                                </button>
+                              </span>
+                            ))}
                           </div>
                         </div>
-                      ))}
-                  </div>
-                </div>
+                      )}
+                      <div style={{ flex: 1, overflowY: 'auto', maxHeight: 320 }}>
+                        {filterListFiltered.map((a) => (
+                          <div
+                            key={a.nmId}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '8px 0',
+                              borderBottom: `1px solid ${colors.borderLight}`,
+                            }}
+                          >
+                            <Checkbox
+                              checked={!allDeselected && (selectedNmIds.length === 0 || selectedNmIds.includes(a.nmId))}
+                              onChange={(e) => toggleFilterNmId(a.nmId, e.target.checked)}
+                              style={{ marginRight: 12 }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 600, color: colors.textPrimary }}>
+                                {a.nmId}
+                              </div>
+                              <div style={{ fontSize: 12, color: colors.textSecondary }} title={a.title ?? undefined}>
+                                {a.title || '—'}
+                              </div>
+                              <div style={{ fontSize: 12, color: colors.textSecondary }}>
+                                Артикул продавца: {a.vendorCode || '—'}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()
               }
               title="Фильтр артикулов"
               trigger="click"
@@ -456,58 +541,6 @@ export default function AnalyticsProducts() {
               </Button>
             </Popover>
           </div>
-
-          {selectedNmIds.length > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 8,
-                alignItems: 'center',
-                marginBottom: spacing.md,
-              }}
-            >
-              {selectedNmIds.map((nmId) => {
-                const a = articles.find((x) => x.nmId === nmId)
-                const label = a?.vendorCode || String(nmId)
-                return (
-                  <span
-                    key={nmId}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '4px 10px',
-                      borderRadius: borderRadius.sm,
-                      backgroundColor: '#E0F2FE',
-                      color: '#0369A1',
-                      fontSize: 12,
-                      fontWeight: 500,
-                    }}
-                  >
-                    {label}
-                    <button
-                      type="button"
-                      onClick={() => removeChip(nmId)}
-                      style={{
-                        border: 'none',
-                        background: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                        color: '#0369A1',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      aria-label="Удалить"
-                    >
-                      <CloseOutlined style={{ fontSize: 10 }} />
-                    </button>
-                  </span>
-                )
-              })}
-            </div>
-          )}
 
           {summaryLoading ? (
             <div style={{ textAlign: 'center', padding: spacing.xxl }}>
@@ -563,8 +596,8 @@ function getCellBorderRight(colIndex: number, dateColsCount: number): string {
 
 /** Ширины колонок (px) для выравнивания шапки и тела таблицы */
 const COL_WIDTHS = {
-  photo: PRODUCT_PHOTO_WIDTH + 20, /* фото PRODUCT_PHOTO_WIDTH + padding 10+10 */
-  name: 220,
+  photo: PRODUCT_PHOTO_WIDTH, /* колонка по ширине фото */
+  name: 200, /* название и детали */
   rating: 88,
   stock: 72,
   sizes: 100,
@@ -622,6 +655,7 @@ function ProductsTable({
 
   return (
     <div
+      className="products-table-wrapper"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -633,24 +667,42 @@ function ProductsTable({
         overflowX: 'auto',
       }}
     >
+      <style>{`
+        .products-table-wrapper table.products-table colgroup col:first-child,
+        .products-table-wrapper table.products-table thead th:first-child,
+        .products-table-wrapper table.products-table tbody td:first-child {
+          width: ${PRODUCT_PHOTO_WIDTH}px !important;
+          min-width: ${PRODUCT_PHOTO_WIDTH}px !important;
+          max-width: ${PRODUCT_PHOTO_WIDTH}px !important;
+          box-sizing: border-box !important;
+        }
+        .products-table-wrapper table.products-table colgroup col:nth-child(2),
+        .products-table-wrapper table.products-table thead th:nth-child(2),
+        .products-table-wrapper table.products-table tbody td:nth-child(2) {
+          width: ${COL_WIDTHS.name}px !important;
+          min-width: ${COL_WIDTHS.name}px !important;
+          max-width: ${COL_WIDTHS.name}px !important;
+          box-sizing: border-box !important;
+        }
+      `}</style>
       {/* Шапка таблицы — отступ справа под ширину скроллбара тела (измеряется под текущую ОС/браузер) */}
       <div style={{ flexShrink: 0, borderBottom: `2px solid ${colors.border}`, paddingRight: scrollbarWidth }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1000 }}>
+        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1000 }}>
           <colgroup>
             <col style={{ width: COL_WIDTHS.photo }} />
             <col style={{ width: COL_WIDTHS.name }} />
-            <col style={{ width: COL_WIDTHS.rating }} />
-            <col style={{ width: COL_WIDTHS.stock }} />
-            <col style={{ width: COL_WIDTHS.sizes }} />
+            <col />
+            <col />
+            <col />
             {last7Dates.map((d) => (
-              <col key={d} style={{ width: COL_WIDTHS.date }} />
+              <col key={d} />
             ))}
-            <col style={{ width: COL_WIDTHS.dynamics }} />
+            <col />
           </colgroup>
           <thead>
             <tr style={{ backgroundColor: colors.bgGray }}>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(0, last7Dates.length) }}>Фото</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(1, last7Dates.length) }}>Название и детали</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(0, last7Dates.length), padding: '8px 4px', width: COL_WIDTHS.photo, maxWidth: COL_WIDTHS.photo, boxSizing: 'border-box' }}>Фото</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(1, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box' }}>Название и детали</th>
               <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(2, last7Dates.length) }}>Рейтинг</th>
               <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(3, last7Dates.length) }}>Остаток</th>
               <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(4, last7Dates.length) }}>Размеры</th>
@@ -681,17 +733,17 @@ function ProductsTable({
         onScroll={onScroll}
         style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, minHeight: 0 }}
       >
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1000 }}>
+        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1000 }}>
           <colgroup>
             <col style={{ width: COL_WIDTHS.photo }} />
             <col style={{ width: COL_WIDTHS.name }} />
-            <col style={{ width: COL_WIDTHS.rating }} />
-            <col style={{ width: COL_WIDTHS.stock }} />
-            <col style={{ width: COL_WIDTHS.sizes }} />
+            <col />
+            <col />
+            <col />
             {last7Dates.map((d) => (
-              <col key={d} style={{ width: COL_WIDTHS.date }} />
+              <col key={d} />
             ))}
-            <col style={{ width: COL_WIDTHS.dynamics }} />
+            <col />
           </colgroup>
           <tbody>
             {visibleArticles.map((article, idx) => (
@@ -801,11 +853,13 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
     >
       <td
         style={{
-          padding: '6px 10px',
+          padding: '6px 0',
           borderBottom: `1px solid ${colors.border}`,
           borderRight: getCellBorderRight(0, last7Dates.length),
           verticalAlign: 'top',
           width: COL_WIDTHS.photo,
+          maxWidth: COL_WIDTHS.photo,
+          boxSizing: 'border-box',
           position: 'relative',
           minHeight: PRODUCT_PHOTO_HEIGHT + 12,
           overflow: 'hidden',
@@ -815,7 +869,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
           style={{
             position: 'absolute',
             top: 6,
-            left: 10,
+            left: 0,
             width: PRODUCT_PHOTO_WIDTH,
             height: PRODUCT_PHOTO_HEIGHT,
             maxWidth: PRODUCT_PHOTO_WIDTH,
@@ -858,7 +912,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
           </a>
         </div>
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(1, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(1, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         <Link
           to={articlePath}
           onClick={stopProp}

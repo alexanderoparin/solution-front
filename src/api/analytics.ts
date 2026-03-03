@@ -27,6 +27,8 @@ export interface SummaryRequest {
   search?: string
   /** Если задан — только артикулы с этими nmId (фильтр по чипам). */
   includedNmIds?: number[]
+  /** Если true — вернуть 0 артикулов (все галочки в фильтре сняты). */
+  filterToNone?: boolean
 }
 
 export const analyticsApi = {
