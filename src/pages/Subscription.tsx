@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Button, Card, Spin, Table, Typography, message, Tag, Tooltip } from 'antd'
-import { CreditCardOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { subscriptionApi } from '../api/subscription'
 import type { PaymentDto } from '../types/api'
@@ -11,6 +10,9 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import dayjs from 'dayjs'
 
 const accent = '#7C3AED'
+const textPrimary = '#1E293B'
+const textSecondary = '#64748B'
+const border = '#E2E8F0'
 
 export default function Subscription() {
   const navigate = useNavigate()
@@ -46,6 +48,18 @@ export default function Subscription() {
 
   const formatPrice = (amount: number, currency: string) =>
     new Intl.NumberFormat('ru-RU', { style: 'decimal', minimumFractionDigits: 2 }).format(amount) + ' ' + currency
+
+  const formatPriceShort = (rub: number) =>
+    new Intl.NumberFormat('ru-RU', { style: 'decimal', minimumFractionDigits: 0 }).format(rub) + ' ₽'
+
+  const tariffCardStyle = {
+    borderRadius: 16,
+    border: `1px solid ${border}`,
+    backgroundColor: '#FFFFFF',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.06)',
+    cursor: 'pointer',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
+  }
 
   if (accessLoading || access === undefined) {
     return (
@@ -186,18 +200,41 @@ export default function Subscription() {
             {plans.length === 0 ? (
               <Typography.Text type="secondary">Нет доступных тарифов.</Typography.Text>
             ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
                 {plans.map((plan) => (
-                  <Button
+                  <Card
                     key={plan.id}
-                    type="primary"
-                    icon={<CreditCardOutlined />}
-                    loading={initiateMutation.isPending}
-                    onClick={() => initiateMutation.mutate(plan.id)}
-                    style={{ background: accent, borderColor: accent }}
+                    style={{ width: 280, ...tariffCardStyle }}
+                    bodyStyle={{ padding: '28px 24px' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(124,58,237,0.12)'
+                      e.currentTarget.style.borderColor = 'rgba(124,58,237,0.35)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = ''
+                      e.currentTarget.style.boxShadow = tariffCardStyle.boxShadow
+                      e.currentTarget.style.borderColor = border
+                    }}
+                    onClick={() => !initiateMutation.isPending && initiateMutation.mutate(plan.id)}
                   >
-                    {plan.name} — {plan.priceRub} ₽
-                  </Button>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: textPrimary, marginBottom: 6 }}>{plan.name}</div>
+                    {plan.description && (
+                      <div style={{ color: textSecondary, marginBottom: 20, fontSize: 14, lineHeight: 1.5 }}>
+                        {plan.description}
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 700,
+                        color: accent,
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {formatPriceShort(plan.priceRub)}
+                    </div>
+                  </Card>
                 ))}
               </div>
             )}

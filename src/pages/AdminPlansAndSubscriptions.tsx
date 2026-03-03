@@ -141,9 +141,18 @@ export default function AdminPlansAndSubscriptions() {
     if (selectedUserId == null) return
     extendForm.validateFields().then((values) => {
       const expiresAt = values.expiresAt ? dayjs(values.expiresAt).format('YYYY-MM-DDTHH:mm:ss') : undefined
+      const now = dayjs()
+      const currentSub = subscriptions?.find(
+        (s) => (s.status === 'active' || s.status === 'trial') && dayjs(s.expiresAt).isAfter(now)
+      ) ?? null
+      const planId = currentSub?.planId ?? plans[0]?.id
+      if (!planId) {
+        message.error('Нет доступных планов для назначения подписки')
+        return
+      }
       extendMutation.mutate({
         userId: selectedUserId,
-        planId: values.planId,
+        planId,
         expiresAt,
       })
     })
@@ -230,13 +239,23 @@ export default function AdminPlansAndSubscriptions() {
   return (
     <>
       <Header />
-      <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
-        <Breadcrumbs />
-        <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 24 }}>
-          Админ: планы и подписки
-        </Typography.Title>
+      <Breadcrumbs />
+      <div
+        style={{
+          width: '100%',
+          padding: 24,
+          minHeight: '100vh',
+          backgroundColor: '#F8FAFC',
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: 1200 }}>
+          <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 24 }}>
+            Администрирование. Планы и подписки
+          </Typography.Title>
 
-        <Tabs
+          <Tabs
           items={[
             {
               key: 'plans',
@@ -296,7 +315,7 @@ export default function AdminPlansAndSubscriptions() {
                             type="primary"
                             icon={<CreditCardOutlined />}
                             onClick={() => {
-                              extendForm.setFieldsValue({ userId: selectedUserId, planId: undefined, expiresAt: null })
+                              extendForm.setFieldsValue({ userId: selectedUserId, expiresAt: null })
                               setExtendModalOpen(true)
                             }}
                           >
@@ -335,6 +354,7 @@ export default function AdminPlansAndSubscriptions() {
             },
           ]}
         />
+        </div>
       </div>
 
       <Modal
@@ -381,13 +401,21 @@ export default function AdminPlansAndSubscriptions() {
         confirmLoading={extendMutation.isPending}
       >
         <Form form={extendForm} layout="vertical">
-          <Form.Item name="planId" label="План" rules={[{ required: true }]}>
-            <Select
-              placeholder="Выберите план"
-              options={plans.filter((p) => p.isActive !== false).map((p) => ({ value: p.id, label: `${p.name} (${p.priceRub} ₽)` }))}
-            />
-          </Form.Item>
-          <Form.Item name="expiresAt" label="Дата окончания (необязательно)">
+          {(() => {
+            const now = dayjs()
+            const currentSub = subscriptions?.find(
+              (s) => (s.status === 'active' || s.status === 'trial') && dayjs(s.expiresAt).isAfter(now)
+            ) ?? null
+            const currentExpiresAt = currentSub?.expiresAt
+            return (
+              <Form.Item label="Текущая дата окончания">
+                <Typography.Text type="secondary">
+                  {currentExpiresAt ? dayjs(currentExpiresAt).format('DD.MM.YYYY HH:mm') : '—'}
+                </Typography.Text>
+              </Form.Item>
+            )
+          })()}
+          <Form.Item name="expiresAt" label="Новая дата окончания" rules={[{ required: true, message: 'Укажите новую дату окончания' }]}>
             <DatePicker showTime style={{ width: '100%' }} />
           </Form.Item>
         </Form>
