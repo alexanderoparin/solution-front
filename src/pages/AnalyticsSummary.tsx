@@ -1055,145 +1055,7 @@ export default function AnalyticsSummary() {
                       <tr key={`${metricKey}-detail`}>
                         <td colSpan={periods.length + 1} style={{ padding: '0', borderBottom: `1px solid ${colors.borderLight}` }}>
                           <div style={{ padding: spacing.md, backgroundColor: colors.bgWhite }}>
-                            {category === 'advertising' ? (
-                              // Отображение для рекламных метрик - по кампаниям
-                              metricGroup.campaigns && metricGroup.campaigns.length > 0 ? (
-                                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                      <tr style={{ backgroundColor: colors.bgGray }}>
-                                        <th style={{
-                                          textAlign: 'left',
-                                          padding: spacing.md,
-                                          borderBottom: `1px solid ${colors.borderLight}`,
-                                          ...typography.body,
-                                          fontWeight: 600
-                                        }}>
-                                          Артикул
-                                        </th>
-                                        <th style={{
-                                          textAlign: 'left',
-                                          padding: spacing.md,
-                                          borderBottom: `1px solid ${colors.borderLight}`,
-                                          ...typography.body,
-                                          fontWeight: 600
-                                        }}>
-                                          Рекламная кампания
-                                        </th>
-                                        {periods.map(period => (
-                                          <th key={period.id} style={{
-                                            textAlign: 'center',
-                                            padding: spacing.md,
-                                            borderBottom: `1px solid ${colors.borderLight}`,
-                                            ...typography.body,
-                                            fontWeight: 600,
-                                            whiteSpace: 'nowrap'
-                                          }}>
-                                            {formatPeriodDates(period)}
-                                          </th>
-                                        ))}
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {metricGroup.campaigns.flatMap((campaign, campaignIndex) => 
-                                        campaign.articles.map((nmId, articleIndex) => (
-                                          <tr 
-                                            key={`${campaign.campaignId}-${nmId}`}
-                                            style={{
-                                              backgroundColor: campaignIndex % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
-                                            }}
-                                          >
-                                            <td style={{
-                                              padding: spacing.md,
-                                              borderBottom: `1px solid ${colors.borderLight}`,
-                                              ...typography.body,
-                                              fontWeight: 500
-                                            }}>
-                                              <a
-                                                href={`/analytics/article/${nmId}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                style={{
-                                                  color: colors.primary,
-                                                  textDecoration: 'none',
-                                                  fontWeight: 500,
-                                                  cursor: 'pointer',
-                                                  transition: transitions.fast
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                  e.currentTarget.style.textDecoration = 'underline'
-                                                  e.currentTarget.style.color = colors.primaryHover
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                  e.currentTarget.style.textDecoration = 'none'
-                                                  e.currentTarget.style.color = colors.primary
-                                                }}
-                                              >
-                                                {nmId}
-                                              </a>
-                                            </td>
-                                            <td style={{
-                                              padding: spacing.md,
-                                              borderBottom: `1px solid ${colors.borderLight}`,
-                                              ...typography.body,
-                                              fontWeight: articleIndex === 0 ? 600 : 400
-                                            }}>
-                                              {articleIndex === 0 && (
-                                                <span>
-                                                  {campaign.campaignName} ({campaign.campaignId})
-                                                </span>
-                                              )}
-                                            </td>
-                                            {periodsSorted.map(period => {
-                                              const periodData = campaign.periods.find(p => p.periodId === period.id)
-                                              const value = periodData?.value ?? null
-                                              const changePercent = periodData?.changePercent ?? null
-                                              const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
-                                              const isEmpty = value === null || value === undefined || value === 0
-                                              const changeColor = changePercent !== null
-                                                ? (changePercent >= 0 ? colors.success : colors.error)
-                                                : colors.textSecondary
-                                              return (
-                                                <td key={period.id} style={{
-                                                  textAlign: 'center',
-                                                  padding: spacing.md,
-                                                  borderBottom: `1px solid ${colors.borderLight}`,
-                                                  color: isEmpty ? colors.textMuted : colors.textPrimary
-                                                }}>
-                                                  <div style={{ ...typography.number }}>
-                                                    {isEmpty ? '-' : (isPercent ? formatPercent(value as number) : formatValue(value as number))}
-                                                  </div>
-                                                  {changePercent !== null && (
-                                                    <div style={{
-                                                      ...typography.bodySmall,
-                                                      color: changeColor,
-                                                      fontWeight: 600,
-                                                      marginTop: spacing.xs
-                                                    }}>
-                                                      {formatChangePercent(changePercent)}
-                                                    </div>
-                                                  )}
-                                                </td>
-                                              )
-                                            })}
-                                          </tr>
-                                        ))
-                                      )}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              ) : (
-                                <div style={{ 
-                                  textAlign: 'center', 
-                                  padding: spacing.xl,
-                                  color: colors.textMuted
-                                }}>
-                                  Нет данных
-                                </div>
-                              )
-                            ) : (
-                              // Отображение для метрик воронки - по артикулам
-                              metricGroup.articles && metricGroup.articles.length > 0 ? (
+                            {metricGroup.articles && metricGroup.articles.length > 0 ? (
                                 <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
@@ -1342,8 +1204,7 @@ export default function AnalyticsSummary() {
                                 }}>
                                   Нет данных
                                 </div>
-                              )
-                            )}
+                              )}
                           </div>
                         </td>
                       </tr>
