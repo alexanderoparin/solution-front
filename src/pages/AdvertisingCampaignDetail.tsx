@@ -806,60 +806,42 @@ export default function AdvertisingCampaignDetail() {
               )}
             </div>
 
-            {/* Блок 3 — Сравнение периодов: слева артикулы, потом блок периода 1, потом периода 2 */}
+            {/* Блок 3 — Сравнение периодов: два блока один под другим (период 1, период 2) */}
             <div style={{ backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, marginBottom: spacing.lg, boxShadow: shadows.md }}>
               <h2 style={{ ...typography.h2, margin: '0 0 16px 0', fontSize: 16, color: colors.textPrimary }}>Сравнение периодов</h2>
-              <div style={{ overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-                <div style={{ minWidth: 2200, width: '100%', boxSizing: 'border-box' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr', alignItems: 'center', marginBottom: spacing.sm, width: '100%' }}>
-                    <div />
-                    <div style={{ paddingRight: spacing.md, minWidth: 0 }}>
-                      <DatePicker.RangePicker
-                        locale={locale.DatePicker}
-                        value={period1}
-                        onChange={(dates) => dates?.[0] && dates?.[1] && setPeriod1([dates[0], dates[1]])}
-                        format="DD.MM.YYYY"
-                        separator="→"
-                        style={{ width: 220 }}
-                      />
-                    </div>
-                    <div style={{ paddingRight: spacing.md, minWidth: 0 }}>
-                      <DatePicker.RangePicker
-                        locale={locale.DatePicker}
-                        value={period2}
-                        onChange={(dates) => dates?.[0] && dates?.[1] && setPeriod2([dates[0], dates[1]])}
-                        format="DD.MM.YYYY"
-                        separator="→"
-                        style={{ width: 220 }}
-                      />
-                    </div>
+              {([{ period: 1, periodDates: period1, setPeriod: setPeriod1, aggKey: 'p1' as const, total: totalPeriod1 }, { period: 2, periodDates: period2, setPeriod: setPeriod2, aggKey: 'p2' as const, total: totalPeriod2 }] as const).map(({ period, periodDates, setPeriod, aggKey, total }) => (
+                <div key={period} style={{ marginBottom: period === 1 ? spacing.xl : 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}>
+                    <span style={{ ...typography.body, fontWeight: 600, color: colors.textPrimary }}>Период {period}</span>
+                    <DatePicker.RangePicker
+                      locale={locale.DatePicker}
+                      value={periodDates}
+                      onChange={(dates) => dates?.[0] && dates?.[1] && setPeriod([dates[0], dates[1]])}
+                      format="DD.MM.YYYY"
+                      separator="→"
+                      style={{ width: 220 }}
+                    />
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, tableLayout: 'fixed' }}>
-                  <colgroup>
-                    <col style={{ width: 120 }} />
-                    <col span={FUNNELS.general.metrics.length + FUNNELS.advertising.metrics.length} style={{ width: 'calc((100% - 120px) / 2)' }} />
-                    <col span={FUNNELS.general.metrics.length + FUNNELS.advertising.metrics.length} style={{ width: 'calc((100% - 120px) / 2)' }} />
-                  </colgroup>
-                  <thead>
-                    <tr style={{ backgroundColor: colors.bgGrayLight }}>
-                      <th style={{ padding: '6px 12px', textAlign: 'left', border: `1px solid ${colors.border}`, borderRight: 'none', boxShadow: `inset -3px 0 0 0 ${colors.border}`, position: 'sticky', left: 0, zIndex: 2, backgroundColor: colors.bgGrayLight, width: 120, boxSizing: 'border-box' }}>Товар</th>
-                      {[1, 2].map((period) => (
-                        <Fragment key={period}>
-                          {FUNNELS.general.metrics.map((m, i) => (
-                            <th key={`p${period}-${m.key}`} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{m.name}</th>
-                          ))}
-                          {FUNNELS.advertising.metrics.map((m, i) => (
-                            <th key={`p${period}-${m.key}`} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? (period === 2 ? 'none' : `3px solid ${colors.border}`) : undefined }}>{m.name}</th>
-                          ))}
-                        </Fragment>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {articles.map((art) => {
-                      const p1 = periodAggregatesByNmId[art.nmId]?.p1
-                      const p2 = periodAggregatesByNmId[art.nmId]?.p2
-                      const isHovered = hoveredPeriodNmId === art.nmId
+                    <colgroup>
+                      <col style={{ width: 120 }} />
+                      <col span={FUNNELS.general.metrics.length + FUNNELS.advertising.metrics.length} />
+                    </colgroup>
+                    <thead>
+                      <tr style={{ backgroundColor: colors.bgGrayLight }}>
+                        <th style={{ padding: '6px 12px', textAlign: 'left', border: `1px solid ${colors.border}`, borderRight: 'none', backgroundColor: colors.bgGrayLight, width: 120, boxSizing: 'border-box' }}>Товар</th>
+                        {FUNNELS.general.metrics.map((m, i) => (
+                          <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{m.name}</th>
+                        ))}
+                        {FUNNELS.advertising.metrics.map((m) => (
+                          <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.advertisingBg }}>{m.name}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {articles.map((art) => {
+                        const agg = periodAggregatesByNmId[art.nmId]?.[aggKey]
+                        const isHovered = hoveredPeriodNmId === art.nmId
                       const getVal = (agg: ReturnType<typeof aggregatePeriodData>, key: string) => {
                         if (!agg) return null
                         const map: Record<string, number | null | undefined> = {
@@ -882,60 +864,40 @@ export default function AdvertisingCampaignDetail() {
                           onMouseLeave={() => setHoveredPeriodNmId(null)}
                           style={{ transition: transitions.fast }}
                         >
-                          <td style={{ padding: '6px 12px', border: `1px solid ${colors.border}`, borderRight: 'none', boxShadow: `inset -3px 0 0 0 ${colors.border}`, display: 'flex', alignItems: 'center', gap: 8, backgroundColor: isHovered ? colors.bgGrayLight : colors.bgWhite, position: 'sticky', left: 0, zIndex: 1 }}>
+                          <td style={{ padding: '6px 12px', border: `1px solid ${colors.border}`, borderRight: 'none', display: 'flex', alignItems: 'center', gap: 8, backgroundColor: isHovered ? colors.bgGrayLight : colors.bgWhite }}>
                             {art.photoTm && <img src={art.photoTm} alt="" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4 }} />}
                             <span style={{ fontSize: 11 }}>{art.nmId}</span>
                           </td>
                           {FUNNELS.general.metrics.map((m, i) => (
-                            <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', backgroundColor: isHovered ? colors.funnelBgHover : colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{fmt(m.key, getVal(p1, m.key))}</td>
+                            <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', backgroundColor: isHovered ? colors.funnelBgHover : colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{fmt(m.key, getVal(agg, m.key))}</td>
                           ))}
-                          {FUNNELS.advertising.metrics.map((m, i) => (
-                            <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', backgroundColor: isHovered ? colors.advertisingBgHover : colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? `3px solid ${colors.border}` : undefined }}>{fmt(m.key, getVal(p1, m.key))}</td>
-                          ))}
-                          {FUNNELS.general.metrics.map((m, i) => (
-                            <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', backgroundColor: isHovered ? colors.funnelBgHover : colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{fmt(m.key, getVal(p2, m.key))}</td>
-                          ))}
-                          {FUNNELS.advertising.metrics.map((m, i) => (
-                            <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', backgroundColor: isHovered ? colors.advertisingBgHover : colors.advertisingBg, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{fmt(m.key, getVal(p2, m.key))}</td>
-                          ))}
-                        </tr>
+                            {FUNNELS.advertising.metrics.map((m) => (
+                              <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', backgroundColor: isHovered ? colors.advertisingBgHover : colors.advertisingBg }}>{fmt(m.key, getVal(agg, m.key))}</td>
+                            ))}
+                          </tr>
                       )
                     })}
-                    <tr style={{ backgroundColor: colors.bgGrayLight, fontWeight: 600 }}>
-                      <td style={{ padding: '6px 12px', border: `1px solid ${colors.border}`, borderRight: 'none', boxShadow: `inset -3px 0 0 0 ${colors.border}`, position: 'sticky', left: 0, zIndex: 1, backgroundColor: colors.bgGray }}>СУММАРНО</td>
-                      {FUNNELS.general.metrics.map((m, i) => {
-                        const v = totalPeriod1 && (m.key === 'transitions' ? totalPeriod1.transitions : m.key === 'cart' ? totalPeriod1.cart : m.key === 'orders' ? totalPeriod1.orders : m.key === 'orders_amount' ? totalPeriod1.ordersAmount : m.key === 'cart_conversion' ? totalPeriod1.cartConversion : totalPeriod1.orderConversion)
-                        const isPercent = m.key.includes('conversion')
-                        const isCurrency = m.key === 'orders_amount'
-                        const display = (v == null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
-                        return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', color: colors.primary, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{display}</td>
-                      })}
-                      {FUNNELS.advertising.metrics.map((m, i) => {
-                        const v = totalPeriod1 && (m.key === 'views' ? totalPeriod1.views : m.key === 'clicks' ? totalPeriod1.clicks : m.key === 'costs' ? totalPeriod1.costs : m.key === 'cpc' ? totalPeriod1.cpc : m.key === 'ctr' ? totalPeriod1.ctr : m.key === 'cpo' ? totalPeriod1.cpo : totalPeriod1.drr)
-                        const isPercent = m.key === 'ctr' || m.key === 'drr'
-                        const isCurrency = m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo'
-                        const display = (v == null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
-                        return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', color: colors.success, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? `3px solid ${colors.border}` : undefined }}>{display}</td>
-                      })}
-                      {FUNNELS.general.metrics.map((m, i) => {
-                        const v = totalPeriod2 && (m.key === 'transitions' ? totalPeriod2.transitions : m.key === 'cart' ? totalPeriod2.cart : m.key === 'orders' ? totalPeriod2.orders : m.key === 'orders_amount' ? totalPeriod2.ordersAmount : m.key === 'cart_conversion' ? totalPeriod2.cartConversion : totalPeriod2.orderConversion)
-                        const isPercent = m.key.includes('conversion')
-                        const isCurrency = m.key === 'orders_amount'
-                        const display = (v == null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
-                        return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', color: colors.primary, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{display}</td>
-                      })}
-                      {FUNNELS.advertising.metrics.map((m, i) => {
-                        const v = totalPeriod2 && (m.key === 'views' ? totalPeriod2.views : m.key === 'clicks' ? totalPeriod2.clicks : m.key === 'costs' ? totalPeriod2.costs : m.key === 'cpc' ? totalPeriod2.cpc : m.key === 'ctr' ? totalPeriod2.ctr : m.key === 'cpo' ? totalPeriod2.cpo : totalPeriod2.drr)
-                        const isPercent = m.key === 'ctr' || m.key === 'drr'
-                        const isCurrency = m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo'
-                        const display = (v == null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
-                        return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', color: colors.success, borderRight: i === FUNNELS.advertising.metrics.length - 1 ? 'none' : undefined }}>{display}</td>
-                      })}
-                    </tr>
-                  </tbody>
-                </table>
+                      <tr style={{ backgroundColor: colors.bgGrayLight, fontWeight: 600 }}>
+                        <td style={{ padding: '6px 12px', border: `1px solid ${colors.border}`, borderRight: 'none', backgroundColor: colors.bgGray }}>СУММАРНО</td>
+                        {FUNNELS.general.metrics.map((m, i) => {
+                          const v = total && (m.key === 'transitions' ? total.transitions : m.key === 'cart' ? total.cart : m.key === 'orders' ? total.orders : m.key === 'orders_amount' ? total.ordersAmount : m.key === 'cart_conversion' ? total.cartConversion : total.orderConversion)
+                          const isPercent = m.key.includes('conversion')
+                          const isCurrency = m.key === 'orders_amount'
+                          const display = (v == null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                          return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', color: colors.primary, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{display}</td>
+                        })}
+                        {FUNNELS.advertising.metrics.map((m) => {
+                          const v = total && (m.key === 'views' ? total.views : m.key === 'clicks' ? total.clicks : m.key === 'costs' ? total.costs : m.key === 'cpc' ? total.cpc : m.key === 'ctr' ? total.ctr : m.key === 'cpo' ? total.cpo : total.drr)
+                          const isPercent = m.key === 'ctr' || m.key === 'drr'
+                          const isCurrency = m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo'
+                          const display = (v == null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
+                          return <td key={m.key} style={{ padding: '4px 6px', border: `1px solid ${colors.border}`, textAlign: 'center', whiteSpace: 'nowrap', color: colors.success }}>{display}</td>
+                        })}
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-              </div>
+              ))}
             </div>
 
             {/* Блок 4 + 5 в один ряд: слева — сравнение периодов (суммарно), справа — остатки (оформление как в «Инфа по артикулу») */}
