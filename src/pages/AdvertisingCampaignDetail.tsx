@@ -1119,28 +1119,34 @@ export default function AdvertisingCampaignDetail() {
                                   <td colSpan={2} style={{ padding: spacing.md, backgroundColor: colors.bgGrayLight, borderBottom: `1px solid ${colors.borderLight}` }}>
                                     {isLoading ? (
                                       <div style={{ textAlign: 'center', padding: spacing.md }}><Spin size="small" /></div>
-                                    ) : sizes.length > 0 ? (
-                                      <div style={{ paddingLeft: spacing.lg }}>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                                          <thead>
-                                            <tr>
-                                              <th style={{ textAlign: 'left', padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11, fontWeight: 600, color: colors.textSecondary }}>Размер</th>
-                                              <th style={{ textAlign: 'center', padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11, fontWeight: 600, color: colors.textSecondary }}>Кол-во</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {sizes.map((size: StockSize, sizeIndex: number) => (
-                                              <tr key={sizeIndex} style={{ backgroundColor: sizeIndex % 2 === 0 ? colors.bgWhite : colors.bgGrayLight }}>
-                                                <td style={{ padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11 }}>{size.wbSize || size.techSize || 'Неизвестно'}</td>
-                                                <td style={{ textAlign: 'center', padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11, fontWeight: 500, color: size.amount === 0 ? colors.error : undefined }}>{formatValue(size.amount)}</td>
+                                    ) : (() => {
+                                      const hasSizeBreakdown = sizes.length > 1 || (sizes.length === 1 && sizes[0].techSize != null && String(sizes[0].techSize) !== '0')
+                                      if (!hasSizeBreakdown && sizes.length > 0) {
+                                        return <div style={{ ...typography.body, fontSize: 11, color: colors.textSecondary }}>Товар без разбивки по размерам</div>
+                                      }
+                                      return sizes.length > 0 ? (
+                                        <div style={{ paddingLeft: spacing.lg }}>
+                                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                                            <thead>
+                                              <tr>
+                                                <th style={{ textAlign: 'left', padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11, fontWeight: 600, color: colors.textSecondary }}>Размер</th>
+                                                <th style={{ textAlign: 'center', padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11, fontWeight: 600, color: colors.textSecondary }}>Кол-во</th>
                                               </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    ) : (
-                                      <div style={{ ...typography.body, fontSize: 11, color: colors.textSecondary }}>Нет данных по размерам</div>
-                                    )}
+                                            </thead>
+                                            <tbody>
+                                              {sizes.map((size: StockSize, sizeIndex: number) => (
+                                                <tr key={sizeIndex} style={{ backgroundColor: sizeIndex % 2 === 0 ? colors.bgWhite : colors.bgGrayLight }}>
+                                                  <td style={{ padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11 }}>{size.wbSize || size.techSize || 'Неизвестно'}</td>
+                                                  <td style={{ textAlign: 'center', padding: `${spacing.xs} ${spacing.sm}`, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 11, fontWeight: 500, color: size.amount === 0 ? colors.error : undefined }}>{formatValue(size.amount)}</td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      ) : (
+                                        <div style={{ ...typography.body, fontSize: 11, color: colors.textSecondary }}>Нет данных по размерам</div>
+                                      )
+                                    })()}
                                   </td>
                                 </tr>
                               )}

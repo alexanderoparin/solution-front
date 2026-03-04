@@ -2860,7 +2860,20 @@ export default function AnalyticsArticle() {
                               <div style={{ textAlign: 'center', padding: spacing.md }}>
                                 <Spin size="small" />
                               </div>
-                            ) : sizes.length > 0 ? (
+                            ) : (() => {
+                              const hasSizeBreakdown = sizes.length > 1 || (sizes.length === 1 && sizes[0].techSize != null && String(sizes[0].techSize) !== '0')
+                              if (!hasSizeBreakdown && sizes.length > 0) {
+                                return (
+                                  <div style={{
+                                    ...typography.body,
+                                    ...FONT_PAGE_SMALL,
+                                    color: colors.textSecondary
+                                  }}>
+                                    Товар без разбивки по размерам
+                                  </div>
+                                )
+                              }
+                              return sizes.length > 0 ? (
                               <div style={{ paddingLeft: spacing.lg }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
@@ -2931,7 +2944,8 @@ export default function AnalyticsArticle() {
                               }}>
                                 Нет данных по размерам
                               </div>
-                            )}
+                            )
+                            })()}
                           </td>
                         </tr>
                       )}
