@@ -23,6 +23,10 @@ export interface MessageResponse {
 export interface RegisterRequest {
   email: string
   password: string
+  /** Согласие с офертой и политикой конфиденциальности (обязательно). */
+  agreeToOffer: boolean
+  /** Согласие на информационные и маркетинговые сообщения (необязательно). */
+  marketingConsent?: boolean
 }
 
 export interface UserProfileResponse {
@@ -34,6 +38,8 @@ export interface UserProfileResponse {
   emailConfirmed?: boolean
   /** Селлер является клиентом агентства */
   isAgencyClient?: boolean
+  /** Дата последней отправки письма для подтверждения почты (ISO), повтор не чаще 1 раза в 24 ч */
+  lastEmailConfirmationSentAt?: string | null
   apiKey?: ApiKeyInfo
 }
 

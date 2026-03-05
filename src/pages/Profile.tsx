@@ -9,7 +9,10 @@ import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabi
 import type { UserProfileResponse, ChangePasswordRequest, CabinetDto } from '../types/api'
 import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
+import 'dayjs/locale/ru'
 import Header from '../components/Header'
+
+dayjs.locale('ru')
 import Breadcrumbs from '../components/Breadcrumbs'
 import UsersManagementSection from '../components/UsersManagementSection'
 
@@ -297,36 +300,51 @@ export default function Profile() {
                           <CheckCircleOutlined /> Подтверждён
                         </span>
                       ) : (
-                        <div
-                          style={{
-                            marginTop: 4,
-                            padding: '10px 12px',
-                            borderRadius: 8,
-                            background: '#F8FAFC',
-                            border: '1px solid #F1F5F9',
-                            display: 'inline-flex',
-                            flexWrap: 'wrap',
-                            alignItems: 'center',
-                            gap: 10,
-                          }}
-                        >
+                        <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
                           <span style={{ fontSize: 13, color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                             <ExclamationCircleOutlined style={{ color: '#f59e0b' }} /> Не подтверждён
                           </span>
-                          <Button
-                            type="primary"
-                            size="small"
-                            onClick={() => sendEmailConfirmationMutation.mutate()}
-                            loading={sendEmailConfirmationMutation.isPending}
-                            style={{
-                              backgroundColor: '#7C3AED',
-                              borderColor: '#7C3AED',
-                              borderRadius: 6,
-                              fontWeight: 500,
-                            }}
-                          >
-                            Отправить письмо
-                          </Button>
+                          {(() => {
+                            const sentAt = profile.lastEmailConfirmationSentAt ? new Date(profile.lastEmailConfirmationSentAt).getTime() : 0
+                            const sentAtIso = profile.lastEmailConfirmationSentAt ?? null
+                            const now = Date.now()
+                            const cooldownMs = 24 * 60 * 60 * 1000
+                            const canSendAgain = now - sentAt >= cooldownMs
+                            const nextAvailableMs = sentAt ? sentAt + cooldownMs - now : 0
+                            const sendButton = (
+                              <Button
+                                type="primary"
+                                size="small"
+                                onClick={() => sendEmailConfirmationMutation.mutate()}
+                                loading={sendEmailConfirmationMutation.isPending}
+                                disabled={!canSendAgain}
+                                style={{
+                                  backgroundColor: canSendAgain ? '#7C3AED' : undefined,
+                                  borderColor: canSendAgain ? '#7C3AED' : undefined,
+                                  borderRadius: 6,
+                                  fontWeight: 500,
+                                }}
+                              >
+                                Отправить письмо
+                              </Button>
+                            )
+                            return (
+                              <>
+                                {!canSendAgain && sentAtIso ? (
+                                  <Tooltip title={`Письмо отправлено ${dayjs(sentAtIso).format('D MMM YYYY, HH:mm')}`}>
+                                    <span style={{ display: 'inline-block' }}>{sendButton}</span>
+                                  </Tooltip>
+                                ) : (
+                                  sendButton
+                                )}
+                                {!canSendAgain && sentAt > 0 && nextAvailableMs > 0 && (
+                                  <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                                    Повторно — через {Math.ceil(nextAvailableMs / (60 * 60 * 1000))} ч
+                                  </span>
+                                )}
+                              </>
+                            )
+                          })()}
                         </div>
                       )}
                     </div>

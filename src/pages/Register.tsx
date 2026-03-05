@@ -1,8 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { Form, Input, Button, Card, Typography, message } from 'antd'
+import { Form, Input, Button, Card, Typography, message, Checkbox } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { authApi } from '../api/auth'
+import { userApi } from '../api/user'
+import { useAuthStore } from '../store/authStore'
 import type { RegisterRequest } from '../types/api'
 
 const { Title, Text } = Typography
@@ -10,12 +12,21 @@ const { Title, Text } = Typography
 export default function Register() {
   const navigate = useNavigate()
   const [form] = Form.useForm()
+  const setAuth = useAuthStore((state) => state.setAuth)
 
   const registerMutation = useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
-    onSuccess: () => {
-      message.success('Регистрация успешна. Войдите в систему.')
-      navigate('/login')
+    onSuccess: async (_, variables) => {
+      try {
+        const auth = await authApi.login({ email: variables.email, password: variables.password })
+        setAuth(auth.token, auth.email, auth.userId, auth.role)
+        userApi.sendEmailConfirmation().catch(() => { /* письмо не чаще 1 раза в 24 ч или ошибка отправки */ })
+        message.success('Регистрация успешна')
+        navigate('/profile')
+      } catch {
+        message.success('Регистрация успешна. Войдите в систему.')
+        navigate('/login')
+      }
     },
     onError: (error: any) => {
       const msg = error.response?.data?.error ?? error.response?.data?.message ?? 'Ошибка регистрации'
@@ -23,8 +34,19 @@ export default function Register() {
     },
   })
 
-  const onFinish = (values: { email: string; password: string; confirmPassword: string }) => {
-    registerMutation.mutate({ email: values.email, password: values.password })
+  const onFinish = (values: {
+    email: string
+    password: string
+    confirmPassword: string
+    agreeToOffer: boolean
+    marketingConsent?: boolean
+  }) => {
+    registerMutation.mutate({
+      email: values.email,
+      password: values.password,
+      agreeToOffer: values.agreeToOffer,
+      marketingConsent: values.marketingConsent ?? false,
+    })
   }
 
   return (
@@ -106,6 +128,31 @@ export default function Register() {
             ]}
           >
             <Input.Password prefix={<LockOutlined />} placeholder="Повторите пароль" autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item
+            name="agreeToOffer"
+            valuePropName="checked"
+            rules={[
+              {
+                validator: (_, value) =>
+                  value ? Promise.resolve() : Promise.reject(new Error('Необходимо согласие с условиями оферты и политикой конфиденциальности')),
+              },
+            ]}
+          >
+            <Checkbox>
+              Я согласен(-на) с условиями{' '}
+              <Link to="/oferta" target="_blank" rel="noopener noreferrer" style={{ color: '#7C3AED' }}>
+                Договора публичной оферты
+              </Link>
+              ,{' '}
+              <Link to="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#7C3AED' }}>
+                политики конфиденциальности
+              </Link>
+              {' '}и даю согласие на обработку моих персональных данных.
+            </Checkbox>
+          </Form.Item>
+          <Form.Item name="marketingConsent" valuePropName="checked">
+            <Checkbox>Я согласен(-на) на получение информационных и маркетинговых сообщений.</Checkbox>
           </Form.Item>
           <Form.Item>
             <Button
