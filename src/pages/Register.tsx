@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
-import { Form, Input, Button, Card, Typography, message, Checkbox } from 'antd'
+import { Form, Input, Button, Card, Typography, message, Checkbox, Tooltip } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { authApi } from '../api/auth'
 import { userApi } from '../api/user'
@@ -13,6 +13,8 @@ export default function Register() {
   const navigate = useNavigate()
   const [form] = Form.useForm()
   const setAuth = useAuthStore((state) => state.setAuth)
+  const agreeToOffer = Form.useWatch('agreeToOffer', form)
+  const consentTooltip = 'Необходимо согласие с условиями оферты и политикой конфиденциальности'
 
   const registerMutation = useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
@@ -41,6 +43,7 @@ export default function Register() {
     agreeToOffer: boolean
     marketingConsent?: boolean
   }) => {
+    if (!values.agreeToOffer) return
     registerMutation.mutate({
       email: values.email,
       password: values.password,
@@ -84,7 +87,6 @@ export default function Register() {
           </Link>
           <div style={{ textAlign: 'center' }}>
             <Title level={2} style={{ marginBottom: 4, color: '#1E293B', margin: 0 }}>Регистрация</Title>
-            <Text type="secondary" style={{ color: '#64748B', fontSize: 14 }}>WB-Solution</Text>
           </div>
         </div>
 
@@ -129,16 +131,7 @@ export default function Register() {
           >
             <Input.Password prefix={<LockOutlined />} placeholder="Повторите пароль" autoComplete="new-password" />
           </Form.Item>
-          <Form.Item
-            name="agreeToOffer"
-            valuePropName="checked"
-            rules={[
-              {
-                validator: (_, value) =>
-                  value ? Promise.resolve() : Promise.reject(new Error('Необходимо согласие с условиями оферты и политикой конфиденциальности')),
-              },
-            ]}
-          >
+          <Form.Item name="agreeToOffer" valuePropName="checked">
             <Checkbox>
               Я согласен(-на) с условиями{' '}
               <Link to="/oferta" target="_blank" rel="noopener noreferrer" style={{ color: '#7C3AED' }}>
@@ -155,15 +148,32 @@ export default function Register() {
             <Checkbox>Я согласен(-на) на получение информационных и маркетинговых сообщений.</Checkbox>
           </Form.Item>
           <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={registerMutation.isPending}
-              block
-              style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', height: 44 }}
-            >
-              Зарегистрироваться
-            </Button>
+            {!agreeToOffer ? (
+              <Tooltip title={consentTooltip}>
+                <span style={{ display: 'inline-block', width: '100%' }}>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={registerMutation.isPending}
+                    block
+                    disabled
+                    style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', height: 44, width: '100%' }}
+                  >
+                    Зарегистрироваться
+                  </Button>
+                </span>
+              </Tooltip>
+            ) : (
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={registerMutation.isPending}
+                block
+                style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', height: 44 }}
+              >
+                Зарегистрироваться
+              </Button>
+            )}
           </Form.Item>
         </Form>
 
