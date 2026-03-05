@@ -154,53 +154,6 @@ export default function Header({ cabinetSelectProps, sellerSelectProps, headerRi
           </Button>
         </Dropdown>
 
-        {/* Кабинеты */}
-        {cabinetSelectProps && cabinetSelectProps.cabinets.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              marginLeft: 8,
-            }}
-          >
-            {cabinetSelectProps.cabinets.length > 1 ? (
-              <Dropdown
-                menu={{
-                  items: cabinetSelectProps.cabinets.map((c) => ({
-                    key: String(c.id),
-                    label: c.name,
-                    onClick: () => cabinetSelectProps.onCabinetChange(c.id),
-                  })),
-                }}
-                trigger={['click']}
-                disabled={cabinetSelectProps.loading}
-              >
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    fontSize: '14px',
-                    color: '#1E293B',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Кабинет ({cabinetSelectProps.cabinets.length})
-                  <DownOutlined style={{ fontSize: 10, color: '#64748B' }} />
-                </span>
-              </Dropdown>
-            ) : (
-              <span style={{ fontSize: '14px', color: '#1E293B', fontWeight: 500 }}>
-                Кабинет (1)
-              </span>
-            )}
-            {selectedCabinetName && (role === 'ADMIN' || role === 'MANAGER') && (
-              <span style={{ fontSize: '14px', color: '#64748B' }}>{selectedCabinetName}</span>
-            )}
-          </div>
-        )}
       </div>
 
       <Space size="middle" align="center">
@@ -216,6 +169,40 @@ export default function Header({ cabinetSelectProps, sellerSelectProps, headerRi
             />
             {headerRightExtra}
           </>
+        )}
+        {cabinetSelectProps && cabinetSelectProps.cabinets.length > 0 && (
+          cabinetSelectProps.cabinets.length > 1 ? (
+            <Dropdown
+              menu={{
+                items: cabinetSelectProps.cabinets.map((c) => ({
+                  key: String(c.id),
+                  label: c.name,
+                  onClick: () => cabinetSelectProps.onCabinetChange(c.id),
+                })),
+              }}
+              trigger={['click']}
+              disabled={cabinetSelectProps.loading}
+            >
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  fontSize: '14px',
+                  color: '#1E293B',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                }}
+              >
+                {selectedCabinetName ?? '—'} ({cabinetSelectProps.cabinets.length})
+                <DownOutlined style={{ fontSize: 10, color: '#64748B' }} />
+              </span>
+            </Dropdown>
+          ) : (
+            <span style={{ fontSize: '14px', color: '#1E293B', fontWeight: 500 }}>
+              {selectedCabinetName ?? '—'} (1)
+            </span>
+          )
         )}
         <Button
           type="text"
