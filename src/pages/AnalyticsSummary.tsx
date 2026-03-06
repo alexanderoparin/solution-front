@@ -773,23 +773,34 @@ export default function AnalyticsSummary() {
         marginBottom: spacing.xl,
         boxShadow: shadows.md
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.md }}>
-          <h2 style={{ ...typography.h2, margin: 0 }}>
-            Укажите желаемые периоды для сравнения данных
-          </h2>
-          {originalArticles.length > 0 && (
-            <Popover
-              content={
-                <div style={{ width: '400px', maxHeight: '400px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <Input
-                    placeholder="Поиск по артикулу или названию"
-                    prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
-                    value={articleSearchText}
-                    onChange={(e) => setArticleSearchText(e.target.value)}
-                    style={{ marginBottom: '12px' }}
-                    allowClear
-                  />
-                  <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.md }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, minWidth: 280 }}>
+            <Input
+              placeholder="Поиск по артикулу или названию"
+              prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
+              value={articleSearchText}
+              onChange={(e) => setArticleSearchText(e.target.value)}
+              allowClear
+              style={{
+                width: 360,
+                maxWidth: 360,
+                borderRadius: borderRadius.sm,
+                color: colors.textPrimary,
+              }}
+            />
+            {originalArticles.length > 0 && (
+              <Popover
+                content={
+                  <div style={{ width: '400px', maxHeight: '400px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <Input
+                      placeholder="Поиск по артикулу или названию"
+                      prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
+                      value={articleSearchText}
+                      onChange={(e) => setArticleSearchText(e.target.value)}
+                      style={{ marginBottom: '12px' }}
+                      allowClear
+                    />
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                     <Button size="small" onClick={() => setExcludedNmIds(new Set())}>
                       Выбрать все
                     </Button>
@@ -849,26 +860,31 @@ export default function AnalyticsSummary() {
               }
               title="Фильтр артикулов"
               trigger="click"
-              placement="bottomRight"
+              placement="bottomLeft"
               overlayStyle={{ maxWidth: '450px' }}
             >
-              <Button icon={<FilterOutlined />} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                Фильтр
-                <span
-                  style={{
-                    backgroundColor: '#7C3AED',
-                    color: 'white',
-                    borderRadius: '10px',
-                    padding: '0 8px',
-                    fontSize: '12px',
-                    marginLeft: '4px',
-                  }}
-                >
-                  {originalArticles.length - excludedNmIds.size}/{originalArticles.length}
-                </span>
-              </Button>
-            </Popover>
-          )}
+                <Button icon={<FilterOutlined />} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  Фильтр
+                  <span
+                    style={{
+                      backgroundColor: '#7C3AED',
+                      color: 'white',
+                      borderRadius: '10px',
+                      padding: '0 8px',
+                      fontSize: '12px',
+                      marginLeft: '4px',
+                    }}
+                  >
+                    {originalArticles.length - excludedNmIds.size}/{originalArticles.length}
+                  </span>
+                </Button>
+              </Popover>
+            )}
+          </div>
+          <div style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 400, color: colors.textPrimary }}>
+            Выберите периоды для сравнения
+          </div>
+          <div style={{ minWidth: 280 }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           {periods.map((period) => (
