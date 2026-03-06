@@ -1072,7 +1072,7 @@ export default function AnalyticsSummary() {
                         }}
                       >
                         <td style={{
-                          padding: spacing.md,
+                          padding: `${spacing.sm} ${spacing.md}`,
                           borderBottom: `1px solid ${colors.borderLight}`,
                           ...typography.body,
                           fontWeight: 500
@@ -1103,9 +1103,9 @@ export default function AnalyticsSummary() {
                                   src={article.photoTm}
                                   alt={`Товар ${article.nmId}`}
                                   style={{
-                                    width: '50px',
-                                    height: '50px',
-                                    objectFit: 'cover',
+                                    width: '100px',
+                                    height: '100px',
+                                    objectFit: 'contain',
                                     borderRadius: borderRadius.sm,
                                     border: `1px solid ${colors.borderLight}`
                                   }}
@@ -1115,28 +1115,51 @@ export default function AnalyticsSummary() {
                                 />
                               </a>
                             )}
-                            <a
-                              href={`/analytics/article/${article.nmId}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{
-                                color: colors.primary,
-                                textDecoration: 'none',
-                                fontWeight: 500,
-                                cursor: 'pointer',
-                                transition: transitions.fast
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.textDecoration = 'underline'
-                                e.currentTarget.style.color = colors.primaryHover
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.textDecoration = 'none'
-                                e.currentTarget.style.color = colors.primary
-                              }}
-                            >
-                              {article.nmId}
-                            </a>
+                            <div style={{ minWidth: 0 }}>
+                              <a
+                                href={`/analytics/article/${article.nmId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: colors.primary,
+                                  textDecoration: 'none',
+                                  fontWeight: 500,
+                                  cursor: 'pointer',
+                                  transition: transitions.fast
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.textDecoration = 'underline'
+                                  e.currentTarget.style.color = colors.primaryHover
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.textDecoration = 'none'
+                                  e.currentTarget.style.color = colors.primary
+                                }}
+                              >
+                                {article.nmId}
+                              </a>
+                              {(() => {
+                                const articleTitle = originalArticles.find((a) => a.nmId === article.nmId)?.title ?? ''
+                                if (!articleTitle) return null
+                                return (
+                                  <div
+                                    style={{
+                                      fontSize: typography.bodySmall.fontSize,
+                                      color: colors.textSecondary,
+                                      marginTop: 2,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: 'vertical' as const
+                                    }}
+                                    title={articleTitle}
+                                  >
+                                    {articleTitle}
+                                  </div>
+                                )
+                              })()}
+                            </div>
                           </div>
                         </td>
                         {periodsSorted.map(period => {
@@ -1151,7 +1174,7 @@ export default function AnalyticsSummary() {
                           return (
                             <td key={period.id} style={{
                               textAlign: 'center',
-                              padding: spacing.md,
+                              padding: `${spacing.sm} ${spacing.md}`,
                               borderBottom: `1px solid ${colors.borderLight}`,
                               color: isEmpty ? colors.textMuted : colors.textPrimary,
                               boxSizing: 'border-box'
