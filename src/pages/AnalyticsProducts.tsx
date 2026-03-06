@@ -400,7 +400,7 @@ export default function AnalyticsProducts() {
             }}
           >
             <Input
-              placeholder="Поиск по названию, ID"
+              placeholder="Поиск по артикулу или названию"
               prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

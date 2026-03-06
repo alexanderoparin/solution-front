@@ -3,6 +3,7 @@ import type {
   SummaryResponse,
   MetricGroupResponse,
   ArticleResponse,
+  ArticleSummary,
   Period,
   StockSize,
   ArticleNote,
@@ -33,7 +34,21 @@ export interface SummaryRequest {
 
 export const analyticsApi = {
   /**
-   * Получает сводную аналитику.
+   * Список артикулов кабинета/продавца — только справочная информация для фильтра (nmId, title, photoTm и т.д.).
+   */
+  getArticleList: async (sellerId?: number, cabinetId?: number): Promise<ArticleSummary[]> => {
+    const params = new URLSearchParams()
+    if (sellerId != null) params.set('sellerId', String(sellerId))
+    if (cabinetId != null) params.set('cabinetId', String(cabinetId))
+    const query = params.toString()
+    const response = await apiClient.get<ArticleSummary[]>(
+      `/analytics/articles${query ? `?${query}` : ''}`
+    )
+    return response.data
+  },
+
+  /**
+   * Получает сводную аналитику по выбранным артикулам (periods + excludedNmIds).
    */
   getSummary: async (request: SummaryRequest): Promise<SummaryResponse> => {
     const response = await apiClient.post<SummaryResponse>('/analytics/summary', request)

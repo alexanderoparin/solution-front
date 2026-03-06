@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { DatePicker, Spin, Tooltip, Popover, Button, Input, Checkbox, message } from 'antd'
 import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined, FilterOutlined, SearchOutlined, SyncOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -364,44 +364,28 @@ export default function AnalyticsSummary() {
   const [articleSearchText, setArticleSearchText] = useState<string>('')
   const [originalArticles, setOriginalArticles] = useState<ArticleSummary[]>([])
 
-  // Загружаем исходный список артикулов без фильтрации
-  const loadOriginalArticles = useCallback(async () => {
+  // 1) Список артикулов — отдельный лёгкий эндпоинт (только справочная информация для фильтра)
+  const loadArticles = useCallback(async () => {
     if (isManagerOrAdmin && selectedSellerId === undefined) return
     try {
-      const data = await analyticsApi.getSummary({
-        periods,
-        excludedNmIds: undefined,
-        sellerId: selectedSellerId,
-        cabinetId: selectedCabinetId ?? undefined,
-      })
-      if (data && data.articles) {
-        setOriginalArticles(data.articles)
-      } else {
-        setOriginalArticles([])
-      }
+      const list = await analyticsApi.getArticleList(selectedSellerId ?? undefined, selectedCabinetId ?? undefined)
+      setOriginalArticles(list ?? [])
     } catch (err) {
-      console.error('Ошибка при загрузке исходного списка артикулов:', err)
+      console.error('Ошибка загрузки списка артикулов:', err)
       setOriginalArticles([])
     }
-  }, [periods, selectedSellerId, selectedCabinetId, isManagerOrAdmin])
+  }, [selectedSellerId, selectedCabinetId, isManagerOrAdmin])
 
+  // 2) Сводная только по выбранным артикулам (после того как список и фильтр готовы)
   const loadSummary = useCallback(async () => {
-    // Для менеджера/админа нужен выбранный селлер
     if (isManagerOrAdmin && selectedSellerId === undefined) {
       setLoading(false)
       return
     }
-    
     try {
       setLoading(true)
       setError(null)
       const excludedArray = Array.from(excludedNmIds)
-      
-      // Загружаем исходный список артикулов параллельно, если он еще не загружен
-      if (originalArticles.length === 0) {
-        loadOriginalArticles()
-      }
-      
       const data = await analyticsApi.getSummary({
         periods,
         excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
@@ -409,7 +393,6 @@ export default function AnalyticsSummary() {
         cabinetId: selectedCabinetId ?? undefined,
       })
       setSummary(data)
-      // Очищаем загруженные метрики при изменении фильтра или периодов
       setMetricGroups(new Map())
       setExpandedMetrics(new Set())
       setLoadingMetrics(new Set())
@@ -418,11 +401,18 @@ export default function AnalyticsSummary() {
     } finally {
       setLoading(false)
     }
-  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, originalArticles.length, loadOriginalArticles, isManagerOrAdmin])
+  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, isManagerOrAdmin])
 
+  // Пропуск первого вызова summary, пока не загружен список артикулов (и при необходимости применён sync из Товаров)
+  const skippedSummaryRef = useRef(false)
   useEffect(() => {
+    if (selectedCabinetId != null && originalArticles.length === 0) {
+      skippedSummaryRef.current = true
+      return
+    }
+    if (skippedSummaryRef.current && originalArticles.length > 0) skippedSummaryRef.current = false
     loadSummary()
-  }, [loadSummary])
+  }, [loadSummary, originalArticles.length, selectedCabinetId])
 
   const queryClient = useQueryClient()
   const selectedSeller = useMemo(
@@ -499,24 +489,23 @@ export default function AnalyticsSummary() {
   
   const SHARED_FILTER_KEY_PREFIX = 'analytics_shared_selected_nm_ids_'
 
-  // Загружаем сохраненный фильтр и исходный список при смене селлера
+  // При смене селлера восстанавливаем фильтр из localStorage и грузим список артикулов отдельным запросом
   useEffect(() => {
-    if (selectedSellerId !== undefined) {
-      const saved = localStorage.getItem(`analytics_excluded_nm_ids_${selectedSellerId}`)
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved) as number[]
-          setExcludedNmIds(new Set(parsed))
-        } catch {
-          setExcludedNmIds(new Set())
-        }
-      } else {
+    if (selectedSellerId === undefined) return
+    const saved = localStorage.getItem(`analytics_excluded_nm_ids_${selectedSellerId}`)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as number[]
+        setExcludedNmIds(new Set(parsed))
+      } catch {
         setExcludedNmIds(new Set())
       }
-      setOriginalArticles([])
-      loadOriginalArticles()
+    } else {
+      setExcludedNmIds(new Set())
     }
-  }, [selectedSellerId, loadOriginalArticles])
+    setOriginalArticles([])
+    loadArticles()
+  }, [selectedSellerId, loadArticles])
 
   // Синхронизация с фильтром в Товарах: сначала читаем общий ключ (порядок важен — до эффекта записи ниже)
   useEffect(() => {
@@ -764,15 +753,8 @@ export default function AnalyticsSummary() {
         backgroundColor: colors.bgGray,
         minHeight: '100vh'
       }}>
-      {/* Периоды */}
-      <div style={{
-        backgroundColor: colors.bgWhite,
-        border: `1px solid ${colors.borderLight}`,
-        borderRadius: borderRadius.md,
-        padding: spacing.md,
-        marginBottom: spacing.xl,
-        boxShadow: shadows.md
-      }}>
+      {/* Шапка: поиск, фильтр, периоды — часть страницы, без отдельного блока */}
+      <div style={{ marginBottom: spacing.lg }}>
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.md }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, minWidth: 280 }}>
             <Input
@@ -788,7 +770,7 @@ export default function AnalyticsSummary() {
                 color: colors.textPrimary,
               }}
             />
-            {originalArticles.length > 0 && (
+            {originalArticles.length > 0 ? (
               <Popover
                 content={
                   <div style={{ width: '400px', maxHeight: '400px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -879,6 +861,30 @@ export default function AnalyticsSummary() {
                   </span>
                 </Button>
               </Popover>
+            ) : (
+              <Tooltip title="Данные загружаются. Фильтр появится после загрузки артикулов.">
+                <span>
+                  <Button
+                    icon={<FilterOutlined />}
+                    disabled
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    Фильтр
+                    <span
+                      style={{
+                        backgroundColor: colors.textMuted,
+                        color: 'white',
+                        borderRadius: '10px',
+                        padding: '0 8px',
+                        fontSize: '12px',
+                        marginLeft: '4px',
+                      }}
+                    >
+                      —/—
+                    </span>
+                  </Button>
+                </span>
+              </Tooltip>
             )}
           </div>
           <div style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 400, color: colors.textPrimary }}>
