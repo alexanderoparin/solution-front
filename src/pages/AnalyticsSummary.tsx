@@ -946,7 +946,7 @@ export default function AnalyticsSummary() {
           <table style={{ width: '100%', minWidth: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: `${METRIC_COLUMN_WIDTH_PERCENT}%` }} />
-              {periodsSorted.map((period, i) => (
+              {periodsSorted.map((period) => (
                 <col key={period.id} style={{ width: `${(100 - METRIC_COLUMN_WIDTH_PERCENT) / periodsSorted.length}%` }} />
               ))}
             </colgroup>
