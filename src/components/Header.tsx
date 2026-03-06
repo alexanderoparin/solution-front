@@ -68,6 +68,16 @@ export default function Header({ cabinetSelectProps, sellerSelectProps, headerRi
     gap: '6px',
   } as const
 
+  /** Окантовка: фиолетовая рамка (акцентный цвет), скруглённые углы */
+  const fieldBorderStyle: React.CSSProperties = {
+    border: '1px solid var(--color-primary)',
+    borderRadius: 8,
+    background: '#FFFFFF',
+    padding: '6px 12px',
+    minHeight: 36,
+    boxSizing: 'border-box',
+  }
+
   return (
     <div
       style={{
@@ -160,6 +170,7 @@ export default function Header({ cabinetSelectProps, sellerSelectProps, headerRi
         {sellerSelectProps && sellerSelectProps.sellers.length > 0 && (
           <>
             <Select
+              className="header-select-field"
               value={sellerSelectProps.selectedSellerId}
               onChange={sellerSelectProps.onSellerChange}
               style={{ minWidth: 200 }}
@@ -185,9 +196,10 @@ export default function Header({ cabinetSelectProps, sellerSelectProps, headerRi
             >
               <span
                 style={{
+                  ...fieldBorderStyle,
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 4,
+                  gap: 8,
                   fontSize: '14px',
                   color: '#1E293B',
                   fontWeight: 500,
@@ -199,8 +211,17 @@ export default function Header({ cabinetSelectProps, sellerSelectProps, headerRi
               </span>
             </Dropdown>
           ) : (
-            <span style={{ fontSize: '14px', color: '#1E293B', fontWeight: 500 }}>
-              {selectedCabinetName ?? '—'} (1)
+            <span
+              style={{
+                ...fieldBorderStyle,
+                display: 'inline-flex',
+                alignItems: 'center',
+                fontSize: '14px',
+                color: '#1E293B',
+                fontWeight: 500,
+              }}
+            >
+              {selectedCabinetName ?? '—'}
             </span>
           )
         )}

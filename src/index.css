@@ -26,6 +26,12 @@ body {
   min-height: 100vh;
 }
 
+/* Окантовка селекта «Продавец» и «Кабинет» в шапке: фиолетовая рамка (акцентный цвет), скруглённые углы */
+.header-select-field.ant-select .ant-select-selector {
+  border: 1px solid var(--color-primary) !important;
+  border-radius: 8px !important;
+}
+
 /* Скрытие полосы прокрутки с сохранением возможности скролла */
 .hide-scrollbar {
   scrollbar-width: none;
