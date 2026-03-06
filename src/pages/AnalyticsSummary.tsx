@@ -362,19 +362,20 @@ export default function AnalyticsSummary() {
   const [metricGroups, setMetricGroups] = useState<Map<string, MetricGroupResponse>>(new Map())
   const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set())
   const [articleSearchText, setArticleSearchText] = useState<string>('')
+  const [onlyWithPhoto, setOnlyWithPhoto] = useState(true)
   const [originalArticles, setOriginalArticles] = useState<ArticleSummary[]>([])
 
   // 1) Список артикулов — отдельный лёгкий эндпоинт (только справочная информация для фильтра)
   const loadArticles = useCallback(async () => {
     if (isManagerOrAdmin && selectedSellerId === undefined) return
     try {
-      const list = await analyticsApi.getArticleList(selectedSellerId ?? undefined, selectedCabinetId ?? undefined)
+      const list = await analyticsApi.getArticleList(selectedSellerId ?? undefined, selectedCabinetId ?? undefined, onlyWithPhoto)
       setOriginalArticles(list ?? [])
     } catch (err) {
       console.error('Ошибка загрузки списка артикулов:', err)
       setOriginalArticles([])
     }
-  }, [selectedSellerId, selectedCabinetId, isManagerOrAdmin])
+  }, [selectedSellerId, selectedCabinetId, onlyWithPhoto, isManagerOrAdmin])
 
   // 2) Сводная только по выбранным артикулам (после того как список и фильтр готовы)
   const loadSummary = useCallback(async () => {
@@ -391,6 +392,7 @@ export default function AnalyticsSummary() {
         excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
         sellerId: selectedSellerId,
         cabinetId: selectedCabinetId ?? undefined,
+        onlyWithPhoto: onlyWithPhoto || undefined,
       })
       setSummary(data)
       setMetricGroups(new Map())
@@ -401,7 +403,7 @@ export default function AnalyticsSummary() {
     } finally {
       setLoading(false)
     }
-  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, isManagerOrAdmin])
+  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, onlyWithPhoto, isManagerOrAdmin])
 
   // Пропуск первого вызова summary, пока не загружен список артикулов (и при необходимости применён sync из Товаров)
   const skippedSummaryRef = useRef(false)
@@ -770,6 +772,7 @@ export default function AnalyticsSummary() {
                 color: colors.textPrimary,
               }}
             />
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
             {originalArticles.length > 0 ? (
               <Popover
                 content={
@@ -782,7 +785,7 @@ export default function AnalyticsSummary() {
                       style={{ marginBottom: '12px' }}
                       allowClear
                     />
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                     <Button size="small" onClick={() => setExcludedNmIds(new Set())}>
                       Выбрать все
                     </Button>
@@ -886,6 +889,13 @@ export default function AnalyticsSummary() {
                 </span>
               </Tooltip>
             )}
+            <Checkbox
+              checked={onlyWithPhoto}
+              onChange={(e) => setOnlyWithPhoto(e.target.checked)}
+            >
+              Только с фото
+            </Checkbox>
+            </div>
           </div>
           <div style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 400, color: colors.textPrimary }}>
             Выберите периоды для сравнения

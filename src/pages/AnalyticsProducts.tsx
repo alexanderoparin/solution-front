@@ -91,6 +91,8 @@ export default function AnalyticsProducts() {
   const [selectedNmIds, setSelectedNmIds] = useState<number[]>(() => [])
   const [allDeselected, setAllDeselected] = useState(false)
   const [filterSearch, setFilterSearch] = useState('')
+  const [tagsExpanded, setTagsExpanded] = useState(false)
+  const [onlyWithPhoto, setOnlyWithPhoto] = useState(true)
   const containerRef = useRef<HTMLDivElement>(null)
   const filterListArticlesRef = useRef<ArticleSummary[]>([])
   /** Пропустить одну запись в storage, если только что восстановили выбор из общего ключа (чтобы не перезаписать 155 на []) */
@@ -201,6 +203,7 @@ export default function AnalyticsProducts() {
       validSelectedSellerId ?? selectedSellerId,
       last7DaysPeriod,
       searchTrimmed,
+      onlyWithPhoto,
       allDeselected ? 'none' : (selectedNmIds.length > 0 ? [...selectedNmIds].sort((a, b) => a - b) : null),
     ],
     queryFn: ({ pageParam }) =>
@@ -211,6 +214,7 @@ export default function AnalyticsProducts() {
         page: pageParam as number,
         size: PAGE_SIZE,
         search: searchTrimmed || undefined,
+        onlyWithPhoto: onlyWithPhoto || undefined,
         ...(allDeselected ? { filterToNone: true } : selectedNmIds.length > 0 ? { includedNmIds: selectedNmIds } : {}),
       }),
     getNextPageParam: (lastPage, allPages) => {
@@ -230,6 +234,7 @@ export default function AnalyticsProducts() {
       validSelectedSellerId ?? selectedSellerId,
       last7DaysPeriod,
       searchTrimmed,
+      onlyWithPhoto,
     ],
     queryFn: () =>
       analyticsApi.getSummary({
@@ -239,6 +244,7 @@ export default function AnalyticsProducts() {
         page: 0,
         size: FILTER_LIST_PAGE_SIZE,
         search: searchTrimmed || undefined,
+        onlyWithPhoto: onlyWithPhoto || undefined,
       }),
     enabled: selectedCabinetId != null,
   })
@@ -390,6 +396,7 @@ export default function AnalyticsProducts() {
               transition: transitions.normal,
             }}
           >
+          <div style={{ width: '100%', minWidth: 0 }}>
           <div
             style={{
               display: 'flex',
@@ -412,6 +419,7 @@ export default function AnalyticsProducts() {
               }}
               classNames={{ input: undefined }}
             />
+            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
             <Popover
               content={
                 (() => {
@@ -555,6 +563,112 @@ export default function AnalyticsProducts() {
                 )}
               </Button>
             </Popover>
+            <Checkbox
+              checked={onlyWithPhoto}
+              onChange={(e) => setOnlyWithPhoto(e.target.checked)}
+            >
+              Только с фото
+            </Checkbox>
+            </div>
+          </div>
+
+          {/* Выбранные артикулы ВБ под фильтром — на всю ширину; по клику «ещё» раскрывается весь список */}
+          {selectedNmIds.length > 0 && (
+            <div
+              style={{
+                width: '100%',
+                minWidth: '100%',
+                maxWidth: '100%',
+                marginBottom: spacing.sm,
+                boxSizing: 'border-box',
+                alignSelf: 'stretch',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  flexWrap: tagsExpanded ? 'wrap' : 'nowrap',
+                  overflow: tagsExpanded ? 'visible' : 'hidden',
+                  minWidth: 0,
+                  width: '100%',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {(tagsExpanded ? [...selectedNmIds].sort((a, b) => a - b) : [...selectedNmIds].sort((a, b) => a - b).slice(0, 8)).map((nmId) => (
+                  <span
+                    key={nmId}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '4px 8px',
+                      borderRadius: borderRadius.sm,
+                      backgroundColor: '#E0F2FE',
+                      color: '#0369A1',
+                      fontSize: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {nmId}
+                    <button
+                      type="button"
+                      onClick={() => toggleFilterNmId(nmId, false)}
+                      style={{
+                        border: 'none',
+                        background: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        color: 'inherit',
+                        display: 'flex',
+                        lineHeight: 1,
+                      }}
+                      aria-label="Снять выбор"
+                    >
+                      <CloseOutlined style={{ fontSize: 10 }} />
+                    </button>
+                  </span>
+                ))}
+                {!tagsExpanded && selectedNmIds.length > 8 && (
+                  <button
+                    type="button"
+                    onClick={() => setTagsExpanded(true)}
+                    style={{
+                      flexShrink: 0,
+                      fontSize: 12,
+                      color: colors.primary,
+                      background: 'none',
+                      border: 'none',
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                    }}
+                  >
+                    … ещё {selectedNmIds.length - 8}
+                  </button>
+                )}
+                {tagsExpanded && selectedNmIds.length > 8 && (
+                  <button
+                    type="button"
+                    onClick={() => setTagsExpanded(false)}
+                    style={{
+                      flexShrink: 0,
+                      fontSize: 12,
+                      color: colors.textSecondary,
+                      background: 'none',
+                      border: 'none',
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Свернуть
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           </div>
 
           {summaryLoading ? (
