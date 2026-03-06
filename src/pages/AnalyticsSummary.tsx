@@ -556,6 +556,7 @@ export default function AnalyticsSummary() {
           excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
           sellerId: selectedSellerId,
           cabinetId: selectedCabinetId ?? undefined,
+          onlyWithPhoto: onlyWithPhoto || undefined,
         })
       )
       setMetricGroups(prev => new Map(prev).set(metricName, data))
@@ -1083,26 +1084,35 @@ export default function AnalyticsSummary() {
                       <td style={{ 
                         padding: spacing.md, 
                         borderBottom: `1px solid ${colors.borderLight}`, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: spacing.sm,
                         ...typography.body,
                         fontWeight: 500,
-                        color: colors.textPrimary
+                        color: colors.textPrimary,
+                        verticalAlign: 'middle',
+                        boxSizing: 'border-box'
                       }}>
-                        {isLoading ? (
-                          <Spin size="small" style={{ fontSize: '12px' }} />
-                        ) : isExpanded ? (
-                          <CaretDownOutlined style={{ fontSize: '12px' }} />
-                        ) : (
-                          <CaretRightOutlined style={{ fontSize: '12px' }} />
-                        )}
-                        {metricNameRu}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                          {isLoading ? (
+                            <Spin size="small" style={{ fontSize: '12px' }} />
+                          ) : isExpanded ? (
+                            <CaretDownOutlined style={{ fontSize: '12px' }} />
+                          ) : (
+                            <CaretRightOutlined style={{ fontSize: '12px' }} />
+                          )}
+                          {metricNameRu}
+                        </div>
                       </td>
-                      {periodsSorted.map(period => {
+                      {periodsSorted.map((period, periodIndex) => {
                         const value = getMetricValue(period.id)
+                        const prevValue = periodIndex > 0 ? getMetricValue(periodsSorted[periodIndex - 1].id) : null
+                        const changePercent = prevValue != null && prevValue !== 0 && value != null
+                          ? ((Number(value) - Number(prevValue)) / Number(prevValue)) * 100
+                          : null
                         const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
                         const isEmpty = value === null || value === undefined || value === 0
+                        const lowerIsBetter = ['cpc', 'cpo', 'costs', 'drr'].includes(metricKey)
+                        const changeColor = changePercent !== null
+                          ? (lowerIsBetter ? (changePercent <= 0 ? colors.success : colors.error) : (changePercent >= 0 ? colors.success : colors.error))
+                          : colors.textSecondary
                         return (
                           <td key={period.id} style={{
                             textAlign: 'center',
@@ -1110,9 +1120,22 @@ export default function AnalyticsSummary() {
                             borderBottom: `1px solid ${colors.borderLight}`,
                             color: isEmpty ? colors.textMuted : colors.textPrimary,
                             ...typography.number,
-                            boxSizing: 'border-box'
+                            boxSizing: 'border-box',
+                            verticalAlign: 'middle'
                           }}>
-                            {isPercent ? formatPercent(value) : formatValue(value)}
+                            <div style={{ fontWeight: 500 }}>
+                              {isPercent ? formatPercent(value) : formatValue(value)}
+                            </div>
+                            {changePercent !== null && (
+                              <div style={{
+                                ...typography.bodySmall,
+                                color: changeColor,
+                                fontWeight: 600,
+                                marginTop: spacing.xs
+                              }}>
+                                {formatChangePercent(changePercent)}
+                              </div>
+                            )}
                           </td>
                         )
                       })}
@@ -1128,7 +1151,9 @@ export default function AnalyticsSummary() {
                           padding: `${spacing.sm} ${spacing.md}`,
                           borderBottom: `1px solid ${colors.borderLight}`,
                           ...typography.body,
-                          fontWeight: 500
+                          fontWeight: 500,
+                          verticalAlign: 'middle',
+                          boxSizing: 'border-box'
                         }}>
                           <div style={{
                             display: 'flex',
@@ -1231,7 +1256,8 @@ export default function AnalyticsSummary() {
                               padding: `${spacing.sm} ${spacing.md}`,
                               borderBottom: `1px solid ${colors.borderLight}`,
                               color: isEmpty ? colors.textMuted : colors.textPrimary,
-                              boxSizing: 'border-box'
+                              boxSizing: 'border-box',
+                              verticalAlign: 'middle'
                             }}>
                               <div style={{ ...typography.number, fontWeight: 400 }}>
                                 {isEmpty ? '-' : (isPercent ? formatPercent(value as number) : formatValue(value as number))}
