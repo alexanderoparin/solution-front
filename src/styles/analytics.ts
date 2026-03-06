@@ -74,9 +74,9 @@ export const typography = {
     color: colors.textSecondary,
   },
   
-  // Числа (моноширинный)
+  // Числа — тот же шрифт, что и на всём сайте (без моноширинного)
   number: {
-    fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+    fontFamily: 'inherit',
     fontSize: '14px',
     fontWeight: 500,
   },

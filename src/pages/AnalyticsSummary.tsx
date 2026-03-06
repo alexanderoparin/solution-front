@@ -148,6 +148,9 @@ const FUNNEL_METRICS = [
   'order_conversion',
 ]
 
+/** Доля ширины таблицы под колонку «Метрика»; остальное делят поровну колонки периодов */
+const METRIC_COLUMN_WIDTH_PERCENT = 35
+
 export default function AnalyticsSummary() {
   const role = useAuthStore((state) => state.role)
   const isManagerOrAdmin = role === 'ADMIN' || role === 'MANAGER'
@@ -935,10 +938,18 @@ export default function AnalyticsSummary() {
         borderRadius: borderRadius.md,
         padding: spacing.md,
         marginBottom: spacing.xl,
-        boxShadow: shadows.md
+        boxShadow: shadows.md,
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', minWidth: 0 }}>
+          <table style={{ width: '100%', minWidth: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: `${METRIC_COLUMN_WIDTH_PERCENT}%` }} />
+              {periodsSorted.map((period, i) => (
+                <col key={period.id} style={{ width: `${(100 - METRIC_COLUMN_WIDTH_PERCENT) / periodsSorted.length}%` }} />
+              ))}
+            </colgroup>
             <thead>
               <tr style={{ backgroundColor: colors.bgGrayLight }}>
                 <th style={{ 
@@ -957,7 +968,8 @@ export default function AnalyticsSummary() {
                     borderBottom: `2px solid ${colors.border}`,
                     ...typography.h3,
                     fontWeight: 600,
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    boxSizing: 'border-box'
                   }}>
                     {formatPeriodDates(period)}
                   </th>
@@ -1044,168 +1056,128 @@ export default function AnalyticsSummary() {
                             padding: spacing.md,
                             borderBottom: `1px solid ${colors.borderLight}`,
                             color: isEmpty ? colors.textMuted : colors.textPrimary,
-                            ...typography.number
+                            ...typography.number,
+                            boxSizing: 'border-box'
                           }}>
                             {isPercent ? formatPercent(value) : formatValue(value)}
                           </td>
                         )
                       })}
                     </tr>
-                    {isExpanded && metricGroup && (
-                      <tr key={`${metricKey}-detail`}>
-                        <td colSpan={periods.length + 1} style={{ padding: '0', borderBottom: `1px solid ${colors.borderLight}` }}>
-                          <div style={{ padding: spacing.md, backgroundColor: colors.bgWhite }}>
-                            {metricGroup.articles && metricGroup.articles.length > 0 ? (
-                                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                      <tr style={{ backgroundColor: colors.bgGray }}>
-                                        <th style={{
-                                          textAlign: 'left',
-                                          padding: spacing.md,
-                                          borderBottom: `1px solid ${colors.borderLight}`,
-                                          ...typography.body,
-                                          fontWeight: 600
-                                        }}>
-                                          Артикул
-                                        </th>
-                                        {periodsSorted.map(period => (
-                                          <th key={period.id} style={{
-                                            textAlign: 'center',
-                                            padding: spacing.md,
-                                            borderBottom: `1px solid ${colors.borderLight}`,
-                                            ...typography.body,
-                                            fontWeight: 600,
-                                            whiteSpace: 'nowrap'
-                                          }}>
-                                            {formatPeriodDates(period)}
-                                          </th>
-                                        ))}
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {metricGroup.articles.map((article, index) => (
-                                        <tr 
-                                          key={article.nmId}
-                                          style={{
-                                            backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
-                                          }}
-                                        >
-                                          <td style={{
-                                            padding: spacing.md,
-                                            borderBottom: `1px solid ${colors.borderLight}`,
-                                            ...typography.body,
-                                            fontWeight: 500
-                                          }}>
-                                            <div style={{
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: spacing.md
-                                            }}>
-                                              {article.photoTm && (
-                                                <a
-                                                  href={`https://www.wildberries.ru/catalog/${article.nmId}/detail.aspx`}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  style={{
-                                                    display: 'inline-block',
-                                                    cursor: 'pointer',
-                                                    transition: transitions.fast
-                                                  }}
-                                                  onMouseEnter={(e) => {
-                                                    e.currentTarget.style.opacity = '0.8'
-                                                  }}
-                                                  onMouseLeave={(e) => {
-                                                    e.currentTarget.style.opacity = '1'
-                                                  }}
-                                                >
-                                                  <img
-                                                    src={article.photoTm}
-                                                    alt={`Товар ${article.nmId}`}
-                                                    style={{
-                                                      width: '50px',
-                                                      height: '50px',
-                                                      objectFit: 'cover',
-                                                      borderRadius: borderRadius.sm,
-                                                      border: `1px solid ${colors.borderLight}`
-                                                    }}
-                                                    onError={(e) => {
-                                                      e.currentTarget.style.display = 'none'
-                                                    }}
-                                                  />
-                                                </a>
-                                              )}
-                                              <a
-                                                href={`/analytics/article/${article.nmId}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                style={{
-                                                  color: colors.primary,
-                                                  textDecoration: 'none',
-                                                  fontWeight: 500,
-                                                  cursor: 'pointer',
-                                                  transition: transitions.fast
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                  e.currentTarget.style.textDecoration = 'underline'
-                                                  e.currentTarget.style.color = colors.primaryHover
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                  e.currentTarget.style.textDecoration = 'none'
-                                                  e.currentTarget.style.color = colors.primary
-                                                }}
-                                              >
-                                                {article.nmId}
-                                              </a>
-                                            </div>
-                                          </td>
-                                          {periodsSorted.map(period => {
-                                            const periodData = article.periods.find(p => p.periodId === period.id)
-                                            const value = periodData?.value ?? null
-                                            const changePercent = periodData?.changePercent ?? null
-                                            const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
-                                            const isEmpty = value === null || value === undefined || value === 0
-                                            const changeColor = changePercent !== null
-                                              ? (changePercent >= 0 ? colors.success : colors.error)
-                                              : colors.textSecondary
-                                            return (
-                                              <td key={period.id} style={{
-                                                textAlign: 'center',
-                                                padding: spacing.md,
-                                                borderBottom: `1px solid ${colors.borderLight}`,
-                                                color: isEmpty ? colors.textMuted : colors.textPrimary
-                                              }}>
-                                                <div style={{ ...typography.number }}>
-                                                  {isEmpty ? '-' : (isPercent ? formatPercent(value as number) : formatValue(value as number))}
-                                                </div>
-                                                {changePercent !== null && (
-                                                  <div style={{
-                                                    ...typography.bodySmall,
-                                                    color: changeColor,
-                                                    fontWeight: 600,
-                                                    marginTop: spacing.xs
-                                                  }}>
-                                                    {formatChangePercent(changePercent)}
-                                                  </div>
-                                                )}
-                                              </td>
-                                            )
-                                          })}
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              ) : (
-                                <div style={{ 
-                                  textAlign: 'center', 
-                                  padding: spacing.xl,
-                                  color: colors.textMuted
+                    {isExpanded && metricGroup && metricGroup.articles && metricGroup.articles.length > 0 && metricGroup.articles.map((article, index) => (
+                      <tr
+                        key={`${metricKey}-article-${article.nmId}`}
+                        style={{
+                          backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
+                        }}
+                      >
+                        <td style={{
+                          padding: spacing.md,
+                          borderBottom: `1px solid ${colors.borderLight}`,
+                          ...typography.body,
+                          fontWeight: 500
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: spacing.md
+                          }}>
+                            {article.photoTm && (
+                              <a
+                                href={`https://www.wildberries.ru/catalog/${article.nmId}/detail.aspx`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  display: 'inline-block',
+                                  cursor: 'pointer',
+                                  transition: transitions.fast
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.opacity = '0.8'
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.opacity = '1'
+                                }}
+                              >
+                                <img
+                                  src={article.photoTm}
+                                  alt={`Товар ${article.nmId}`}
+                                  style={{
+                                    width: '50px',
+                                    height: '50px',
+                                    objectFit: 'cover',
+                                    borderRadius: borderRadius.sm,
+                                    border: `1px solid ${colors.borderLight}`
+                                  }}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none'
+                                  }}
+                                />
+                              </a>
+                            )}
+                            <a
+                              href={`/analytics/article/${article.nmId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: colors.primary,
+                                textDecoration: 'none',
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                transition: transitions.fast
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.textDecoration = 'underline'
+                                e.currentTarget.style.color = colors.primaryHover
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.textDecoration = 'none'
+                                e.currentTarget.style.color = colors.primary
+                              }}
+                            >
+                              {article.nmId}
+                            </a>
+                          </div>
+                        </td>
+                        {periodsSorted.map(period => {
+                          const periodData = article.periods.find(p => p.periodId === period.id)
+                          const value = periodData?.value ?? null
+                          const changePercent = periodData?.changePercent ?? null
+                          const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
+                          const isEmpty = value === null || value === undefined || value === 0
+                          const changeColor = changePercent !== null
+                            ? (changePercent >= 0 ? colors.success : colors.error)
+                            : colors.textSecondary
+                          return (
+                            <td key={period.id} style={{
+                              textAlign: 'center',
+                              padding: spacing.md,
+                              borderBottom: `1px solid ${colors.borderLight}`,
+                              color: isEmpty ? colors.textMuted : colors.textPrimary,
+                              boxSizing: 'border-box'
+                            }}>
+                              <div style={{ ...typography.number, fontWeight: 400 }}>
+                                {isEmpty ? '-' : (isPercent ? formatPercent(value as number) : formatValue(value as number))}
+                              </div>
+                              {changePercent !== null && (
+                                <div style={{
+                                  ...typography.bodySmall,
+                                  color: changeColor,
+                                  fontWeight: 600,
+                                  marginTop: spacing.xs
                                 }}>
-                                  Нет данных
+                                  {formatChangePercent(changePercent)}
                                 </div>
                               )}
-                          </div>
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    ))}
+                    {isExpanded && metricGroup && (!metricGroup.articles || metricGroup.articles.length === 0) && (
+                      <tr key={`${metricKey}-no-data`}>
+                        <td colSpan={periods.length + 1} style={{ padding: spacing.xl, textAlign: 'center', color: colors.textMuted, borderBottom: `1px solid ${colors.borderLight}` }}>
+                          Нет данных
                         </td>
                       </tr>
                     )}
