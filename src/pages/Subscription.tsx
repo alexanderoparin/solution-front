@@ -75,6 +75,7 @@ export default function Subscription() {
 
   const hasAccess = access.hasAccess
   const agencyClient = access.agencyClient
+  const billingEnabled = access.billingEnabled ?? true
   const subscriptionStatus = access.subscriptionStatus ?? null
   const isTrial = subscriptionStatus === 'trial'
   const expiresAt = access.subscriptionExpiresAt ? dayjs(access.subscriptionExpiresAt) : null
@@ -190,55 +191,57 @@ export default function Subscription() {
             )}
           </Card>
 
-          <Card
-            title="Оплатить или продлить"
-            style={{
-              marginBottom: 24,
-              borderRadius: 8,
-            }}
-          >
-            {plans.length === 0 ? (
-              <Typography.Text type="secondary">Нет доступных тарифов.</Typography.Text>
-            ) : (
-              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-                {plans.map((plan) => (
-                  <Card
-                    key={plan.id}
-                    style={{ width: 280, ...tariffCardStyle }}
-                    bodyStyle={{ padding: '28px 24px' }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(124,58,237,0.12)'
-                      e.currentTarget.style.borderColor = 'rgba(124,58,237,0.35)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = ''
-                      e.currentTarget.style.boxShadow = tariffCardStyle.boxShadow
-                      e.currentTarget.style.borderColor = border
-                    }}
-                    onClick={() => !initiateMutation.isPending && initiateMutation.mutate(plan.id)}
-                  >
-                    <div style={{ fontSize: 16, fontWeight: 600, color: textPrimary, marginBottom: 6 }}>{plan.name}</div>
-                    {plan.description && (
-                      <div style={{ color: textSecondary, marginBottom: 20, fontSize: 14, lineHeight: 1.5 }}>
-                        {plan.description}
-                      </div>
-                    )}
-                    <div
-                      style={{
-                        fontSize: 28,
-                        fontWeight: 700,
-                        color: accent,
-                        letterSpacing: '-0.02em',
+          {billingEnabled && (
+            <Card
+              title="Оплатить или продлить"
+              style={{
+                marginBottom: 24,
+                borderRadius: 8,
+              }}
+            >
+              {plans.length === 0 ? (
+                <Typography.Text type="secondary">Нет доступных тарифов.</Typography.Text>
+              ) : (
+                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+                  {plans.map((plan) => (
+                    <Card
+                      key={plan.id}
+                      style={{ width: 280, ...tariffCardStyle }}
+                      bodyStyle={{ padding: '28px 24px' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)'
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(124,58,237,0.12)'
+                        e.currentTarget.style.borderColor = 'rgba(124,58,237,0.35)'
                       }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = ''
+                        e.currentTarget.style.boxShadow = tariffCardStyle.boxShadow
+                        e.currentTarget.style.borderColor = border
+                      }}
+                      onClick={() => !initiateMutation.isPending && initiateMutation.mutate(plan.id)}
                     >
-                      {formatPriceShort(plan.priceRub)}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </Card>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: textPrimary, marginBottom: 6 }}>{plan.name}</div>
+                      {plan.description && (
+                        <div style={{ color: textSecondary, marginBottom: 20, fontSize: 14, lineHeight: 1.5 }}>
+                          {plan.description}
+                        </div>
+                      )}
+                      <div
+                        style={{
+                          fontSize: 28,
+                          fontWeight: 700,
+                          color: accent,
+                          letterSpacing: '-0.02em',
+                        }}
+                      >
+                        {formatPriceShort(plan.priceRub)}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
 
           <Card
             title="История платежей"

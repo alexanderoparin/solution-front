@@ -12,9 +12,15 @@ const cardBg = '#FFFFFF'
 
 export default function Landing() {
   const navigate = useNavigate()
+  const { data: status } = useQuery({
+    queryKey: ['subscriptionStatus'],
+    queryFn: () => subscriptionApi.getStatus(),
+  })
+  const billingEnabled = status?.billingEnabled ?? false
   const { data: plans = [], isLoading } = useQuery({
-    queryKey: ['subscriptionPlans'],
+    queryKey: ['subscriptionPlans', billingEnabled],
     queryFn: () => subscriptionApi.getPlans(),
+    enabled: billingEnabled,
   })
 
   const formatPrice = (rub: number) =>
@@ -140,10 +146,12 @@ export default function Landing() {
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 24, justifyContent: 'space-between' }}>
               <div style={{ flex: '1 1 280px' }}>
                 <h2 style={{ fontSize: 18, fontWeight: 600, color: textPrimary, marginBottom: 8 }}>
-                  Пробный период для новых пользователей
+                  Бесплатный доступ для новых пользователей
                 </h2>
                 <p style={{ fontSize: 15, color: textSecondary, margin: 0, lineHeight: 1.6 }}>
-                  Зарегистрируйтесь и подтвердите почту — даём пробный период с полным доступом. Потом выберите тариф ниже.
+                  {billingEnabled
+                    ? 'Зарегистрируйтесь и подтвердите почту — даём пробный период с полным доступом. Потом выберите тариф ниже.'
+                    : 'Зарегистрируйтесь и подтвердите почту — на данный момент сервис бесплатный. Если решим брать плату — заранее сообщим об этом.'}
                 </p>
               </div>
               <Button
@@ -168,55 +176,57 @@ export default function Landing() {
           </Card>
         </section>
 
-        {/* Тарифы */}
-        <section style={{ marginBottom: 24 }}>
-          <h2
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: textSecondary,
-              letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              marginBottom: 24,
-              textAlign: 'center',
-            }}
-          >
-            Тарифы
-          </h2>
-          {isLoading ? (
-            <div style={{ textAlign: 'center', padding: 48 }}>
-              <Spin size="large" />
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {plans.map((plan) => (
-                <Card
-                  key={plan.id}
-                  className="tariff-card"
-                  style={{ width: 280, ...cardStyle }}
-                  bodyStyle={{ padding: '28px 24px' }}
-                >
-                  <div style={{ fontSize: 16, fontWeight: 600, color: textPrimary, marginBottom: 6 }}>{plan.name}</div>
-                  {plan.description && (
-                    <div style={{ color: textSecondary, marginBottom: 20, fontSize: 14, lineHeight: 1.5 }}>
-                      {plan.description}
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      fontSize: 28,
-                      fontWeight: 700,
-                      color: accent,
-                      letterSpacing: '-0.02em',
-                    }}
+        {/* Тарифы — показываем только при включённой оплате */}
+        {billingEnabled && (
+          <section style={{ marginBottom: 24 }}>
+            <h2
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: textSecondary,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                marginBottom: 24,
+                textAlign: 'center',
+              }}
+            >
+              Тарифы
+            </h2>
+            {isLoading ? (
+              <div style={{ textAlign: 'center', padding: 48 }}>
+                <Spin size="large" />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
+                {plans.map((plan) => (
+                  <Card
+                    key={plan.id}
+                    className="tariff-card"
+                    style={{ width: 280, ...cardStyle }}
+                    bodyStyle={{ padding: '28px 24px' }}
                   >
-                    {formatPrice(plan.priceRub)}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: textPrimary, marginBottom: 6 }}>{plan.name}</div>
+                    {plan.description && (
+                      <div style={{ color: textSecondary, marginBottom: 20, fontSize: 14, lineHeight: 1.5 }}>
+                        {plan.description}
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 700,
+                        color: accent,
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {formatPrice(plan.priceRub)}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </main>
     </div>
   )

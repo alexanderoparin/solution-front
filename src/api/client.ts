@@ -63,14 +63,15 @@ apiClient.interceptors.response.use(
     }
     
     // 403 - запрещено
-    // Для всех защищенных эндпоинтов 403 означает проблему с авторизацией
-    // Редиректим на логин для всех защищенных эндпоинтов (кроме публичных)
+    // 403 «Подтвердите почту» — не редиректим, показываем сообщение на странице (AccessGuard)
     if (status === 403) {
+      const message = (error.response?.data as { message?: string })?.message ?? ''
+      if (message.includes('Подтвердите почту')) {
+        return Promise.reject(error)
+      }
       const publicEndpoints = ['/auth/login', '/health']
       const isPublicEndpoint = publicEndpoints.some(endpoint => url.includes(endpoint))
-      
       if (!isPublicEndpoint) {
-        // 403 на защищенном эндпоинте означает проблему с токеном
         useAuthStore.getState().clearAuth()
         window.location.href = '/login'
         return Promise.reject(error)

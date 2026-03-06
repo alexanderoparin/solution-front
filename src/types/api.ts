@@ -153,8 +153,15 @@ export interface ExtendSubscriptionRequest {
 export interface AccessStatusResponse {
   hasAccess: boolean
   agencyClient: boolean
+  emailConfirmed: boolean
+  billingEnabled: boolean
   subscriptionStatus: string | null
   subscriptionExpiresAt: string | null
+}
+
+/** Ответ GET /subscription/status */
+export interface SubscriptionStatusResponse {
+  billingEnabled: boolean
 }
 
 /** Элемент списка платежей GET /user/payments */
