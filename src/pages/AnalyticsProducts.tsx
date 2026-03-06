@@ -18,8 +18,8 @@ dayjs.locale('ru')
 
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
 const PAGE_SIZE = 10
-/** Размер одной загрузки списка артикулов для выбора в фильтре (без ограничения по выбранным). */
-const FILTER_LIST_PAGE_SIZE = 100
+/** Размер одной загрузки списка артикулов для выбора в фильтре; достаточно большой, чтобы при снятии одной галочки с «все» получать «все кроме одного». */
+const FILTER_LIST_PAGE_SIZE = 500
 
 const WB_CATALOG_URL = (nmId: number) => `https://www.wildberries.ru/catalog/${nmId}/detail.aspx`
 
@@ -36,10 +36,17 @@ function getLast7DaysPeriod(): Period {
 }
 
 const STORAGE_KEY_PREFIX = 'products_selected_nm_ids_'
+/** Общий ключ с Сводной: один и тот же выбор артикулов при переключении между Сводной и Товарами */
+const SHARED_FILTER_KEY_PREFIX = 'analytics_shared_selected_nm_ids_'
 
 function getStoredSelectedNmIds(cabinetId: number | null): number[] {
   if (cabinetId == null) return []
   try {
+    const sharedRaw = localStorage.getItem(`${SHARED_FILTER_KEY_PREFIX}${cabinetId}`)
+    if (sharedRaw != null) {
+      const parsed = JSON.parse(sharedRaw) as number[]
+      if (Array.isArray(parsed)) return parsed
+    }
     const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${cabinetId}`)
     if (!raw) return []
     const parsed = JSON.parse(raw) as number[]
@@ -51,6 +58,8 @@ function getStoredSelectedNmIds(cabinetId: number | null): number[] {
 
 function setStoredSelectedNmIds(cabinetId: number | null, nmIds: number[]) {
   if (cabinetId == null) return
+  const key = `${SHARED_FILTER_KEY_PREFIX}${cabinetId}`
+  localStorage.setItem(key, JSON.stringify(nmIds))
   localStorage.setItem(`${STORAGE_KEY_PREFIX}${cabinetId}`, JSON.stringify(nmIds))
 }
 
@@ -84,6 +93,8 @@ export default function AnalyticsProducts() {
   const [filterSearch, setFilterSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
   const filterListArticlesRef = useRef<ArticleSummary[]>([])
+  /** Пропустить одну запись в storage, если только что восстановили выбор из общего ключа (чтобы не перезаписать 155 на []) */
+  const skipNextWriteRef = useRef(false)
 
   const { data: activeSellers = [], isFetched: activeSellersFetched } = useQuery({
     queryKey: ['activeSellers'],
@@ -236,6 +247,8 @@ export default function AnalyticsProducts() {
     () => filterListData?.articles ?? [],
     [filterListData]
   )
+  /** Общее число артикулов (как в Сводной), из API; для списка в фильтре может быть загружено меньше из-за лимита */
+  const filterListTotal = filterListData?.totalArticles ?? filterListArticles.length
   filterListArticlesRef.current = filterListArticles
 
   const summaryErrorMessage =
@@ -266,11 +279,17 @@ export default function AnalyticsProducts() {
 
   // Восстановление выбранных артикулов из localStorage при смене кабинета
   useEffect(() => {
-    setSelectedNmIds(getStoredSelectedNmIds(selectedCabinetId))
+    const stored = getStoredSelectedNmIds(selectedCabinetId)
+    setSelectedNmIds(stored)
     setAllDeselected(false)
+    if (stored.length > 0) skipNextWriteRef.current = true
   }, [selectedCabinetId])
 
   useEffect(() => {
+    if (selectedNmIds.length === 0 && skipNextWriteRef.current) {
+      skipNextWriteRef.current = false
+      return
+    }
     setStoredSelectedNmIds(selectedCabinetId, selectedNmIds)
   }, [selectedCabinetId, selectedNmIds])
 
@@ -423,11 +442,7 @@ export default function AnalyticsProducts() {
                           size="small"
                           onClick={() => {
                             setAllDeselected(false)
-                            setSelectedNmIds((prev) => {
-                              const add = filterListFiltered.map((a) => a.nmId)
-                              const combined = new Set([...prev, ...add])
-                              return [...combined]
-                            })
+                            setSelectedNmIds([])
                           }}
                         >
                           Выбрать все
@@ -524,7 +539,7 @@ export default function AnalyticsProducts() {
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               >
                 Фильтр
-                {filterListArticles.length > 0 && (
+                {filterListTotal > 0 && (
                   <span
                     style={{
                       backgroundColor: colors.primary,
@@ -535,7 +550,7 @@ export default function AnalyticsProducts() {
                       marginLeft: 4,
                     }}
                   >
-                    {allDeselected ? 0 : selectedNmIds.length > 0 ? selectedNmIds.length : filterListArticles.length}/{filterListArticles.length}
+                    {allDeselected ? 0 : selectedNmIds.length > 0 ? selectedNmIds.length : filterListTotal}/{filterListTotal}
                   </span>
                 )}
               </Button>

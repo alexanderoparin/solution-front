@@ -497,16 +497,7 @@ export default function AnalyticsSummary() {
     localStorage.setItem('analytics_periods', JSON.stringify(periods))
   }, [periods])
   
-  // Сохраняем фильтр артикулов в localStorage при изменении
-  useEffect(() => {
-    if (selectedSellerId !== undefined) {
-      const excludedArray = Array.from(excludedNmIds)
-      localStorage.setItem(
-        `analytics_excluded_nm_ids_${selectedSellerId}`,
-        JSON.stringify(excludedArray)
-      )
-    }
-  }, [excludedNmIds, selectedSellerId])
+  const SHARED_FILTER_KEY_PREFIX = 'analytics_shared_selected_nm_ids_'
 
   // Загружаем сохраненный фильтр и исходный список при смене селлера
   useEffect(() => {
@@ -526,6 +517,36 @@ export default function AnalyticsSummary() {
       loadOriginalArticles()
     }
   }, [selectedSellerId, loadOriginalArticles])
+
+  // Синхронизация с фильтром в Товарах: сначала читаем общий ключ (порядок важен — до эффекта записи ниже)
+  useEffect(() => {
+    if (selectedCabinetId == null || originalArticles.length === 0) return
+    try {
+      const raw = localStorage.getItem(`${SHARED_FILTER_KEY_PREFIX}${selectedCabinetId}`)
+      if (raw == null) return
+      const included = JSON.parse(raw) as number[]
+      if (!Array.isArray(included) || included.length === 0) return
+      const excluded = new Set(originalArticles.filter((a) => !included.includes(a.nmId)).map((a) => a.nmId))
+      setExcludedNmIds(excluded)
+    } catch {
+      // игнорируем невалидные данные
+    }
+  }, [selectedCabinetId, originalArticles])
+
+  // Сохраняем фильтр артикулов в localStorage при изменении (и в общий ключ для Товаров)
+  useEffect(() => {
+    if (selectedSellerId !== undefined) {
+      const excludedArray = Array.from(excludedNmIds)
+      localStorage.setItem(
+        `analytics_excluded_nm_ids_${selectedSellerId}`,
+        JSON.stringify(excludedArray)
+      )
+    }
+    if (selectedCabinetId != null && originalArticles.length > 0) {
+      const included = originalArticles.filter((a) => !excludedNmIds.has(a.nmId)).map((a) => a.nmId)
+      localStorage.setItem(`${SHARED_FILTER_KEY_PREFIX}${selectedCabinetId}`, JSON.stringify(included))
+    }
+  }, [excludedNmIds, selectedSellerId, selectedCabinetId, originalArticles])
 
   const loadMetricGroup = async (metricName: string) => {
     if (metricGroups.has(metricName)) {
