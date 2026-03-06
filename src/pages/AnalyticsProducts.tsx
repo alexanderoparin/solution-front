@@ -524,7 +524,7 @@ export default function AnalyticsProducts() {
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               >
                 Фильтр
-                {selectedNmIds.length > 0 && (
+                {filterListArticles.length > 0 && (
                   <span
                     style={{
                       backgroundColor: colors.primary,
@@ -535,7 +535,7 @@ export default function AnalyticsProducts() {
                       marginLeft: 4,
                     }}
                   >
-                    {selectedNmIds.length}
+                    {allDeselected ? 0 : selectedNmIds.length > 0 ? selectedNmIds.length : filterListArticles.length}/{filterListArticles.length}
                   </span>
                 )}
               </Button>
