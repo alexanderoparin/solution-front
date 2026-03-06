@@ -1221,8 +1221,9 @@ export default function AnalyticsSummary() {
                           const changePercent = periodData?.changePercent ?? null
                           const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr'
                           const isEmpty = value === null || value === undefined || value === 0
+                          const lowerIsBetter = ['cpc', 'cpo', 'costs', 'drr'].includes(metricKey)
                           const changeColor = changePercent !== null
-                            ? (changePercent >= 0 ? colors.success : colors.error)
+                            ? (lowerIsBetter ? (changePercent <= 0 ? colors.success : colors.error) : (changePercent >= 0 ? colors.success : colors.error))
                             : colors.textSecondary
                           return (
                             <td key={period.id} style={{

@@ -755,7 +755,8 @@ export default function AdvertisingCampaignDetail() {
                               const isPercent = m.key.includes('conversion') || m.key === 'ctr' || m.key === 'drr' || m.key === 'seller_discount' || m.key === 'wb_club_discount' || m.key === 'spp_percent'
                               const isCurrency = m.key === 'orders_amount' || m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo' || m.key.startsWith('price_') || m.key === 'spp_amount'
                               const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(m.key)
-                              const changeColor = change !== null && change !== 0 ? (change > 0 ? colors.success : colors.error) : undefined
+                              const lowerIsBetter = ['cpc', 'cpo', 'costs', 'drr'].includes(m.key)
+                              const changeColor = change !== null && change !== 0 ? (lowerIsBetter ? (change < 0 ? colors.success : colors.error) : (change > 0 ? colors.success : colors.error)) : undefined
                               const isGeneral = funnelKey === 'general'
                               const isAdvertising = funnelKey === 'advertising'
                               const isPricing = funnelKey === 'pricing'
@@ -918,23 +919,27 @@ export default function AdvertisingCampaignDetail() {
                   const isCurrency = key === 'orders_amount' || key === 'costs' || key === 'cpc' || key === 'cpo'
                   return isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)
                 }
+                const lowerIsBetterKeys = ['costs', 'cpc', 'cpo', 'drr']
                 const renderDiff = (key: string) => {
                   const v1 = getVal(key, totalPeriod1)
                   const v2 = getVal(key, totalPeriod2)
                   const noData1 = v1 == null || v1 === 0
                   const noData2 = v2 == null || v2 === 0
                   const isPercentMetric = key.includes('conversion') || key === 'ctr' || key === 'drr'
+                  const lowerIsBetter = lowerIsBetterKeys.includes(key)
                   if (noData1 || noData2) return { text: '-', color: colors.textPrimary }
                   if (isPercentMetric) {
                     const p1 = v1 ?? 0
                     const p2 = v2 ?? 0
                     const diffPoints = Math.round((p2 - p1) * 100) / 100
                     if (Math.abs(diffPoints) < 0.01) return { text: '-', color: colors.textPrimary }
-                    return { text: (diffPoints > 0 ? '+' : '') + formatPercent(diffPoints), color: diffPoints > 0 ? colors.success : colors.error }
+                    const good = lowerIsBetter ? diffPoints < 0 : diffPoints > 0
+                    return { text: (diffPoints > 0 ? '+' : '') + formatPercent(diffPoints), color: good ? colors.success : colors.error }
                   }
                   const diff = Math.round(((v2! - v1!) / v1!) * 10000) / 100
                   if (Math.abs(diff) < 0.01) return { text: '-', color: colors.textPrimary }
-                  return { text: (diff > 0 ? '+' : '') + formatPercent(diff), color: diff > 0 ? colors.success : colors.error }
+                  const good = lowerIsBetter ? diff < 0 : diff > 0
+                  return { text: (diff > 0 ? '+' : '') + formatPercent(diff), color: good ? colors.success : colors.error }
                 }
                 const thPeriod = { textAlign: 'center' as const, padding: spacing.md, borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, fontSize: 12, fontWeight: 600 }
                 const tdCell = { padding: spacing.md, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 12 }

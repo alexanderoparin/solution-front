@@ -1241,7 +1241,8 @@ export default function AnalyticsArticle() {
                       const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                       const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
                       const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(metric.key)
-                      const changeColor = change !== null && change !== 0 ? (change > 0 ? colors.success : colors.error) : undefined
+                      const lowerIsBetter = ['cpc', 'cpo', 'costs', 'drr'].includes(metric.key)
+                      const changeColor = change !== null && change !== 0 ? (lowerIsBetter ? (change < 0 ? colors.success : colors.error) : (change > 0 ? colors.success : colors.error)) : undefined
                       const isLast1 = index === len1 - 1
                       const borderRight1 = !isLast1 ? `1px solid ${colors.border}` : (!selectedFunnel2 && !selectedFunnel3) ? 'none' : `2px solid ${colors.border}`
                       return (
@@ -1291,7 +1292,8 @@ export default function AnalyticsArticle() {
                       const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                       const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
                       const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(metric.key)
-                      const changeColor = change !== null && change !== 0 ? (change > 0 ? colors.success : colors.error) : undefined
+                      const lowerIsBetter = ['cpc', 'cpo', 'costs', 'drr'].includes(metric.key)
+                      const changeColor = change !== null && change !== 0 ? (lowerIsBetter ? (change < 0 ? colors.success : colors.error) : (change > 0 ? colors.success : colors.error)) : undefined
                       const isLast2 = index === FUNNELS[selectedFunnel2].metrics.length - 1
                       const borderRight2 = !isLast2 ? `1px solid ${colors.border}` : !selectedFunnel3 ? 'none' : `2px solid ${colors.border}`
                       return (
@@ -1341,7 +1343,8 @@ export default function AnalyticsArticle() {
                       const isPercent = metric.key.includes('conversion') || metric.key === 'ctr' || metric.key === 'drr' || metric.key === 'seller_discount' || metric.key === 'wb_club_discount' || metric.key === 'spp_percent'
                       const isCurrency = metric.key.includes('price') || metric.key === 'orders_amount' || metric.key === 'costs' || metric.key === 'cpc' || metric.key === 'cpo' || metric.key === 'spp_amount'
                       const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(metric.key)
-                      const changeColor = change !== null && change !== 0 ? (change > 0 ? colors.success : colors.error) : undefined
+                      const lowerIsBetter = ['cpc', 'cpo', 'costs', 'drr'].includes(metric.key)
+                      const changeColor = change !== null && change !== 0 ? (lowerIsBetter ? (change < 0 ? colors.success : colors.error) : (change > 0 ? colors.success : colors.error)) : undefined
                       return (
                         <td key={metric.key} style={{
                           textAlign: 'center',
@@ -2315,7 +2318,7 @@ export default function AnalyticsArticle() {
                     color: (() => {
                       const diff = calculateDifference(period1Data.costs, period2Data.costs, 2)
                       if (diff === null) return colors.textPrimary
-                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                      return diff < 0 ? colors.success : diff > 0 ? colors.error : colors.textPrimary
                     })(),
                     fontWeight: 600
                   }}>
@@ -2385,7 +2388,7 @@ export default function AnalyticsArticle() {
                     color: (() => {
                       const diff = calculateDifference(period1Data.cpc, period2Data.cpc)
                       if (diff === null) return colors.textPrimary
-                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                      return diff < 0 ? colors.success : diff > 0 ? colors.error : colors.textPrimary
                     })(),
                     fontWeight: 600
                   }}>
@@ -2525,7 +2528,7 @@ export default function AnalyticsArticle() {
                     color: (() => {
                       const diff = calculateDifference(period1Data.cpo, period2Data.cpo, 2)
                       if (diff === null) return colors.textPrimary
-                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                      return diff < 0 ? colors.success : diff > 0 ? colors.error : colors.textPrimary
                     })(),
                     fontWeight: 600
                   }}>
@@ -2595,7 +2598,7 @@ export default function AnalyticsArticle() {
                     color: (() => {
                       const diff = calculateDifference(period1Data.drr, period2Data.drr, undefined, true)
                       if (diff === null) return colors.textPrimary
-                      return diff > 0 ? colors.success : diff < 0 ? colors.error : colors.textPrimary
+                      return diff < 0 ? colors.success : diff > 0 ? colors.error : colors.textPrimary
                     })(),
                     fontWeight: 600
                   }}>

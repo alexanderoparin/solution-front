@@ -94,8 +94,9 @@ export default function AnalyticsChart({ dailyData, dateRange }: AnalyticsChartP
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload
+      const lowerIsBetter = ['costs', 'cpc', 'cpo', 'drr'].includes(selectedMetric)
       const changeColor = data.changePercent !== null 
-        ? (data.changePercent >= 0 ? colors.success : colors.error)
+        ? (lowerIsBetter ? (data.changePercent <= 0 ? colors.success : colors.error) : (data.changePercent >= 0 ? colors.success : colors.error))
         : colors.textSecondary
       
       return (
