@@ -835,7 +835,10 @@ export default function AnalyticsArticle() {
             </div>
             <span
               title={article.inWbPromotion && (article.wbPromotionNames?.length ?? 0) > 0
-                ? article.wbPromotionNames!.join('\n')
+                ? (article.wbPromotionNames ?? []).map((n, i) => {
+                    const t = article.wbPromotionTypes?.[i]
+                    return t ? `${n} (${t})` : n
+                  }).join('\n')
                 : undefined}
               style={{
                 display: 'inline-block',

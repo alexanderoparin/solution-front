@@ -214,6 +214,8 @@ export interface ArticleResponse {
   inWbPromotion?: boolean | null
   /** Названия акций календаря WB для тултипа */
   wbPromotionNames?: string[] | null
+  /** Типы акций в том же порядке: "regular", "auto" и т.д. */
+  wbPromotionTypes?: string[] | null
   stocks: Stock[]
   /** Товары «в связке» для отображения справа от шапки артикула */
   bundleProducts?: ArticleSummary[]

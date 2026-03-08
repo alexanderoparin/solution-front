@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal } from 'antd'
-import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined, CreditCardOutlined } from '@ant-design/icons'
+import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, CloseCircleOutlined, MinusOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined, CreditCardOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
@@ -716,6 +716,33 @@ export default function Profile() {
                                 </Space>
                               </Col>
                             </Row>
+                            {cab.scopeStatuses && cab.scopeStatuses.length > 0 && (
+                              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
+                                <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '8px' }}>
+                                  Доступ к категориям WB API
+                                </Text>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
+                                  {cab.scopeStatuses.map((s) => (
+                                    <Tooltip
+                                      key={s.category}
+                                      title={s.lastCheckedAt ? `Последняя проверка: ${formatDate(s.lastCheckedAt)}` : 'Не проверялось'}
+                                    >
+                                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'default' }}>
+                                        {s.success === true && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                                        {s.success === false && <CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
+                                        {(s.success !== true && s.success !== false) && <MinusOutlined style={{ color: '#8c8c8c' }} />}
+                                        <span>{s.categoryDisplayName}</span>
+                                        {s.success === false && s.errorMessage && (
+                                          <span style={{ color: '#ff4d4f', fontSize: '12px' }} title={s.errorMessage}>
+                                            ({s.errorMessage.length > 40 ? s.errorMessage.slice(0, 40) + '…' : s.errorMessage})
+                                          </span>
+                                        )}
+                                      </span>
+                                    </Tooltip>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </>
                         )}
                       </div>

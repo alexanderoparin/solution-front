@@ -89,6 +89,15 @@ export interface CabinetApiKeyInfo {
   /** Время запроса обновления (кнопка нажата, задача в очереди). Для блокировки кнопки. */
   lastDataUpdateRequestedAt: string | null
 }
+/** Статус доступа к категории WB API по кабинету (результат последнего блока обновлений). */
+export interface ScopeStatusDto {
+  category: string
+  categoryDisplayName: string
+  lastCheckedAt: string | null
+  success: boolean | null
+  errorMessage: string | null
+}
+
 export interface CabinetDto {
   id: number
   name: string
@@ -99,6 +108,8 @@ export interface CabinetDto {
   /** Время запроса обновления по кабинету (всегда в ответе). */
   lastDataUpdateRequestedAt: string | null
   apiKey: CabinetApiKeyInfo | null
+  /** Статусы доступа к категориям WB API по кабинету. */
+  scopeStatuses?: ScopeStatusDto[]
 }
 
 export interface PlanDto {

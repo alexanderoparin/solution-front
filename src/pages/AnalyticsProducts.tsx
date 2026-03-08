@@ -931,7 +931,12 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
   })
 
   const inPromotion = articleDetail?.inWbPromotion === true
-  const promotionNames = articleDetail?.wbPromotionNames?.filter(Boolean).join(', ') ?? ''
+  const promotionTooltip = useMemo(() => {
+    const names = articleDetail?.wbPromotionNames?.filter(Boolean) ?? []
+    const types = articleDetail?.wbPromotionTypes ?? []
+    if (!names.length) return ''
+    return names.map((n, i) => (types[i] ? `${n} (${types[i]})` : n)).join('\n')
+  }, [articleDetail?.wbPromotionNames, articleDetail?.wbPromotionTypes])
   const rating = articleDetail?.article?.rating ?? article?.rating ?? null
   const reviewsCount = articleDetail?.article?.reviewsCount ?? article?.reviewsCount ?? null
   const stocksTotal = useMemo(
@@ -1066,7 +1071,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
           </Link>
         </div>
         <span
-          title={inPromotion && promotionNames ? promotionNames : undefined}
+          title={inPromotion && promotionTooltip ? promotionTooltip : undefined}
           style={{
             display: 'inline-block',
             padding: '2px 8px',
@@ -1075,7 +1080,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
             fontWeight: 500,
             backgroundColor: inPromotion ? colors.successLight : colors.bgGray,
             color: inPromotion ? colors.success : colors.textSecondary,
-            cursor: inPromotion && promotionNames ? 'help' : undefined,
+            cursor: inPromotion && promotionTooltip ? 'help' : undefined,
           }}
         >
           {inPromotion ? 'В акции' : 'Не в акции'}
