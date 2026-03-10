@@ -162,6 +162,9 @@ export default function AnalyticsArticle() {
           onSellerChange: (sid: number) => {
             setSelectedSellerIdState(sid)
             localStorage.setItem('analytics_selected_seller_id', String(sid))
+            // На карточке товара при смене селлера уходим на список товаров нового селлера,
+            // иначе артикул может не существовать у нового селлера и будет ошибка.
+            navigate('/analytics/products')
           },
           loading: activeSellersLoading,
         }
