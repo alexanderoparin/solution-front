@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Spin, Input, Select } from 'antd'
+import { Spin, Input, Select, DatePicker } from 'antd'
 import { SearchOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -62,6 +62,11 @@ export default function AdvertisingCampaigns() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'paused'>('all')
   const [filterType, setFilterType] = useState<string | null>(null)
 
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>(() => {
+    const to = dayjs()
+    return [to.subtract(13, 'day'), to]
+  })
+
   const { data: activeSellers = [], isError: activeSellersError, error: activeSellersErr, isFetched: activeSellersFetched } = useQuery({
     queryKey: ['activeSellers'],
     queryFn: () => userApi.getActiveSellers(),
@@ -104,12 +109,17 @@ export default function AdvertisingCampaigns() {
     ? (storedCabinetId != null && cabinets.some((c) => c.id === storedCabinetId) ? storedCabinetId : cabinets[0].id)
     : null
 
+  const dateFromStr = dateRange[0].format('YYYY-MM-DD')
+  const dateToStr = dateRange[1].format('YYYY-MM-DD')
+
   const { data: campaigns = [], isLoading: campaignsLoading, isError: campaignsError, error: campaignsErr } = useQuery({
-    queryKey: ['advertising-campaigns', isManagerOrAdmin ? validSelectedSellerId : null, selectedCabinetId],
+    queryKey: ['advertising-campaigns', isManagerOrAdmin ? validSelectedSellerId : null, selectedCabinetId, dateFromStr, dateToStr],
     queryFn: () =>
       analyticsApi.getCampaigns(
         isManagerOrAdmin ? validSelectedSellerId ?? undefined : undefined,
-        selectedCabinetId ?? undefined
+        selectedCabinetId ?? undefined,
+        dateFromStr,
+        dateToStr
       ),
     enabled: selectedCabinetId != null,
   })
@@ -124,7 +134,7 @@ export default function AdvertisingCampaigns() {
   const emptyStateMessage =
     isManagerOrAdmin && activeSellersFetched && activeSellers.length === 0
       ? 'Не найдено активных селлеров для просмотра аналитики'
-      : backendErrorMessage ?? 'Нет рекламных кампаний за последние 30 дней'
+      : backendErrorMessage ?? 'Нет рекламных кампаний за выбранный период'
 
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
@@ -340,6 +350,17 @@ export default function AdvertisingCampaigns() {
               marginBottom: spacing.md,
             }}
           >
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={(dates) => {
+                if (dates != null && dates[0] != null && dates[1] != null) {
+                  setDateRange([dates[0], dates[1]])
+                }
+              }}
+              format="DD.MM.YYYY"
+              placeholder={['Начало', 'Конец']}
+              style={{ width: 220, borderRadius: borderRadius.sm }}
+            />
             <Input
               placeholder="Поиск по ID кампании или названию"
               prefix={<SearchOutlined style={{ color: colors.textMuted }} />}

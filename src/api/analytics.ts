@@ -74,12 +74,20 @@ export const analyticsApi = {
   },
 
   /**
-   * Список рекламных кампаний кабинета (статистика за последние 30 дней).
+   * Список рекламных кампаний кабинета (статистика за период).
+   * dateFrom/dateTo в формате yyyy-MM-dd. По умолчанию на бэкенде — последние 14 дней.
    */
-  getCampaigns: async (sellerId?: number, cabinetId?: number): Promise<Campaign[]> => {
+  getCampaigns: async (
+    sellerId?: number,
+    cabinetId?: number,
+    dateFrom?: string,
+    dateTo?: string
+  ): Promise<Campaign[]> => {
     const searchParams = new URLSearchParams()
     if (sellerId != null) searchParams.set('sellerId', String(sellerId))
     if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    if (dateFrom) searchParams.set('dateFrom', dateFrom)
+    if (dateTo) searchParams.set('dateTo', dateTo)
     const query = searchParams.toString()
     const params = query ? `?${query}` : ''
     const response = await apiClient.get<Campaign[]>(`/advertising/campaigns${params}`)
