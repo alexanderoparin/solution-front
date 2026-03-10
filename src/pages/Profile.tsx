@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal } from 'antd'
@@ -30,7 +30,37 @@ export default function Profile() {
   const [expandedKeyCabinetId, setExpandedKeyCabinetId] = useState<number | null>(null)
   const [showApiKeyFormForCabinetId, setShowApiKeyFormForCabinetId] = useState<number | null>(null)
   const [cabinetNewKeyValue, setCabinetNewKeyValue] = useState('')
-  
+  /**
+   * Кулдаун кнопки «Проверить ключ» по кабинетам: не чаще 1 раза в 30 сек на каждый ключ.
+   * Храним оставшиеся секунды для каждого cabinetId.
+   */
+  const [validateCooldowns, setValidateCooldowns] = useState<Record<number, number>>({})
+
+  useEffect(() => {
+    const values = Object.values(validateCooldowns)
+    if (!values.some((v) => v > 0)) {
+      return
+    }
+
+    const t = setInterval(() => {
+      setValidateCooldowns((prev) => {
+        const next: Record<number, number> = {}
+        let hasPositive = false
+        for (const [key, value] of Object.entries(prev)) {
+          const numKey = Number(key)
+          const updated = Math.max(0, value - 1)
+          next[numKey] = updated
+          if (updated > 0) {
+            hasPositive = true
+          }
+        }
+        return hasPositive ? next : next
+      })
+    }, 1000)
+
+    return () => clearInterval(t)
+  }, [validateCooldowns])
+
   const handleLogout = () => {
     clearAuth()
     navigate('/login')
@@ -103,6 +133,9 @@ export default function Profile() {
 
   const validateCabinetKeyMutation = useMutation({
     mutationFn: (cabinetId: number) => cabinetsApi.validateApiKey(cabinetId),
+    onMutate: (cabinetId: number) => {
+      setValidateCooldowns((prev) => ({ ...prev, [cabinetId]: 30 }))
+    },
     onSuccess: (data) => {
       message.success(data.message)
       queryClient.invalidateQueries({ queryKey: ['cabinets'] })
@@ -669,15 +702,31 @@ export default function Profile() {
                                   ) : (
                                     <div style={{ height: '40px' }} />
                                   )}
-                                  <Button
-                                    type="default"
-                                    icon={<CheckCircleOutlined />}
-                                    onClick={() => validateCabinetKeyMutation.mutate(cab.id)}
-                                    loading={validateCabinetKeyMutation.isPending}
-                                    style={{ width: '100%' }}
+                                  {(() => {
+                                    const cabinetCooldown = validateCooldowns[cab.id] ?? 0
+                                    return (
+                                  <Tooltip
+                                    title={
+                                      cabinetCooldown > 0
+                                        ? `Следующая проверка доступна через ${cabinetCooldown} сек (не чаще 1 раза в 30 сек)`
+                                        : 'Проверка подключения и доступа токена к категориям WB API'
+                                    }
                                   >
-                                    Проверить ключ
-                                  </Button>
+                                    <span style={{ display: 'inline-block', width: '100%' }}>
+                                      <Button
+                                        type="default"
+                                        icon={<CheckCircleOutlined />}
+                                        onClick={() => validateCabinetKeyMutation.mutate(cab.id)}
+                                        loading={validateCabinetKeyMutation.isPending}
+                                        disabled={cabinetCooldown > 0}
+                                        style={{ width: '100%' }}
+                                      >
+                                        Проверить ключ
+                                      </Button>
+                                    </span>
+                                  </Tooltip>
+                                    )
+                                  })()}
                                 </Space>
                               </Col>
                               <Col xs={24} sm={8}>
@@ -722,24 +771,39 @@ export default function Profile() {
                                   Доступ к категориям WB API
                                 </Text>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
-                                  {cab.scopeStatuses.map((s) => (
-                                    <Tooltip
-                                      key={s.category}
-                                      title={s.lastCheckedAt ? `Последняя проверка: ${formatDate(s.lastCheckedAt)}` : 'Не проверялось'}
-                                    >
-                                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'default' }}>
-                                        {s.success === true && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                                        {s.success === false && <CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                                        {(s.success !== true && s.success !== false) && <MinusOutlined style={{ color: '#8c8c8c' }} />}
-                                        <span>{s.categoryDisplayName}</span>
-                                        {s.success === false && (
-                                          <span style={{ color: '#ff4d4f', fontSize: '12px' }} title="Нет доступа к категории. Проверьте настройки токена в ЛК Wildberries.">
-                                            (Нет доступа)
-                                          </span>
-                                        )}
-                                      </span>
-                                    </Tooltip>
-                                  ))}
+                                  {cab.scopeStatuses.map((s) => {
+                                    const checkedText = s.lastCheckedAt
+                                      ? `Последняя проверка:\n${formatDate(s.lastCheckedAt)}`
+                                      : 'Не проверялось'
+                                    const tooltipTitle =
+                                      s.success === false && s.errorMessage
+                                        ? `${checkedText}\nТекст ошибки от API WB:\n«${s.errorMessage}»`
+                                        : checkedText
+                                    return (
+                                      <Tooltip
+                                        key={s.category}
+                                        title={<span style={{ whiteSpace: 'pre-line' }}>{tooltipTitle}</span>}
+                                        overlayInnerStyle={{ maxWidth: 520 }}
+                                      >
+                                        <span
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            fontSize: '13px',
+                                            cursor: 'default',
+                                          }}
+                                        >
+                                          {s.success === true && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                                          {s.success === false && <CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
+                                          {s.success !== true && s.success !== false && (
+                                            <MinusOutlined style={{ color: '#8c8c8c' }} />
+                                          )}
+                                          <span>{s.categoryDisplayName}</span>
+                                        </span>
+                                      </Tooltip>
+                                    )
+                                  })}
                                 </div>
                               </div>
                             )}

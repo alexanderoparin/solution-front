@@ -24,7 +24,6 @@ import {
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
-import { adminApi } from '../api/admin'
 import { UserListItem, CreateUserRequest, UpdateUserRequest, UserRole } from '../types/api'
 import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
@@ -82,17 +81,6 @@ export default function UsersManagementSection() {
     queryFn: userApi.getManagedUsers,
   })
 
-  const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER'
-  const { data: triggerCooldown } = useQuery({
-    queryKey: ['adminTriggerCooldown'],
-    queryFn: adminApi.getTriggerCooldown,
-    enabled: isAdminOrManager,
-    refetchInterval: (query) => {
-      const d = query.state.data
-      return d && !d.canTrigger ? 30_000 : false
-    },
-  })
-
   const filteredUsers = searchEmail.trim()
     ? users.filter((u) => u.email.toLowerCase().includes(searchEmail.trim().toLowerCase()))
     : users
@@ -130,11 +118,9 @@ export default function UsersManagementSection() {
     onSuccess: (data) => {
       message.success(data.message || 'Обновление кабинетов запущено')
       queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
-      queryClient.invalidateQueries({ queryKey: ['adminTriggerCooldown'] })
     },
     onError: (error: any) => {
       message.error(error.response?.data?.message || 'Ошибка при запуске обновления')
-      queryClient.invalidateQueries({ queryKey: ['adminTriggerCooldown'] })
     },
   })
 
@@ -285,29 +271,39 @@ export default function UsersManagementSection() {
             width: 160,
             align: 'center' as const,
             render: (_: any, record: UserListItem) =>
-              record.role === 'SELLER' ? (
-                <Tooltip
-                  title={
-                    triggerCooldown && !triggerCooldown.canTrigger
-                      ? `Следующий запуск через ${Math.ceil(triggerCooldown.nextAvailableInSeconds / 60)} мин. Последний запуск: ${triggerCooldown.lastTriggeredAtMs ? dayjs(triggerCooldown.lastTriggeredAtMs).format('DD.MM.YYYY HH:mm') : '—'}`
-                      : record.lastDataUpdateRequestedAt
-                        ? `Последний запуск: ${dayjs(record.lastDataUpdateRequestedAt).format('DD.MM.YYYY HH:mm')}`
-                        : 'Последний запуск: не запускалось'
-                  }
-                >
-                  <span>
-                    <Button
-                      type="link"
-                      icon={<SyncOutlined />}
-                      size="small"
-                      onClick={() => triggerSellerUpdateMutation.mutate(record.id)}
-                      disabled={triggerSellerUpdateMutation.isPending || (!!triggerCooldown && !triggerCooldown.canTrigger)}
-                    >
-                      Обновить
-                    </Button>
-                  </span>
-                </Tooltip>
-              ) : (
+              record.role === 'SELLER' ? (() => {
+                const lastRequested = record.lastDataUpdateRequestedAt ? dayjs(record.lastDataUpdateRequestedAt) : null
+                const now = dayjs()
+                const minutesSinceLast = lastRequested ? now.diff(lastRequested, 'minute') : null
+                const cooldownMinutes = 5
+                const remainingMinutes =
+                  minutesSinceLast != null ? Math.max(0, cooldownMinutes - minutesSinceLast) : 0
+                const isOnCooldown = remainingMinutes > 0
+
+                const tooltipTitle = isOnCooldown
+                  ? `Следующий запуск через ${remainingMinutes} мин.\nПоследний запуск: ${lastRequested ? lastRequested.format('DD.MM.YYYY HH:mm') : '—'}`
+                  : lastRequested
+                    ? `Последний запуск: ${lastRequested.format('DD.MM.YYYY HH:mm')}`
+                    : 'Последний запуск: не запускалось'
+
+                return (
+                  <Tooltip
+                    title={<span style={{ whiteSpace: 'pre-line' }}>{tooltipTitle}</span>}
+                  >
+                    <span>
+                      <Button
+                        type="link"
+                        icon={<SyncOutlined />}
+                        size="small"
+                        onClick={() => triggerSellerUpdateMutation.mutate(record.id)}
+                        disabled={triggerSellerUpdateMutation.isPending || isOnCooldown}
+                      >
+                        Обновить
+                      </Button>
+                    </span>
+                  </Tooltip>
+                )
+              })() : (
                 '—'
               ),
           },
