@@ -732,9 +732,9 @@ export default function Profile() {
                                         {s.success === false && <CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
                                         {(s.success !== true && s.success !== false) && <MinusOutlined style={{ color: '#8c8c8c' }} />}
                                         <span>{s.categoryDisplayName}</span>
-                                        {s.success === false && s.errorMessage && (
-                                          <span style={{ color: '#ff4d4f', fontSize: '12px' }} title={s.errorMessage}>
-                                            ({s.errorMessage.length > 40 ? s.errorMessage.slice(0, 40) + '…' : s.errorMessage})
+                                        {s.success === false && (
+                                          <span style={{ color: '#ff4d4f', fontSize: '12px' }} title="Нет доступа к категории. Проверьте настройки токена в ЛК Wildberries.">
+                                            (Нет доступа)
                                           </span>
                                         )}
                                       </span>
