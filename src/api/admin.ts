@@ -6,6 +6,7 @@ import type {
   SubscriptionDto,
   PaymentDto,
   ExtendSubscriptionRequest,
+  TriggerCooldownResponse,
 } from '../types/api'
 
 export const adminApi = {
@@ -37,6 +38,12 @@ export const adminApi = {
   extendSubscription: async (data: ExtendSubscriptionRequest): Promise<SubscriptionDto> => {
     const body = data.expiresAt ? { ...data, expiresAt: data.expiresAt } : { userId: data.userId, planId: data.planId }
     const response = await apiClient.post<SubscriptionDto>('/admin/subscription/extend', body)
+    return response.data
+  },
+
+  /** Кулдаун ручного запуска «обновить кабинеты» (не чаще 1 раза в 5 мин). Для админов и менеджеров. */
+  getTriggerCooldown: async (): Promise<TriggerCooldownResponse> => {
+    const response = await apiClient.get<TriggerCooldownResponse>('/admin/trigger-cooldown')
     return response.data
   },
 }

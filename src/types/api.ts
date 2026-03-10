@@ -160,6 +160,13 @@ export interface ExtendSubscriptionRequest {
   expiresAt?: string
 }
 
+/** Статус кулдауна ручного запуска «обновить кабинеты» для админов/менеджеров (не чаще 1 раза в 5 мин). */
+export interface TriggerCooldownResponse {
+  lastTriggeredAtMs: number
+  canTrigger: boolean
+  nextAvailableInSeconds: number
+}
+
 /** Ответ GET /user/access: доступ к функционалу и статус подписки */
 export interface AccessStatusResponse {
   hasAccess: boolean
