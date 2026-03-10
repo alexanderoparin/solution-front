@@ -4,6 +4,7 @@ import {
   UpdateApiKeyRequest,
   MessageResponse,
   UserListItem,
+  PageResponse,
   CreateUserRequest,
   UpdateUserRequest,
   CabinetDto,
@@ -55,9 +56,9 @@ export const userApi = {
     return response.data
   },
 
-  // Управление пользователями
-  getManagedUsers: async (): Promise<UserListItem[]> => {
-    const response = await apiClient.get<UserListItem[]>('/users')
+  // Управление пользователями (постраничная загрузка)
+  getManagedUsers: async (params: { page: number; size: number }): Promise<PageResponse<UserListItem>> => {
+    const response = await apiClient.get<PageResponse<UserListItem>>('/users', { params })
     return response.data
   },
 
@@ -127,6 +128,22 @@ export const userApi = {
    */
   getSellerCabinets: async (sellerId: number): Promise<CabinetDto[]> => {
     const response = await apiClient.get<CabinetDto[]>(`/users/${sellerId}/cabinets`)
+    return response.data
+  },
+
+  /**
+   * Запуск валидации API ключа кабинета селлера (для ADMIN/MANAGER в блоке кабинетов).
+   */
+  validateSellerCabinetKey: async (cabinetId: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(`/users/cabinets/${cabinetId}/validate-api-key`)
+    return response.data
+  },
+
+  /**
+   * Обновление API ключа кабинета селлера (для ADMIN/MANAGER).
+   */
+  updateSellerCabinetKey: async (cabinetId: number, apiKey: string): Promise<CabinetDto> => {
+    const response = await apiClient.patch<CabinetDto>(`/users/cabinets/${cabinetId}`, { apiKey })
     return response.data
   },
 }

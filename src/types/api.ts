@@ -69,6 +69,14 @@ export interface UserListItem {
   lastDataUpdateRequestedAt: string | null
 }
 
+export interface PageResponse<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  size: number
+  number: number
+}
+
 export interface CreateUserRequest {
   email: string
   password: string

@@ -67,11 +67,16 @@ export default function UsersManagement() {
     return []
   }
 
-  // Получение списка пользователей
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ['managedUsers'],
-    queryFn: userApi.getManagedUsers,
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+
+  // Получение списка пользователей (постранично)
+  const { data, isLoading } = useQuery({
+    queryKey: ['managedUsers', page, pageSize],
+    queryFn: () => userApi.getManagedUsers({ page: page - 1, size: pageSize }),
   })
+  const users: UserListItem[] = data?.content ?? []
+  const totalElements = data?.totalElements ?? 0
 
   // Создание пользователя
   const createMutation = useMutation({
@@ -239,9 +244,29 @@ export default function UsersManagement() {
           rowKey="id"
           loading={isLoading}
           pagination={{
-            pageSize: 20,
+            current: page,
+            pageSize,
+            total: totalElements,
             showSizeChanger: true,
             showTotal: (total) => `Всего: ${total}`,
+            onChange: (newPage, newSize) => {
+              setPage(newPage)
+              if (newSize != null) {
+                if (newSize !== pageSize) {
+                  setPageSize(newSize)
+                  setPage(1)
+                }
+              }
+            },
+            locale: {
+              items_per_page: 'на страницу',
+              jump_to: 'Перейти',
+              page: 'Страница',
+              prev_page: 'Назад',
+              next_page: 'Вперёд',
+              prev_5: 'Пред. 5',
+              next_5: 'След. 5',
+            },
           }}
           style={{
             backgroundColor: '#FFFFFF',

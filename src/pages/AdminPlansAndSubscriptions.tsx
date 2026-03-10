@@ -50,10 +50,11 @@ export default function AdminPlansAndSubscriptions() {
     queryFn: () => adminApi.getPlans(),
   })
 
-  const { data: users = [] } = useQuery({
-    queryKey: ['managedUsers'],
-    queryFn: () => userApi.getManagedUsers(),
+  const { data: usersPage } = useQuery({
+    queryKey: ['managedUsers', 0, 500],
+    queryFn: () => userApi.getManagedUsers({ page: 0, size: 500 }),
   })
+  const users: UserListItem[] = usersPage?.content ?? []
 
   const { data: subscriptions = [], isLoading: subsLoading } = useQuery<SubscriptionDto[]>({
     queryKey: ['adminSubscriptions', selectedUserId],
