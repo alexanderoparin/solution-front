@@ -5,6 +5,7 @@ import {
   Modal,
   Form,
   Input,
+  Checkbox,
   Select,
   Switch,
   Space,
@@ -462,6 +463,7 @@ export default function UsersManagementSection() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserListItem | null>(null)
   const [searchEmail, setSearchEmail] = useState('')
+  const [onlySellers, setOnlySellers] = useState(true)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [createForm] = Form.useForm()
@@ -491,10 +493,10 @@ export default function UsersManagementSection() {
   const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER'
 
   const users = data?.content ?? []
-  const totalElements = data?.totalElements ?? 0
+  const filteredByRole = onlySellers ? users.filter((u) => u.role === 'SELLER') : users
   const filteredUsers = searchEmail.trim()
-    ? users.filter((u) => u.email.toLowerCase().includes(searchEmail.trim().toLowerCase()))
-    : users
+    ? filteredByRole.filter((u) => u.email.toLowerCase().includes(searchEmail.trim().toLowerCase()))
+    : filteredByRole
 
   const createMutation = useMutation({
     mutationFn: userApi.createUser,
@@ -613,12 +615,9 @@ export default function UsersManagementSection() {
       title: 'Статус',
       key: 'status',
       render: (_: any, record: UserListItem) => (
-        <Space>
-          <Tag color={record.isActive ? 'green' : 'red'}>
-            {record.isActive ? 'Активен' : 'Неактивен'}
-          </Tag>
-          {record.isTemporaryPassword && <Tag color="orange">Временный пароль</Tag>}
-        </Space>
+        record.isTemporaryPassword
+          ? <Tag color="orange">Временный пароль</Tag>
+          : <Tag color="green">Активен</Tag>
       ),
       sorter: (a: UserListItem, b: UserListItem) => Number(b.isActive) - Number(a.isActive),
     },
@@ -629,8 +628,23 @@ export default function UsersManagementSection() {
       render: (date: string) => dayjs(date).format('DD.MM.YYYY HH:mm'),
       sorter: (a: UserListItem, b: UserListItem) =>
         dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix(),
-      defaultSortOrder: 'descend' as const,
     },
+    ...((role === 'ADMIN' || role === 'MANAGER')
+      ? [
+          {
+            title: 'Дата обновления',
+            dataIndex: 'lastDataUpdateAt',
+            key: 'lastDataUpdateAt',
+            render: (date: string | null) => (date ? dayjs(date).format('DD.MM.YYYY HH:mm') : '—'),
+            sorter: (a: UserListItem, b: UserListItem) => {
+              const da = a.lastDataUpdateAt ? dayjs(a.lastDataUpdateAt).valueOf() : 0
+              const db = b.lastDataUpdateAt ? dayjs(b.lastDataUpdateAt).valueOf() : 0
+              return da - db
+            },
+            defaultSortOrder: 'ascend' as const,
+          },
+        ]
+      : []),
     {
       title: 'Действия',
       key: 'actions',
@@ -725,14 +739,19 @@ export default function UsersManagementSection() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-        <Input
-          placeholder="Поиск по email"
-          prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-          value={searchEmail}
-          onChange={(e) => setSearchEmail(e.target.value)}
-          allowClear
-          style={{ width: 260 }}
-        />
+        <Space>
+          <Input
+            placeholder="Поиск по email"
+            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+            value={searchEmail}
+            onChange={(e) => setSearchEmail(e.target.value)}
+            allowClear
+            style={{ width: 260 }}
+          />
+          <Checkbox checked={onlySellers} onChange={(e) => setOnlySellers(e.target.checked)}>
+            Только селлеры
+          </Checkbox>
+        </Space>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -750,7 +769,7 @@ export default function UsersManagementSection() {
         pagination={{
           current: page,
           pageSize,
-          total: totalElements,
+          total: filteredUsers.length,
           showSizeChanger: true,
           showTotal: (total) => `Всего: ${total}`,
           onChange: (newPage, newSize) => {
