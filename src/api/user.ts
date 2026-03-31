@@ -106,6 +106,15 @@ export const userApi = {
   },
 
   /**
+   * Запускает полное обновление всех активных кабинетов (как ночной шедулер).
+   * Доступно для ADMIN и MANAGER.
+   */
+  triggerAllCabinetsUpdate: async (): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/users/trigger-all-cabinets-update')
+    return response.data
+  },
+
+  /**
    * Запускает обновление данных для указанного кабинета (даты и ограничение 6 ч по кабинету).
    * Доступно для ADMIN и MANAGER.
    */

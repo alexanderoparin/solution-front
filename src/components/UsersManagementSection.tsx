@@ -120,6 +120,7 @@ function SellerCabinetsInline({ sellerId }: { sellerId: number }) {
 
   // Для админа/менеджера в блоке кабинетов селлера — ограничение раз в 5 минут
   const ADMIN_CABINET_UPDATE_COOLDOWN_MINUTES = 5
+  const STOCKS_UPDATE_COOLDOWN_MINUTES = 60
   const getLastUpdateOrRequested = (cab: CabinetDto): string | null => {
     const a = cab.lastDataUpdateAt ?? cab.apiKey?.lastDataUpdateAt ?? null
     const b = cab.lastDataUpdateRequestedAt ?? cab.apiKey?.lastDataUpdateRequestedAt ?? null
@@ -144,6 +145,22 @@ function SellerCabinetsInline({ sellerId }: { sellerId: number }) {
     return `${remainingMinutes} ${word}`
   }
 
+  const canUpdateCabinetStocks = (cab: CabinetDto): boolean => {
+    const lastRequested = cab.lastStocksUpdateRequestedAt ? dayjs(cab.lastStocksUpdateRequestedAt) : null
+    if (!lastRequested) return true
+    return dayjs().diff(lastRequested, 'minute') >= STOCKS_UPDATE_COOLDOWN_MINUTES
+  }
+
+  const getCabinetStocksRemainingTime = (cab: CabinetDto): string | null => {
+    const lastRequested = cab.lastStocksUpdateRequestedAt ? dayjs(cab.lastStocksUpdateRequestedAt) : null
+    if (!lastRequested) return null
+    const minutesSince = dayjs().diff(lastRequested, 'minute')
+    const remainingMinutes = STOCKS_UPDATE_COOLDOWN_MINUTES - minutesSince
+    if (remainingMinutes <= 0) return null
+    const word = remainingMinutes === 1 ? 'минуту' : remainingMinutes < 5 ? 'минуты' : 'минут'
+    return `${remainingMinutes} ${word}`
+  }
+
   const triggerCabinetUpdateMutation = useMutation({
     mutationFn: (cabinetId: number) => userApi.triggerCabinetDataUpdate(cabinetId),
     onSuccess: (data) => {
@@ -152,6 +169,17 @@ function SellerCabinetsInline({ sellerId }: { sellerId: number }) {
     },
     onError: (err: any) => {
       message.error(err.response?.data?.message || 'Ошибка запуска обновления')
+    },
+  })
+
+  const triggerCabinetStocksUpdateMutation = useMutation({
+    mutationFn: (cabinetId: number) => userApi.triggerCabinetStocksUpdate(cabinetId),
+    onSuccess: (data) => {
+      message.success(data.message || 'Обновление остатков запущено')
+      queryClient.invalidateQueries({ queryKey: ['sellerCabinets', sellerId] })
+    },
+    onError: (err: any) => {
+      message.error(err.response?.data?.message || 'Ошибка запуска обновления остатков')
     },
   })
 
@@ -320,7 +348,7 @@ function SellerCabinetsInline({ sellerId }: { sellerId: number }) {
                 <div style={{ marginLeft: 24, display: 'flex', alignItems: 'flex-start', gap: 16 }}>
                   <div>
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                      Последнее обновление данных:
+                      Основное обновление:
                     </Text>
                     <div>
                       <Text style={{ fontSize: 12 }}>{formatDate(cab.apiKey?.lastDataUpdateAt ?? cab.lastDataUpdateAt)}</Text>
@@ -331,7 +359,7 @@ function SellerCabinetsInline({ sellerId }: { sellerId: number }) {
                       title={
                         canUpdateCabinetData(cab)
                           ? 'Запускает обновление карточек, кампаний и аналитики по этому кабинету.'
-                          : `Обновление не чаще одного раза в ${ADMIN_CABINET_UPDATE_COOLDOWN_MINUTES} мин. Через ${getCabinetRemainingTime(cab) || '…'}.`
+                          : `Запуск обновления не чаще одного раза в ${ADMIN_CABINET_UPDATE_COOLDOWN_MINUTES} мин. Через ${getCabinetRemainingTime(cab) || '…'}.`
                       }
                     >
                       <span style={{ display: 'inline-block' }}>
@@ -344,6 +372,36 @@ function SellerCabinetsInline({ sellerId }: { sellerId: number }) {
                           disabled={!canUpdateCabinetData(cab) || triggerCabinetUpdateMutation.isPending}
                         >
                           Обновить данные
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  </div>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Последнее обновление остатков:
+                    </Text>
+                    <div>
+                      <Text style={{ fontSize: 12 }}>{formatDate(cab.apiKey?.lastStocksUpdateAt ?? cab.lastStocksUpdateAt ?? null)}</Text>
+                    </div>
+                  </div>
+                  <div>
+                    <Tooltip
+                      title={
+                        canUpdateCabinetStocks(cab)
+                          ? 'Запускает только обновление остатков по этому кабинету.'
+                          : `Обновление остатков не чаще одного раза в 60 мин. Через ${getCabinetStocksRemainingTime(cab) || '…'}.`
+                      }
+                    >
+                      <span style={{ display: 'inline-block' }}>
+                        <Button
+                          type="default"
+                          size="small"
+                          icon={<SyncOutlined />}
+                          onClick={() => triggerCabinetStocksUpdateMutation.mutate(cab.id)}
+                          loading={triggerCabinetStocksUpdateMutation.isPending}
+                          disabled={!canUpdateCabinetStocks(cab) || triggerCabinetStocksUpdateMutation.isPending}
+                        >
+                          Обновить остатки
                         </Button>
                       </span>
                     </Tooltip>

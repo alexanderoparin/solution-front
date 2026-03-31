@@ -180,6 +180,17 @@ export default function Profile() {
     },
   })
 
+  const triggerAllCabinetsUpdateMutation = useMutation({
+    mutationFn: () => userApi.triggerAllCabinetsUpdate(),
+    onSuccess: (data) => {
+      message.success(data.message || 'Полное обновление кабинетов запущено')
+      queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
+    },
+    onError: (error: any) => {
+      message.error(error.response?.data?.message || 'Ошибка запуска обновления всех кабинетов')
+    },
+  })
+
   const handlePasswordSubmit = (values: {
     currentPassword: string
     newPassword: string
@@ -731,16 +742,18 @@ export default function Profile() {
                               </Col>
                               <Col xs={24} sm={8}>
                                 <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
-                                  {cab.apiKey?.lastDataUpdateAt ? (
-                                    <div style={{ textAlign: 'center', width: '100%' }}>
-                                      <Text type="secondary" style={{ fontSize: '12px' }}>Последнее обновление:</Text>
-                                      <div style={{ marginTop: '4px' }}>
-                                        <Text style={{ fontSize: '12px' }}>{formatDate(cab.apiKey.lastDataUpdateAt)}</Text>
-                                      </div>
+                                  <div style={{ textAlign: 'center', width: '100%' }}>
+                                    <Text type="secondary" style={{ fontSize: '12px' }}>Основное обновление:</Text>
+                                    <div style={{ marginTop: '4px' }}>
+                                      <Text style={{ fontSize: '12px' }}>{formatDate(cab.apiKey?.lastDataUpdateAt ?? cab.lastDataUpdateAt ?? null)}</Text>
                                     </div>
-                                  ) : (
-                                    <div style={{ height: '40px' }} />
-                                  )}
+                                    <Text type="secondary" style={{ fontSize: '12px', marginTop: '6px', display: 'block' }}>
+                                      Последнее обновление остатков:
+                                    </Text>
+                                    <div style={{ marginTop: '4px' }}>
+                                      <Text style={{ fontSize: '12px' }}>{formatDate(cab.apiKey?.lastStocksUpdateAt ?? cab.lastStocksUpdateAt ?? null)}</Text>
+                                    </div>
+                                  </div>
                                   {(() => {
                                     const canUpdate = canUpdateData(cab)
                                     const remainingTime = getRemainingTime(cab)
@@ -827,6 +840,28 @@ export default function Profile() {
                 : profile.role === 'MANAGER'
                   ? 'Селлеры'
                   : 'Работники'
+            }
+            extra={
+              (profile.role === 'ADMIN' || profile.role === 'MANAGER') ? (
+                <Button
+                  type="default"
+                  icon={<SyncOutlined />}
+                  onClick={() => {
+                    Modal.confirm({
+                      title: 'Запустить обновление всех активных кабинетов?',
+                      content:
+                        'Сейчас начнется полное фоновое обновление всех активных кабинетов (как ночной запуск): карточки, цены, реклама, аналитика и другие данные. Процесс может занять продолжительное время.',
+                      okText: 'Запустить',
+                      cancelText: 'Отмена',
+                      onOk: () => triggerAllCabinetsUpdateMutation.mutate(),
+                    })
+                  }}
+                  loading={triggerAllCabinetsUpdateMutation.isPending}
+                  disabled={triggerAllCabinetsUpdateMutation.isPending}
+                >
+                  Обновить все кабинеты
+                </Button>
+              ) : null
             }
             style={{ marginBottom: '24px' }}
           >
