@@ -527,7 +527,8 @@ export default function UsersManagementSection() {
   })
 
   const triggerSellerUpdateMutation = useMutation({
-    mutationFn: userApi.triggerSellerDataUpdate,
+    mutationFn: ({ sellerId, includeStocks }: { sellerId: number; includeStocks: boolean }) =>
+      userApi.triggerSellerDataUpdate(sellerId, includeStocks),
     onSuccess: (data) => {
       message.success(data.message || 'Обновление кабинетов запущено')
       queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
@@ -720,7 +721,23 @@ export default function UsersManagementSection() {
                         type="link"
                         icon={<SyncOutlined />}
                         size="small"
-                        onClick={() => triggerSellerUpdateMutation.mutate(record.id)}
+                        onClick={() => {
+                          let includeStocks = false
+                          Modal.confirm({
+                            title: 'Запустить обновление кабинетов селлера?',
+                            content: (
+                              <Space direction="vertical" size={8}>
+                                <span>Будет запущено фоновое обновление всех активных кабинетов выбранного селлера.</span>
+                                <Checkbox onChange={(e) => { includeStocks = e.target.checked }}>
+                                  Включить обновление остатков
+                                </Checkbox>
+                              </Space>
+                            ),
+                            okText: 'Запустить',
+                            cancelText: 'Отмена',
+                            onOk: () => triggerSellerUpdateMutation.mutate({ sellerId: record.id, includeStocks }),
+                          })
+                        }}
                         disabled={triggerSellerUpdateMutation.isPending || isOnCooldown}
                       >
                         Обновить

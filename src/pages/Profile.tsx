@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal } from 'antd'
+import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal, Checkbox } from 'antd'
 import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, CloseCircleOutlined, MinusOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined, CreditCardOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
@@ -181,7 +181,7 @@ export default function Profile() {
   })
 
   const triggerAllCabinetsUpdateMutation = useMutation({
-    mutationFn: () => userApi.triggerAllCabinetsUpdate(),
+    mutationFn: (includeStocks: boolean) => userApi.triggerAllCabinetsUpdate(includeStocks),
     onSuccess: (data) => {
       message.success(data.message || 'Полное обновление кабинетов запущено')
       queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
@@ -847,13 +847,23 @@ export default function Profile() {
                   type="default"
                   icon={<SyncOutlined />}
                   onClick={() => {
+                    let includeStocks = false
                     Modal.confirm({
                       title: 'Запустить обновление всех активных кабинетов?',
-                      content:
-                        'Сейчас начнется полное фоновое обновление всех активных кабинетов (как ночной запуск): карточки, цены, реклама, аналитика и другие данные. Процесс может занять продолжительное время.',
+                      content: (
+                        <Space direction="vertical" size={8}>
+                          <span>
+                            Сейчас начнется полное фоновое обновление всех активных кабинетов (как ночной запуск): карточки, цены, реклама, аналитика и другие данные.
+                            Процесс может занять продолжительное время.
+                          </span>
+                          <Checkbox onChange={(e) => { includeStocks = e.target.checked }}>
+                            Включить обновление остатков
+                          </Checkbox>
+                        </Space>
+                      ),
                       okText: 'Запустить',
                       cancelText: 'Отмена',
-                      onOk: () => triggerAllCabinetsUpdateMutation.mutate(),
+                      onOk: () => triggerAllCabinetsUpdateMutation.mutate(includeStocks),
                     })
                   }}
                   loading={triggerAllCabinetsUpdateMutation.isPending}

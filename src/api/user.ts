@@ -100,8 +100,10 @@ export const userApi = {
    * Запускает обновление данных для указанного селлера.
    * Доступно только для ADMIN и MANAGER.
    */
-  triggerSellerDataUpdate: async (sellerId: number): Promise<MessageResponse> => {
-    const response = await apiClient.post<MessageResponse>(`/users/${sellerId}/trigger-update`)
+  triggerSellerDataUpdate: async (sellerId: number, includeStocks = false): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(`/users/${sellerId}/trigger-update`, undefined, {
+      params: { includeStocks },
+    })
     return response.data
   },
 
@@ -109,8 +111,10 @@ export const userApi = {
    * Запускает полное обновление всех активных кабинетов (как ночной шедулер).
    * Доступно для ADMIN и MANAGER.
    */
-  triggerAllCabinetsUpdate: async (): Promise<MessageResponse> => {
-    const response = await apiClient.post<MessageResponse>('/users/trigger-all-cabinets-update')
+  triggerAllCabinetsUpdate: async (includeStocks = false): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/users/trigger-all-cabinets-update', undefined, {
+      params: { includeStocks },
+    })
     return response.data
   },
 
