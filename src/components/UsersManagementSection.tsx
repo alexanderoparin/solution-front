@@ -28,10 +28,12 @@ import {
   RightOutlined,
   DownOutlined,
 } from '@ant-design/icons'
+import type { SortOrder, SorterResult, TablePaginationConfig } from 'antd/es/table/interface'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { UserListItem, CreateUserRequest, UpdateUserRequest, UserRole, CabinetDto } from '../types/api'
 import { useAuthStore } from '../store/authStore'
+import { SORT_DIRECTIONS, USER_SORT_FIELDS, type SortDirection, type UserSortField } from '../constants/userSorting'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 
@@ -51,13 +53,6 @@ const ROLE_COLORS: Record<UserRole, string> = {
   MANAGER: 'purple',
   SELLER: 'blue',
   WORKER: 'green',
-}
-
-const ROLE_ORDER: Record<UserRole, number> = {
-  ADMIN: 0,
-  MANAGER: 1,
-  SELLER: 2,
-  WORKER: 3,
 }
 
 function SellerCabinetsInline({ sellerId }: { sellerId: number }) {
@@ -466,10 +461,16 @@ export default function UsersManagementSection() {
   const [onlySellers, setOnlySellers] = useState(true)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
+  const [sortBy, setSortBy] = useState<UserSortField>(USER_SORT_FIELDS.LAST_DATA_UPDATE_AT)
+  const [sortDir, setSortDir] = useState<SortDirection>(SORT_DIRECTIONS.ASC)
   const [createForm] = Form.useForm()
   const [editForm] = Form.useForm()
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role) as UserRole
+
+  useEffect(() => {
+    setPage(1)
+  }, [searchEmail, onlySellers])
 
   const getCreatableRole = (): UserRole => {
     if (role === 'ADMIN') return 'MANAGER'
@@ -486,17 +487,20 @@ export default function UsersManagementSection() {
   }
 
   const { data, isLoading } = useQuery({
-    queryKey: ['managedUsers', page, pageSize],
-    queryFn: () => userApi.getManagedUsers({ page: page - 1, size: pageSize }),
+    queryKey: ['managedUsers', page, pageSize, searchEmail, onlySellers, sortBy, sortDir],
+    queryFn: () => userApi.getManagedUsers({
+      page: page - 1,
+      size: pageSize,
+      email: searchEmail.trim() || undefined,
+      onlySellers,
+      sortBy,
+      sortDir,
+    }),
   })
 
   const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER'
 
   const users = data?.content ?? []
-  const filteredByRole = onlySellers ? users.filter((u) => u.role === 'SELLER') : users
-  const filteredUsers = searchEmail.trim()
-    ? filteredByRole.filter((u) => u.email.toLowerCase().includes(searchEmail.trim().toLowerCase()))
-    : filteredByRole
 
   const createMutation = useMutation({
     mutationFn: userApi.createUser,
@@ -603,32 +607,43 @@ export default function UsersManagementSection() {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
-      sorter: (a: UserListItem, b: UserListItem) => a.email.localeCompare(b.email),
+      sorter: true,
+      sortOrder: sortBy === USER_SORT_FIELDS.EMAIL
+        ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
+        : null,
     },
     {
       title: 'Роль',
       dataIndex: 'role',
       key: 'role',
       render: (roleVal: UserRole) => <Tag color={ROLE_COLORS[roleVal]}>{ROLE_LABELS[roleVal]}</Tag>,
-      sorter: (a: UserListItem, b: UserListItem) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role],
+      sorter: true,
+      sortOrder: sortBy === USER_SORT_FIELDS.ROLE
+        ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
+        : null,
     },
     {
       title: 'Статус',
-      key: 'status',
+      key: 'isActive',
       render: (_: any, record: UserListItem) => (
         record.isTemporaryPassword
           ? <Tag color="orange">Временный пароль</Tag>
           : <Tag color="green">Активен</Tag>
       ),
-      sorter: (a: UserListItem, b: UserListItem) => Number(b.isActive) - Number(a.isActive),
+      sorter: true,
+      sortOrder: sortBy === USER_SORT_FIELDS.IS_ACTIVE
+        ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
+        : null,
     },
     {
       title: 'Дата создания',
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: string) => dayjs(date).format('DD.MM.YYYY HH:mm'),
-      sorter: (a: UserListItem, b: UserListItem) =>
-        dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix(),
+      sorter: true,
+      sortOrder: sortBy === USER_SORT_FIELDS.CREATED_AT
+        ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
+        : null,
     },
     ...((role === 'ADMIN' || role === 'MANAGER')
       ? [
@@ -637,12 +652,10 @@ export default function UsersManagementSection() {
             dataIndex: 'lastDataUpdateAt',
             key: 'lastDataUpdateAt',
             render: (date: string | null) => (date ? dayjs(date).format('DD.MM.YYYY HH:mm') : '—'),
-            sorter: (a: UserListItem, b: UserListItem) => {
-              const da = a.lastDataUpdateAt ? dayjs(a.lastDataUpdateAt).valueOf() : 0
-              const db = b.lastDataUpdateAt ? dayjs(b.lastDataUpdateAt).valueOf() : 0
-              return da - db
-            },
-            defaultSortOrder: 'ascend' as const,
+            sorter: true,
+            sortOrder: sortBy === USER_SORT_FIELDS.LAST_DATA_UPDATE_AT
+              ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
+              : null,
           },
         ]
       : []),
@@ -780,13 +793,13 @@ export default function UsersManagementSection() {
       </div>
       <Table
         columns={columns}
-        dataSource={filteredUsers}
+        dataSource={users}
         rowKey="id"
         loading={isLoading}
         pagination={{
           current: page,
           pageSize,
-          total: filteredUsers.length,
+          total: data?.totalElements ?? 0,
           showSizeChanger: true,
           showTotal: (total) => `Всего: ${total}`,
           onChange: (newPage, newSize) => {
@@ -807,6 +820,33 @@ export default function UsersManagementSection() {
             prev_5: 'Пред. 5',
             next_5: 'След. 5',
           },
+        }}
+        onChange={(pagination: TablePaginationConfig, _filters, sorter) => {
+          const current = pagination.current ?? 1
+          const size = pagination.pageSize ?? pageSize
+          setPage(current)
+          if (size !== pageSize) {
+            setPageSize(size)
+            setPage(1)
+          }
+
+          const resolvedSorter = Array.isArray(sorter) ? sorter[0] : (sorter as SorterResult<UserListItem>)
+          const order = resolvedSorter?.order
+          const field = (resolvedSorter?.field ?? resolvedSorter?.columnKey) as string | undefined
+
+          if (order && field) {
+            const dir: SortDirection = order === 'ascend' ? SORT_DIRECTIONS.ASC : SORT_DIRECTIONS.DESC
+            if (
+              field === USER_SORT_FIELDS.EMAIL ||
+              field === USER_SORT_FIELDS.ROLE ||
+              field === USER_SORT_FIELDS.CREATED_AT ||
+              field === USER_SORT_FIELDS.LAST_DATA_UPDATE_AT ||
+              field === USER_SORT_FIELDS.IS_ACTIVE
+            ) {
+              setSortBy(field as UserSortField)
+              setSortDir(dir)
+            }
+          }
         }}
         expandable={
           isAdminOrManager

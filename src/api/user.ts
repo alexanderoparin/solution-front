@@ -11,6 +11,16 @@ import {
   AccessStatusResponse,
   PaymentDto,
 } from '../types/api'
+import type { SortDirection, UserSortField } from '../constants/userSorting'
+
+const USER_SORT_FIELD_TO_BACKEND: Record<UserSortField, string> = {
+  email: 'EMAIL',
+  role: 'ROLE',
+  isActive: 'IS_ACTIVE',
+  createdAt: 'CREATED_AT',
+  lastDataUpdateAt: 'LAST_DATA_UPDATE_AT',
+  lastDataUpdateRequestedAt: 'LAST_DATA_UPDATE_REQUESTED_AT',
+}
 
 export const userApi = {
   getProfile: async (): Promise<UserProfileResponse> => {
@@ -56,9 +66,22 @@ export const userApi = {
     return response.data
   },
 
-  // Управление пользователями (постраничная загрузка)
-  getManagedUsers: async (params: { page: number; size: number }): Promise<PageResponse<UserListItem>> => {
-    const response = await apiClient.get<PageResponse<UserListItem>>('/users', { params })
+  // Управление пользователями (серверная пагинация/фильтрация/сортировка)
+  getManagedUsers: async (params: {
+    page: number
+    size: number
+    email?: string
+    onlySellers?: boolean
+    sortBy?: UserSortField
+    sortDir?: SortDirection
+  }): Promise<PageResponse<UserListItem>> => {
+    const response = await apiClient.get<PageResponse<UserListItem>>('/users', {
+      params: {
+        ...params,
+        sortBy: params.sortBy ? USER_SORT_FIELD_TO_BACKEND[params.sortBy] : undefined,
+        sortDir: params.sortDir ? params.sortDir.toUpperCase() : undefined,
+      },
+    })
     return response.data
   },
 
