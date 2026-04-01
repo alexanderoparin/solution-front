@@ -431,7 +431,16 @@ export default function Profile() {
             </Col>
 
             <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 180, display: 'flex', justifyContent: 'flex-end' }} className="profile-info-col">
-              <Space direction="vertical" size="middle" style={{ width: '100%', maxWidth: 220 }}>
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: 600,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                  justifyContent: 'flex-end',
+                }}
+              >
                 {!showPasswordForm ? (
                   <Button
                     type="primary"
@@ -441,7 +450,9 @@ export default function Profile() {
                     style={{
                       backgroundColor: '#7C3AED',
                       borderColor: '#7C3AED',
-                      width: '100%',
+                      width: 'calc(50% - 6px)',
+                      order: 2,
+                      fontSize: 14,
                     }}
                   >
                     Сменить пароль
@@ -452,7 +463,7 @@ export default function Profile() {
                     icon={<CreditCardOutlined />}
                     onClick={() => navigate('/subscription')}
                     size="large"
-                    style={{ width: '100%' }}
+                    style={{ width: 'calc(50% - 6px)' }}
                   >
                     Подписка
                   </Button>
@@ -462,9 +473,19 @@ export default function Profile() {
                     icon={<CreditCardOutlined />}
                     onClick={() => navigate('/admin/plans')}
                     size="large"
-                    style={{ width: '100%' }}
+                    style={{ width: 'calc(50% - 6px)', order: 1, fontSize: 14 }}
                   >
                     Планы и подписки
+                  </Button>
+                )}
+                {profile.role === 'ADMIN' && (
+                  <Button
+                    icon={<CreditCardOutlined />}
+                    onClick={() => navigate('/admin/wb-events')}
+                    size="large"
+                    style={{ width: 'calc(50% - 6px)', order: 3, fontSize: 14 }}
+                  >
+                    WB API события
                   </Button>
                 )}
                 <Button
@@ -473,11 +494,11 @@ export default function Profile() {
                   icon={<LogoutOutlined />}
                   onClick={handleLogout}
                   size="large"
-                  style={{ width: '100%' }}
+                  style={{ width: 'calc(50% - 6px)', order: 4, fontSize: 14 }}
                 >
                   Выйти из системы
                 </Button>
-              </Space>
+              </div>
             </Col>
           </Row>
         </Card>

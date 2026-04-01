@@ -7,6 +7,11 @@ import type {
   PaymentDto,
   ExtendSubscriptionRequest,
   TriggerCooldownResponse,
+  WbApiEventDto,
+  WbApiEventStatus,
+  WbApiEventType,
+  PageResponse,
+  WbApiEventStatsDto,
 } from '../types/api'
 
 export const adminApi = {
@@ -44,6 +49,37 @@ export const adminApi = {
   /** Кулдаун ручного запуска «обновить кабинеты» (не чаще 1 раза в 5 мин). Для админов и менеджеров. */
   getTriggerCooldown: async (): Promise<TriggerCooldownResponse> => {
     const response = await apiClient.get<TriggerCooldownResponse>('/admin/trigger-cooldown')
+    return response.data
+  },
+
+  getWbEvents: async (params: {
+    page: number
+    size: number
+    status?: WbApiEventStatus
+    eventType?: WbApiEventType
+    cabinetId?: number
+  }): Promise<PageResponse<WbApiEventDto>> => {
+    const response = await apiClient.get<PageResponse<WbApiEventDto>>('/admin/wb-events', { params })
+    return response.data
+  },
+
+  getWbEvent: async (eventId: number): Promise<WbApiEventDto> => {
+    const response = await apiClient.get<WbApiEventDto>(`/admin/wb-events/${eventId}`)
+    return response.data
+  },
+
+  getWbEventsStats: async (): Promise<WbApiEventStatsDto> => {
+    const response = await apiClient.get<WbApiEventStatsDto>('/admin/wb-events/stats')
+    return response.data
+  },
+
+  retryWbEvent: async (eventId: number): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>(`/admin/wb-events/${eventId}/retry`)
+    return response.data
+  },
+
+  cancelWbEvent: async (eventId: number): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>(`/admin/wb-events/${eventId}/cancel`)
     return response.data
   },
 }

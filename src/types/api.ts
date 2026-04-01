@@ -181,6 +181,54 @@ export interface TriggerCooldownResponse {
   nextAvailableInSeconds: number
 }
 
+export type WbApiEventStatus =
+  | 'CREATED'
+  | 'RUNNING'
+  | 'SUCCESS'
+  | 'FAILED_RETRYABLE'
+  | 'FAILED_FINAL'
+  | 'FAILED_WITH_FALLBACK'
+  | 'DEFERRED_RATE_LIMIT'
+  | 'DUPLICATE_SKIPPED'
+  | 'CANCELLED'
+
+export type WbApiEventType =
+  | 'CONTENT_CARDS_LIST_PAGE'
+  | 'ANALYTICS_SALES_FUNNEL_NMID'
+  | 'PRICES_PRODUCTS_BATCH'
+  | 'PRICES_SPP_ORDERS'
+  | 'PROMOTION_COUNT'
+  | 'PROMOTION_ADVERTS_BATCH'
+  | 'PROMOTION_STATS_BATCH'
+  | 'FEEDBACKS_SYNC_CABINET'
+  | 'PROMOTION_CALENDAR_SYNC_CABINET'
+  | 'WAREHOUSES_SYNC_CABINET'
+  | 'STOCKS_BY_NMID'
+
+export interface WbApiEventDto {
+  id: number
+  eventType: WbApiEventType
+  status: WbApiEventStatus
+  executorBeanName: string
+  cabinetId: number
+  dedupKey: string
+  attemptCount: number
+  maxAttempts: number
+  nextAttemptAt: string
+  lastError: string | null
+  priority: number
+  triggerSource: string
+  createdAt: string
+  startedAt: string | null
+  finishedAt: string | null
+  updatedAt: string
+}
+
+export interface WbApiEventStatsDto {
+  total: number
+  byStatus: Record<WbApiEventStatus, number>
+}
+
 /** Ответ GET /user/access: доступ к функционалу и статус подписки */
 export interface AccessStatusResponse {
   hasAccess: boolean

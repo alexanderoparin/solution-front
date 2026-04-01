@@ -12,6 +12,7 @@ import AdvertisingCampaigns from './pages/AdvertisingCampaigns'
 import AdvertisingCampaignDetail from './pages/AdvertisingCampaignDetail'
 import Profile from './pages/Profile'
 import AdminPlansAndSubscriptions from './pages/AdminPlansAndSubscriptions'
+import AdminWbEvents from './pages/AdminWbEvents'
 import Subscribe from './pages/Subscribe'
 import Subscription from './pages/Subscription'
 import SubscriptionSuccess from './pages/SubscriptionSuccess'
@@ -81,6 +82,10 @@ function App() {
         <Route
           path="/admin/plans"
           element={token ? <AdminPlansAndSubscriptions /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/admin/wb-events"
+          element={token ? <AdminWbEvents /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/subscription/success"

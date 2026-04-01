@@ -40,6 +40,8 @@ export default function Breadcrumbs() {
     )
   } else if (pathname === '/admin/plans') {
     items.push({ label: 'Профиль', path: '/profile' }, { label: 'Планы и подписки' })
+  } else if (pathname === '/admin/wb-events') {
+    items.push({ label: 'Профиль', path: '/profile' }, { label: 'WB API события' })
   } else if (pathname === '/subscription') {
     items.push({ label: 'Профиль', path: '/profile' }, { label: 'Подписка' })
   } else {
