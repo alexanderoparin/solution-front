@@ -60,6 +60,7 @@ export default function AdminWbEvents() {
   const [cabinetIdInput, setCabinetIdInput] = useState('')
   const [onlyErrors, setOnlyErrors] = useState(false)
   const [inProgress, setInProgress] = useState(false)
+  const [deferredOnly, setDeferredOnly] = useState(false)
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
 
   if (role !== 'ADMIN') {
@@ -75,8 +76,9 @@ export default function AdminWbEvents() {
   const effectiveStatus = useMemo(() => {
     if (inProgress) return 'RUNNING' as WbApiEventStatus
     if (onlyErrors) return 'FAILED_FINAL' as WbApiEventStatus
+    if (deferredOnly) return 'DEFERRED_RATE_LIMIT' as WbApiEventStatus
     return status
-  }, [inProgress, onlyErrors, status])
+  }, [inProgress, onlyErrors, deferredOnly, status])
 
   const { data, isLoading } = useQuery({
     queryKey: ['adminWbEvents', page, size, effectiveStatus, eventType, cabinetId],
@@ -175,6 +177,7 @@ export default function AdminWbEvents() {
                 onChange={(value) => {
                   setOnlyErrors(false)
                   setInProgress(false)
+                  setDeferredOnly(false)
                   setPage(0)
                   setStatus(value)
                 }}
@@ -215,6 +218,7 @@ export default function AdminWbEvents() {
                 onClick={() => {
                   setPage(0)
                   setInProgress(false)
+                  setDeferredOnly(false)
                   setStatus(undefined)
                   setOnlyErrors((prev) => !prev)
                 }}
@@ -226,11 +230,24 @@ export default function AdminWbEvents() {
                 onClick={() => {
                   setPage(0)
                   setOnlyErrors(false)
+                  setDeferredOnly(false)
                   setStatus(undefined)
                   setInProgress((prev) => !prev)
                 }}
               >
                 В работе
+              </Button>
+              <Button
+                type={deferredOnly ? 'primary' : 'default'}
+                onClick={() => {
+                  setPage(0)
+                  setOnlyErrors(false)
+                  setInProgress(false)
+                  setStatus(undefined)
+                  setDeferredOnly((prev) => !prev)
+                }}
+              >
+                Отложенные
               </Button>
             </Space>
 
