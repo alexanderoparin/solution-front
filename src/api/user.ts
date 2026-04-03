@@ -9,6 +9,7 @@ import {
   UpdateUserRequest,
   CabinetDto,
   ManagedCabinetRowDto,
+  WorkContextCabinetDto,
   AccessStatusResponse,
   PaymentDto,
 } from '../types/api'
@@ -166,6 +167,14 @@ export const userApi = {
    */
   triggerCabinetStocksUpdate: async (cabinetId: number): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>(`/users/cabinets/${cabinetId}/trigger-stocks-update`)
+    return response.data
+  },
+
+  /**
+   * Кабинеты с API-ключом в зоне видимости (шапка: админ/менеджер), по алфавиту названия.
+   */
+  getWorkContextCabinets: async (): Promise<WorkContextCabinetDto[]> => {
+    const response = await apiClient.get<WorkContextCabinetDto[]>('/users/work-context-cabinets')
     return response.data
   },
 

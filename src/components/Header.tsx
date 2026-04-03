@@ -18,10 +18,22 @@ export interface SellerSelectProps {
   loading?: boolean
 }
 
+export interface WorkContextCabinetSelectProps {
+  options: { value: number; label: string }[]
+  value?: number
+  onChange: (cabinetId: number) => void
+  loading?: boolean
+  placeholder?: string
+}
+
 interface HeaderProps {
   cabinetSelectProps?: CabinetSelectProps
   /** Для админа/менеджера: выбор продавца и опциональный блок (например кнопка синхронизации) — отображаются слева от «Профиль». */
   sellerSelectProps?: SellerSelectProps
+  /**
+   * Единый список кабинетов с ключом (имя + email селлера). Если задан — sellerSelectProps и cabinetSelectProps для шапки не показываются.
+   */
+  workContextCabinetSelect?: WorkContextCabinetSelectProps
   /** Доп. контент справа (кнопка синхронизации и т.п.), показывается рядом с выбором продавца. */
   headerRightExtra?: React.ReactNode
 }
@@ -41,15 +53,34 @@ function getLogoInitials(cabinetName: string | undefined): string {
   return (words[0][0] ?? 'ЛК').toUpperCase()
 }
 
-export default function Header({ cabinetSelectProps, sellerSelectProps, headerRightExtra }: HeaderProps = {}) {
+function cabinetNameFromWorkContextLabel(label: string): string {
+  const i = label.lastIndexOf(' (')
+  return i >= 0 ? label.slice(0, i) : label
+}
+
+export default function Header({
+  cabinetSelectProps,
+  sellerSelectProps,
+  workContextCabinetSelect,
+  headerRightExtra,
+}: HeaderProps = {}) {
   const navigate = useNavigate()
   const location = useLocation()
   const role = useAuthStore((state) => state.role)
 
   const selectedCabinetName = useMemo(() => {
+    if (workContextCabinetSelect?.value != null && workContextCabinetSelect.options.length > 0) {
+      const opt = workContextCabinetSelect.options.find((o) => o.value === workContextCabinetSelect.value)
+      if (opt) return cabinetNameFromWorkContextLabel(opt.label)
+    }
     if (!cabinetSelectProps?.selectedCabinetId || !cabinetSelectProps.cabinets.length) return undefined
     return cabinetSelectProps.cabinets.find((c) => c.id === cabinetSelectProps.selectedCabinetId)?.name
-  }, [cabinetSelectProps?.selectedCabinetId, cabinetSelectProps?.cabinets])
+  }, [
+    workContextCabinetSelect?.value,
+    workContextCabinetSelect?.options,
+    cabinetSelectProps?.selectedCabinetId,
+    cabinetSelectProps?.cabinets,
+  ])
 
   const logoInitials = useMemo(() => {
     if (location.pathname === '/profile' && role === 'ADMIN') return 'П'
@@ -167,7 +198,24 @@ export default function Header({ cabinetSelectProps, sellerSelectProps, headerRi
       </div>
 
       <Space size="middle" align="center">
-        {sellerSelectProps && sellerSelectProps.sellers.length > 0 && (
+        {workContextCabinetSelect && (
+          <>
+            <Select
+              className="header-select-field"
+              showSearch
+              optionFilterProp="label"
+              value={workContextCabinetSelect.value}
+              onChange={(v) => workContextCabinetSelect.onChange(Number(v))}
+              style={{ minWidth: 280, maxWidth: 420 }}
+              placeholder={workContextCabinetSelect.placeholder ?? 'Кабинет'}
+              options={workContextCabinetSelect.options}
+              loading={workContextCabinetSelect.loading}
+              allowClear={false}
+            />
+            {headerRightExtra}
+          </>
+        )}
+        {!workContextCabinetSelect && sellerSelectProps && sellerSelectProps.sellers.length > 0 && (
           <>
             <Select
               className="header-select-field"
@@ -181,7 +229,7 @@ export default function Header({ cabinetSelectProps, sellerSelectProps, headerRi
             {headerRightExtra}
           </>
         )}
-        {cabinetSelectProps && cabinetSelectProps.cabinets.length > 0 && (
+        {!workContextCabinetSelect && cabinetSelectProps && cabinetSelectProps.cabinets.length > 0 && (
           cabinetSelectProps.cabinets.length > 1 ? (
             <Dropdown
               menu={{

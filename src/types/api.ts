@@ -133,6 +133,16 @@ export interface ManagedCabinetRowDto {
   cabinet: CabinetDto
 }
 
+/** Кабинет с ключом для переключения контекста в шапке (ADMIN / MANAGER). */
+export interface WorkContextCabinetDto {
+  cabinetId: number
+  sellerId: number
+  cabinetName: string
+  sellerEmail: string
+  lastDataUpdateAt: string | null
+  lastDataUpdateRequestedAt: string | null
+}
+
 export interface PlanDto {
   id: number
   name: string

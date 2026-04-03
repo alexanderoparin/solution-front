@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react'
 import { message } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
+import { WORK_CONTEXT_CABINETS_QUERY_KEY } from './useWorkContextForManagerAdmin'
+
 function invalidateCabinetListCaches(queryClient: ReturnType<typeof useQueryClient>, sellerId: number) {
   void queryClient.invalidateQueries({ queryKey: ['sellerCabinets', sellerId] })
   void queryClient.invalidateQueries({ queryKey: ['managedCabinets'] })
+  void queryClient.invalidateQueries({ queryKey: WORK_CONTEXT_CABINETS_QUERY_KEY })
 }
 
 /**
