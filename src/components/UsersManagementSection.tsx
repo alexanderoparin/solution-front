@@ -272,20 +272,6 @@ export default function UsersManagementSection({
             : null,
       },
       {
-        title: 'Ключ',
-        key: 'cabinetKey',
-        width: 264,
-        align: 'left',
-        render: (_: unknown, row: ManagedCabinetRowDto) => <CabinetTableKeyColumn row={row} />,
-      },
-      {
-        title: 'Доступ WB API',
-        key: 'cabinetScopes',
-        width: 252,
-        align: 'left',
-        render: (_: unknown, row: ManagedCabinetRowDto) => <CabinetTableScopesColumn row={row} />,
-      },
-      {
         title: 'Основное обновление',
         key: CABINET_SORT_FIELDS.LAST_DATA_UPDATE_AT,
         width: 156,
@@ -308,6 +294,20 @@ export default function UsersManagementSection({
             ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
             : null,
         render: (_: unknown, row: ManagedCabinetRowDto) => <CabinetTableStocksUpdateColumn row={row} />,
+      },
+      {
+        title: 'Ключ',
+        key: 'cabinetKey',
+        width: 264,
+        align: 'left',
+        render: (_: unknown, row: ManagedCabinetRowDto) => <CabinetTableKeyColumn row={row} />,
+      },
+      {
+        title: 'Доступ WB API',
+        key: 'cabinetScopes',
+        width: 252,
+        align: 'left',
+        render: (_: unknown, row: ManagedCabinetRowDto) => <CabinetTableScopesColumn row={row} />,
       },
     ],
     [cabinetSortBy, cabinetSortDir],

@@ -1,4 +1,4 @@
-import { Button, Tooltip, Typography } from 'antd'
+import { Button, Tooltip } from 'antd'
 import { SyncOutlined } from '@ant-design/icons'
 import type { ManagedCabinetRowDto } from '../types/api'
 import { useCabinetTableRowAdmin } from './CabinetTableRowAdminContext'
@@ -8,8 +8,6 @@ import {
   canUpdateCabinetStocks,
   getCabinetStocksRemainingTime,
 } from '../utils/cabinetAdminUtils'
-
-const { Text } = Typography
 
 export function CabinetTableStocksUpdateColumn({ row }: { row: ManagedCabinetRowDto }) {
   const cab = row.cabinet
@@ -24,12 +22,19 @@ export function CabinetTableStocksUpdateColumn({ row }: { row: ManagedCabinetRow
         minWidth: 0,
         maxWidth: '100%',
         overflow: 'hidden',
-        fontSize: 11,
       }}
     >
-      <Text style={{ fontSize: 11, minWidth: 0, flex: 1 }} ellipsis>
+      <span
+        style={{
+          minWidth: 0,
+          flex: 1,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
         {formatCabinetAdminDate(cab.apiKey?.lastStocksUpdateAt ?? cab.lastStocksUpdateAt ?? null)}
-      </Text>
+      </span>
       <Tooltip
         title={
           canUpdateCabinetStocks(cab)
