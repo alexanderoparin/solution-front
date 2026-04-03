@@ -126,6 +126,13 @@ export interface CabinetDto {
   scopeStatuses?: ScopeStatusDto[]
 }
 
+/** Кабинет с данными владельца (плоский список для админа/менеджера). */
+export interface ManagedCabinetRowDto {
+  sellerId: number
+  sellerEmail: string
+  cabinet: CabinetDto
+}
+
 export interface PlanDto {
   id: number
   name: string

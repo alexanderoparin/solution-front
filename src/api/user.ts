@@ -8,10 +8,12 @@ import {
   CreateUserRequest,
   UpdateUserRequest,
   CabinetDto,
+  ManagedCabinetRowDto,
   AccessStatusResponse,
   PaymentDto,
 } from '../types/api'
 import type { SortDirection, UserSortField } from '../constants/userSorting'
+import type { CabinetSortField } from '../constants/cabinetSorting'
 
 const USER_SORT_FIELD_TO_BACKEND: Record<UserSortField, string> = {
   email: 'EMAIL',
@@ -20,6 +22,14 @@ const USER_SORT_FIELD_TO_BACKEND: Record<UserSortField, string> = {
   createdAt: 'CREATED_AT',
   lastDataUpdateAt: 'LAST_DATA_UPDATE_AT',
   lastDataUpdateRequestedAt: 'LAST_DATA_UPDATE_REQUESTED_AT',
+}
+
+const CABINET_SORT_FIELD_TO_BACKEND: Record<CabinetSortField, string> = {
+  cabinetId: 'CABINET_ID',
+  cabinetName: 'CABINET_NAME',
+  sellerEmail: 'SELLER_EMAIL',
+  lastDataUpdateAt: 'LAST_DATA_UPDATE_AT',
+  lastStocksUpdateAt: 'LAST_STOCKS_UPDATE_AT',
 }
 
 export const userApi = {
@@ -164,6 +174,26 @@ export const userApi = {
    */
   getSellerCabinets: async (sellerId: number): Promise<CabinetDto[]> => {
     const response = await apiClient.get<CabinetDto[]>(`/users/${sellerId}/cabinets`)
+    return response.data
+  },
+
+  /** Постраничный список кабинетов (ADMIN / MANAGER). */
+  getManagedCabinets: async (params: {
+    page: number
+    size: number
+    search?: string
+    sortBy?: CabinetSortField
+    sortDir?: SortDirection
+  }): Promise<PageResponse<ManagedCabinetRowDto>> => {
+    const response = await apiClient.get<PageResponse<ManagedCabinetRowDto>>('/users/managed-cabinets', {
+      params: {
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        sortBy: params.sortBy ? CABINET_SORT_FIELD_TO_BACKEND[params.sortBy] : undefined,
+        sortDir: params.sortDir ? params.sortDir.toUpperCase() : undefined,
+      },
+    })
     return response.data
   },
 

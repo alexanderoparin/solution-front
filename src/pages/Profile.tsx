@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal, Checkbox } from 'antd'
+import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal, Checkbox, Segmented } from 'antd'
 import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, CloseCircleOutlined, MinusOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined, CreditCardOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
@@ -15,6 +15,7 @@ import Header from '../components/Header'
 dayjs.locale('ru')
 import Breadcrumbs from '../components/Breadcrumbs'
 import UsersManagementSection from '../components/UsersManagementSection'
+import { USER_MANAGEMENT_VIEW, type UserManagementView } from '../constants/userManagementView'
 
 const { Text } = Typography
 
@@ -35,6 +36,8 @@ export default function Profile() {
    * Храним оставшиеся секунды для каждого cabinetId.
    */
   const [validateCooldowns, setValidateCooldowns] = useState<Record<number, number>>({})
+  /** Режим блока «Пользователи/Селлеры» для ADMIN/MANAGER: по умолчанию список кабинетов. */
+  const [usersBlockView, setUsersBlockView] = useState<UserManagementView>(USER_MANAGEMENT_VIEW.CABINETS)
 
   useEffect(() => {
     const values = Object.values(validateCooldowns)
@@ -184,7 +187,8 @@ export default function Profile() {
     mutationFn: (includeStocks: boolean) => userApi.triggerAllCabinetsUpdate(includeStocks),
     onSuccess: (data) => {
       message.success(data.message || 'Полное обновление кабинетов запущено')
-      queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
+      void queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
+      void queryClient.invalidateQueries({ queryKey: ['managedCabinets'] })
     },
     onError: (error: any) => {
       message.error(error.response?.data?.message || 'Ошибка запуска обновления всех кабинетов')
@@ -856,11 +860,19 @@ export default function Profile() {
         {(profile.role === 'ADMIN' || profile.role === 'MANAGER' || profile.role === 'SELLER') && (
           <Card
             title={
-              profile.role === 'ADMIN'
-                ? 'Пользователи'
-                : profile.role === 'MANAGER'
-                  ? 'Селлеры'
-                  : 'Работники'
+              profile.role === 'ADMIN' || profile.role === 'MANAGER' ? (
+                <Segmented
+                  size="small"
+                  options={[
+                    { label: 'Кабинеты', value: USER_MANAGEMENT_VIEW.CABINETS },
+                    { label: 'Пользователи', value: USER_MANAGEMENT_VIEW.USERS },
+                  ]}
+                  value={usersBlockView}
+                  onChange={(v) => setUsersBlockView(v as UserManagementView)}
+                />
+              ) : (
+                'Работники'
+              )
             }
             extra={
               (profile.role === 'ADMIN' || profile.role === 'MANAGER') ? (
@@ -896,7 +908,11 @@ export default function Profile() {
             }
             style={{ marginBottom: '24px' }}
           >
-            <UsersManagementSection />
+            <UsersManagementSection
+              {...(profile.role === 'ADMIN' || profile.role === 'MANAGER'
+                ? { managementView: usersBlockView, onManagementViewChange: setUsersBlockView }
+                : {})}
+            />
           </Card>
         )}
 
