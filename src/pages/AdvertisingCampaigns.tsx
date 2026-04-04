@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Spin, Input, Select, DatePicker, Button, message } from 'antd'
-import { SearchOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
+import { SearchOutlined, CaretUpOutlined, CaretDownOutlined, SyncOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { useQuery, useMutation } from '@tanstack/react-query'
@@ -362,57 +362,72 @@ export default function AdvertisingCampaigns() {
               gap: spacing.md,
               alignItems: 'center',
               marginBottom: spacing.md,
+              width: '100%',
             }}
           >
-            <DatePicker.RangePicker
-              value={dateRange}
-              onChange={(dates) => {
-                if (dates != null && dates[0] != null && dates[1] != null) {
-                  setDateRange([dates[0], dates[1]])
-                }
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: spacing.md,
+                alignItems: 'center',
+                flex: '1 1 auto',
+                minWidth: 0,
               }}
-              format="DD.MM.YYYY"
-              placeholder={['Начало', 'Конец']}
-              style={{ width: 220, borderRadius: borderRadius.sm }}
-            />
-            <Input
-              placeholder="Поиск по ID кампании или названию"
-              prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
-              value={campaignSearchQuery}
-              onChange={(e) => setCampaignSearchQuery(e.target.value)}
-              allowClear
-              style={{ maxWidth: 360, borderRadius: borderRadius.sm }}
-            />
-            <Select
-              placeholder="Статус"
-              value={filterStatus}
-              onChange={setFilterStatus}
-              options={[
-                { value: 'all', label: 'Все' },
-                { value: 'active', label: 'Активна' },
-                { value: 'paused', label: 'Приостановлена' },
-              ]}
-              style={{ minWidth: 160, borderRadius: borderRadius.sm }}
-            />
-            <Select
-              placeholder="Тип"
-              value={filterType ?? ''}
-              onChange={(v) => setFilterType(v === '' || v == null ? null : v)}
-              options={[
-                { value: '', label: 'Все типы' },
-                ...uniqueTypes.map((t) => ({ value: t, label: t })),
-              ]}
-              style={{ minWidth: 160, borderRadius: borderRadius.sm }}
-            />
-            <Button
-              type="primary"
-              loading={promotionSyncMutation.isPending}
-              disabled={selectedCabinetId == null}
-              onClick={() => promotionSyncMutation.mutate()}
-              style={{ borderRadius: borderRadius.sm }}
             >
-              Запустить обновление РК
-            </Button>
+              <DatePicker.RangePicker
+                value={dateRange}
+                onChange={(dates) => {
+                  if (dates != null && dates[0] != null && dates[1] != null) {
+                    setDateRange([dates[0], dates[1]])
+                  }
+                }}
+                format="DD.MM.YYYY"
+                placeholder={['Начало', 'Конец']}
+                style={{ width: 220, borderRadius: borderRadius.sm }}
+              />
+              <Input
+                placeholder="Поиск по ID кампании или названию"
+                prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
+                value={campaignSearchQuery}
+                onChange={(e) => setCampaignSearchQuery(e.target.value)}
+                allowClear
+                style={{ maxWidth: 360, borderRadius: borderRadius.sm }}
+              />
+              <Select
+                placeholder="Статус"
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={[
+                  { value: 'all', label: 'Все' },
+                  { value: 'active', label: 'Активна' },
+                  { value: 'paused', label: 'Приостановлена' },
+                ]}
+                style={{ minWidth: 160, borderRadius: borderRadius.sm }}
+              />
+              <Select
+                placeholder="Тип"
+                value={filterType ?? ''}
+                onChange={(v) => setFilterType(v === '' || v == null ? null : v)}
+                options={[
+                  { value: '', label: 'Все типы' },
+                  ...uniqueTypes.map((t) => ({ value: t, label: t })),
+                ]}
+                style={{ minWidth: 160, borderRadius: borderRadius.sm }}
+              />
+            </div>
+            <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
+              <Button
+                type="default"
+                icon={<SyncOutlined />}
+                loading={promotionSyncMutation.isPending}
+                disabled={selectedCabinetId == null}
+                onClick={() => promotionSyncMutation.mutate()}
+                style={{ borderRadius: borderRadius.sm }}
+              >
+                Обновить все РК
+              </Button>
+            </div>
           </div>
           {campaignsLoading ? (
             <div style={{ textAlign: 'center', padding: spacing.xxl }}>
