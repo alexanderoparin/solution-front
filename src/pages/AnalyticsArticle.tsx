@@ -231,6 +231,14 @@ export default function AnalyticsArticle() {
   const [campaignDateRange, setCampaignDateRange] = useState<[Dayjs, Dayjs]>(() => [dayjs().subtract(6, 'day'), dayjs()])
   const [stocksUpdateLoading, setStocksUpdateLoading] = useState(false)
 
+  /** Пока список work context грузится или выбранный кабинет ещё не проставлен — не дергаем API (иначе бэкенд берёт «дефолтный» кабинет и 404 по nmId). */
+  const workContextListEmpty =
+    isManagerOrAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0
+  const workContextReady =
+    !isManagerOrAdmin ||
+    (!workContext.workContextLoading &&
+      (workContext.workContextOptions.length === 0 || workContext.selectedCabinetId != null))
+
   useEffect(() => {
     if (!nmId) {
       setError('Артикул не указан')
@@ -238,9 +246,29 @@ export default function AnalyticsArticle() {
       return
     }
 
-    loadArticle(Number(nmId), campaignDateRange)
-    loadNotes(Number(nmId))
-  }, [nmId, selectedSellerId, cabinetReloadTrigger, campaignDateRange])
+    if (!workContextReady) {
+      return
+    }
+
+    if (workContextListEmpty) {
+      setError('Нет кабинетов с API-ключом для просмотра аналитики')
+      setLoading(false)
+      return
+    }
+
+    void loadArticle(Number(nmId), campaignDateRange)
+    void loadNotes(Number(nmId))
+  }, [
+    nmId,
+    selectedSellerId,
+    cabinetReloadTrigger,
+    campaignDateRange,
+    workContextReady,
+    workContextListEmpty,
+    workContext.selectedCabinetId,
+    workContext.workContextLoading,
+    workContext.workContextOptions.length,
+  ])
 
   const loadArticle = async (id: number, campaignPeriod: [Dayjs, Dayjs] | null) => {
     try {
