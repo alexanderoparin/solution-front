@@ -1,10 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Spin, Input, Select, DatePicker } from 'antd'
+import { Spin, Input, Select, DatePicker, Button, message } from 'antd'
 import { SearchOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import type { Campaign } from '../types/analytics'
@@ -18,7 +18,21 @@ dayjs.locale('ru')
 
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
 
-type SortField = 'createdAt' | 'name' | 'id' | 'type' | 'articlesCount' | 'status' | 'views' | 'clicks' | 'ctr' | 'cpc' | 'costs' | 'cart' | 'orders'
+type SortField =
+  | 'createdAt'
+  | 'updatedAt'
+  | 'name'
+  | 'id'
+  | 'type'
+  | 'articlesCount'
+  | 'status'
+  | 'views'
+  | 'clicks'
+  | 'ctr'
+  | 'cpc'
+  | 'costs'
+  | 'cart'
+  | 'orders'
 type SortOrder = 'asc' | 'desc'
 
 const thStyle = {
@@ -39,16 +53,17 @@ const tdOverflowStyle = { overflow: 'hidden', wordBreak: 'break-word' as const, 
 /** Ширины колонок таблицы в % (сумма 100), чтобы заполнение было примерно равномерным */
 const COL_WIDTHS_PCT = {
   createdAt: 8,
-  name: 14,
+  updatedAt: 8,
+  name: 11,
   id: 6,
   type: 8,
   articlesCount: 8,
   status: 9,
-  views: 8,
+  views: 7,
   clicks: 7,
   ctr: 6,
   cpc: 7,
-  costs: 8,
+  costs: 7,
   cart: 6,
   orders: 5,
 } as const
@@ -91,6 +106,31 @@ export default function AdvertisingCampaigns() {
 
   const dateFromStr = dateRange[0].format('YYYY-MM-DD')
   const dateToStr = dateRange[1].format('YYYY-MM-DD')
+
+  const promotionSyncMutation = useMutation({
+    mutationFn: () =>
+      analyticsApi.enqueuePromotionSync(
+        isManagerOrAdmin ? selectedSellerId ?? undefined : undefined,
+        selectedCabinetId ?? undefined,
+        dateFromStr,
+        dateToStr
+      ),
+    onSuccess: (data) => {
+      if (data.enqueued) {
+        message.success('Обновление РК поставлено в очередь')
+      } else {
+        message.info('Обновление РК за этот период уже есть в очереди')
+      }
+    },
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { error?: string; message?: string } } }
+      const msg =
+        ax.response?.data?.error ||
+        ax.response?.data?.message ||
+        'Не удалось поставить задачу обновления РК'
+      message.error(msg)
+    },
+  })
 
   const { data: campaigns = [], isLoading: campaignsLoading, isError: campaignsError, error: campaignsErr } = useQuery({
     queryKey: ['advertising-campaigns', isManagerOrAdmin ? selectedSellerId : null, selectedCabinetId, dateFromStr, dateToStr],
@@ -177,6 +217,10 @@ export default function AdvertisingCampaigns() {
           aVal = a.createdAt ? new Date(a.createdAt).getTime() : 0
           bVal = b.createdAt ? new Date(b.createdAt).getTime() : 0
           break
+        case 'updatedAt':
+          aVal = a.updatedAt ? new Date(a.updatedAt).getTime() : 0
+          bVal = b.updatedAt ? new Date(b.updatedAt).getTime() : 0
+          break
         case 'name':
           aVal = (a.name ?? '').toLowerCase()
           bVal = (b.name ?? '').toLowerCase()
@@ -243,6 +287,8 @@ export default function AdvertisingCampaigns() {
 
   const formatCampaignDate = (dateStr: string) =>
     dateStr ? dayjs(dateStr).format('DD.MM.YYYY') : '-'
+  const formatCampaignDateTime = (dateStr: string | null | undefined) =>
+    dateStr ? dayjs(dateStr).format('DD.MM.YYYY HH:mm') : '-'
   const formatNum = (v: number | null | undefined) =>
     v == null ? '-' : v.toLocaleString('ru-RU')
   const formatPct = (v: number | null | undefined) =>
@@ -358,6 +404,15 @@ export default function AdvertisingCampaigns() {
               ]}
               style={{ minWidth: 160, borderRadius: borderRadius.sm }}
             />
+            <Button
+              type="primary"
+              loading={promotionSyncMutation.isPending}
+              disabled={selectedCabinetId == null}
+              onClick={() => promotionSyncMutation.mutate()}
+              style={{ borderRadius: borderRadius.sm }}
+            >
+              Запустить обновление РК
+            </Button>
           </div>
           {campaignsLoading ? (
             <div style={{ textAlign: 'center', padding: spacing.xxl }}>
@@ -377,10 +432,11 @@ export default function AdvertisingCampaigns() {
           ) : (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', width: '100%' }}>
               <div style={{ overflowX: 'auto', width: '100%' }}>
-              <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 900 }}>
+              <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 980 }}>
                 <thead>
                   <tr style={{ backgroundColor: colors.bgGray }}>
                     <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.createdAt}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('createdAt')}>Дата создания <SortIcon field="createdAt" /></th>
+                    <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.updatedAt}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('updatedAt')}>Дата обновления <SortIcon field="updatedAt" /></th>
                     <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.name}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('name')}>Кампания <SortIcon field="name" /></th>
                     <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.id}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('id')}>ID <SortIcon field="id" /></th>
                     <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.type}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('type')}>Тип <SortIcon field="type" /></th>
@@ -411,6 +467,7 @@ export default function AdvertisingCampaigns() {
                       }}
                     >
                       <td style={{ width: `${COL_WIDTHS_PCT.createdAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDate(c.createdAt)}</td>
+                      <td style={{ width: `${COL_WIDTHS_PCT.updatedAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDateTime(c.updatedAt)}</td>
                       <td style={{ width: `${COL_WIDTHS_PCT.name}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>
                         <Link to={`/advertising/campaigns/${c.id}`} style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}>{c.name}</Link>
                       </td>

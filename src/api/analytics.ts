@@ -95,6 +95,27 @@ export const analyticsApi = {
   },
 
   /**
+   * Постановка в очередь обновления РК и статистики за период (те же query, что у списка кампаний).
+   */
+  enqueuePromotionSync: async (
+    sellerId?: number,
+    cabinetId?: number,
+    dateFrom?: string,
+    dateTo?: string
+  ): Promise<{ enqueued: boolean }> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    if (dateFrom) searchParams.set('dateFrom', dateFrom)
+    if (dateTo) searchParams.set('dateTo', dateTo)
+    const query = searchParams.toString()
+    const response = await apiClient.post<{ enqueued: boolean }>(
+      `/advertising/campaigns/promotion-sync${query ? `?${query}` : ''}`
+    )
+    return response.data
+  },
+
+  /**
    * Детали комбо-кампании: название, статус, список артикулов.
    */
   getCampaignDetail: async (campaignId: number, sellerId?: number, cabinetId?: number): Promise<CampaignDetail> => {
