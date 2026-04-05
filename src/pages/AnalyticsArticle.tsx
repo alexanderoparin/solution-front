@@ -69,6 +69,8 @@ const FUNNEL_ORDER: FunnelKey[] = ['general', 'advertising', 'pricing']
 // Размеры шрифта как в блоке воронок (12px — подписи/даты, 11px — данные)
 const FONT_PAGE = { fontSize: '12px' as const }
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
+/** Место под горизонтальный скроллбар в «В связке», чтобы полоса не перекрывала второй ряд карточек */
+const BUNDLE_LINKED_SCROLLBAR_GUTTER_PX = 16
 
 /** Даты в диапазоне [from, to] включительно, от старых к новым */
 function getDatesInRange(from: Dayjs, to: Dayjs): string[] {
@@ -896,11 +898,12 @@ export default function AnalyticsArticle() {
             const list = article.bundleProducts ?? []
             const pairs: typeof list[] = []
             for (let i = 0; i < list.length; i += 2) pairs.push(list.slice(i, i + 2))
+            const bundleScrollAreaHeight = ARTICLE_HEADER_PHOTO_HEIGHT + BUNDLE_LINKED_SCROLLBAR_GUTTER_PX
             return (
             <div style={{
               flex: 1,
               minWidth: 0,
-              height: ARTICLE_HEADER_PHOTO_HEIGHT,
+              height: bundleScrollAreaHeight,
               display: 'flex',
               alignItems: 'stretch',
               gap: 8
@@ -921,19 +924,32 @@ export default function AnalyticsArticle() {
                 В связке
               </div>
               <div
-                className="hide-scrollbar"
                 style={{
                   flex: 1,
                   minWidth: 0,
-                  height: ARTICLE_HEADER_PHOTO_HEIGHT,
-                  overflowX: 'auto',
-                  overflowY: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'row',
-                  gap: 8,
-                  paddingRight: 4
+                  overflow: 'hidden',
+                  height: bundleScrollAreaHeight,
                 }}
               >
+                <div
+                  style={{
+                    height: bundleScrollAreaHeight,
+                    overflowX: 'auto',
+                    overflowY: 'hidden',
+                    WebkitOverflowScrolling: 'touch',
+                    paddingRight: 4,
+                    scrollbarGutter: 'stable',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      gap: 8,
+                      width: 'max-content',
+                      height: ARTICLE_HEADER_PHOTO_HEIGHT,
+                    }}
+                  >
                 {pairs.map((pair, colIndex) => (
                   <div
                     key={colIndex}
@@ -1007,6 +1023,8 @@ export default function AnalyticsArticle() {
                     {pair.length < 2 && <div style={{ height: rowHeight, flexShrink: 0 }} />}
                   </div>
                 ))}
+                  </div>
+                </div>
               </div>
             </div>
             )
