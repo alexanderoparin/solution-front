@@ -1064,13 +1064,47 @@ export default function AdvertisingCampaignDetail() {
                     </Tooltip>
                   )
                   })()}
-                  <Select
-                    value={selectedStockNmId ?? undefined}
-                    onChange={(v) => setSelectedStockNmId(v ?? null)}
-                    style={{ width: 115, minWidth: 115, flexShrink: 0, marginLeft: 'auto' }}
-                    options={articles.map((a) => ({ value: a.nmId, label: String(a.nmId) }))}
-                    placeholder="Артикул"
-                  />
+                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: spacing.sm, flexShrink: 0 }}>
+                    <Select
+                      value={selectedStockNmId ?? undefined}
+                      onChange={(v) => setSelectedStockNmId(v ?? null)}
+                      style={{ width: 115, minWidth: 115, flexShrink: 0 }}
+                      options={articles.map((a) => ({ value: a.nmId, label: String(a.nmId) }))}
+                      placeholder="Артикул"
+                    />
+                    {(() => {
+                      const stocks = stockArticle?.stocks ?? []
+                      if (stocks.length === 0) return null
+                      const latestStocksUpdate = stocks
+                        .map((s: Stock) => s.updatedAt)
+                        .filter((d): d is string => d != null)
+                        .sort()
+                        .reverse()[0]
+                      const totalAmount = stocks.reduce((sum, stock) => sum + stock.amount, 0)
+                      return (
+                        <div
+                          title={latestStocksUpdate ? `Дата обновления ${dayjs(latestStocksUpdate).format('DD.MM.YY HH:mm')}` : ''}
+                          style={{ cursor: 'help' }}
+                        >
+                          <div
+                            style={{
+                              ...typography.h3,
+                              ...FONT_PAGE,
+                              color: colors.bgWhite,
+                              backgroundColor: colors.primary,
+                              padding: `${spacing.xs} ${spacing.sm}`,
+                              borderRadius: borderRadius.sm,
+                              fontWeight: 600,
+                              display: 'inline-block',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            Всего {totalAmount.toLocaleString('ru-RU')}
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
                 </div>
                 {stockArticle?.stocks && stockArticle.stocks.length > 0 ? (
                   <div style={{ flex: '1 1 0', overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
