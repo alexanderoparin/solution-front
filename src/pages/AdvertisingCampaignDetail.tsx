@@ -10,6 +10,7 @@ import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import { userApi } from '../api/user'
 import type { ArticleSummary, ArticleResponse, DailyData, Stock, StockSize, CampaignNote } from '../types/analytics'
+import { resolveArticlePhotoUrl } from '../types/analytics'
 import { colors, typography, spacing, borderRadius, shadows, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
@@ -871,6 +872,7 @@ export default function AdvertisingCampaignDetail() {
                       {articles.map((art) => {
                         const agg = periodAggregatesByNmId[art.nmId]?.[aggKey]
                         const isHovered = hoveredPeriodNmId === art.nmId
+                        const rowThumb = resolveArticlePhotoUrl(art)
                       const getVal = (agg: ReturnType<typeof aggregatePeriodData>, key: string) => {
                         if (!agg) return null
                         const map: Record<string, number | null | undefined> = {
@@ -894,7 +896,9 @@ export default function AdvertisingCampaignDetail() {
                           style={{ transition: transitions.fast }}
                         >
                           <td style={{ padding: '6px 12px', border: `1px solid ${colors.border}`, borderRight: 'none', display: 'flex', alignItems: 'center', gap: 8, backgroundColor: isHovered ? colors.bgGrayLight : colors.bgWhite }}>
-                            {art.photoTm && <img src={art.photoTm} alt="" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4 }} />}
+                            {rowThumb && (
+                              <img src={rowThumb} alt="" style={{ width: 32, height: 32, objectFit: 'contain', borderRadius: 4 }} />
+                            )}
                             <span style={{ fontSize: 11 }}>{art.nmId}</span>
                           </td>
                           {FUNNELS.general.metrics.map((m, i) => (
@@ -1672,6 +1676,7 @@ function CampaignNotesBlock({
 
 function ComboProductItem({ article, photoSize }: { article: ArticleSummary; photoSize: number }) {
   const articlePath = `/analytics/article/${article.nmId}`
+  const thumbUrl = resolveArticlePhotoUrl(article)
   return (
     <Link
       to={articlePath}
@@ -1694,9 +1699,9 @@ function ComboProductItem({ article, photoSize }: { article: ArticleSummary; pho
           flexShrink: 0,
         }}
       >
-        {article.photoTm ? (
+        {thumbUrl ? (
           <img
-            src={article.photoTm}
+            src={thumbUrl}
             alt=""
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />

@@ -10,6 +10,7 @@ import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import { userApi } from '../api/user'
 import type { ArticleResponse, StockSize, ArticleNote } from '../types/analytics'
+import { resolveArticlePhotoUrl } from '../types/analytics'
 import {
   colors,
   typography,
@@ -826,6 +827,8 @@ export default function AnalyticsArticle() {
     )
   }
 
+  const articleHeaderPhotoUrl = resolveArticlePhotoUrl(article.article)
+
   return (
     <>
       <Header
@@ -861,7 +864,7 @@ export default function AnalyticsArticle() {
           gap: spacing.lg,
           alignItems: 'stretch'
         }}>
-          {article.article.photoTm && (
+          {articleHeaderPhotoUrl && (
             <a
               href={article.article.productUrl}
               target="_blank"
@@ -888,7 +891,7 @@ export default function AnalyticsArticle() {
               }}
             >
               <img
-                src={article.article.photoTm}
+                src={articleHeaderPhotoUrl}
                 alt={article.article.title}
                 style={{
                   display: 'block',
@@ -1072,7 +1075,9 @@ export default function AnalyticsArticle() {
                       gap: 4
                     }}
                   >
-                    {pair.map((item) => (
+                    {pair.map((item) => {
+                      const bundleThumbUrl = resolveArticlePhotoUrl(item)
+                      return (
                       <a
                         key={item.nmId}
                         onClick={(e) => {
@@ -1103,9 +1108,9 @@ export default function AnalyticsArticle() {
                           e.currentTarget.style.borderColor = 'transparent'
                         }}
                       >
-                        {item.photoTm ? (
+                        {bundleThumbUrl ? (
                           <img
-                            src={item.photoTm}
+                            src={bundleThumbUrl}
                             alt=""
                             style={{
                               width: bundlePhotoW,
@@ -1129,7 +1134,7 @@ export default function AnalyticsArticle() {
                           </div>
                         </div>
                       </a>
-                    ))}
+                    )})}
                     {pair.length < 2 && <div style={{ height: rowHeight, flexShrink: 0 }} />}
                   </div>
                 ))}

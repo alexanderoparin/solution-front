@@ -17,7 +17,9 @@ export interface ArticleSummary {
   title: string
   brand: string
   subjectName: string
-  photoTm: string | null // URL миниатюры первой фотографии товара
+  photoTm: string | null // URL миниатюры первой фотографии товара (tm, ~75×100)
+  /** Превью 246×328 из WB; для шапки артикула предпочтительнее, чем tm */
+  photoC246x328?: string | null
   vendorCode?: string | null // Артикул продавца
   /** Средний рейтинг по отзывам WB (1–5). */
   rating?: number | null
@@ -84,6 +86,8 @@ export interface ArticleDetail {
   subjectName: string
   vendorCode: string
   photoTm: string | null
+  /** Превью 246×328; в шапке артикула используем вместо tm, если задано */
+  photoC246x328?: string | null
   rating: number | null
   reviewsCount: number | null
   productUrl: string
@@ -229,3 +233,13 @@ export interface ArticleResponse {
   adCampaignGoal?: string | null
 }
 
+/** Превью карточки для шапки артикула: 246×328, иначе tm. */
+export function resolveArticlePhotoUrl(photo: {
+  photoC246x328?: string | null
+  photoTm?: string | null
+}): string | null {
+  const hi = photo.photoC246x328?.trim()
+  if (hi) return hi
+  const tm = photo.photoTm?.trim()
+  return tm || null
+}
