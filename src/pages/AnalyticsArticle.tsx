@@ -71,6 +71,8 @@ const FONT_PAGE = { fontSize: '12px' as const }
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
 /** Место под горизонтальный скроллбар в «В связке», чтобы полоса не перекрывала второй ряд карточек */
 const BUNDLE_LINKED_SCROLLBAR_GUTTER_PX = 16
+/** Макс. ширина карточки заметки в списке (не на всю ширину страницы) */
+const NOTES_CARD_MAX_WIDTH_PX = 720
 
 /** Даты в диапазоне [from, to] включительно, от старых к новым */
 function getDatesInRange(from: Dayjs, to: Dayjs): string[] {
@@ -3244,19 +3246,24 @@ export default function AnalyticsArticle() {
                 <div
                   key={note.id}
                   style={{
+                    alignSelf: 'flex-start',
+                    width: '100%',
+                    maxWidth: NOTES_CARD_MAX_WIDTH_PX,
                     border: `1px solid ${colors.border}`,
                     borderRadius: borderRadius.sm,
                     padding: spacing.md,
-                    backgroundColor: colors.bgGrayLight
+                    backgroundColor: colors.bgGrayLight,
+                    boxSizing: 'border-box',
                   }}
                 >
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'flex-start',
+                    gap: spacing.md,
                     marginBottom: spacing.sm
                   }}>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: '1 1 auto', minWidth: 0 }}>
                       <div style={{
                         ...typography.body,
                   ...FONT_PAGE_SMALL,
@@ -3306,18 +3313,28 @@ export default function AnalyticsArticle() {
                             key={file.id}
                             style={{
                               display: 'flex',
+                              flexWrap: 'wrap',
                               alignItems: 'center',
-                              justifyContent: 'space-between',
+                              gap: spacing.sm,
+                              alignSelf: 'flex-start',
+                              maxWidth: '100%',
                               padding: spacing.xs,
                               backgroundColor: colors.bgWhite,
                               borderRadius: borderRadius.sm,
-                              border: `1px solid ${colors.borderLight}`
+                              border: `1px solid ${colors.borderLight}`,
+                              boxSizing: 'border-box',
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, minWidth: 0, flex: '1 1 160px' }}>
                               <PaperClipOutlined style={{ color: colors.textSecondary }} />
-                              <span style={{ ...typography.body,
-                  ...FONT_PAGE_SMALL, color: colors.textPrimary }}>
+                              <span
+                                style={{
+                                  ...typography.body,
+                                  ...FONT_PAGE_SMALL,
+                                  color: colors.textPrimary,
+                                  wordBreak: 'break-word',
+                                }}
+                              >
                                 {file.fileName}
                               </span>
                               <span style={{ ...typography.body,
@@ -3437,9 +3454,12 @@ export default function AnalyticsArticle() {
             </Button>
           </div>
         }
-        width="min(96vw, 1400px)"
         centered
-        styles={{ body: { paddingTop: 8 } }}
+        width="calc(100vw - 16px)"
+        styles={{
+          content: { maxWidth: 'calc(100vw - 16px)', width: 'calc(100vw - 16px)' },
+          body: { paddingTop: 8 },
+        }}
       >
         {imagePreview && (
           <div

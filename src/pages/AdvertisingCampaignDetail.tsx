@@ -29,6 +29,7 @@ const STOCKS_NM_SELECT_STYLE = { width: 115, minWidth: 115, flexShrink: 0 } as c
 const ALL_ARTICLES_NM_ID = 0
 const FONT_PAGE = { fontSize: '12px' as const }
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
+const NOTES_CARD_MAX_WIDTH_PX = 720
 const FUNNELS = {
   general: {
     name: 'Общая воронка',
@@ -1466,9 +1467,21 @@ function CampaignNotesBlock({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
           {notes.map((note) => (
-            <div key={note.id} style={{ border: `1px solid ${colors.border}`, borderRadius: borderRadius.sm, padding: spacing.md, backgroundColor: colors.bgGrayLight }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
+            <div
+              key={note.id}
+              style={{
+                alignSelf: 'flex-start',
+                width: '100%',
+                maxWidth: NOTES_CARD_MAX_WIDTH_PX,
+                border: `1px solid ${colors.border}`,
+                borderRadius: borderRadius.sm,
+                padding: spacing.md,
+                backgroundColor: colors.bgGrayLight,
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md }}>
+                <div style={{ flex: '1 1 auto', minWidth: 0 }}>
                   <div style={{ ...FONT_PAGE_SMALL, color: colors.textSecondary, marginBottom: 4 }}>{note.userEmail} • {dayjs(note.createdAt).format('DD.MM.YYYY HH:mm')}{note.updatedAt !== note.createdAt ? ' (изменено)' : ''}</div>
                   <div style={{ ...FONT_PAGE, color: colors.textPrimary, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{note.content}</div>
                 </div>
@@ -1485,17 +1498,21 @@ function CampaignNotesBlock({
                         key={file.id}
                         style={{
                           display: 'flex',
+                          flexWrap: 'wrap',
                           alignItems: 'center',
-                          justifyContent: 'space-between',
+                          gap: spacing.sm,
+                          alignSelf: 'flex-start',
+                          maxWidth: '100%',
                           padding: spacing.xs,
                           backgroundColor: colors.bgWhite,
                           borderRadius: borderRadius.sm,
                           border: `1px solid ${colors.borderLight}`,
+                          boxSizing: 'border-box',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, minWidth: 0, flex: '1 1 160px' }}>
                           <PaperClipOutlined style={{ color: colors.textSecondary }} />
-                          <span style={{ ...FONT_PAGE, color: colors.textPrimary }}>{file.fileName}</span>
+                          <span style={{ ...FONT_PAGE, color: colors.textPrimary, wordBreak: 'break-word' }}>{file.fileName}</span>
                           <span style={{ ...FONT_PAGE_SMALL, color: colors.textSecondary }}>({(file.fileSize / 1024).toFixed(2)} КБ)</span>
                         </div>
                         <div style={{ display: 'flex', gap: spacing.xs }}>
@@ -1576,9 +1593,12 @@ function CampaignNotesBlock({
           </Button>
         </div>
       }
-      width="min(96vw, 1400px)"
       centered
-      styles={{ body: { paddingTop: 8 } }}
+      width="calc(100vw - 16px)"
+      styles={{
+        content: { maxWidth: 'calc(100vw - 16px)', width: 'calc(100vw - 16px)' },
+        body: { paddingTop: 8 },
+      }}
     >
       {imagePreview && (
         <div
