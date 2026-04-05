@@ -204,6 +204,8 @@ export interface CampaignNote {
   content: string
   createdAt: string
   updatedAt: string
+  /** Вложения (тот же формат, что у заметок артикула). */
+  files?: ArticleNoteFile[]
 }
 
 export interface ArticleResponse {

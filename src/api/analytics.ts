@@ -170,6 +170,81 @@ export const analyticsApi = {
     await apiClient.delete(`/advertising/campaigns/${campaignId}/notes/${noteId}${params}`)
   },
 
+  uploadCampaignNoteFile: async (
+    campaignId: number,
+    noteId: number,
+    file: File,
+    sellerId?: number,
+    cabinetId?: number
+  ): Promise<ArticleNoteFile> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    const response = await apiClient.post<ArticleNoteFile>(
+      `/advertising/campaigns/${campaignId}/notes/${noteId}/files${params}`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    )
+    return response.data
+  },
+
+  getCampaignNoteFileBlob: async (
+    campaignId: number,
+    noteId: number,
+    fileId: number,
+    sellerId?: number,
+    cabinetId?: number
+  ): Promise<Blob> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    const response = await apiClient.get(
+      `/advertising/campaigns/${campaignId}/notes/${noteId}/files/${fileId}${params}`,
+      { responseType: 'blob' }
+    )
+    return new Blob([response.data])
+  },
+
+  downloadCampaignNoteFile: async (
+    campaignId: number,
+    noteId: number,
+    fileId: number,
+    fileName: string,
+    sellerId?: number,
+    cabinetId?: number
+  ): Promise<void> => {
+    const blob = await analyticsApi.getCampaignNoteFileBlob(campaignId, noteId, fileId, sellerId, cabinetId)
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', fileName)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  },
+
+  deleteCampaignNoteFile: async (
+    campaignId: number,
+    noteId: number,
+    fileId: number,
+    sellerId?: number,
+    cabinetId?: number
+  ): Promise<void> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    await apiClient.delete(`/advertising/campaigns/${campaignId}/notes/${noteId}/files/${fileId}${params}`)
+  },
+
   /**
    * Получает детальную информацию по артикулу.
    * campaignDateFrom/To — период для метрик РК в блоке «Список РК» (опционально).

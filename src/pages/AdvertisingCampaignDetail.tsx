@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Spin, DatePicker, Checkbox, Switch, Button, Select, message, Input, Modal, Tooltip } from 'antd'
-import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, RightOutlined, DownOutlined, ReloadOutlined } from '@ant-design/icons'
+import { Spin, DatePicker, Checkbox, Switch, Button, Select, message, Input, Modal, Tooltip, Upload } from 'antd'
+import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, RightOutlined, DownOutlined, ReloadOutlined, PaperClipOutlined, EyeOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -17,6 +17,7 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
+import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
 
 dayjs.locale('ru')
 
@@ -1184,6 +1185,8 @@ export default function AdvertisingCampaignDetail() {
   )
 }
 
+type CampaignNoteFileEntry = { uid: string; file: File }
+
 function CampaignNotesBlock({
   campaignId,
   sellerId,
@@ -1196,7 +1199,9 @@ function CampaignNotesBlock({
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false)
   const [editingNote, setEditingNote] = useState<CampaignNote | null>(null)
   const [noteContent, setNoteContent] = useState('')
+  const [noteFileItems, setNoteFileItems] = useState<CampaignNoteFileEntry[]>([])
   const [saving, setSaving] = useState(false)
+  const [imagePreview, setImagePreview] = useState<{ url: string; fileName: string } | null>(null)
 
   const { data: notes = [], isLoading: loadingNotes, refetch: refetchNotes } = useQuery({
     queryKey: ['campaign-notes', campaignId, sellerId, cabinetId],
@@ -1207,17 +1212,49 @@ function CampaignNotesBlock({
   const openNoteModal = (note?: CampaignNote) => {
     setEditingNote(note ?? null)
     setNoteContent(note?.content ?? '')
+    setNoteFileItems([])
     setIsNoteModalOpen(true)
   }
 
+  const handleNoteModalPaste = useCallback((e: React.ClipboardEvent) => {
+    const files = getFilesFromClipboardData(e.clipboardData)
+    if (files.length === 0) return
+    e.preventDefault()
+    const base = Date.now()
+    setNoteFileItems((prev) => [
+      ...prev,
+      ...files.map((file, i) => ({
+        uid: `paste-${base}-${i}-${Math.random().toString(36).slice(2, 9)}`,
+        file: renameGenericClipboardFile(file),
+      })),
+    ])
+    message.success(files.length === 1 ? 'Файл добавлен из буфера обмена' : `Добавлено файлов: ${files.length}`)
+  }, [])
+
   const handleCreateNote = async () => {
-    if (!noteContent.trim()) return
+    if (!noteContent.trim()) {
+      message.warning('Введите текст заметки')
+      return
+    }
     setSaving(true)
     try {
-      await analyticsApi.createCampaignNote(campaignId, { content: noteContent.trim() }, sellerId, cabinetId)
+      const created = await analyticsApi.createCampaignNote(campaignId, { content: noteContent.trim() }, sellerId, cabinetId)
       message.success('Заметка создана')
+      if (noteFileItems.length > 0) {
+        for (const { file } of noteFileItems) {
+          try {
+            await analyticsApi.uploadCampaignNoteFile(campaignId, created.id, file, sellerId, cabinetId)
+          } catch (err: unknown) {
+            message.error(
+              `Ошибка при загрузке файла ${file.name}: ${(err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Неизвестная ошибка'}`
+            )
+          }
+        }
+        message.success(`Загружено файлов: ${noteFileItems.length}`)
+      }
       setIsNoteModalOpen(false)
       setNoteContent('')
+      setNoteFileItems([])
       refetchNotes()
     } catch (err: unknown) {
       message.error(((err as { response?: { data?: { message?: string } } })?.response?.data?.message) ?? 'Ошибка')
@@ -1232,9 +1269,22 @@ function CampaignNotesBlock({
     try {
       await analyticsApi.updateCampaignNote(campaignId, editingNote.id, { content: noteContent.trim() }, sellerId, cabinetId)
       message.success('Заметка сохранена')
+      if (noteFileItems.length > 0) {
+        for (const { file } of noteFileItems) {
+          try {
+            await analyticsApi.uploadCampaignNoteFile(campaignId, editingNote.id, file, sellerId, cabinetId)
+          } catch (err: unknown) {
+            message.error(
+              `Ошибка при загрузке файла ${file.name}: ${(err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Неизвестная ошибка'}`
+            )
+          }
+        }
+        message.success(`Загружено файлов: ${noteFileItems.length}`)
+      }
       setIsNoteModalOpen(false)
       setEditingNote(null)
       setNoteContent('')
+      setNoteFileItems([])
       refetchNotes()
     } catch (err: unknown) {
       message.error(((err as { response?: { data?: { message?: string } } })?.response?.data?.message) ?? 'Ошибка')
@@ -1243,17 +1293,66 @@ function CampaignNotesBlock({
     }
   }
 
-  const handleDeleteNote = async (noteId: number) => {
+  const handleDeleteNote = (noteId: number) => {
+    Modal.confirm({
+      title: 'Удалить заметку?',
+      content: 'Это действие нельзя отменить.',
+      okText: 'Удалить',
+      okType: 'danger',
+      cancelText: 'Отмена',
+      onOk: async () => {
+        try {
+          await analyticsApi.deleteCampaignNote(campaignId, noteId, sellerId, cabinetId)
+          message.success('Заметка удалена')
+          refetchNotes()
+        } catch (err: unknown) {
+          message.error(((err as { response?: { data?: { message?: string } } })?.response?.data?.message) ?? 'Ошибка')
+        }
+      },
+    })
+  }
+
+  const isImageFile = (mimeType: string | null) => !!mimeType && mimeType.startsWith('image/')
+
+  const handleViewImage = async (noteId: number, fileId: number, fileName: string) => {
     try {
-      await analyticsApi.deleteCampaignNote(campaignId, noteId, sellerId, cabinetId)
-      message.success('Заметка удалена')
-      refetchNotes()
+      const blob = await analyticsApi.getCampaignNoteFileBlob(campaignId, noteId, fileId, sellerId, cabinetId)
+      const url = window.URL.createObjectURL(blob)
+      setImagePreview({ url, fileName })
     } catch (err: unknown) {
-      message.error(((err as { response?: { data?: { message?: string } } })?.response?.data?.message) ?? 'Ошибка')
+      message.error(((err as { response?: { data?: { message?: string } } })?.response?.data?.message) ?? 'Ошибка при загрузке изображения')
     }
   }
 
+  const handleDownloadFile = async (noteId: number, fileId: number, fileName: string) => {
+    try {
+      await analyticsApi.downloadCampaignNoteFile(campaignId, noteId, fileId, fileName, sellerId, cabinetId)
+    } catch (err: unknown) {
+      message.error(((err as { response?: { data?: { message?: string } } })?.response?.data?.message) ?? 'Ошибка при скачивании')
+    }
+  }
+
+  const handleDeleteFile = async (noteId: number, fileId: number) => {
+    Modal.confirm({
+      title: 'Удалить файл?',
+      content: 'Это действие нельзя отменить.',
+      okText: 'Удалить',
+      okType: 'danger',
+      cancelText: 'Отмена',
+      onOk: async () => {
+        try {
+          await analyticsApi.deleteCampaignNoteFile(campaignId, noteId, fileId, sellerId, cabinetId)
+          message.success('Файл удален')
+          refetchNotes()
+        } catch (err: unknown) {
+          message.error(((err as { response?: { data?: { message?: string } } })?.response?.data?.message) ?? 'Ошибка')
+        }
+      },
+    })
+  }
+
   return (
+    <>
     <div style={{ backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, marginBottom: spacing.lg, boxShadow: shadows.md }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
         <h2 style={{ ...typography.h2, ...FONT_PAGE, margin: 0, color: colors.textPrimary }}>Заметки по кампании</h2>
@@ -1279,6 +1378,39 @@ function CampaignNotesBlock({
                   <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteNote(note.id)} />
                 </div>
               </div>
+              {note.files && note.files.length > 0 && (
+                <div style={{ marginTop: spacing.sm, paddingTop: spacing.sm, borderTop: `1px solid ${colors.border}` }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
+                    {note.files.map((file) => (
+                      <div
+                        key={file.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: spacing.xs,
+                          backgroundColor: colors.bgWhite,
+                          borderRadius: borderRadius.sm,
+                          border: `1px solid ${colors.borderLight}`,
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
+                          <PaperClipOutlined style={{ color: colors.textSecondary }} />
+                          <span style={{ ...FONT_PAGE, color: colors.textPrimary }}>{file.fileName}</span>
+                          <span style={{ ...FONT_PAGE_SMALL, color: colors.textSecondary }}>({(file.fileSize / 1024).toFixed(2)} КБ)</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: spacing.xs }}>
+                          {isImageFile(file.mimeType) && (
+                            <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleViewImage(note.id, file.id, file.fileName)} title="Просмотр" />
+                          )}
+                          <Button type="text" size="small" icon={<DownloadOutlined />} onClick={() => handleDownloadFile(note.id, file.id, file.fileName)} title="Скачать" />
+                          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteFile(note.id, file.id)} title="Удалить" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -1288,17 +1420,70 @@ function CampaignNotesBlock({
         title={editingNote ? 'Редактировать заметку' : 'Создать заметку'}
         open={isNoteModalOpen}
         onOk={editingNote ? handleUpdateNote : handleCreateNote}
-        onCancel={() => { setIsNoteModalOpen(false); setEditingNote(null); setNoteContent('') }}
+        onCancel={() => {
+          setIsNoteModalOpen(false)
+          setEditingNote(null)
+          setNoteContent('')
+          setNoteFileItems([])
+        }}
         okText={editingNote ? 'Сохранить' : 'Создать'}
         cancelText="Отмена"
-        width={500}
+        width={600}
         confirmLoading={saving}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }} onPaste={handleNoteModalPaste}>
           <Input.TextArea rows={6} value={noteContent} onChange={(e) => setNoteContent(e.target.value)} placeholder="Введите текст заметки..." />
+          <div>
+            <div style={{ marginBottom: spacing.xs, ...FONT_PAGE_SMALL, color: colors.textSecondary }}>
+              Прикрепить файлы или вставьте из буфера обмена:
+            </div>
+            <Upload
+              multiple
+              beforeUpload={(file) => {
+                setNoteFileItems((prev) => [
+                  ...prev,
+                  { uid: `pick-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, file },
+                ])
+                return false
+              }}
+              onRemove={(file) => {
+                setNoteFileItems((prev) => prev.filter((x) => x.uid !== file.uid))
+              }}
+              fileList={noteFileItems.map(({ uid, file }) => ({
+                uid,
+                name: file.name,
+                status: 'done' as const,
+              }))}
+            >
+              <Button icon={<PaperClipOutlined />}>Выбрать файлы</Button>
+            </Upload>
+          </div>
         </div>
       </Modal>
     </div>
+
+    <Modal
+      title={imagePreview?.fileName || 'Просмотр изображения'}
+      open={!!imagePreview}
+      onCancel={() => {
+        if (imagePreview?.url) window.URL.revokeObjectURL(imagePreview.url)
+        setImagePreview(null)
+      }}
+      footer={null}
+      width={800}
+      centered
+    >
+      {imagePreview && (
+        <div style={{ textAlign: 'center' }}>
+          <img
+            src={imagePreview.url}
+            alt={imagePreview.fileName}
+            style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: borderRadius.sm }}
+          />
+        </div>
+      )}
+    </Modal>
+    </>
   )
 }
 
