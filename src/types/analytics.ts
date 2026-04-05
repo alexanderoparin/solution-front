@@ -225,5 +225,7 @@ export interface ArticleResponse {
   bundleProducts?: ArticleSummary[]
   /** Дата-время последнего запуска обновления остатков по кабинету (для кнопки «Обновить остатки») */
   lastStocksUpdateTriggeredAt?: string | null
+  /** Цель рекламной кампании по артикулу в выбранном кабинете */
+  adCampaignGoal?: string | null
 }
 

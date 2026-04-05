@@ -265,6 +265,23 @@ export const analyticsApi = {
   },
 
   /**
+   * Сохраняет текст «Цель рекламной кампании» для артикула в кабинете.
+   */
+  updateAdCampaignGoal: async (
+    nmId: number,
+    goal: string,
+    sellerId?: number,
+    cabinetId?: number
+  ): Promise<void> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    await apiClient.put(`/analytics/article/${nmId}/ad-campaign-goal${params}`, { goal })
+  },
+
+  /**
    * Получает детализацию остатков по размерам для товара на конкретном складе.
    */
   getStockSizes: async (nmId: number, warehouseName: string, sellerId?: number, cabinetId?: number): Promise<StockSize[]> => {

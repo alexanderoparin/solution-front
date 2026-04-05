@@ -114,8 +114,14 @@ export const transitions = {
 export const PRODUCT_PHOTO_WIDTH = 80
 export const PRODUCT_PHOTO_HEIGHT = 114
 
-/** Высота фото в шапке страницы артикула; ширина не задаём — подстраивается под соотношение сторон */
+/**
+ * Минимальная высота колонки с фото в шапке артикула; при `align-items: stretch` колонка подстраивается
+ * под высоту блока с текстом и целью РК. Блок «В связке» масштабируется от этой базы.
+ */
 export const ARTICLE_HEADER_PHOTO_HEIGHT = 120
+
+/** Фиксированная ширина колонки с фото в шапке артикула (рамка; картинка вписывается через object-fit). */
+export const ARTICLE_HEADER_PHOTO_WIDTH = 130
 
 export const breakpoints = {
   mobile: '768px',

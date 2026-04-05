@@ -10,7 +10,16 @@ import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import { userApi } from '../api/user'
 import type { ArticleResponse, StockSize, ArticleNote } from '../types/analytics'
-import { colors, typography, spacing, shadows, borderRadius, transitions, ARTICLE_HEADER_PHOTO_HEIGHT } from '../styles/analytics'
+import {
+  colors,
+  typography,
+  spacing,
+  shadows,
+  borderRadius,
+  transitions,
+  ARTICLE_HEADER_PHOTO_HEIGHT,
+  ARTICLE_HEADER_PHOTO_WIDTH,
+} from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -240,6 +249,8 @@ export default function AnalyticsArticle() {
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
   const [campaignDateRange, setCampaignDateRange] = useState<[Dayjs, Dayjs]>(() => [dayjs().subtract(6, 'day'), dayjs()])
   const [stocksUpdateLoading, setStocksUpdateLoading] = useState(false)
+  const [adCampaignGoalDraft, setAdCampaignGoalDraft] = useState('')
+  const [adCampaignGoalSaving, setAdCampaignGoalSaving] = useState(false)
 
   /** Пока список work context грузится или выбранный кабинет ещё не проставлен — не дергаем API (иначе бэкенд берёт «дефолтный» кабинет и 404 по nmId). */
   const workContextListEmpty =
@@ -289,6 +300,7 @@ export default function AnalyticsArticle() {
       const campaignDateTo = campaignPeriod ? campaignPeriod[1].format('YYYY-MM-DD') : undefined
       const data = await analyticsApi.getArticle(id, [], sellerId, getSelectedCabinetId(), campaignDateFrom, campaignDateTo)
       setArticle(data)
+      setAdCampaignGoalDraft(data.adCampaignGoal ?? '')
     } catch (err: any) {
       setError(err.response?.data?.message || 'Ошибка при загрузке данных')
     } finally {
@@ -310,6 +322,32 @@ export default function AnalyticsArticle() {
   }
 
   // Функции для работы с заметками
+  const persistAdCampaignGoal = async () => {
+    if (!nmId) return
+    const cabinetId = getSelectedCabinetId()
+    if (cabinetId == null) return
+    const saved = article?.adCampaignGoal ?? ''
+    if (adCampaignGoalDraft === saved) return
+    try {
+      setAdCampaignGoalSaving(true)
+      await analyticsApi.updateAdCampaignGoal(
+        Number(nmId),
+        adCampaignGoalDraft,
+        getSelectedSellerId(),
+        cabinetId
+      )
+      setArticle((prev) => (prev ? { ...prev, adCampaignGoal: adCampaignGoalDraft } : null))
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined
+      message.error(msg ?? 'Не удалось сохранить цель РК')
+    } finally {
+      setAdCampaignGoalSaving(false)
+    }
+  }
+
   const loadNotes = async (id: number) => {
     try {
       setLoadingNotes(true)
@@ -821,7 +859,7 @@ export default function AnalyticsArticle() {
         <div style={{
           display: 'flex',
           gap: spacing.lg,
-          alignItems: 'flex-start'
+          alignItems: 'stretch'
         }}>
           {article.article.photoTm && (
             <a
@@ -831,12 +869,16 @@ export default function AnalyticsArticle() {
               style={{
                 display: 'block',
                 flexShrink: 0,
-                height: ARTICLE_HEADER_PHOTO_HEIGHT,
+                alignSelf: 'stretch',
+                width: ARTICLE_HEADER_PHOTO_WIDTH,
+                minWidth: ARTICLE_HEADER_PHOTO_WIDTH,
+                minHeight: ARTICLE_HEADER_PHOTO_HEIGHT,
                 borderRadius: borderRadius.sm,
                 overflow: 'hidden',
                 border: `1px solid ${colors.borderLight}`,
                 cursor: 'pointer',
-                transition: transitions.fast
+                transition: transitions.fast,
+                backgroundColor: colors.bgWhite,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.opacity = '0.9'
@@ -850,9 +892,10 @@ export default function AnalyticsArticle() {
                 alt={article.article.title}
                 style={{
                   display: 'block',
+                  width: '100%',
                   height: '100%',
-                  width: 'auto',
-                  objectFit: 'contain'
+                  objectFit: 'contain',
+                  objectPosition: 'center',
                 }}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none'
@@ -889,6 +932,49 @@ export default function AnalyticsArticle() {
               <span style={{ color: colors.primary, fontWeight: 500 }}>
                 {article.article.vendorCode ?? '-'}
               </span>
+            </div>
+            <div
+              style={{
+                marginTop: spacing.sm,
+                maxWidth: 560,
+                padding: spacing.sm,
+                borderRadius: borderRadius.md,
+                backgroundColor: colors.bgGrayLight,
+                border: `1px solid ${colors.border}`,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: colors.textSecondary,
+                  marginBottom: 4,
+                }}
+              >
+                Цель рекламной кампании:
+              </div>
+              <Input.TextArea
+                value={adCampaignGoalDraft}
+                onChange={(e) => setAdCampaignGoalDraft(e.target.value)}
+                onBlur={() => void persistAdCampaignGoal()}
+                disabled={getSelectedCabinetId() == null}
+                placeholder={
+                  getSelectedCabinetId() == null
+                    ? 'Выберите кабинет, чтобы задать цель'
+                    : 'Кратко опишите цель РК по этому артикулу'
+                }
+                autoSize={{ minRows: 2, maxRows: 8 }}
+                maxLength={10000}
+                styles={{
+                  textarea: {
+                    fontSize: 11,
+                    lineHeight: 1.45,
+                  },
+                }}
+              />
+              {adCampaignGoalSaving && (
+                <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Сохранение…</div>
+              )}
             </div>
             {article.inWbPromotion && (
               <span
