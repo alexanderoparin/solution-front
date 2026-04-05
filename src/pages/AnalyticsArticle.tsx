@@ -10,7 +10,7 @@ import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import { userApi } from '../api/user'
 import type { ArticleResponse, StockSize, ArticleNote } from '../types/analytics'
-import { resolveArticlePhotoUrl } from '../types/analytics'
+import { resolveArticlePhotoUrl, resolveArticleBundleThumbUrl } from '../types/analytics'
 import {
   colors,
   typography,
@@ -82,6 +82,10 @@ const FONT_PAGE = { fontSize: '12px' as const }
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
 /** Место под горизонтальный скроллбар в «В связке», чтобы полоса не перекрывала второй ряд карточек */
 const BUNDLE_LINKED_SCROLLBAR_GUTTER_PX = 16
+/** Высота зоны с двумя рядами карточек «В связке» (шире/выше, чем половина шапки артикула). */
+const BUNDLE_LINKED_INNER_HEIGHT_PX = 144
+const BUNDLE_LINKED_ROW_GAP_PX = 8
+const BUNDLE_THUMB_WIDTH_PX = 96
 /** Макс. ширина карточки заметки в списке (не на всю ширину страницы) */
 const NOTES_CARD_MAX_WIDTH_PX = 720
 
@@ -1003,15 +1007,17 @@ export default function AnalyticsArticle() {
             )}
           </div>
 
-          {/* Товары в связке: по схеме — справа от основного, сетка 2 ряда × колонки, скролл влево-вправо; фото в 2 раза меньше основного */}
+          {/* Товары в связке: справа от основного, 2 ряда × колонки, горизонтальный скролл; размер превью — BUNDLE_* константы */}
           {(article.bundleProducts?.length ?? 0) > 0 && (() => {
-            const bundlePhotoH = Math.round(ARTICLE_HEADER_PHOTO_HEIGHT / 2)
-            const bundlePhotoW = 80
-            const rowHeight = Math.floor(ARTICLE_HEADER_PHOTO_HEIGHT / 2)
+            const bundleLinkedH = BUNDLE_LINKED_INNER_HEIGHT_PX
+            const rowHeight = Math.floor((bundleLinkedH - BUNDLE_LINKED_ROW_GAP_PX) / 2)
+            const bundlePhotoH = rowHeight
+            const bundlePhotoW = BUNDLE_THUMB_WIDTH_PX
+            const bundleColTextMinW = 152
             const list = article.bundleProducts ?? []
             const pairs: typeof list[] = []
             for (let i = 0; i < list.length; i += 2) pairs.push(list.slice(i, i + 2))
-            const bundleScrollAreaHeight = ARTICLE_HEADER_PHOTO_HEIGHT + BUNDLE_LINKED_SCROLLBAR_GUTTER_PX
+            const bundleScrollAreaHeight = bundleLinkedH + BUNDLE_LINKED_SCROLLBAR_GUTTER_PX
             return (
             <div style={{
               flex: 1,
@@ -1060,7 +1066,7 @@ export default function AnalyticsArticle() {
                       flexDirection: 'row',
                       gap: 8,
                       width: 'max-content',
-                      height: ARTICLE_HEADER_PHOTO_HEIGHT,
+                      height: bundleLinkedH,
                     }}
                   >
                 {pairs.map((pair, colIndex) => (
@@ -1068,15 +1074,15 @@ export default function AnalyticsArticle() {
                     key={colIndex}
                     style={{
                       flexShrink: 0,
-                      width: bundlePhotoW + 140,
-                      height: ARTICLE_HEADER_PHOTO_HEIGHT,
+                      width: bundlePhotoW + bundleColTextMinW,
+                      height: bundleLinkedH,
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 4
+                      gap: BUNDLE_LINKED_ROW_GAP_PX,
                     }}
                   >
                     {pair.map((item) => {
-                      const bundleThumbUrl = resolveArticlePhotoUrl(item)
+                      const bundleThumbUrl = resolveArticleBundleThumbUrl(item)
                       return (
                       <a
                         key={item.nmId}

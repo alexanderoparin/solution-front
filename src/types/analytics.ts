@@ -243,3 +243,14 @@ export function resolveArticlePhotoUrl(photo: {
   const tm = photo.photoTm?.trim()
   return tm || null
 }
+
+/** Миниатюры «в связке» в шапке артикула: tm (~75×100), при отсутствии — c246x328. */
+export function resolveArticleBundleThumbUrl(photo: {
+  photoC246x328?: string | null
+  photoTm?: string | null
+}): string | null {
+  const tm = photo.photoTm?.trim()
+  if (tm) return tm
+  const hi = photo.photoC246x328?.trim()
+  return hi || null
+}
