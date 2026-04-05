@@ -1299,6 +1299,7 @@ function CampaignNotesBlock({
   const [noteFileItems, setNoteFileItems] = useState<CampaignNoteFileEntry[]>([])
   const [saving, setSaving] = useState(false)
   const [imagePreview, setImagePreview] = useState<{ url: string; fileName: string } | null>(null)
+  const [imagePreviewFitWindow, setImagePreviewFitWindow] = useState(false)
 
   const { data: notes = [], isLoading: loadingNotes, refetch: refetchNotes } = useQuery({
     queryKey: ['campaign-notes', campaignId, sellerId, cabinetId],
@@ -1415,6 +1416,7 @@ function CampaignNotesBlock({
     try {
       const blob = await analyticsApi.getCampaignNoteFileBlob(campaignId, noteId, fileId, sellerId, cabinetId)
       const url = window.URL.createObjectURL(blob)
+      setImagePreviewFitWindow(false)
       setImagePreview({ url, fileName })
     } catch (err: unknown) {
       message.error(((err as { response?: { data?: { message?: string } } })?.response?.data?.message) ?? 'Ошибка при загрузке изображения')
@@ -1564,18 +1566,57 @@ function CampaignNotesBlock({
       open={!!imagePreview}
       onCancel={() => {
         if (imagePreview?.url) window.URL.revokeObjectURL(imagePreview.url)
+        setImagePreviewFitWindow(false)
         setImagePreview(null)
       }}
-      footer={null}
-      width={800}
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button onClick={() => setImagePreviewFitWindow((v) => !v)}>
+            {imagePreviewFitWindow ? 'Полный размер' : 'Подогнать в окно'}
+          </Button>
+        </div>
+      }
+      width="min(96vw, 1400px)"
       centered
+      styles={{ body: { paddingTop: 8 } }}
     >
       {imagePreview && (
-        <div style={{ textAlign: 'center' }}>
+        <div
+          style={{
+            overflow: imagePreviewFitWindow ? 'hidden' : 'auto',
+            maxHeight: 'min(85vh, 900px)',
+            textAlign: 'center',
+          }}
+        >
           <img
             src={imagePreview.url}
             alt={imagePreview.fileName}
-            style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain', borderRadius: borderRadius.sm }}
+            style={
+              imagePreviewFitWindow
+                ? {
+                    maxWidth: '100%',
+                    maxHeight: 'min(75vh, 820px)',
+                    objectFit: 'contain',
+                    borderRadius: borderRadius.sm,
+                    display: 'inline-block',
+                    verticalAlign: 'top',
+                  }
+                : {
+                    width: 'auto',
+                    height: 'auto',
+                    maxWidth: 'none',
+                    maxHeight: 'none',
+                    borderRadius: borderRadius.sm,
+                    display: 'inline-block',
+                    verticalAlign: 'top',
+                  }
+            }
+            onError={() => {
+              message.error('Ошибка при загрузке изображения')
+              if (imagePreview?.url) window.URL.revokeObjectURL(imagePreview.url)
+              setImagePreviewFitWindow(false)
+              setImagePreview(null)
+            }}
           />
         </div>
       )}

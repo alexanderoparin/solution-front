@@ -1214,21 +1214,23 @@ function ProductRow({
             {article.vendorCode ?? '-'}
           </Link>
         </div>
-        <span
-          title={inPromotion && promotionTooltip ? promotionTooltip : undefined}
-          style={{
-            display: 'inline-block',
-            padding: '2px 8px',
-            borderRadius: borderRadius.sm,
-            fontSize: 11,
-            fontWeight: 500,
-            backgroundColor: inPromotion ? colors.successLight : colors.bgGray,
-            color: inPromotion ? colors.success : colors.textSecondary,
-            cursor: inPromotion && promotionTooltip ? 'help' : undefined,
-          }}
-        >
-          {inPromotion ? 'В акции' : 'Не в акции'}
-        </span>
+        {inPromotion && (
+          <span
+            title={promotionTooltip || undefined}
+            style={{
+              display: 'inline-block',
+              padding: '2px 8px',
+              borderRadius: borderRadius.sm,
+              fontSize: 11,
+              fontWeight: 500,
+              backgroundColor: colors.successLight,
+              color: colors.success,
+              cursor: promotionTooltip ? 'help' : undefined,
+            }}
+          >
+            В акции
+          </span>
+        )}
       </td>
       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(3, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         {isLoading && rating == null && reviewsCount == null ? (

@@ -220,7 +220,9 @@ export default function AnalyticsArticle() {
   const [noteFileItems, setNoteFileItems] = useState<NoteFileEntry[]>([])
   const [uploadingNoteFiles, setUploadingNoteFiles] = useState(false)
   const [imagePreview, setImagePreview] = useState<{ url: string; fileName: string } | null>(null)
-  
+  /** false = натуральный размер (прокрутка); true = уместить в окно */
+  const [imagePreviewFitWindow, setImagePreviewFitWindow] = useState(false)
+
   // Периоды для сравнения (по умолчанию - две недели, разбитые по неделям)
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>([
     defaultDateFrom,
@@ -495,6 +497,7 @@ export default function AnalyticsArticle() {
       const blob = await analyticsApi.getFileBlob(Number(nmId), noteId, fileId, sellerId, getSelectedCabinetId())
       // Создаем blob URL для просмотра
       const url = window.URL.createObjectURL(blob)
+      setImagePreviewFitWindow(false)
       setImagePreview({ url, fileName })
     } catch (err: any) {
       message.error(err.response?.data?.message || 'Ошибка при загрузке изображения')
@@ -779,7 +782,7 @@ export default function AnalyticsArticle() {
         backgroundColor: colors.bgGray,
         minHeight: '100vh'
       }}>
-      {/* Шапка артикула: крупное фото вплотную к границам, название, категория·бренд, артикулы, В акции; справа — товары в связке */}
+      {/* Шапка артикула: крупное фото вплотную к границам, название, категория·бренд, артикулы; при участии в акции WB — плашка «В акции»; справа — товары в связке */}
       <div style={{
         backgroundColor: colors.bgWhite,
         border: `1px solid ${colors.borderLight}`,
@@ -868,26 +871,28 @@ export default function AnalyticsArticle() {
                 {article.article.vendorCode ?? '-'}
               </span>
             </div>
-            <span
-              title={article.inWbPromotion && (article.wbPromotionNames?.length ?? 0) > 0
-                ? (article.wbPromotionNames ?? []).map((n, i) => {
-                    const t = article.wbPromotionTypes?.[i]
-                    return t ? `${n} (${t})` : n
-                  }).join('\n')
-                : undefined}
-              style={{
-                display: 'inline-block',
-                padding: '2px 8px',
-                borderRadius: borderRadius.sm,
-                fontSize: 11,
-                fontWeight: 500,
-                backgroundColor: article.inWbPromotion ? colors.successLight : colors.bgGray,
-                color: article.inWbPromotion ? colors.success : colors.textSecondary,
-                cursor: article.inWbPromotion && (article.wbPromotionNames?.length ?? 0) > 0 ? 'help' : undefined,
-              }}
-            >
-              {article.inWbPromotion ? 'В акции' : 'Не в акции'}
-            </span>
+            {article.inWbPromotion && (
+              <span
+                title={(article.wbPromotionNames?.length ?? 0) > 0
+                  ? (article.wbPromotionNames ?? []).map((n, i) => {
+                      const t = article.wbPromotionTypes?.[i]
+                      return t ? `${n} (${t})` : n
+                    }).join('\n')
+                  : undefined}
+                style={{
+                  display: 'inline-block',
+                  padding: '2px 8px',
+                  borderRadius: borderRadius.sm,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  backgroundColor: colors.successLight,
+                  color: colors.success,
+                  cursor: (article.wbPromotionNames?.length ?? 0) > 0 ? 'help' : undefined,
+                }}
+              >
+                В акции
+              </span>
+            )}
           </div>
 
           {/* Товары в связке: по схеме — справа от основного, сетка 2 ряда × колонки, скролл влево-вправо; фото в 2 раза меньше основного */}
@@ -3422,28 +3427,57 @@ export default function AnalyticsArticle() {
           if (imagePreview?.url) {
             window.URL.revokeObjectURL(imagePreview.url)
           }
+          setImagePreviewFitWindow(false)
           setImagePreview(null)
         }}
-        footer={null}
-        width={800}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button onClick={() => setImagePreviewFitWindow((v) => !v)}>
+              {imagePreviewFitWindow ? 'Полный размер' : 'Подогнать в окно'}
+            </Button>
+          </div>
+        }
+        width="min(96vw, 1400px)"
         centered
+        styles={{ body: { paddingTop: 8 } }}
       >
         {imagePreview && (
-          <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              overflow: imagePreviewFitWindow ? 'hidden' : 'auto',
+              maxHeight: 'min(85vh, 900px)',
+              textAlign: 'center',
+            }}
+          >
             <img
               src={imagePreview.url}
               alt={imagePreview.fileName}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '70vh',
-                objectFit: 'contain',
-                borderRadius: borderRadius.sm,
-              }}
+              style={
+                imagePreviewFitWindow
+                  ? {
+                      maxWidth: '100%',
+                      maxHeight: 'min(75vh, 820px)',
+                      objectFit: 'contain',
+                      borderRadius: borderRadius.sm,
+                      display: 'inline-block',
+                      verticalAlign: 'top',
+                    }
+                  : {
+                      width: 'auto',
+                      height: 'auto',
+                      maxWidth: 'none',
+                      maxHeight: 'none',
+                      borderRadius: borderRadius.sm,
+                      display: 'inline-block',
+                      verticalAlign: 'top',
+                    }
+              }
               onError={() => {
                 message.error('Ошибка при загрузке изображения')
                 if (imagePreview?.url) {
                   window.URL.revokeObjectURL(imagePreview.url)
                 }
+                setImagePreviewFitWindow(false)
                 setImagePreview(null)
               }}
             />
