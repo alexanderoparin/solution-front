@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef, type RefObject } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Spin, Input, Button, Popover, Checkbox } from 'antd'
-import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled } from '@ant-design/icons'
+import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled, HolderOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
@@ -38,6 +38,37 @@ function getLast7DaysPeriod(): Period {
 const STORAGE_KEY_PREFIX = 'products_selected_nm_ids_'
 /** Общий ключ с Сводной: один и тот же выбор артикулов при переключении между Сводной и Товарами */
 const SHARED_FILTER_KEY_PREFIX = 'analytics_shared_selected_nm_ids_'
+/** Порядок строк в списке товаров (перетаскивание), по кабинету */
+const PRODUCTS_ROW_ORDER_STORAGE_PREFIX = 'products_row_order_'
+
+function sortArticlesByManualOrder(articles: ArticleSummary[], manualOrder: number[]): ArticleSummary[] {
+  const orderPos = new Map(manualOrder.map((id, i) => [id, i]))
+  const listed: ArticleSummary[] = []
+  const rest: ArticleSummary[] = []
+  for (const a of articles) {
+    if (orderPos.has(a.nmId)) listed.push(a)
+    else rest.push(a)
+  }
+  listed.sort((a, b) => orderPos.get(a.nmId)! - orderPos.get(b.nmId)!)
+  return [...listed, ...rest]
+}
+
+function moveArrayItem<T>(arr: T[], from: number, to: number): T[] {
+  if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return [...arr]
+  const next = [...arr]
+  const [item] = next.splice(from, 1)
+  next.splice(to, 0, item)
+  return next
+}
+
+function persistProductsRowOrder(cabinetId: number | null, order: number[]) {
+  if (cabinetId == null) return
+  try {
+    localStorage.setItem(`${PRODUCTS_ROW_ORDER_STORAGE_PREFIX}${cabinetId}`, JSON.stringify(order))
+  } catch {
+    /* ignore quota */
+  }
+}
 
 function getStoredSelectedNmIds(cabinetId: number | null): number[] {
   if (cabinetId == null) return []
@@ -233,6 +264,54 @@ export default function AnalyticsProducts() {
   const articles = useMemo(
     () => summaryData?.pages.flatMap((p) => p.articles) ?? [],
     [summaryData]
+  )
+
+  const [manualRowOrderNmIds, setManualRowOrderNmIds] = useState<number[]>([])
+
+  useEffect(() => {
+    if (selectedCabinetId == null) {
+      setManualRowOrderNmIds([])
+      return
+    }
+    try {
+      const raw = localStorage.getItem(`${PRODUCTS_ROW_ORDER_STORAGE_PREFIX}${selectedCabinetId}`)
+      if (!raw) {
+        setManualRowOrderNmIds([])
+        return
+      }
+      const parsed = JSON.parse(raw) as number[]
+      setManualRowOrderNmIds(Array.isArray(parsed) ? parsed : [])
+    } catch {
+      setManualRowOrderNmIds([])
+    }
+  }, [selectedCabinetId])
+
+  useEffect(() => {
+    if (articles.length === 0) return
+    const ids = new Set(articles.map((a) => a.nmId))
+    setManualRowOrderNmIds((prev) => {
+      const next = prev.filter((id) => ids.has(id))
+      if (next.length === prev.length) return prev
+      persistProductsRowOrder(selectedCabinetId, next)
+      return next
+    })
+  }, [articles, selectedCabinetId])
+
+  const sortedArticles = useMemo(
+    () => sortArticlesByManualOrder(articles, manualRowOrderNmIds),
+    [articles, manualRowOrderNmIds]
+  )
+
+  const handleReorderRows = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      setManualRowOrderNmIds((prev) => {
+        const list = sortArticlesByManualOrder(articles, prev)
+        const next = moveArrayItem(list, fromIndex, toIndex).map((a) => a.nmId)
+        persistProductsRowOrder(selectedCabinetId, next)
+        return next
+      })
+    },
+    [articles, selectedCabinetId]
   )
 
   const cabinetSelectProps =
@@ -651,13 +730,14 @@ export default function AnalyticsProducts() {
               }}
             >
               <ProductsTable
-                visibleArticles={articles}
+                visibleArticles={sortedArticles}
                 last7Dates={last7Dates}
                 last7DaysPeriod={last7DaysPeriod}
                 selectedCabinetId={selectedCabinetId}
                 selectedSellerId={selectedSellerId}
                 containerRef={containerRef}
                 onScroll={() => scrollHandler(true)}
+                onReorderRows={handleReorderRows}
               />
             </div>
           )}
@@ -670,15 +750,17 @@ export default function AnalyticsProducts() {
 
 const thBase = { borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary, padding: '8px 10px' as const }
 
-/** Правая граница ячейки для визуального разделения колонок (как в воронках в информации об артикуле) */
+/** Правая граница ячейки (col 0 — ручка перетаскивания, 1 — фото … 5 — размеры, 6.. — дни) */
 function getCellBorderRight(colIndex: number, dateColsCount: number): string {
-  const lastDateIndex = 5 + dateColsCount - 1
-  if (colIndex === 4 || colIndex === lastDateIndex) return `2px solid ${colors.border}`
+  const sizesColIndex = 5
+  const lastDateIndex = 6 + dateColsCount - 1
+  if (colIndex === sizesColIndex || colIndex === lastDateIndex) return `2px solid ${colors.border}`
   return `1px solid ${colors.border}`
 }
 
 /** Ширины колонок (px) для выравнивания шапки и тела таблицы */
 const COL_WIDTHS = {
+  drag: 32,
   photo: PRODUCT_PHOTO_WIDTH, /* колонка по ширине фото */
   name: 200, /* название и детали */
   rating: 88,
@@ -696,6 +778,7 @@ interface ProductsTableProps {
   selectedSellerId: number | undefined
   containerRef: RefObject<HTMLDivElement>
   onScroll: () => void
+  onReorderRows: (fromIndex: number, toIndex: number) => void
 }
 
 function ProductsTable({
@@ -706,8 +789,11 @@ function ProductsTable({
   selectedSellerId,
   containerRef,
   onScroll,
+  onReorderRows,
 }: ProductsTableProps) {
   const [scrollbarWidth, setScrollbarWidth] = useState(0)
+  const dragFromIndexRef = useRef<number | null>(null)
+  const [dragOverRowIndex, setDragOverRowIndex] = useState<number | null>(null)
   const onScrollRef = useRef(onScroll)
   onScrollRef.current = onScroll
 
@@ -736,6 +822,44 @@ function ProductsTable({
     return () => ro.disconnect()
   }, [containerRef, visibleArticles.length])
 
+  const handleRowDragStart = useCallback((rowIndex: number, e: React.DragEvent) => {
+    e.stopPropagation()
+    dragFromIndexRef.current = rowIndex
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', String(rowIndex))
+  }, [])
+
+  const handleRowDragEnd = useCallback(() => {
+    dragFromIndexRef.current = null
+    setDragOverRowIndex(null)
+  }, [])
+
+  const handleRowDragOver = useCallback((rowIndex: number, e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverRowIndex(rowIndex)
+  }, [])
+
+  const handleRowDrop = useCallback(
+    (rowIndex: number, e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      const from = dragFromIndexRef.current
+      dragFromIndexRef.current = null
+      setDragOverRowIndex(null)
+      if (from == null || from === rowIndex) return
+      onReorderRows(from, rowIndex)
+    },
+    [onReorderRows]
+  )
+
+  const handleRowDragLeave = useCallback((e: React.DragEvent) => {
+    const related = e.relatedTarget as Node | null
+    if (related && (e.currentTarget as HTMLElement).contains(related)) return
+    setDragOverRowIndex(null)
+  }, [])
+
   return (
     <div
       className="products-table-wrapper"
@@ -751,17 +875,25 @@ function ProductsTable({
       }}
     >
       <style>{`
-        .products-table-wrapper table.products-table colgroup col:first-child,
-        .products-table-wrapper table.products-table thead th:first-child,
-        .products-table-wrapper table.products-table tbody td:first-child {
-          width: ${PRODUCT_PHOTO_WIDTH}px !important;
-          min-width: ${PRODUCT_PHOTO_WIDTH}px !important;
-          max-width: ${PRODUCT_PHOTO_WIDTH}px !important;
+        .products-table-wrapper table.products-table colgroup col:nth-child(1),
+        .products-table-wrapper table.products-table thead th:nth-child(1),
+        .products-table-wrapper table.products-table tbody td:nth-child(1) {
+          width: ${COL_WIDTHS.drag}px !important;
+          min-width: ${COL_WIDTHS.drag}px !important;
+          max-width: ${COL_WIDTHS.drag}px !important;
           box-sizing: border-box !important;
         }
         .products-table-wrapper table.products-table colgroup col:nth-child(2),
         .products-table-wrapper table.products-table thead th:nth-child(2),
         .products-table-wrapper table.products-table tbody td:nth-child(2) {
+          width: ${PRODUCT_PHOTO_WIDTH}px !important;
+          min-width: ${PRODUCT_PHOTO_WIDTH}px !important;
+          max-width: ${PRODUCT_PHOTO_WIDTH}px !important;
+          box-sizing: border-box !important;
+        }
+        .products-table-wrapper table.products-table colgroup col:nth-child(3),
+        .products-table-wrapper table.products-table thead th:nth-child(3),
+        .products-table-wrapper table.products-table tbody td:nth-child(3) {
           width: ${COL_WIDTHS.name}px !important;
           min-width: ${COL_WIDTHS.name}px !important;
           max-width: ${COL_WIDTHS.name}px !important;
@@ -770,8 +902,9 @@ function ProductsTable({
       `}</style>
       {/* Шапка таблицы — отступ справа под ширину скроллбара тела (измеряется под текущую ОС/браузер) */}
       <div style={{ flexShrink: 0, borderBottom: `2px solid ${colors.border}`, paddingRight: scrollbarWidth }}>
-        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1000 }}>
+        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1032 }}>
           <colgroup>
+            <col style={{ width: COL_WIDTHS.drag }} />
             <col style={{ width: COL_WIDTHS.photo }} />
             <col style={{ width: COL_WIDTHS.name }} />
             <col />
@@ -784,11 +917,17 @@ function ProductsTable({
           </colgroup>
           <thead>
             <tr style={{ backgroundColor: colors.bgGray }}>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(0, last7Dates.length), padding: '8px 4px', width: COL_WIDTHS.photo, maxWidth: COL_WIDTHS.photo, boxSizing: 'border-box' }}>Фото</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(1, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box' }}>Название и детали</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(2, last7Dates.length) }}>Рейтинг</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(3, last7Dates.length) }}>Остаток</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(4, last7Dates.length) }}>Размеры</th>
+              <th
+                title="Перетащите строку за ручку слева"
+                style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRight(0, last7Dates.length), padding: '8px 2px', width: COL_WIDTHS.drag, maxWidth: COL_WIDTHS.drag, boxSizing: 'border-box' }}
+              >
+                <HolderOutlined style={{ color: colors.textMuted, fontSize: 14 }} />
+              </th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(1, last7Dates.length), padding: '8px 4px', width: COL_WIDTHS.photo, maxWidth: COL_WIDTHS.photo, boxSizing: 'border-box' }}>Фото</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box' }}>Название и детали</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(3, last7Dates.length) }}>Рейтинг</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(4, last7Dates.length) }}>Остаток</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(5, last7Dates.length) }}>Размеры</th>
               {last7Dates.map((d, i) => (
                 <th
                   key={d}
@@ -797,7 +936,7 @@ function ProductsTable({
                     textAlign: 'center',
                     padding: '8px 6px',
                     verticalAlign: 'bottom',
-                    borderRight: getCellBorderRight(5 + i, last7Dates.length),
+                    borderRight: getCellBorderRight(6 + i, last7Dates.length),
                   }}
                 >
                   <span style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', transform: 'rotate(-180deg)', display: 'inline-block', whiteSpace: 'nowrap' }}>
@@ -805,7 +944,7 @@ function ProductsTable({
                   </span>
                 </th>
               ))}
-              <th style={{ ...thBase, textAlign: 'center', color: colors.primary, borderRight: getCellBorderRight(5 + last7Dates.length, last7Dates.length) }}>Динамика</th>
+              <th style={{ ...thBase, textAlign: 'center', color: colors.primary, borderRight: getCellBorderRight(6 + last7Dates.length, last7Dates.length) }}>Динамика</th>
             </tr>
           </thead>
         </table>
@@ -816,8 +955,9 @@ function ProductsTable({
         onScroll={onScroll}
         style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, minHeight: 0 }}
       >
-        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1000 }}>
+        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1032 }}>
           <colgroup>
+            <col style={{ width: COL_WIDTHS.drag }} />
             <col style={{ width: COL_WIDTHS.photo }} />
             <col style={{ width: COL_WIDTHS.name }} />
             <col />
@@ -838,6 +978,12 @@ function ProductsTable({
                 selectedCabinetId={selectedCabinetId}
                 selectedSellerId={selectedSellerId}
                 rowIndex={idx}
+                onDragHandleStart={handleRowDragStart}
+                onDragHandleEnd={handleRowDragEnd}
+                onRowDragOver={handleRowDragOver}
+                onRowDrop={handleRowDrop}
+                onRowDragLeave={handleRowDragLeave}
+                isDragOver={dragOverRowIndex === idx}
               />
             ))}
           </tbody>
@@ -854,9 +1000,28 @@ interface ProductRowProps {
   selectedCabinetId: number | null
   selectedSellerId: number | undefined
   rowIndex: number
+  onDragHandleStart: (rowIndex: number, e: React.DragEvent) => void
+  onDragHandleEnd: () => void
+  onRowDragOver: (rowIndex: number, e: React.DragEvent) => void
+  onRowDrop: (rowIndex: number, e: React.DragEvent) => void
+  onRowDragLeave: (e: React.DragEvent) => void
+  isDragOver: boolean
 }
 
-function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, selectedSellerId, rowIndex }: ProductRowProps) {
+function ProductRow({
+  article,
+  last7Dates,
+  last7DaysPeriod,
+  selectedCabinetId,
+  selectedSellerId,
+  rowIndex,
+  onDragHandleStart,
+  onDragHandleEnd,
+  onRowDragOver,
+  onRowDrop,
+  onRowDragLeave,
+  isDragOver,
+}: ProductRowProps) {
   const navigate = useNavigate()
 
   const { data: articleDetail, isLoading } = useQuery({
@@ -927,10 +1092,14 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
       tabIndex={0}
       onClick={goToArticle}
       onKeyDown={(e) => e.key === 'Enter' && goToArticle()}
+      onDragOver={(e) => onRowDragOver(rowIndex, e)}
+      onDrop={(e) => onRowDrop(rowIndex, e)}
+      onDragLeave={(e) => onRowDragLeave(e)}
       style={{
         backgroundColor: rowIndex % 2 === 0 ? colors.bgWhite : colors.bgGrayLight,
         transition: transitions.fast,
         cursor: 'pointer',
+        boxShadow: isDragOver ? `inset 0 0 0 2px ${colors.primary}` : undefined,
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.backgroundColor = colors.bgGray
@@ -940,10 +1109,31 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
       }}
     >
       <td
+        draggable
+        onDragStart={(e) => onDragHandleStart(rowIndex, e)}
+        onDragEnd={onDragHandleEnd}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          padding: '4px 2px',
+          borderBottom: `1px solid ${colors.border}`,
+          borderRight: getCellBorderRight(0, last7Dates.length),
+          verticalAlign: 'middle',
+          textAlign: 'center',
+          width: COL_WIDTHS.drag,
+          maxWidth: COL_WIDTHS.drag,
+          boxSizing: 'border-box',
+          cursor: 'grab',
+          userSelect: 'none',
+        }}
+        title="Перетащите строку"
+      >
+        <HolderOutlined style={{ color: colors.textMuted, fontSize: 16, pointerEvents: 'none' }} />
+      </td>
+      <td
         style={{
           padding: '6px 0',
           borderBottom: `1px solid ${colors.border}`,
-          borderRight: getCellBorderRight(0, last7Dates.length),
+          borderRight: getCellBorderRight(1, last7Dates.length),
           verticalAlign: 'top',
           width: COL_WIDTHS.photo,
           maxWidth: COL_WIDTHS.photo,
@@ -1000,7 +1190,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
           </a>
         </div>
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(1, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         <Link
           to={articlePath}
           onClick={stopProp}
@@ -1040,7 +1230,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
           {inPromotion ? 'В акции' : 'Не в акции'}
         </span>
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(2, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(3, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         {isLoading && rating == null && reviewsCount == null ? (
           <Spin size="small" />
         ) : (
@@ -1057,10 +1247,10 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
           </span>
         )}
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(3, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(4, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         {isLoading ? '-' : stocksTotal.toLocaleString('ru-RU')}
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(4, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(5, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         {!firstStockWarehouse ? '-' : sizesLabel}
       </td>
       {last7Dates.map((d, i) => (
@@ -1070,7 +1260,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
             textAlign: 'center',
             padding: '6px',
             borderBottom: `1px solid ${colors.border}`,
-            borderRight: getCellBorderRight(5 + i, last7Dates.length),
+            borderRight: getCellBorderRight(6 + i, last7Dates.length),
             ...typography.body,
             ...FONT_PAGE_SMALL,
             verticalAlign: 'top',
@@ -1079,7 +1269,7 @@ function ProductRow({ article, last7Dates, last7DaysPeriod, selectedCabinetId, s
           {isLoading ? '-' : (dailyByDate.get(d) ?? 0).toLocaleString('ru-RU')}
         </td>
       ))}
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(5 + last7Dates.length, last7Dates.length), verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(6 + last7Dates.length, last7Dates.length), verticalAlign: 'top' }}>
         {isLoading ? (
           <Spin size="small" />
         ) : (
