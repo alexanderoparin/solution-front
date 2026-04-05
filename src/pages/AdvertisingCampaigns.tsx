@@ -78,7 +78,7 @@ export default function AdvertisingCampaigns() {
   const [filterType, setFilterType] = useState<string | null>(null)
 
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>(() => {
-    const to = dayjs()
+    const to = dayjs().subtract(1, 'day')
     return [to.subtract(13, 'day'), to]
   })
 
