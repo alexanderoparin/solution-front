@@ -22,6 +22,9 @@ import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/
 dayjs.locale('ru')
 
 const COMBO_PHOTO_SIZE = 80
+/** Ниже этой ширины колонки «Остатки» селект артикула переносится на отдельную строку (окно может быть широким). */
+const STOCKS_PANEL_HEADER_STACK_MAX_WIDTH_PX = 520
+const STOCKS_NM_SELECT_STYLE = { width: 115, minWidth: 115, flexShrink: 0 } as const
 /** Значение «все артикулы» для воронки (таблица/график по сумме по всем артикулам). */
 const ALL_ARTICLES_NM_ID = 0
 const FONT_PAGE = { fontSize: '12px' as const }
@@ -79,6 +82,24 @@ function getDatesInRange(from: Dayjs, to: Dayjs): string[] {
 }
 
 export default function AdvertisingCampaignDetail() {
+  const stocksPanelRef = useRef<HTMLDivElement>(null)
+  const [stocksHeaderNarrow, setStocksHeaderNarrow] = useState(false)
+
+  useEffect(() => {
+    const el = stocksPanelRef.current
+    if (!el) return
+    const update = () => {
+      const w = el.getBoundingClientRect().width
+      if (w <= 0) return
+      setStocksHeaderNarrow(w < STOCKS_PANEL_HEADER_STACK_MAX_WIDTH_PX)
+    }
+    update()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => update())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const role = useAuthStore((state) => state.role)
@@ -1011,99 +1032,141 @@ export default function AdvertisingCampaignDetail() {
                 )
               })()}
 
-              {/* Блок 5 — Остатки: заголовок, кнопка и выбор артикула в одну строку */}
-              <div style={{ flex: '1 1 280px', minWidth: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md, flexWrap: 'nowrap', minWidth: 0 }}>
-                  <h2 style={{ ...typography.h2, margin: 0, fontSize: 16, color: colors.textPrimary, flexShrink: 0 }}>
-                    {(() => {
-                      const stocks = stockArticle?.stocks ?? []
-                      const latestStocksUpdate = stocks.length > 0
-                        ? stocks.map((s: Stock) => s.updatedAt).filter((d): d is string => d != null).sort().reverse()[0]
-                        : null
-                      return latestStocksUpdate ? `Остатки на ${dayjs(latestStocksUpdate).format('DD.MM.YY HH:mm')}` : 'Остатки'
-                    })()}
-                  </h2>
-                  {cabinetIdForRequest != null && (() => {
-                      const triggeredAt = stockArticle?.lastStocksUpdateTriggeredAt ?? null
-                      const tooRecent = triggeredAt != null && dayjs(triggeredAt).isAfter(dayjs().subtract(1, 'hour'))
-                      const tooltipTitle = tooRecent && triggeredAt
-                        ? (() => {
-                            const nextAt = dayjs(triggeredAt).add(1, 'hour')
-                            const remainingMin = Math.max(0, nextAt.diff(dayjs(), 'minute', true))
-                            const mins = Math.ceil(remainingMin)
-                            if (mins >= 60) {
-                              const h = Math.ceil(mins / 60)
-                              return `Повторное обновление доступно через ${h} ${h === 1 ? 'час' : h < 5 ? 'часа' : 'часов'}`
-                            }
-                            return `Повторное обновление доступно через ${mins} ${mins === 1 ? 'минуту' : mins < 5 ? 'минуты' : 'минут'}`
-                          })()
-                        : 'Запустить обновление остатков'
-                      return (
-                    <Tooltip title={tooltipTitle}>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<ReloadOutlined style={{ fontSize: 14 }} />}
-                        loading={stocksUpdateLoading}
-                        disabled={tooRecent || stocksUpdateLoading}
-                        onClick={async () => {
-                          if (cabinetIdForRequest == null) return
-                          setStocksUpdateLoading(true)
-                          try {
-                            await userApi.triggerCabinetStocksUpdate(cabinetIdForRequest)
-                            message.success('Обновление остатков запущено. Данные обновятся в течение нескольких минут.')
-                            await queryClient.invalidateQueries({ queryKey: ['article-stocks', selectedStockNmId, cabinetIdForRequest] })
-                          } catch (err: any) {
-                            message.error(err.response?.data?.message ?? 'Не удалось запустить обновление остатков')
-                          } finally {
-                            setStocksUpdateLoading(false)
-                          }
-                        }}
-                        style={{ width: 28, height: 28, padding: 0, flexShrink: 0 }}
+              {/* Блок 5 — Остатки: при узкой колонке (< STOCKS_PANEL_HEADER_STACK_MAX_WIDTH_PX) селект на строке выше заголовка */}
+              <div ref={stocksPanelRef} style={{ flex: '1 1 280px', minWidth: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: stocksHeaderNarrow ? 'column' : 'row',
+                    alignItems: stocksHeaderNarrow ? 'stretch' : 'center',
+                    gap: spacing.sm,
+                    marginBottom: spacing.md,
+                    minWidth: 0,
+                  }}
+                >
+                  {stocksHeaderNarrow && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+                      <Select
+                        value={selectedStockNmId ?? undefined}
+                        onChange={(v) => setSelectedStockNmId(v ?? null)}
+                        style={STOCKS_NM_SELECT_STYLE}
+                        options={articles.map((a) => ({ value: a.nmId, label: String(a.nmId) }))}
+                        placeholder="Артикул"
                       />
-                    </Tooltip>
-                  )
-                  })()}
-                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: spacing.sm, flexShrink: 0 }}>
-                    <Select
-                      value={selectedStockNmId ?? undefined}
-                      onChange={(v) => setSelectedStockNmId(v ?? null)}
-                      style={{ width: 115, minWidth: 115, flexShrink: 0 }}
-                      options={articles.map((a) => ({ value: a.nmId, label: String(a.nmId) }))}
-                      placeholder="Артикул"
-                    />
-                    {(() => {
-                      const stocks = stockArticle?.stocks ?? []
-                      if (stocks.length === 0) return null
-                      const latestStocksUpdate = stocks
-                        .map((s: Stock) => s.updatedAt)
-                        .filter((d): d is string => d != null)
-                        .sort()
-                        .reverse()[0]
-                      const totalAmount = stocks.reduce((sum, stock) => sum + stock.amount, 0)
-                      return (
-                        <div
-                          title={latestStocksUpdate ? `Дата обновления ${dayjs(latestStocksUpdate).format('DD.MM.YY HH:mm')}` : ''}
-                          style={{ cursor: 'help' }}
-                        >
-                          <div
-                            style={{
-                              ...typography.h3,
-                              ...FONT_PAGE,
-                              color: colors.bgWhite,
-                              backgroundColor: colors.primary,
-                              padding: `${spacing.xs} ${spacing.sm}`,
-                              borderRadius: borderRadius.sm,
-                              fontWeight: 600,
-                              display: 'inline-block',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            Всего {totalAmount.toLocaleString('ru-RU')}
-                          </div>
-                        </div>
-                      )
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: spacing.sm,
+                      flexWrap: stocksHeaderNarrow ? 'wrap' : 'nowrap',
+                      minWidth: 0,
+                      flex: stocksHeaderNarrow ? undefined : 1,
+                    }}
+                  >
+                    <h2
+                      style={{
+                        ...typography.h2,
+                        margin: 0,
+                        fontSize: 16,
+                        color: colors.textPrimary,
+                        flexShrink: stocksHeaderNarrow ? 1 : 0,
+                        minWidth: 0,
+                      }}
+                    >
+                      {(() => {
+                        const stocks = stockArticle?.stocks ?? []
+                        const latestStocksUpdate = stocks.length > 0
+                          ? stocks.map((s: Stock) => s.updatedAt).filter((d): d is string => d != null).sort().reverse()[0]
+                          : null
+                        return latestStocksUpdate ? `Остатки на ${dayjs(latestStocksUpdate).format('DD.MM.YY HH:mm')}` : 'Остатки'
+                      })()}
+                    </h2>
+                    {cabinetIdForRequest != null && (() => {
+                        const triggeredAt = stockArticle?.lastStocksUpdateTriggeredAt ?? null
+                        const tooRecent = triggeredAt != null && dayjs(triggeredAt).isAfter(dayjs().subtract(1, 'hour'))
+                        const tooltipTitle = tooRecent && triggeredAt
+                          ? (() => {
+                              const nextAt = dayjs(triggeredAt).add(1, 'hour')
+                              const remainingMin = Math.max(0, nextAt.diff(dayjs(), 'minute', true))
+                              const mins = Math.ceil(remainingMin)
+                              if (mins >= 60) {
+                                const h = Math.ceil(mins / 60)
+                                return `Повторное обновление доступно через ${h} ${h === 1 ? 'час' : h < 5 ? 'часа' : 'часов'}`
+                              }
+                              return `Повторное обновление доступно через ${mins} ${mins === 1 ? 'минуту' : mins < 5 ? 'минуты' : 'минут'}`
+                            })()
+                          : 'Запустить обновление остатков'
+                        return (
+                      <Tooltip title={tooltipTitle}>
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<ReloadOutlined style={{ fontSize: 14 }} />}
+                          loading={stocksUpdateLoading}
+                          disabled={tooRecent || stocksUpdateLoading}
+                          onClick={async () => {
+                            if (cabinetIdForRequest == null) return
+                            setStocksUpdateLoading(true)
+                            try {
+                              await userApi.triggerCabinetStocksUpdate(cabinetIdForRequest)
+                              message.success('Обновление остатков запущено. Данные обновятся в течение нескольких минут.')
+                              await queryClient.invalidateQueries({ queryKey: ['article-stocks', selectedStockNmId, cabinetIdForRequest] })
+                            } catch (err: any) {
+                              message.error(err.response?.data?.message ?? 'Не удалось запустить обновление остатков')
+                            } finally {
+                              setStocksUpdateLoading(false)
+                            }
+                          }}
+                          style={{ width: 28, height: 28, padding: 0, flexShrink: 0 }}
+                        />
+                      </Tooltip>
+                    )
                     })()}
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: spacing.sm, flexShrink: 0 }}>
+                      {!stocksHeaderNarrow && (
+                        <Select
+                          value={selectedStockNmId ?? undefined}
+                          onChange={(v) => setSelectedStockNmId(v ?? null)}
+                          style={STOCKS_NM_SELECT_STYLE}
+                          options={articles.map((a) => ({ value: a.nmId, label: String(a.nmId) }))}
+                          placeholder="Артикул"
+                        />
+                      )}
+                      {(() => {
+                        const stocks = stockArticle?.stocks ?? []
+                        if (stocks.length === 0) return null
+                        const latestStocksUpdate = stocks
+                          .map((s: Stock) => s.updatedAt)
+                          .filter((d): d is string => d != null)
+                          .sort()
+                          .reverse()[0]
+                        const totalAmount = stocks.reduce((sum, stock) => sum + stock.amount, 0)
+                        return (
+                          <div
+                            title={latestStocksUpdate ? `Дата обновления ${dayjs(latestStocksUpdate).format('DD.MM.YY HH:mm')}` : ''}
+                            style={{ cursor: 'help' }}
+                          >
+                            <div
+                              style={{
+                                ...typography.h3,
+                                ...FONT_PAGE,
+                                color: colors.bgWhite,
+                                backgroundColor: colors.primary,
+                                padding: `${spacing.xs} ${spacing.sm}`,
+                                borderRadius: borderRadius.sm,
+                                fontWeight: 600,
+                                display: 'inline-block',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Всего {totalAmount.toLocaleString('ru-RU')}
+                            </div>
+                          </div>
+                        )
+                      })()}
+                    </div>
                   </div>
                 </div>
                 {stockArticle?.stocks && stockArticle.stocks.length > 0 ? (
