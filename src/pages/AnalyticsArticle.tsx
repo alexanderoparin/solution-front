@@ -17,6 +17,9 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
+import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
+
+type NoteFileEntry = { uid: string; file: File }
 
 dayjs.locale('ru')
 
@@ -212,7 +215,7 @@ export default function AnalyticsArticle() {
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false)
   const [editingNote, setEditingNote] = useState<ArticleNote | null>(null)
   const [noteContent, setNoteContent] = useState('')
-  const [noteFiles, setNoteFiles] = useState<File[]>([])
+  const [noteFileItems, setNoteFileItems] = useState<NoteFileEntry[]>([])
   const [uploadingNoteFiles, setUploadingNoteFiles] = useState(false)
   const [imagePreview, setImagePreview] = useState<{ url: string; fileName: string } | null>(null)
   
@@ -321,9 +324,24 @@ export default function AnalyticsArticle() {
       setEditingNote(null)
       setNoteContent('')
     }
-    setNoteFiles([])
+    setNoteFileItems([])
     setIsNoteModalOpen(true)
   }
+
+  const handleNoteModalPaste = useCallback((e: React.ClipboardEvent) => {
+    const files = getFilesFromClipboardData(e.clipboardData)
+    if (files.length === 0) return
+    e.preventDefault()
+    const base = Date.now()
+    setNoteFileItems((prev) => [
+      ...prev,
+      ...files.map((file, i) => ({
+        uid: `paste-${base}-${i}-${Math.random().toString(36).slice(2, 9)}`,
+        file: renameGenericClipboardFile(file),
+      })),
+    ])
+    message.success(files.length === 1 ? 'Файл добавлен из буфера обмена' : `Добавлено файлов: ${files.length}`)
+  }, [])
 
   const handleCreateNote = async () => {
     if (!noteContent.trim()) {
@@ -340,22 +358,22 @@ export default function AnalyticsArticle() {
       message.success('Заметка создана')
       
       // Загружаем файлы, если они были выбраны
-      if (noteFiles.length > 0) {
-        for (const file of noteFiles) {
+      if (noteFileItems.length > 0) {
+        for (const { file } of noteFileItems) {
           try {
             await analyticsApi.uploadFile(Number(nmId), createdNote.id, file, sellerId, getSelectedCabinetId())
           } catch (err: any) {
             message.error(`Ошибка при загрузке файла ${file.name}: ${err.response?.data?.message || 'Неизвестная ошибка'}`)
           }
         }
-        if (noteFiles.length > 0) {
-          message.success(`Загружено файлов: ${noteFiles.length}`)
+        if (noteFileItems.length > 0) {
+          message.success(`Загружено файлов: ${noteFileItems.length}`)
         }
       }
       
       setIsNoteModalOpen(false)
       setNoteContent('')
-      setNoteFiles([])
+      setNoteFileItems([])
       await loadNotes(Number(nmId))
     } catch (err: any) {
       message.error(err.response?.data?.message || 'Ошибка при создании заметки')
@@ -379,23 +397,23 @@ export default function AnalyticsArticle() {
       message.success('Заметка обновлена')
       
       // Загружаем файлы, если они были выбраны
-      if (noteFiles.length > 0) {
-        for (const file of noteFiles) {
+      if (noteFileItems.length > 0) {
+        for (const { file } of noteFileItems) {
           try {
             await analyticsApi.uploadFile(Number(nmId), editingNote.id, file, sellerId, getSelectedCabinetId())
           } catch (err: any) {
             message.error(`Ошибка при загрузке файла ${file.name}: ${err.response?.data?.message || 'Неизвестная ошибка'}`)
           }
         }
-        if (noteFiles.length > 0) {
-          message.success(`Загружено файлов: ${noteFiles.length}`)
+        if (noteFileItems.length > 0) {
+          message.success(`Загружено файлов: ${noteFileItems.length}`)
         }
       }
       
       setIsNoteModalOpen(false)
       setEditingNote(null)
       setNoteContent('')
-      setNoteFiles([])
+      setNoteFileItems([])
       await loadNotes(Number(nmId))
     } catch (err: any) {
       message.error(err.response?.data?.message || 'Ошибка при обновлении заметки')
@@ -3332,14 +3350,17 @@ export default function AnalyticsArticle() {
           setIsNoteModalOpen(false)
           setEditingNote(null)
           setNoteContent('')
-          setNoteFiles([])
+          setNoteFileItems([])
         }}
         okText={editingNote ? 'Сохранить' : 'Создать'}
         cancelText="Отмена"
         width={600}
         confirmLoading={uploadingNoteFiles}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}>
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: spacing.md }}
+          onPaste={handleNoteModalPaste}
+        >
           <Input.TextArea
             rows={6}
             value={noteContent}
@@ -3349,19 +3370,22 @@ export default function AnalyticsArticle() {
           <div>
             <div style={{ marginBottom: spacing.xs, ...typography.body,
                   ...FONT_PAGE_SMALL, color: colors.textSecondary }}>
-              Прикрепить файлы:
+              Прикрепить файлы или вставьте из буфера обмена:
             </div>
             <Upload
               multiple
               beforeUpload={(file) => {
-                setNoteFiles(prev => [...prev, file])
+                setNoteFileItems((prev) => [
+                  ...prev,
+                  { uid: `pick-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, file },
+                ])
                 return false // Предотвращаем автоматическую загрузку
               }}
               onRemove={(file) => {
-                setNoteFiles(prev => prev.filter(f => f.name !== file.name))
+                setNoteFileItems((prev) => prev.filter((x) => x.uid !== file.uid))
               }}
-              fileList={noteFiles.map((file, index) => ({
-                uid: `${index}`,
+              fileList={noteFileItems.map(({ uid, file }) => ({
+                uid,
                 name: file.name,
                 status: 'done' as const,
               }))}
