@@ -18,6 +18,7 @@ import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManager
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
 import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
+import { linkifyNoteText } from '../utils/linkifyNoteText'
 
 type NoteFileEntry = { uid: string; file: File }
 
@@ -322,7 +323,13 @@ export default function AnalyticsArticle() {
     }
   }
 
+  const canEditArticleNote = (note: ArticleNote) => userId != null && note.userId === userId
+
   const openNoteModal = (note?: ArticleNote) => {
+    if (note && !canEditArticleNote(note)) {
+      message.warning('Редактировать заметку может только её автор')
+      return
+    }
     if (note) {
       setEditingNote(note)
       setNoteContent(note.content)
@@ -430,6 +437,11 @@ export default function AnalyticsArticle() {
 
   const handleDeleteNote = async (noteId: number) => {
     if (!nmId) return
+    const note = notes.find((n) => n.id === noteId)
+    if (!note || !canEditArticleNote(note)) {
+      message.warning('Удалить заметку может только её автор')
+      return
+    }
 
     Modal.confirm({
       title: 'Удалить заметку?',
@@ -463,6 +475,11 @@ export default function AnalyticsArticle() {
 
   const handleDeleteFile = async (noteId: number, fileId: number) => {
     if (!nmId) return
+    const note = notes.find((n) => n.id === noteId)
+    if (!note || !canEditArticleNote(note)) {
+      message.warning('Удалить файл может только автор заметки')
+      return
+    }
 
     Modal.confirm({
       title: 'Удалить файл?',
@@ -3280,24 +3297,15 @@ export default function AnalyticsArticle() {
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-word'
                       }}>
-                        {note.content}
+                        {linkifyNoteText(note.content, { color: colors.primary })}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: spacing.xs, marginLeft: spacing.md }}>
-                      <Button
-                        type="text"
-                        size="small"
-                        icon={<EditOutlined />}
-                        onClick={() => openNoteModal(note)}
-                      />
-                      <Button
-                        type="text"
-                        size="small"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => handleDeleteNote(note.id)}
-                      />
-                    </div>
+                    {canEditArticleNote(note) && (
+                      <div style={{ display: 'flex', gap: spacing.xs, marginLeft: spacing.md, flexShrink: 0 }}>
+                        <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openNoteModal(note)} title="Редактировать" />
+                        <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteNote(note.id)} title="Удалить" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Файлы */}
@@ -3359,14 +3367,16 @@ export default function AnalyticsArticle() {
                                 onClick={() => handleDownloadFile(note.id, file.id, file.fileName)}
                                 title="Скачать"
                               />
-                              <Button
-                                type="text"
-                                size="small"
-                                danger
-                                icon={<DeleteOutlined />}
-                                onClick={() => handleDeleteFile(note.id, file.id)}
-                                title="Удалить"
-                              />
+                              {canEditArticleNote(note) && (
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  onClick={() => handleDeleteFile(note.id, file.id)}
+                                  title="Удалить"
+                                />
+                              )}
                             </div>
                           </div>
                         ))}

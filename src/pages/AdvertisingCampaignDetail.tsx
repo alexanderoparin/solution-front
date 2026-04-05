@@ -18,6 +18,7 @@ import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManager
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
 import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
+import { linkifyNoteText } from '../utils/linkifyNoteText'
 
 dayjs.locale('ru')
 
@@ -1302,13 +1303,21 @@ function CampaignNotesBlock({
   const [imagePreview, setImagePreview] = useState<{ url: string; fileName: string } | null>(null)
   const [imagePreviewFitWindow, setImagePreviewFitWindow] = useState(false)
 
+  const userId = useAuthStore((state) => state.userId)
+
   const { data: notes = [], isLoading: loadingNotes, refetch: refetchNotes } = useQuery({
     queryKey: ['campaign-notes', campaignId, sellerId, cabinetId],
     queryFn: () => analyticsApi.getCampaignNotes(campaignId, sellerId, cabinetId),
     enabled: !Number.isNaN(campaignId),
   })
 
+  const canEditCampaignNote = (note: CampaignNote) => userId != null && note.userId === userId
+
   const openNoteModal = (note?: CampaignNote) => {
+    if (note && !canEditCampaignNote(note)) {
+      message.warning('Редактировать заметку может только её автор')
+      return
+    }
     setEditingNote(note ?? null)
     setNoteContent(note?.content ?? '')
     setNoteFileItems([])
@@ -1393,6 +1402,11 @@ function CampaignNotesBlock({
   }
 
   const handleDeleteNote = (noteId: number) => {
+    const note = notes.find((n) => n.id === noteId)
+    if (!note || !canEditCampaignNote(note)) {
+      message.warning('Удалить заметку может только её автор')
+      return
+    }
     Modal.confirm({
       title: 'Удалить заметку?',
       content: 'Это действие нельзя отменить.',
@@ -1433,6 +1447,11 @@ function CampaignNotesBlock({
   }
 
   const handleDeleteFile = async (noteId: number, fileId: number) => {
+    const note = notes.find((n) => n.id === noteId)
+    if (!note || !canEditCampaignNote(note)) {
+      message.warning('Удалить файл может только автор заметки')
+      return
+    }
     Modal.confirm({
       title: 'Удалить файл?',
       content: 'Это действие нельзя отменить.',
@@ -1483,12 +1502,16 @@ function CampaignNotesBlock({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md }}>
                 <div style={{ flex: '1 1 auto', minWidth: 0 }}>
                   <div style={{ ...FONT_PAGE_SMALL, color: colors.textSecondary, marginBottom: 4 }}>{note.userEmail} • {dayjs(note.createdAt).format('DD.MM.YYYY HH:mm')}{note.updatedAt !== note.createdAt ? ' (изменено)' : ''}</div>
-                  <div style={{ ...FONT_PAGE, color: colors.textPrimary, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{note.content}</div>
+                  <div style={{ ...FONT_PAGE, color: colors.textPrimary, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {linkifyNoteText(note.content, { color: colors.primary })}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: spacing.xs, marginLeft: spacing.md }}>
-                  <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openNoteModal(note)} />
-                  <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteNote(note.id)} />
-                </div>
+                {canEditCampaignNote(note) && (
+                  <div style={{ display: 'flex', gap: spacing.xs, marginLeft: spacing.md, flexShrink: 0 }}>
+                    <Button type="text" size="small" icon={<EditOutlined />} onClick={() => openNoteModal(note)} title="Редактировать" />
+                    <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteNote(note.id)} title="Удалить" />
+                  </div>
+                )}
               </div>
               {note.files && note.files.length > 0 && (
                 <div style={{ marginTop: spacing.sm, paddingTop: spacing.sm, borderTop: `1px solid ${colors.border}` }}>
@@ -1520,7 +1543,9 @@ function CampaignNotesBlock({
                             <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleViewImage(note.id, file.id, file.fileName)} title="Просмотр" />
                           )}
                           <Button type="text" size="small" icon={<DownloadOutlined />} onClick={() => handleDownloadFile(note.id, file.id, file.fileName)} title="Скачать" />
-                          <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteFile(note.id, file.id)} title="Удалить" />
+                          {canEditCampaignNote(note) && (
+                            <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteFile(note.id, file.id)} title="Удалить" />
+                          )}
                         </div>
                       </div>
                     ))}
