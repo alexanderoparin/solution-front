@@ -4,7 +4,7 @@ import { Spin, Input, Button, Popover, Checkbox, message } from 'antd'
 import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled, HolderOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import type { ArticleSummary, Period } from '../types/analytics'
@@ -116,6 +116,7 @@ function MiniChart({ values, height = 32 }: { values: number[]; height?: number 
 }
 
 export default function AnalyticsProducts() {
+  const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role)
   const isManagerOrAdmin = role === 'ADMIN' || role === 'MANAGER'
   const [searchQuery, setSearchQuery] = useState('')
@@ -125,6 +126,7 @@ export default function AnalyticsProducts() {
   const [tagsExpanded, setTagsExpanded] = useState(false)
   const [onlyWithPhoto, setOnlyWithPhoto] = useState(true)
   const [onlyPriority, setOnlyPriority] = useState(false)
+  const [bulkPriorityLoading, setBulkPriorityLoading] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const filterListArticlesRef = useRef<ArticleSummary[]>([])
   /** Пропустить одну запись в storage, если только что восстановили выбор из общего ключа (чтобы не перезаписать 155 на []) */
@@ -387,6 +389,41 @@ export default function AnalyticsProducts() {
     })
   }, [])
 
+  const setPriorityForArticles = useCallback(
+    async (articlesForUpdate: ArticleSummary[], priority: boolean) => {
+      if (selectedCabinetId == null) return
+      const nmIds = Array.from(new Set(articlesForUpdate.map((a) => a.nmId).filter((v) => v != null)))
+      if (nmIds.length === 0) return
+      try {
+        setBulkPriorityLoading(true)
+        await Promise.all(
+          nmIds.map((nmId) =>
+            analyticsApi.updateArticlePriority(
+              nmId,
+              priority,
+              selectedSellerId,
+              selectedCabinetId
+            )
+          )
+        )
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['analytics-products-summary'] }),
+          queryClient.invalidateQueries({ queryKey: ['analytics-products-filter-list'] }),
+        ])
+        message.success(priority ? 'Приоритет проставлен для выбранных артикулов' : 'Приоритет снят для выбранных артикулов')
+      } catch (err: unknown) {
+        const msg =
+          err && typeof err === 'object' && 'response' in err
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+            : undefined
+        message.error(msg ?? 'Не удалось массово обновить приоритет')
+      } finally {
+        setBulkPriorityLoading(false)
+      }
+    },
+    [queryClient, selectedCabinetId, selectedSellerId]
+  )
+
   const last7Dates = useMemo(() => {
     const end = dayjs().subtract(1, 'day')
     const dates: string[] = []
@@ -483,7 +520,7 @@ export default function AnalyticsProducts() {
                         style={{ marginBottom: 12 }}
                         allowClear
                       />
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexShrink: 0 }}>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexShrink: 0 }}>
                         <Button
                           size="small"
                           onClick={() => {
@@ -501,6 +538,28 @@ export default function AnalyticsProducts() {
                           }}
                         >
                           Снять все
+                        </Button>
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexShrink: 0 }}>
+                        <Button
+                          size="small"
+                          loading={bulkPriorityLoading}
+                          style={{ whiteSpace: 'nowrap' }}
+                          onClick={() => {
+                            void setPriorityForArticles(filterListFiltered, true)
+                          }}
+                        >
+                          Приоритет всем
+                        </Button>
+                        <Button
+                          size="small"
+                          loading={bulkPriorityLoading}
+                          style={{ whiteSpace: 'nowrap' }}
+                          onClick={() => {
+                            void setPriorityForArticles(filterListFiltered, false)
+                          }}
+                        >
+                          Снять приоритет
                         </Button>
                       </div>
                       {selectedNotInList.length > 0 && (
