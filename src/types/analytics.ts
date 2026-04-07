@@ -20,6 +20,8 @@ export interface ArticleSummary {
   photoTm: string | null // URL миниатюры первой фотографии товара (tm, ~75×100)
   /** Превью 246×328 из WB; для шапки артикула предпочтительнее, чем tm */
   photoC246x328?: string | null
+  /** Приоритетная карточка для первоочередной обработки событий по nmID */
+  isPriority?: boolean | null
   vendorCode?: string | null // Артикул продавца
   /** Средний рейтинг по отзывам WB (1–5). */
   rating?: number | null

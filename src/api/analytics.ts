@@ -32,6 +32,8 @@ export interface SummaryRequest {
   filterToNone?: boolean
   /** Если true — только артикулы с заполненным фото. */
   onlyWithPhoto?: boolean
+  /** Если true — только приоритетные артикулы. */
+  onlyPriority?: boolean
 }
 
 export const analyticsApi = {
@@ -279,6 +281,23 @@ export const analyticsApi = {
     const query = searchParams.toString()
     const params = query ? `?${query}` : ''
     await apiClient.put(`/analytics/article/${nmId}/ad-campaign-goal${params}`, { goal })
+  },
+
+  /**
+   * Переключает флаг приоритетной карточки.
+   */
+  updateArticlePriority: async (
+    nmId: number,
+    priority: boolean,
+    sellerId?: number,
+    cabinetId?: number
+  ): Promise<void> => {
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    await apiClient.put(`/analytics/article/${nmId}/priority${params}`, { priority })
   },
 
   /**

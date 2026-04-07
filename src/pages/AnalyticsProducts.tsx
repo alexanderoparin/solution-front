@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef, type RefObject } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Spin, Input, Button, Popover, Checkbox } from 'antd'
+import { Spin, Input, Button, Popover, Checkbox, message } from 'antd'
 import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled, HolderOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -124,6 +124,7 @@ export default function AnalyticsProducts() {
   const [filterSearch, setFilterSearch] = useState('')
   const [tagsExpanded, setTagsExpanded] = useState(false)
   const [onlyWithPhoto, setOnlyWithPhoto] = useState(true)
+  const [onlyPriority, setOnlyPriority] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const filterListArticlesRef = useRef<ArticleSummary[]>([])
   /** Пропустить одну запись в storage, если только что восстановили выбор из общего ключа (чтобы не перезаписать 155 на []) */
@@ -198,6 +199,7 @@ export default function AnalyticsProducts() {
       last7DaysPeriod,
       searchTrimmed,
       onlyWithPhoto,
+      onlyPriority,
       allDeselected ? 'none' : (selectedNmIds.length > 0 ? [...selectedNmIds].sort((a, b) => a - b) : null),
     ],
     queryFn: ({ pageParam }) =>
@@ -209,6 +211,7 @@ export default function AnalyticsProducts() {
         size: PAGE_SIZE,
         search: searchTrimmed || undefined,
         onlyWithPhoto: onlyWithPhoto || undefined,
+        onlyPriority: onlyPriority || undefined,
         ...(allDeselected ? { filterToNone: true } : selectedNmIds.length > 0 ? { includedNmIds: selectedNmIds } : {}),
       }),
     getNextPageParam: (lastPage, allPages) => {
@@ -229,6 +232,7 @@ export default function AnalyticsProducts() {
       last7DaysPeriod,
       searchTrimmed,
       onlyWithPhoto,
+      onlyPriority,
     ],
     queryFn: () =>
       analyticsApi.getSummary({
@@ -239,6 +243,7 @@ export default function AnalyticsProducts() {
         size: FILTER_LIST_PAGE_SIZE,
         search: searchTrimmed || undefined,
         onlyWithPhoto: onlyWithPhoto || undefined,
+        onlyPriority: onlyPriority || undefined,
       }),
     enabled: selectedCabinetId != null,
   })
@@ -602,6 +607,12 @@ export default function AnalyticsProducts() {
             >
               Только с фото
             </Checkbox>
+            <Checkbox
+              checked={onlyPriority}
+              onChange={(e) => setOnlyPriority(e.target.checked)}
+            >
+              Только приоритетные
+            </Checkbox>
             </div>
           </div>
 
@@ -752,8 +763,8 @@ const thBase = { borderBottom: `2px solid ${colors.border}`, ...typography.body,
 
 /** Правая граница ячейки (col 0 — ручка перетаскивания, 1 — фото … 5 — размеры, 6.. — дни) */
 function getCellBorderRight(colIndex: number, dateColsCount: number): string {
-  const sizesColIndex = 5
-  const lastDateIndex = 6 + dateColsCount - 1
+  const sizesColIndex = 6
+  const lastDateIndex = 7 + dateColsCount - 1
   if (colIndex === sizesColIndex || colIndex === lastDateIndex) return `2px solid ${colors.border}`
   return `1px solid ${colors.border}`
 }
@@ -763,6 +774,7 @@ const COL_WIDTHS = {
   drag: 32,
   photo: PRODUCT_PHOTO_WIDTH, /* колонка по ширине фото */
   name: 200, /* название и детали */
+  priority: 72,
   rating: 88,
   stock: 72,
   sizes: 100,
@@ -899,6 +911,14 @@ function ProductsTable({
           max-width: ${COL_WIDTHS.name}px !important;
           box-sizing: border-box !important;
         }
+        .products-table-wrapper table.products-table colgroup col:nth-child(4),
+        .products-table-wrapper table.products-table thead th:nth-child(4),
+        .products-table-wrapper table.products-table tbody td:nth-child(4) {
+          width: ${COL_WIDTHS.priority}px !important;
+          min-width: ${COL_WIDTHS.priority}px !important;
+          max-width: ${COL_WIDTHS.priority}px !important;
+          box-sizing: border-box !important;
+        }
       `}</style>
       {/* Шапка таблицы — отступ справа под ширину скроллбара тела (измеряется под текущую ОС/браузер) */}
       <div style={{ flexShrink: 0, borderBottom: `2px solid ${colors.border}`, paddingRight: scrollbarWidth }}>
@@ -907,6 +927,7 @@ function ProductsTable({
             <col style={{ width: COL_WIDTHS.drag }} />
             <col style={{ width: COL_WIDTHS.photo }} />
             <col style={{ width: COL_WIDTHS.name }} />
+            <col style={{ width: COL_WIDTHS.priority }} />
             <col />
             <col />
             <col />
@@ -925,9 +946,10 @@ function ProductsTable({
               </th>
               <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(1, last7Dates.length), padding: '8px 4px', width: COL_WIDTHS.photo, maxWidth: COL_WIDTHS.photo, boxSizing: 'border-box' }}>Фото</th>
               <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box' }}>Название и детали</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(3, last7Dates.length) }}>Рейтинг</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(4, last7Dates.length) }}>Остаток</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(5, last7Dates.length) }}>Размеры</th>
+              <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRight(3, last7Dates.length), width: COL_WIDTHS.priority, maxWidth: COL_WIDTHS.priority, boxSizing: 'border-box' }}>Приоритет</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(4, last7Dates.length) }}>Рейтинг</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(5, last7Dates.length) }}>Остаток</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(6, last7Dates.length) }}>Размеры</th>
               {last7Dates.map((d, i) => (
                 <th
                   key={d}
@@ -936,7 +958,7 @@ function ProductsTable({
                     textAlign: 'center',
                     padding: '8px 6px',
                     verticalAlign: 'bottom',
-                    borderRight: getCellBorderRight(6 + i, last7Dates.length),
+                    borderRight: getCellBorderRight(7 + i, last7Dates.length),
                   }}
                 >
                   <span style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', transform: 'rotate(-180deg)', display: 'inline-block', whiteSpace: 'nowrap' }}>
@@ -944,7 +966,7 @@ function ProductsTable({
                   </span>
                 </th>
               ))}
-              <th style={{ ...thBase, textAlign: 'center', color: colors.primary, borderRight: getCellBorderRight(6 + last7Dates.length, last7Dates.length) }}>Динамика</th>
+              <th style={{ ...thBase, textAlign: 'center', color: colors.primary, borderRight: getCellBorderRight(7 + last7Dates.length, last7Dates.length) }}>Динамика</th>
             </tr>
           </thead>
         </table>
@@ -960,6 +982,7 @@ function ProductsTable({
             <col style={{ width: COL_WIDTHS.drag }} />
             <col style={{ width: COL_WIDTHS.photo }} />
             <col style={{ width: COL_WIDTHS.name }} />
+            <col style={{ width: COL_WIDTHS.priority }} />
             <col />
             <col />
             <col />
@@ -1023,6 +1046,12 @@ function ProductRow({
   isDragOver,
 }: ProductRowProps) {
   const navigate = useNavigate()
+  const [isPriority, setIsPriority] = useState(Boolean(article.isPriority))
+  const [prioritySaving, setPrioritySaving] = useState(false)
+
+  useEffect(() => {
+    setIsPriority(Boolean(article.isPriority))
+  }, [article.isPriority])
 
   const { data: articleDetail, isLoading } = useQuery({
     queryKey: ['analytics-article', article.nmId, last7DaysPeriod, selectedCabinetId, selectedSellerId],
@@ -1085,6 +1114,29 @@ function ProductRow({
   const articlePath = `/analytics/article/${article.nmId}`
 
   const stopProp = (e: React.MouseEvent) => e.stopPropagation()
+
+  const togglePriority = async (checked: boolean) => {
+    if (selectedCabinetId == null) return
+    try {
+      setPrioritySaving(true)
+      setIsPriority(checked)
+      await analyticsApi.updateArticlePriority(
+        article.nmId,
+        checked,
+        selectedSellerId,
+        selectedCabinetId
+      )
+    } catch (err: unknown) {
+      setIsPriority((prev) => !prev)
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined
+      message.error(msg ?? 'Не удалось обновить приоритет карточки')
+    } finally {
+      setPrioritySaving(false)
+    }
+  }
 
   return (
     <tr
@@ -1232,7 +1284,18 @@ function ProductRow({
           </span>
         )}
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(3, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 6px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(3, last7Dates.length), textAlign: 'center', verticalAlign: 'top' }}>
+        <Checkbox
+          checked={isPriority}
+          disabled={prioritySaving || selectedCabinetId == null}
+          onClick={stopProp}
+          onChange={(e) => {
+            e.stopPropagation()
+            void togglePriority(e.target.checked)
+          }}
+        />
+      </td>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(4, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         {isLoading && rating == null && reviewsCount == null ? (
           <Spin size="small" />
         ) : (
@@ -1249,10 +1312,10 @@ function ProductRow({
           </span>
         )}
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(4, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(5, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         {isLoading ? '-' : stocksTotal.toLocaleString('ru-RU')}
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(5, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(6, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         {!firstStockWarehouse ? '-' : sizesLabel}
       </td>
       {last7Dates.map((d, i) => (
@@ -1262,7 +1325,7 @@ function ProductRow({
             textAlign: 'center',
             padding: '6px',
             borderBottom: `1px solid ${colors.border}`,
-            borderRight: getCellBorderRight(6 + i, last7Dates.length),
+            borderRight: getCellBorderRight(7 + i, last7Dates.length),
             ...typography.body,
             ...FONT_PAGE_SMALL,
             verticalAlign: 'top',
@@ -1271,7 +1334,7 @@ function ProductRow({
           {isLoading ? '-' : (dailyByDate.get(d) ?? 0).toLocaleString('ru-RU')}
         </td>
       ))}
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(6 + last7Dates.length, last7Dates.length), verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(7 + last7Dates.length, last7Dates.length), verticalAlign: 'top' }}>
         {isLoading ? (
           <Spin size="small" />
         ) : (
