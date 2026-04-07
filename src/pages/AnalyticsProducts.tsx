@@ -424,6 +424,16 @@ export default function AnalyticsProducts() {
     [queryClient, selectedCabinetId, selectedSellerId]
   )
 
+  const getSelectedArticlesForBulk = useCallback(
+    (candidates: ArticleSummary[]): ArticleSummary[] => {
+      if (allDeselected) return []
+      if (selectedNmIds.length === 0) return candidates
+      const selectedSet = new Set(selectedNmIds)
+      return candidates.filter((a) => selectedSet.has(a.nmId))
+    },
+    [allDeselected, selectedNmIds]
+  )
+
   const last7Dates = useMemo(() => {
     const end = dayjs().subtract(1, 'day')
     const dates: string[] = []
@@ -546,20 +556,20 @@ export default function AnalyticsProducts() {
                           loading={bulkPriorityLoading}
                           style={{ whiteSpace: 'nowrap' }}
                           onClick={() => {
-                            void setPriorityForArticles(filterListFiltered, true)
+                            void setPriorityForArticles(getSelectedArticlesForBulk(filterListFiltered), true)
                           }}
                         >
-                          Приоритет всем
+                          Приоритет выбранным
                         </Button>
                         <Button
                           size="small"
                           loading={bulkPriorityLoading}
                           style={{ whiteSpace: 'nowrap' }}
                           onClick={() => {
-                            void setPriorityForArticles(filterListFiltered, false)
+                            void setPriorityForArticles(getSelectedArticlesForBulk(filterListFiltered), false)
                           }}
                         >
-                          Снять приоритет
+                          Снять приоритет у выбранных
                         </Button>
                       </div>
                       {selectedNotInList.length > 0 && (
