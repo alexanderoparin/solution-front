@@ -37,8 +37,7 @@ const STATUS_LABELS: Record<WbApiEventStatus, string> = {
 const TYPE_LABELS: Record<WbApiEventType, string> = {
   CONTENT_CARDS_LIST_PAGE: 'Контент: страница карточек',
   ANALYTICS_SALES_FUNNEL_NMID: 'Аналитика: воронка по nmID',
-  PRICES_PRODUCTS_BATCH: 'Цены: батч nmID',
-  PRICES_SPP_ORDERS: 'СПП: заказы',
+  PRICES_CABINET_WITH_SPP: 'Цены + СПП (кабинет)',
   PROMOTION_COUNT: 'Промо: count кампаний',
   PROMOTION_ADVERTS_BATCH: 'Промо: батч adverts v2',
   PROMOTION_STATS_BATCH: 'Промо: батч full stats',
@@ -192,8 +191,7 @@ export default function AdminWbEvents() {
                 options={[
                   { value: 'CONTENT_CARDS_LIST_PAGE', label: TYPE_LABELS.CONTENT_CARDS_LIST_PAGE },
                   { value: 'ANALYTICS_SALES_FUNNEL_NMID', label: TYPE_LABELS.ANALYTICS_SALES_FUNNEL_NMID },
-                  { value: 'PRICES_PRODUCTS_BATCH', label: TYPE_LABELS.PRICES_PRODUCTS_BATCH },
-                  { value: 'PRICES_SPP_ORDERS', label: TYPE_LABELS.PRICES_SPP_ORDERS },
+                  { value: 'PRICES_CABINET_WITH_SPP', label: TYPE_LABELS.PRICES_CABINET_WITH_SPP },
                   { value: 'PROMOTION_COUNT', label: TYPE_LABELS.PROMOTION_COUNT },
                   { value: 'PROMOTION_ADVERTS_BATCH', label: TYPE_LABELS.PROMOTION_ADVERTS_BATCH },
                   { value: 'PROMOTION_STATS_BATCH', label: TYPE_LABELS.PROMOTION_STATS_BATCH },

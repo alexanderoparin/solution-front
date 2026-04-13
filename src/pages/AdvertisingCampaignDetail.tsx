@@ -84,6 +84,60 @@ function getDatesInRange(from: Dayjs, to: Dayjs): string[] {
   return days
 }
 
+const COMPARE_PERIODS_STORAGE_KEY = 'solution.adCampaignDetail.comparePeriods.v1'
+
+type ComparePeriodsStored = {
+  period1: [string, string]
+  period2: [string, string]
+}
+
+function defaultComparePeriod1(): [Dayjs, Dayjs] {
+  const end = dayjs().subtract(1, 'day')
+  return [end.subtract(13, 'day'), end.subtract(7, 'day')]
+}
+
+function defaultComparePeriod2(): [Dayjs, Dayjs] {
+  const end = dayjs().subtract(1, 'day')
+  return [end.subtract(6, 'day'), end]
+}
+
+function parseStoredDayRange(a: unknown, b: unknown): [Dayjs, Dayjs] | null {
+  if (typeof a !== 'string' || typeof b !== 'string') return null
+  const d1 = dayjs(a)
+  const d2 = dayjs(b)
+  if (!d1.isValid() || !d2.isValid()) return null
+  return [d1.startOf('day'), d2.startOf('day')]
+}
+
+function readStoredComparePeriods(): { period1: [Dayjs, Dayjs]; period2: [Dayjs, Dayjs] } | null {
+  if (typeof localStorage === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(COMPARE_PERIODS_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as ComparePeriodsStored
+    const period1 = parseStoredDayRange(parsed?.period1?.[0], parsed?.period1?.[1])
+    const period2 = parseStoredDayRange(parsed?.period2?.[0], parsed?.period2?.[1])
+    if (!period1 || !period2) return null
+    return { period1, period2 }
+  } catch (e) {
+    console.warn('Не удалось прочитать периоды сравнения РК из localStorage', e)
+    return null
+  }
+}
+
+function writeStoredComparePeriods(period1: [Dayjs, Dayjs], period2: [Dayjs, Dayjs]): void {
+  if (typeof localStorage === 'undefined') return
+  try {
+    const payload: ComparePeriodsStored = {
+      period1: [period1[0].format('YYYY-MM-DD'), period1[1].format('YYYY-MM-DD')],
+      period2: [period2[0].format('YYYY-MM-DD'), period2[1].format('YYYY-MM-DD')],
+    }
+    localStorage.setItem(COMPARE_PERIODS_STORAGE_KEY, JSON.stringify(payload))
+  } catch (e) {
+    console.warn('Не удалось сохранить периоды сравнения РК в localStorage', e)
+  }
+}
+
 export default function AdvertisingCampaignDetail() {
   const stocksPanelRef = useRef<HTMLDivElement>(null)
   const [stocksHeaderNarrow, setStocksHeaderNarrow] = useState(false)
@@ -205,13 +259,18 @@ export default function AdvertisingCampaignDetail() {
   const [selectedFunnelKeys, setSelectedFunnelKeys] = useState<FunnelKey[]>(['general', 'advertising'])
   const [showChart, setShowChart] = useState(false)
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>(() => {
-    const end = dayjs().subtract(1, 'day')
-    return [end.subtract(13, 'day'), end.subtract(7, 'day')]
+    const stored = readStoredComparePeriods()
+    return stored?.period1 ?? defaultComparePeriod1()
   })
   const [period2, setPeriod2] = useState<[Dayjs, Dayjs]>(() => {
-    const end = dayjs().subtract(1, 'day')
-    return [end.subtract(6, 'day'), end]
+    const stored = readStoredComparePeriods()
+    return stored?.period2 ?? defaultComparePeriod2()
   })
+
+  useEffect(() => {
+    writeStoredComparePeriods(period1, period2)
+  }, [period1, period2])
+
   /** При наведении на строку в таблице периодов — подсвечиваем эту строку и строку с тем же артикулом в соседней таблице. */
   const [hoveredPeriodNmId, setHoveredPeriodNmId] = useState<number | null>(null)
   const [selectedStockNmId, setSelectedStockNmId] = useState<number | null>(null)
