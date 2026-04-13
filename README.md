@@ -1,102 +1,78 @@
 # Solution Frontend
 
-Фронтенд приложение для управления рекламными кампаниями Wildberries.
+SPA кабинета Solution для продавцов Wildberries: аналитика по товарам, рекламные кампании, профиль, подписки, юридические страницы.
+
+Общий обзор репозитория и запуск вместе с бэкендом — в [корневом README](../README.md).
 
 ## Технологии
 
-- React 18
-- TypeScript
-- Vite
-- Ant Design
-- React Router
-- React Query (TanStack Query)
+- React 18, TypeScript
+- Vite 5
+- Ant Design 5, `@ant-design/icons`
+- React Router 6
+- TanStack Query (React Query) 5
 - Axios
 - Zustand
+- Day.js
+- Recharts
+- SheetJS (`xlsx`) — экспорт таблиц
 
 ## Быстрый старт
 
-### Установка зависимостей
-
 ```bash
+cd solution_front
 npm install
-```
-
-### Запуск в режиме разработки
-
-```bash
 npm run dev
 ```
 
-Приложение будет доступно по адресу: `http://localhost:5173`
+Приложение: **http://localhost:5173**
 
-### Сборка для продакшена
+Прокси в `vite.config.ts`: запросы на **`/api`** уходят на **`http://localhost:8080`** (на бэке контекстный путь уже `/api`, путь не переписывается).
 
-```bash
-npm run build
-```
+### Скрипты
 
-Собранные файлы будут в папке `dist/`
+| Команда | Действие |
+|---------|----------|
+| `npm run dev` | Режим разработки |
+| `npm run build` | `tsc` + production-сборка в `dist/` |
+| `npm run preview` | Локальный просмотр собранного `dist/` |
+| `npm run lint` | ESLint |
 
-## Структура проекта
+## Структура `src/`
 
-```
-src/
-├── api/              # API клиенты
-│   ├── client.ts     # Axios клиент с перехватчиками
-│   └── auth.ts       # API методы для аутентификации
-├── components/       # Переиспользуемые компоненты
-│   └── ChangePasswordModal.tsx
-├── pages/            # Страницы приложения
-│   └── Login.tsx     # Страница авторизации
-├── store/            # Zustand stores
-│   └── authStore.ts  # Хранение данных аутентификации
-├── types/            # TypeScript типы
-│   └── api.ts        # Типы для API
-├── App.tsx           # Главный компонент
-├── main.tsx          # Точка входа
-└── index.css         # Глобальные стили
-```
+| Каталог / файл | Назначение |
+|----------------|------------|
+| `api/` | Клиенты API: `client.ts` (axios, JWT, 401), `auth.ts`, `analytics.ts`, `cabinets.ts`, `user.ts`, `admin.ts`, `subscription.ts` |
+| `pages/` | Экраны: лендинг, логин/регистрация, аналитика (`AnalyticsSummary`, `AnalyticsProducts`, `AnalyticsArticle`), РК (`AdvertisingCampaigns`, `AdvertisingCampaignDetail`), профиль, подписки, админка, публичные Oferta/Privacy/Refund |
+| `components/` | `Header`, `Footer`, `Breadcrumbs`, `AccessGuard`, графики, модалки, блоки кабинетов и т.д. |
+| `hooks/` | `useWorkContextForManagerAdmin`, `useCabinetAdminPanel` и др. |
+| `store/` | `authStore` — токен, роль, userId |
+| `types/` | `api.ts`, `analytics.ts` |
+| `styles/` | Общие токены для аналитики (`analytics.ts`) |
+| `constants/` | Сортировки и перечисления без магических строк |
+| `utils/` | Вспомогательные функции (очередь запросов, файлы из буфера, ссылки в тексте и т.п.) |
+| `App.tsx` | Маршруты и редиректы |
+| `main.tsx` | Точка входа, провайдеры (Ant Design locale, QueryClient) |
 
-## Цветовая палитра
-
-Используется минималистичная цветовая схема:
-- Основной акцент: `#7C3AED` (фиолетовый)
-- Фон: `#FFFFFF` (белый)
-- Основной текст: `#1E293B` (темно-синевато-серый)
-- Второстепенный текст: `#64748B` (серо-синий)
-- Обводки: `#F1F5F9` (светло-серый)
+Маршруты после входа: стартовый путь задаётся в `App.tsx` (сейчас **`/analytics/products`**). Защищённые разделы обёрнуты в **`AccessGuard`** (подписка, подтверждение email; **ADMIN** и **MANAGER** проходят без этих проверок).
 
 ## API
 
-Фронтенд работает с бэкендом через REST API:
-- Базовый URL: `/api` (проксируется на `http://localhost:8080/api`)
-- Аутентификация: JWT токен в заголовке `Authorization: Bearer <token>`
+- Префикс: **`/api`** (в dev через прокси Vite).
+- Заголовок **`Authorization`**: Bearer JWT (токен в `localStorage`, см. `api/client.ts`, `authStore`).
 
-### Эндпоинты
+Детальные пути — на стороне бэкенда; см. `solution_back/README.md`.
 
-- `POST /api/auth/login` - Авторизация
-- `PUT /api/user/password` - Смена пароля
+## UI и тема
 
-## Особенности
+Акцентный цвет и нейтральная палитра описаны в корневом **`PROJECT_NOTES.md`** (раздел про дизайн). Ant Design настраивается в `main.tsx` и `index.css`.
 
-- Автоматическое определение временного пароля при входе
-- Модальное окно для смены пароля при первом входе
-- Сохранение токена в localStorage
-- Автоматический редирект при 401 ошибке
+## Docker
+
+Production-образ фронта собирается из **`Dockerfile`** в этом каталоге; в **`solution_back/docker-compose.yml`** контекст сборки по умолчанию указан как **`../solution-front`**. При имени каталога **`solution_front`** измените `context` в compose на родительский путь с подчёркиванием.
 
 ## Разработка
 
-### Добавление новых страниц
-
-1. Создайте компонент в `src/pages/`
-2. Добавьте маршрут в `src/App.tsx`
-3. При необходимости создайте защищенный маршрут
-
-### Работа с API
-
-Используйте готовые методы из `src/api/` или создайте новые по аналогии.
-
-### Стилизация
-
-Используйте Ant Design компоненты с кастомной темой. Цвета определены в `src/index.css` и `src/main.tsx`.
-
+1. Новая страница: компонент в `pages/`, маршрут в `App.tsx`, при необходимости обёртка `AccessGuard`.
+2. Новые вызовы API: методы в `api/`, типы в `types/`.
+3. Списочные экраны с сортировкой/фильтрами — держать значения в **`constants/`**, по возможности серверная пагинация/фильтрация для больших объёмов.
