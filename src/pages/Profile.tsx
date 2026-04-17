@@ -6,7 +6,7 @@ import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutli
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
-import type { UserProfileResponse, ChangePasswordRequest, CabinetDto } from '../types/api'
+import type { UserProfileResponse, ChangePasswordRequest, CabinetDto, CreateCabinetRequest } from '../types/api'
 import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -24,10 +24,11 @@ export default function Profile() {
   const queryClient = useQueryClient()
   const clearAuth = useAuthStore((state) => state.clearAuth)
   const [passwordForm] = Form.useForm()
+  const [cabinetCreateForm] = Form.useForm<{ name?: string; apiKey?: string }>()
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [editingCabinetId, setEditingCabinetId] = useState<number | null>(null)
   const [editingCabinetName, setEditingCabinetName] = useState('')
-  const [newCabinetName, setNewCabinetName] = useState('')
+  const [addCabinetModalOpen, setAddCabinetModalOpen] = useState(false)
   const [expandedKeyCabinetId, setExpandedKeyCabinetId] = useState<number | null>(null)
   const [showApiKeyFormForCabinetId, setShowApiKeyFormForCabinetId] = useState<number | null>(null)
   const [cabinetNewKeyValue, setCabinetNewKeyValue] = useState('')
@@ -104,15 +105,29 @@ export default function Profile() {
     },
   })
 
+  const formatAddCabinetError = (err: unknown): string => {
+    const ax = err as { response?: { data?: { error?: string; message?: string } } }
+    const d = ax.response?.data
+    return d?.error ?? d?.message ?? 'Ошибка создания кабинета'
+  }
+
   const createCabinetMutation = useMutation({
-    mutationFn: (name: string) => cabinetsApi.create({ name }),
+    mutationFn: (values: { name?: string; apiKey?: string }) => {
+      const body: CreateCabinetRequest = {}
+      const k = values.apiKey?.trim()
+      const n = values.name?.trim()
+      if (k) body.apiKey = k
+      if (n) body.name = n
+      return cabinetsApi.create(body)
+    },
     onSuccess: () => {
-      setNewCabinetName('')
+      setAddCabinetModalOpen(false)
+      cabinetCreateForm.resetFields()
       queryClient.invalidateQueries({ queryKey: ['cabinets'] })
       message.success('Кабинет создан')
     },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'Ошибка создания кабинета')
+    onError: (err: unknown) => {
+      message.error(formatAddCabinetError(err))
     },
   })
 
@@ -524,36 +539,81 @@ export default function Profile() {
             ) : (
               <>
                 <div style={{ marginBottom: '20px' }}>
-                  <Space>
-                    <Input
-                      placeholder="Название кабинета"
-                      value={newCabinetName}
-                      onChange={(e) => setNewCabinetName(e.target.value)}
-                      style={{ width: 260 }}
-                      onPressEnter={() => {
-                        if (newCabinetName.trim()) createCabinetMutation.mutate(newCabinetName.trim())
-                      }}
-                    />
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={() => {
-                        if (newCabinetName.trim()) {
-                          createCabinetMutation.mutate(newCabinetName.trim())
-                        } else {
-                          message.warning('Введите название кабинета')
-                        }
-                      }}
-                      loading={createCabinetMutation.isPending}
-                      style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
-                    >
-                      Добавить кабинет
-                    </Button>
-                  </Space>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setAddCabinetModalOpen(true)}
+                    style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
+                  >
+                    Добавить кабинет
+                  </Button>
                 </div>
 
+                <Modal
+                  title="Новый кабинет"
+                  open={addCabinetModalOpen}
+                  destroyOnClose
+                  onCancel={() => {
+                    setAddCabinetModalOpen(false)
+                    cabinetCreateForm.resetFields()
+                  }}
+                  footer={[
+                    <Button
+                      key="cancel"
+                      onClick={() => {
+                        setAddCabinetModalOpen(false)
+                        cabinetCreateForm.resetFields()
+                      }}
+                    >
+                      Отмена
+                    </Button>,
+                    <Button
+                      key="submit"
+                      type="primary"
+                      loading={createCabinetMutation.isPending}
+                      style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
+                      onClick={() => cabinetCreateForm.submit()}
+                    >
+                      Создать
+                    </Button>,
+                  ]}
+                >
+                  <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+                    Название обязательно, если не вводите API ключ WB. Если ключ указан без названия — имя кабинета
+                    подставится из ответа WB.
+                  </Text>
+                  <Form
+                    form={cabinetCreateForm}
+                    layout="vertical"
+                    autoComplete="off"
+                    onFinish={(values) => createCabinetMutation.mutate(values)}
+                  >
+                    <Form.Item name="apiKey" label="WB API ключ">
+                      <Input.Password placeholder="Необязательно" autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item
+                      name="name"
+                      label="Название кабинета"
+                      dependencies={['apiKey']}
+                      rules={[
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            const key = (getFieldValue('apiKey') as string | undefined)?.trim()
+                            if (!key && !(value as string | undefined)?.trim()) {
+                              return Promise.reject(new Error('Введите название кабинета или API ключ WB'))
+                            }
+                            return Promise.resolve()
+                          },
+                        }),
+                      ]}
+                    >
+                      <Input placeholder="Обязательно без ключа WB" />
+                    </Form.Item>
+                  </Form>
+                </Modal>
+
                 {cabinets.length === 0 ? (
-                  <Text type="secondary">Нет кабинетов. Добавьте кабинет и привяжите к нему WB API ключ.</Text>
+                  <Text type="secondary">Нет кабинетов. Нажмите «Добавить кабинет» и заполните форму.</Text>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     {cabinets.map((cab) => (

@@ -278,8 +278,19 @@ export interface InitiatePaymentResponse {
 }
 
 export interface CreateCabinetRequest {
-  name: string
-}export interface UpdateCabinetRequest {
+  /** Обязательно, если не передан apiKey. */
+  name?: string
+  /** Если задан без name — название берётся из WB seller-info. */
+  apiKey?: string
+}
+
+/** Ответ API с ошибкой (часто 4xx/429). */
+export interface ErrorResponseBody {
+  error: string
+  retryAfterSeconds?: number
+}
+
+export interface UpdateCabinetRequest {
   name?: string
   apiKey?: string
 }
