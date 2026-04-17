@@ -132,6 +132,12 @@ export default function AdminWbEvents() {
     },
     { title: 'Кабинет', dataIndex: 'cabinetId', width: 120 },
     { title: 'Попытки', key: 'attempts', width: 120, render: (_, row) => `${row.attemptCount}/${row.maxAttempts}` },
+    {
+      title: 'Начало выполнения',
+      dataIndex: 'startedAt',
+      width: 190,
+      render: (v: string | null) => (v ? dayjs(v).format('DD.MM HH:mm:ss') : '—'),
+    },
     { title: 'Следующая попытка', dataIndex: 'nextAttemptAt', width: 180, render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss') },
     { title: 'Создано', dataIndex: 'createdAt', width: 180, render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss') },
     {
