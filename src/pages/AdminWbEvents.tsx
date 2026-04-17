@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Card, Drawer, Input, Select, Space, Table, Tag, Typography, message } from 'antd'
+import { Button, Card, Drawer, Input, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { SyncOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -89,6 +90,7 @@ export default function AdminWbEvents() {
     queryFn: () => adminApi.getWbEventsStats(),
     refetchInterval: 5000,
   })
+  const failedFinalCount = stats?.byStatus?.FAILED_FINAL ?? 0
 
   const { data: selectedEvent, isLoading: selectedLoading } = useQuery({
     queryKey: ['adminWbEvent', selectedEventId],
@@ -104,6 +106,17 @@ export default function AdminWbEvents() {
       queryClient.invalidateQueries({ queryKey: ['adminWbEvent', selectedEventId] })
     },
     onError: (e: any) => message.error(e.response?.data?.message || 'Ошибка retry'),
+  })
+
+  const retryAllFailedFinalMutation = useMutation({
+    mutationFn: () => adminApi.retryAllFailedFinalWbEvents(),
+    onSuccess: (result) => {
+      message.success(`${result.message}. Кол-во: ${result.updatedCount}`)
+      queryClient.invalidateQueries({ queryKey: ['adminWbEvents'] })
+      queryClient.invalidateQueries({ queryKey: ['adminWbEventsStats'] })
+      queryClient.invalidateQueries({ queryKey: ['adminWbEvent', selectedEventId] })
+    },
+    onError: (e: any) => message.error(e.response?.data?.message || 'Ошибка массового retry'),
   })
 
   const cancelMutation = useMutation({
@@ -141,7 +154,27 @@ export default function AdminWbEvents() {
     { title: 'Следующая попытка', dataIndex: 'nextAttemptAt', width: 180, render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss') },
     { title: 'Создано', dataIndex: 'createdAt', width: 180, render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss') },
     {
-      title: 'Действия',
+      title: (
+        <Space size={6}>
+          <span>Действия</span>
+          <Tooltip
+            title={
+              failedFinalCount > 0
+                ? `Retry всех финальных ошибок (${failedFinalCount})`
+                : 'Нет событий в статусе "Ошибка (финальная)"'
+            }
+          >
+            <Button
+              type="default"
+              size="small"
+              icon={<SyncOutlined />}
+              onClick={() => retryAllFailedFinalMutation.mutate()}
+              loading={retryAllFailedFinalMutation.isPending}
+              disabled={failedFinalCount === 0 || retryAllFailedFinalMutation.isPending}
+            />
+          </Tooltip>
+        </Space>
+      ),
       key: 'actions',
       width: 220,
       render: (_, row) => (

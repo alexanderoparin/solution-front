@@ -78,6 +78,11 @@ export const adminApi = {
     return response.data
   },
 
+  retryAllFailedFinalWbEvents: async (): Promise<{ message: string; updatedCount: string }> => {
+    const response = await apiClient.post<{ message: string; updatedCount: string }>('/admin/wb-events/retry-failed-final')
+    return response.data
+  },
+
   cancelWbEvent: async (eventId: number): Promise<{ message: string }> => {
     const response = await apiClient.post<{ message: string }>(`/admin/wb-events/${eventId}/cancel`)
     return response.data
