@@ -69,12 +69,19 @@ export default function Header({
   const role = useAuthStore((state) => state.role)
 
   const selectedCabinetName = useMemo(() => {
-    if (workContextCabinetSelect?.value != null && workContextCabinetSelect.options.length > 0) {
-      const opt = workContextCabinetSelect.options.find((o) => o.value === workContextCabinetSelect.value)
-      if (opt) return cabinetNameFromWorkContextLabel(opt.label)
+    if (workContextCabinetSelect?.options.length) {
+      if (workContextCabinetSelect.value != null) {
+        const opt = workContextCabinetSelect.options.find((o) => o.value === workContextCabinetSelect.value)
+        if (opt) return cabinetNameFromWorkContextLabel(opt.label)
+      }
+      return cabinetNameFromWorkContextLabel(workContextCabinetSelect.options[0].label)
     }
-    if (!cabinetSelectProps?.selectedCabinetId || !cabinetSelectProps.cabinets.length) return undefined
+    if (!cabinetSelectProps?.cabinets.length) return undefined
+    if (cabinetSelectProps.selectedCabinetId == null) {
+      return cabinetSelectProps.cabinets[0].name
+    }
     return cabinetSelectProps.cabinets.find((c) => c.id === cabinetSelectProps.selectedCabinetId)?.name
+      ?? cabinetSelectProps.cabinets[0].name
   }, [
     workContextCabinetSelect?.value,
     workContextCabinetSelect?.options,
@@ -92,6 +99,7 @@ export default function Header({
     location.pathname === '/analytics/products' ||
     location.pathname.startsWith('/analytics/article/')
   const isAdvertisingActive = location.pathname.startsWith('/advertising')
+  const isProfilePage = location.pathname === '/profile'
 
   const buttonStyle = {
     display: 'flex',
@@ -198,7 +206,7 @@ export default function Header({
       </div>
 
       <Space size="middle" align="center">
-        {workContextCabinetSelect && (
+        {!isProfilePage && workContextCabinetSelect && (
           <>
             <Select
               className="header-select-field"
@@ -215,7 +223,7 @@ export default function Header({
             {headerRightExtra}
           </>
         )}
-        {!workContextCabinetSelect && sellerSelectProps && sellerSelectProps.sellers.length > 0 && (
+        {!isProfilePage && !workContextCabinetSelect && sellerSelectProps && sellerSelectProps.sellers.length > 0 && (
           <>
             <Select
               className="header-select-field"
@@ -229,7 +237,7 @@ export default function Header({
             {headerRightExtra}
           </>
         )}
-        {!workContextCabinetSelect && cabinetSelectProps && cabinetSelectProps.cabinets.length > 0 && (
+        {!isProfilePage && !workContextCabinetSelect && cabinetSelectProps && cabinetSelectProps.cabinets.length > 0 && (
           cabinetSelectProps.cabinets.length > 1 ? (
             <Dropdown
               menu={{
