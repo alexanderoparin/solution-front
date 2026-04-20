@@ -363,7 +363,7 @@ export default function Profile() {
                       <div>
                         <Text strong>{profile.email}</Text>
                       </div>
-                      {!profile.isAgencyClient && (
+                      {!profile.isAgencyClient && profile.role !== 'ADMIN' && (
                         <div style={{ marginTop: 6 }}>
                           {profile.emailConfirmed ? (
                             <span style={{ fontSize: 13, color: '#52c41a', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
