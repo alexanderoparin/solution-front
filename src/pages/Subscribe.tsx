@@ -23,10 +23,8 @@ export default function Subscribe() {
     queryFn: () => subscriptionApi.getPlans(),
   })
 
-  const showTrialMessage =
-    profile?.role === 'SELLER' &&
-    !profile?.isAgencyClient &&
-    profile?.emailConfirmed === false
+  const showConfirmEmailHint =
+    profile && !profile.isAgencyClient && profile.emailConfirmed === false
 
   const initiateMutation = useMutation({
     mutationFn: (planId: number) => subscriptionApi.initiatePayment(planId),
@@ -56,12 +54,20 @@ export default function Subscribe() {
           Для доступа к аналитике и рекламе выберите и оплатите подходящий тариф.
         </Typography.Paragraph>
 
-        {showTrialMessage && (
+        {showConfirmEmailHint && (
           <Alert
             type="info"
             icon={<MailOutlined />}
-            message="Пробный период после подтверждения почты"
-            description="Мы предоставляем бесплатный пробный период после подтверждения email. Подтвердите почту в разделе «Профиль» — письмо со ссылкой придёт на вашу почту. После перехода по ссылке вам будет доступен пробный доступ."
+            message={
+              profile.role === 'SELLER'
+                ? 'Пробный период после подтверждения почты'
+                : 'Сначала подтвердите email'
+            }
+            description={
+              profile.role === 'SELLER'
+                ? 'Мы предоставляем бесплатный пробный период после подтверждения email. Подтвердите почту в разделе «Профиль» — письмо со ссылкой придёт на вашу почту. После перехода по ссылке вам будет доступен пробный доступ.'
+                : 'Откройте раздел «Профиль» и запросите письмо со ссылкой для подтверждения адреса почты.'
+            }
             style={{ marginBottom: 24 }}
             showIcon
           />

@@ -19,6 +19,9 @@ import { USER_MANAGEMENT_VIEW, type UserManagementView } from '../constants/user
 
 const { Text } = Typography
 
+/** Единый размер кнопок в сетке действий профиля (ADMIN). */
+const profileAdminActionGridButtonStyle = { fontSize: 14, minHeight: 48 } as const
+
 export default function Profile() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -350,173 +353,210 @@ export default function Profile() {
           }
           style={{ marginBottom: '24px' }}
         >
-          <Row gutter={[24, 16]} align="middle" style={{ width: '100%', display: 'flex', flexWrap: 'wrap' }}>
-            <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 120, maxWidth: '100%' }} className="profile-info-col">
-              <div>
-                <Text type="secondary">Email:</Text>
-                <div style={{ marginTop: '4px' }}>
-                  <div><Text strong>{profile.email}</Text></div>
-                  {profile.role === 'SELLER' && !profile.isAgencyClient && (
-                    <div style={{ marginTop: 6 }}>
-                      {profile.emailConfirmed ? (
-                        <span style={{ fontSize: 13, color: '#52c41a', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          <CheckCircleOutlined /> Подтверждён
-                        </span>
-                      ) : (
-                        <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-                          <span style={{ fontSize: 13, color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <ExclamationCircleOutlined style={{ color: '#f59e0b' }} /> Не подтверждён
-                          </span>
-                          {(() => {
-                            const sentAt = profile.lastEmailConfirmationSentAt ? new Date(profile.lastEmailConfirmationSentAt).getTime() : 0
-                            const sentAtIso = profile.lastEmailConfirmationSentAt ?? null
-                            const now = Date.now()
-                            const cooldownMs = 24 * 60 * 60 * 1000
-                            const canSendAgain = now - sentAt >= cooldownMs
-                            const nextAvailableMs = sentAt ? sentAt + cooldownMs - now : 0
-                            const sendButton = (
-                              <Button
-                                type="primary"
-                                size="small"
-                                onClick={() => sendEmailConfirmationMutation.mutate()}
-                                loading={sendEmailConfirmationMutation.isPending}
-                                disabled={!canSendAgain}
-                                style={{
-                                  backgroundColor: canSendAgain ? '#7C3AED' : undefined,
-                                  borderColor: canSendAgain ? '#7C3AED' : undefined,
-                                  borderRadius: 6,
-                                  fontWeight: 500,
-                                }}
-                              >
-                                Отправить письмо
-                              </Button>
-                            )
-                            return (
-                              <>
-                                {!canSendAgain && sentAtIso ? (
-                                  <Tooltip title={`Письмо отправлено ${dayjs(sentAtIso).format('D MMM YYYY, HH:mm')}`}>
-                                    <span style={{ display: 'inline-block' }}>{sendButton}</span>
-                                  </Tooltip>
-                                ) : (
-                                  sendButton
-                                )}
-                                {!canSendAgain && sentAt > 0 && nextAvailableMs > 0 && (
-                                  <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                                    Повторно — через {Math.ceil(nextAvailableMs / (60 * 60 * 1000))} ч
-                                  </span>
-                                )}
-                              </>
-                            )
-                          })()}
+          <Row align="middle" gutter={[16, 16]} wrap style={{ width: '100%' }}>
+            <Col flex="1 1 280px" style={{ minWidth: 0 }}>
+              <Row gutter={[24, 16]} align="middle" style={{ width: '100%', display: 'flex', flexWrap: 'wrap' }}>
+                <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 120, maxWidth: '100%' }} className="profile-info-col">
+                  <div>
+                    <Text type="secondary">Email:</Text>
+                    <div style={{ marginTop: '4px' }}>
+                      <div>
+                        <Text strong>{profile.email}</Text>
+                      </div>
+                      {!profile.isAgencyClient && (
+                        <div style={{ marginTop: 6 }}>
+                          {profile.emailConfirmed ? (
+                            <span style={{ fontSize: 13, color: '#52c41a', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                              <CheckCircleOutlined /> Подтверждён
+                            </span>
+                          ) : (
+                            <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+                              <span style={{ fontSize: 13, color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                <ExclamationCircleOutlined style={{ color: '#f59e0b' }} /> Не подтверждён
+                              </span>
+                              {(() => {
+                                const sentAt = profile.lastEmailConfirmationSentAt
+                                  ? new Date(profile.lastEmailConfirmationSentAt).getTime()
+                                  : 0
+                                const sentAtIso = profile.lastEmailConfirmationSentAt ?? null
+                                const now = Date.now()
+                                const cooldownMs = 24 * 60 * 60 * 1000
+                                const canSendAgain = now - sentAt >= cooldownMs
+                                const nextAvailableMs = sentAt ? sentAt + cooldownMs - now : 0
+                                const sendButton = (
+                                  <Button
+                                    type="primary"
+                                    size="small"
+                                    onClick={() => sendEmailConfirmationMutation.mutate()}
+                                    loading={sendEmailConfirmationMutation.isPending}
+                                    disabled={!canSendAgain}
+                                    style={{
+                                      backgroundColor: canSendAgain ? '#7C3AED' : undefined,
+                                      borderColor: canSendAgain ? '#7C3AED' : undefined,
+                                      borderRadius: 6,
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    Отправить письмо
+                                  </Button>
+                                )
+                                return (
+                                  <>
+                                    {!canSendAgain && sentAtIso ? (
+                                      <Tooltip title={`Письмо отправлено ${dayjs(sentAtIso).format('D MMM YYYY, HH:mm')}`}>
+                                        <span style={{ display: 'inline-block' }}>{sendButton}</span>
+                                      </Tooltip>
+                                    ) : (
+                                      sendButton
+                                    )}
+                                    {!canSendAgain && sentAt > 0 && nextAvailableMs > 0 && (
+                                      <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                                        Повторно — через {Math.ceil(nextAvailableMs / (60 * 60 * 1000))} ч
+                                      </span>
+                                    )}
+                                  </>
+                                )
+                              })()}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              </div>
-            </Col>
-            
-            <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 80 }} className="profile-info-col">
-              <div>
-                <Text type="secondary">Роль:</Text>
-                <div style={{ marginTop: '4px' }}>
-                  <Tag color={profile.role === 'SELLER' ? 'purple' : 'blue'}>
-                    {profile.role === 'SELLER' ? 'Продавец' : profile.role}
-                  </Tag>
-                </div>
-              </div>
-            </Col>
-
-            {profile.role === 'SELLER' && profile.isAgencyClient && (
-              <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 100 }} className="profile-info-col">
-                <div>
-                  <Text type="secondary">Тип:</Text>
-                  <div style={{ marginTop: '4px' }}>
-                    <Tag color="cyan">Клиент агентства</Tag>
                   </div>
-                </div>
-              </Col>
-            )}
+                </Col>
 
-            <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 80 }} className="profile-info-col">
-              <div>
-                <Text type="secondary">Статус:</Text>
-                <div style={{ marginTop: '4px' }}>
-                  <Tag color={profile.isActive ? 'success' : 'default'}>
-                    {profile.isActive ? 'Активен' : 'Неактивен'}
-                  </Tag>
-                </div>
-              </div>
+                <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 80 }} className="profile-info-col">
+                  <div>
+                    <Text type="secondary">Роль:</Text>
+                    <div style={{ marginTop: '4px' }}>
+                      <Tag color={profile.role === 'SELLER' ? 'purple' : 'blue'}>
+                        {profile.role === 'SELLER' ? 'Продавец' : profile.role}
+                      </Tag>
+                    </div>
+                  </div>
+                </Col>
+
+                {profile.role === 'SELLER' && profile.isAgencyClient && (
+                  <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 100 }} className="profile-info-col">
+                    <div>
+                      <Text type="secondary">Тип:</Text>
+                      <div style={{ marginTop: '4px' }}>
+                        <Tag color="cyan">Клиент агентства</Tag>
+                      </div>
+                    </div>
+                  </Col>
+                )}
+
+                <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 80 }} className="profile-info-col">
+                  <div>
+                    <Text type="secondary">Статус:</Text>
+                    <div style={{ marginTop: '4px' }}>
+                      <Tag color={profile.isActive ? 'success' : 'default'}>
+                        {profile.isActive ? 'Активен' : 'Неактивен'}
+                      </Tag>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
             </Col>
 
-            <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 180, display: 'flex', justifyContent: 'flex-end' }} className="profile-info-col">
+            <Col flex="none" style={{ marginLeft: 'auto' }}>
               <div
                 style={{
-                  width: '100%',
-                  maxWidth: 600,
                   display: 'flex',
-                  flexWrap: 'wrap',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end',
                   gap: 12,
-                  justifyContent: 'flex-end',
                 }}
               >
-                {!showPasswordForm ? (
-                  <Button
-                    type="primary"
-                    icon={<LockOutlined />}
-                    onClick={() => setShowPasswordForm(true)}
-                    size="large"
+                {profile.role === 'ADMIN' && (
+                  <div
                     style={{
-                      backgroundColor: '#7C3AED',
-                      borderColor: '#7C3AED',
-                      width: 'calc(50% - 6px)',
-                      order: 2,
-                      fontSize: 14,
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                      gap: 12,
+                      width: 'min(100%, 440px)',
                     }}
                   >
-                    Сменить пароль
-                  </Button>
-                ) : null}
+                    <Button
+                      block
+                      icon={<CreditCardOutlined />}
+                      onClick={() => navigate('/admin/plans')}
+                      size="large"
+                      style={{
+                        ...profileAdminActionGridButtonStyle,
+                        gridColumn: showPasswordForm ? '1 / -1' : undefined,
+                      }}
+                    >
+                      Планы и подписки
+                    </Button>
+                    {!showPasswordForm ? (
+                      <Button
+                        block
+                        type="primary"
+                        icon={<LockOutlined />}
+                        onClick={() => setShowPasswordForm(true)}
+                        size="large"
+                        style={{
+                          ...profileAdminActionGridButtonStyle,
+                          backgroundColor: '#7C3AED',
+                          borderColor: '#7C3AED',
+                        }}
+                      >
+                        Сменить пароль
+                      </Button>
+                    ) : null}
+                    <Button
+                      block
+                      icon={<CreditCardOutlined />}
+                      onClick={() => navigate('/admin/wb-events')}
+                      size="large"
+                      style={profileAdminActionGridButtonStyle}
+                    >
+                      WB API события
+                    </Button>
+                    <Button
+                      block
+                      type="primary"
+                      danger
+                      icon={<LogoutOutlined />}
+                      onClick={handleLogout}
+                      size="large"
+                      style={profileAdminActionGridButtonStyle}
+                    >
+                      Выйти из системы
+                    </Button>
+                  </div>
+                )}
                 {profile.role === 'SELLER' && !profile.isAgencyClient && (
-                  <Button
-                    icon={<CreditCardOutlined />}
-                    onClick={() => navigate('/subscription')}
-                    size="large"
-                    style={{ width: 'calc(50% - 6px)' }}
-                  >
-                    Подписка
-                  </Button>
+                  <Space size={12} wrap style={{ justifyContent: 'flex-end', display: 'flex', flexWrap: 'wrap' }}>
+                    <Button icon={<CreditCardOutlined />} onClick={() => navigate('/subscription')} size="large">
+                      Подписка
+                    </Button>
+                  </Space>
                 )}
-                {profile.role === 'ADMIN' && (
-                  <Button
-                    icon={<CreditCardOutlined />}
-                    onClick={() => navigate('/admin/plans')}
-                    size="large"
-                    style={{ width: 'calc(50% - 6px)', order: 1, fontSize: 14 }}
-                  >
-                    Планы и подписки
-                  </Button>
+                {profile.role !== 'ADMIN' && (
+                  <Space size={12} wrap style={{ justifyContent: 'flex-end', display: 'flex', flexWrap: 'wrap' }}>
+                    {!showPasswordForm ? (
+                      <Button
+                        type="primary"
+                        icon={<LockOutlined />}
+                        onClick={() => setShowPasswordForm(true)}
+                        size="large"
+                        style={{
+                          backgroundColor: '#7C3AED',
+                          borderColor: '#7C3AED',
+                          fontSize: 14,
+                        }}
+                      >
+                        Сменить пароль
+                      </Button>
+                    ) : null}
+                    <Button type="primary" danger icon={<LogoutOutlined />} onClick={handleLogout} size="large" style={{ fontSize: 14 }}>
+                      Выйти из системы
+                    </Button>
+                  </Space>
                 )}
-                {profile.role === 'ADMIN' && (
-                  <Button
-                    icon={<CreditCardOutlined />}
-                    onClick={() => navigate('/admin/wb-events')}
-                    size="large"
-                    style={{ width: 'calc(50% - 6px)', order: 3, fontSize: 14 }}
-                  >
-                    WB API события
-                  </Button>
-                )}
-                <Button
-                  type="primary"
-                  danger
-                  icon={<LogoutOutlined />}
-                  onClick={handleLogout}
-                  size="large"
-                  style={{ width: 'calc(50% - 6px)', order: 4, fontSize: 14 }}
-                >
-                  Выйти из системы
-                </Button>
               </div>
             </Col>
           </Row>

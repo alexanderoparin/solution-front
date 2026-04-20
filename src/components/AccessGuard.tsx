@@ -3,7 +3,6 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { Button, Card, Spin, Typography } from 'antd'
 import { MailOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
-import { useAuthStore } from '../store/authStore'
 import Header from './Header'
 import Breadcrumbs from './Breadcrumbs'
 
@@ -13,22 +12,16 @@ interface AccessGuardProps {
 
 /**
  * Для авторизованных пользователей проверяет доступ (подписка / клиент агентства / подтверждение почты).
- * ADMIN и MANAGER всегда пропускаются.
- * Селлер без подтверждённой почты — показываем сообщение и кнопку «Перейти в профиль».
+ * Без подтверждённой почты (кроме клиентов агентства) — экран с переходом в профиль.
  * Нет доступа по подписке — редирект на /subscribe.
  */
 export default function AccessGuard({ children }: AccessGuardProps) {
   const navigate = useNavigate()
-  const role = useAuthStore((state) => state.role)
   const { data: access, isLoading } = useQuery({
     queryKey: ['accessStatus'],
     queryFn: () => userApi.getAccessStatus(),
     retry: false,
   })
-
-  if (role === 'ADMIN' || role === 'MANAGER') {
-    return <>{children}</>
-  }
 
   if (isLoading || access === undefined) {
     return (

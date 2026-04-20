@@ -5,6 +5,7 @@ import {
   Modal,
   Form,
   Input,
+  Checkbox,
   Select,
   Switch,
   Space,
@@ -120,8 +121,13 @@ export default function UsersManagement() {
     },
   })
 
-  const handleCreate = (values: CreateUserRequest) => {
-    createMutation.mutate(values)
+  const handleCreate = (values: CreateUserRequest & { isAgencyManager?: boolean }) => {
+    const { isAgencyManager, ...rest } = values
+    const payload: CreateUserRequest = { ...rest }
+    if (role === 'ADMIN' && values.role === 'MANAGER') {
+      payload.isAgencyManager = isAgencyManager !== false
+    }
+    createMutation.mutate(payload)
   }
 
   const handleEdit = (user: UserListItem) => {
@@ -228,7 +234,10 @@ export default function UsersManagement() {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => {
+              createForm.setFieldsValue({ role: getCreatableRole(), isAgencyManager: true })
+              setIsCreateModalOpen(true)
+            }}
             style={{
               backgroundColor: '#7C3AED',
               borderColor: '#7C3AED',
@@ -327,6 +336,21 @@ export default function UsersManagement() {
                   </Select.Option>
                 ))}
               </Select>
+            </Form.Item>
+
+            <Form.Item noStyle shouldUpdate={(prev, cur) => prev.role !== cur.role}>
+              {() =>
+                role === 'ADMIN' && createForm.getFieldValue('role') === 'MANAGER' ? (
+                  <Form.Item
+                    name="isAgencyManager"
+                    valuePropName="checked"
+                    initialValue
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Checkbox>Менеджер агентства</Checkbox>
+                  </Form.Item>
+                ) : null
+              }
             </Form.Item>
 
             <Form.Item style={{ marginBottom: 0, marginTop: '24px' }}>

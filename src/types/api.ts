@@ -81,6 +81,8 @@ export interface CreateUserRequest {
   email: string
   password: string
   role: UserRole
+  /** Только при создании MANAGER админом: false — сторонний менеджер. */
+  isAgencyManager?: boolean
 }
 
 export interface UpdateUserRequest {
