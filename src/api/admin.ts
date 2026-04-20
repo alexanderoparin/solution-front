@@ -12,6 +12,7 @@ import type {
   WbApiEventType,
   PageResponse,
   WbApiEventStatsDto,
+  WbApiEventTypeStatsDto,
 } from '../types/api'
 
 export const adminApi = {
@@ -70,6 +71,13 @@ export const adminApi = {
 
   getWbEventsStats: async (): Promise<WbApiEventStatsDto> => {
     const response = await apiClient.get<WbApiEventStatsDto>('/admin/wb-events/stats')
+    return response.data
+  },
+
+  getWbEventsStatsByType: async (status?: WbApiEventStatus): Promise<WbApiEventTypeStatsDto> => {
+    const response = await apiClient.get<WbApiEventTypeStatsDto>('/admin/wb-events/stats-by-type', {
+      params: { status },
+    })
     return response.data
   },
 

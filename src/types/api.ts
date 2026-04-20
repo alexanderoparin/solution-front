@@ -206,7 +206,6 @@ export type WbApiEventStatus =
   | 'FAILED_FINAL'
   | 'FAILED_WITH_FALLBACK'
   | 'DEFERRED_RATE_LIMIT'
-  | 'DUPLICATE_SKIPPED'
   | 'CANCELLED'
 
 export type WbApiEventType =
@@ -243,6 +242,12 @@ export interface WbApiEventDto {
 export interface WbApiEventStatsDto {
   total: number
   byStatus: Record<WbApiEventStatus, number>
+}
+
+export interface WbApiEventTypeStatsDto {
+  baseStatus: WbApiEventStatus | null
+  total: number
+  byType: Record<WbApiEventType, number>
 }
 
 /** Ответ GET /user/access: доступ к функционалу и статус подписки */

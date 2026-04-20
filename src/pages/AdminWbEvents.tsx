@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Card, Drawer, Input, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd'
+import { Button, Card, Checkbox, Drawer, Input, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { SyncOutlined } from '@ant-design/icons'
@@ -19,7 +19,6 @@ const STATUS_COLORS: Record<WbApiEventStatus, string> = {
   FAILED_FINAL: 'red',
   FAILED_WITH_FALLBACK: 'gold',
   DEFERRED_RATE_LIMIT: 'purple',
-  DUPLICATE_SKIPPED: 'default',
   CANCELLED: 'default',
 }
 
@@ -31,7 +30,6 @@ const STATUS_LABELS: Record<WbApiEventStatus, string> = {
   FAILED_FINAL: 'Ошибка (финальная)',
   FAILED_WITH_FALLBACK: 'Успех с fallback',
   DEFERRED_RATE_LIMIT: 'Отложено (лимит)',
-  DUPLICATE_SKIPPED: 'Дубликат пропущен',
   CANCELLED: 'Отменено',
 }
 
@@ -48,6 +46,19 @@ const TYPE_LABELS: Record<WbApiEventType, string> = {
   STOCKS_BY_NMID: 'Остатки: nmID',
 }
 
+const TYPE_COLORS: Record<WbApiEventType, string> = {
+  CONTENT_CARDS_LIST_PAGE: 'geekblue',
+  ANALYTICS_SALES_FUNNEL_NMID: 'cyan',
+  PRICES_CABINET_WITH_SPP: 'gold',
+  PROMOTION_COUNT: 'orange',
+  PROMOTION_ADVERTS_BATCH: 'volcano',
+  PROMOTION_STATS_BATCH: 'red',
+  FEEDBACKS_SYNC_CABINET: 'purple',
+  PROMOTION_CALENDAR_SYNC_CABINET: 'magenta',
+  WAREHOUSES_SYNC_CABINET: 'lime',
+  STOCKS_BY_NMID: 'blue',
+}
+
 export default function AdminWbEvents() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -58,9 +69,7 @@ export default function AdminWbEvents() {
   const [status, setStatus] = useState<WbApiEventStatus | undefined>(undefined)
   const [eventType, setEventType] = useState<WbApiEventType | undefined>(undefined)
   const [cabinetIdInput, setCabinetIdInput] = useState('')
-  const [onlyErrors, setOnlyErrors] = useState(false)
-  const [inProgress, setInProgress] = useState(false)
-  const [deferredOnly, setDeferredOnly] = useState(false)
+  const [groupByType, setGroupByType] = useState(false)
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
 
   if (role !== 'ADMIN') {
@@ -73,21 +82,20 @@ export default function AdminWbEvents() {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
   }, [cabinetIdInput])
 
-  const effectiveStatus = useMemo(() => {
-    if (inProgress) return 'RUNNING' as WbApiEventStatus
-    if (onlyErrors) return 'FAILED_FINAL' as WbApiEventStatus
-    if (deferredOnly) return 'DEFERRED_RATE_LIMIT' as WbApiEventStatus
-    return status
-  }, [inProgress, onlyErrors, deferredOnly, status])
-
   const { data, isLoading } = useQuery({
-    queryKey: ['adminWbEvents', page, size, effectiveStatus, eventType, cabinetId],
-    queryFn: () => adminApi.getWbEvents({ page, size, status: effectiveStatus, eventType, cabinetId }),
+    queryKey: ['adminWbEvents', page, size, status, eventType, cabinetId],
+    queryFn: () => adminApi.getWbEvents({ page, size, status, eventType, cabinetId }),
     refetchInterval: 5000,
   })
   const { data: stats } = useQuery({
     queryKey: ['adminWbEventsStats'],
     queryFn: () => adminApi.getWbEventsStats(),
+    refetchInterval: 5000,
+  })
+  const { data: typeStats } = useQuery({
+    queryKey: ['adminWbEventsTypeStats', status],
+    queryFn: () => adminApi.getWbEventsStatsByType(status),
+    enabled: groupByType,
     refetchInterval: 5000,
   })
   const failedFinalCount = stats?.byStatus?.FAILED_FINAL ?? 0
@@ -153,6 +161,7 @@ export default function AdminWbEvents() {
     },
     { title: 'Следующая попытка', dataIndex: 'nextAttemptAt', width: 180, render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss') },
     { title: 'Создано', dataIndex: 'createdAt', width: 180, render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss') },
+    { title: 'Завершено', dataIndex: 'finishedAt', width: 180, render: (v: string | null) => (v ? dayjs(v).format('DD.MM HH:mm:ss') : '—') },
     {
       title: (
         <Space size={6}>
@@ -198,14 +207,67 @@ export default function AdminWbEvents() {
           </Typography.Title>
 
           <Card>
-            <Space wrap style={{ marginBottom: 12 }}>
-              <Tag color="blue">Всего: {stats?.total ?? 0}</Tag>
-              {(Object.keys(STATUS_LABELS) as WbApiEventStatus[]).map((s) => (
-                <Tag key={s} color={STATUS_COLORS[s]}>
-                  {STATUS_LABELS[s]}: {stats?.byStatus?.[s] ?? 0}
+            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+              <Space wrap>
+                <Tag
+                  color="blue"
+                  style={{
+                    cursor: 'pointer',
+                    fontWeight: status == null ? 600 : undefined,
+                    boxShadow: status == null ? '0 0 0 1px rgba(0,0,0,0.15) inset' : undefined,
+                  }}
+                  onClick={() => {
+                    setPage(0)
+                    setStatus(undefined)
+                  }}
+                >
+                  Всего: {stats?.total ?? 0}
                 </Tag>
-              ))}
-            </Space>
+                {(Object.keys(STATUS_LABELS) as WbApiEventStatus[]).map((s) => (
+                  <Tag
+                    key={s}
+                    color={STATUS_COLORS[s]}
+                    style={{
+                      cursor: 'pointer',
+                      fontWeight: status === s ? 600 : undefined,
+                      boxShadow: status === s ? '0 0 0 1px rgba(0,0,0,0.15) inset' : undefined,
+                    }}
+                    onClick={() => {
+                      setPage(0)
+                      setStatus((prev) => (prev === s ? undefined : s))
+                    }}
+                  >
+                    {STATUS_LABELS[s]}: {stats?.byStatus?.[s] ?? 0}
+                  </Tag>
+                ))}
+              </Space>
+              <Checkbox checked={groupByType} onChange={(e) => setGroupByType(e.target.checked)}>
+                Группировать по типу
+              </Checkbox>
+            </div>
+            {groupByType && (
+              <Space wrap style={{ marginTop: 8, marginBottom: 12 }}>
+                {(Object.keys(TYPE_LABELS) as WbApiEventType[])
+                  .filter((t) => (typeStats?.byType?.[t] ?? 0) > 0)
+                  .map((t) => (
+                    <Tag
+                      key={t}
+                      color={TYPE_COLORS[t]}
+                      style={{
+                        cursor: 'pointer',
+                        fontWeight: eventType === t ? 600 : undefined,
+                        boxShadow: eventType === t ? '0 0 0 1px rgba(0,0,0,0.15) inset' : undefined,
+                      }}
+                      onClick={() => {
+                        setPage(0)
+                        setEventType((prev) => (prev === t ? undefined : t))
+                      }}
+                    >
+                      {TYPE_LABELS[t]}: {typeStats?.byType?.[t] ?? 0}
+                    </Tag>
+                  ))}
+              </Space>
+            )}
             <Space wrap style={{ marginBottom: 16 }}>
               <Select
                 allowClear
@@ -213,9 +275,6 @@ export default function AdminWbEvents() {
                 style={{ width: 220 }}
                 value={status}
                 onChange={(value) => {
-                  setOnlyErrors(false)
-                  setInProgress(false)
-                  setDeferredOnly(false)
                   setPage(0)
                   setStatus(value)
                 }}
@@ -249,42 +308,6 @@ export default function AdminWbEvents() {
               />
               <Button onClick={() => { setPage(0); queryClient.invalidateQueries({ queryKey: ['adminWbEvents'] }) }}>
                 Применить
-              </Button>
-              <Button
-                type={onlyErrors ? 'primary' : 'default'}
-                onClick={() => {
-                  setPage(0)
-                  setInProgress(false)
-                  setDeferredOnly(false)
-                  setStatus(undefined)
-                  setOnlyErrors((prev) => !prev)
-                }}
-              >
-                Только ошибки
-              </Button>
-              <Button
-                type={inProgress ? 'primary' : 'default'}
-                onClick={() => {
-                  setPage(0)
-                  setOnlyErrors(false)
-                  setDeferredOnly(false)
-                  setStatus(undefined)
-                  setInProgress((prev) => !prev)
-                }}
-              >
-                В работе
-              </Button>
-              <Button
-                type={deferredOnly ? 'primary' : 'default'}
-                onClick={() => {
-                  setPage(0)
-                  setOnlyErrors(false)
-                  setInProgress(false)
-                  setStatus(undefined)
-                  setDeferredOnly((prev) => !prev)
-                }}
-              >
-                Отложенные
               </Button>
             </Space>
 
