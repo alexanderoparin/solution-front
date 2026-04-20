@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { DatePicker, Spin, Tooltip, Popover, Button, Input, Checkbox, message } from 'antd'
 import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined, FilterOutlined, SearchOutlined, SyncOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -310,8 +310,10 @@ export default function AnalyticsSummary() {
   }
   
   const [summary, setSummary] = useState<SummaryResponse | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** Пока грузится справочник артикулов — не дергаем сводную (и не блокируем навсегда при пустом списке). */
+  const [articleCatalogLoading, setArticleCatalogLoading] = useState(() => !isManagerOrAdmin)
   // Инициализируем фильтр из localStorage, если selectedSellerId уже определен
   const [excludedNmIds, setExcludedNmIds] = useState<Set<number>>(() => {
     if (isManagerOrAdmin && selectedSellerId !== undefined) {
@@ -337,12 +339,15 @@ export default function AnalyticsSummary() {
   // 1) Список артикулов — отдельный лёгкий эндпоинт (только справочная информация для фильтра)
   const loadArticles = useCallback(async () => {
     if (isManagerOrAdmin && selectedSellerId === undefined) return
+    setArticleCatalogLoading(true)
     try {
       const list = await analyticsApi.getArticleList(selectedSellerId ?? undefined, selectedCabinetId ?? undefined, onlyWithPhoto)
       setOriginalArticles(list ?? [])
     } catch (err) {
       console.error('Ошибка загрузки списка артикулов:', err)
       setOriginalArticles([])
+    } finally {
+      setArticleCatalogLoading(false)
     }
   }, [selectedSellerId, selectedCabinetId, onlyWithPhoto, isManagerOrAdmin])
 
@@ -373,17 +378,6 @@ export default function AnalyticsSummary() {
       setLoading(false)
     }
   }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, onlyWithPhoto, isManagerOrAdmin])
-
-  // Пропуск первого вызова summary, пока не загружен список артикулов (и при необходимости применён sync из Товаров)
-  const skippedSummaryRef = useRef(false)
-  useEffect(() => {
-    if (selectedCabinetId != null && originalArticles.length === 0) {
-      skippedSummaryRef.current = true
-      return
-    }
-    if (skippedSummaryRef.current && originalArticles.length > 0) skippedSummaryRef.current = false
-    loadSummary()
-  }, [loadSummary, originalArticles.length, selectedCabinetId])
 
   const queryClient = useQueryClient()
   const selectedSeller = useMemo(
@@ -461,23 +455,42 @@ export default function AnalyticsSummary() {
   
   const SHARED_FILTER_KEY_PREFIX = 'analytics_shared_selected_nm_ids_'
 
-  // При смене селлера восстанавливаем фильтр из localStorage и грузим список артикулов отдельным запросом
+  // Смена селлера (админ/менеджер) или кабинета/фильтра (продавец/работник): фильтр из localStorage + список артикулов
   useEffect(() => {
-    if (selectedSellerId === undefined) return
-    const saved = localStorage.getItem(`analytics_excluded_nm_ids_${selectedSellerId}`)
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as number[]
-        setExcludedNmIds(new Set(parsed))
-      } catch {
+    if (isManagerOrAdmin) {
+      if (selectedSellerId === undefined) return
+      const saved = localStorage.getItem(`analytics_excluded_nm_ids_${selectedSellerId}`)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as number[]
+          setExcludedNmIds(new Set(parsed))
+        } catch {
+          setExcludedNmIds(new Set())
+        }
+      } else {
         setExcludedNmIds(new Set())
       }
-    } else {
-      setExcludedNmIds(new Set())
+      setOriginalArticles([])
+      void loadArticles()
+      return
     }
-    setOriginalArticles([])
-    loadArticles()
-  }, [selectedSellerId, loadArticles])
+    // SELLER / WORKER: sellerId в API не передаём — только кабинет и фильтр фото
+    void loadArticles()
+  }, [isManagerOrAdmin, selectedSellerId, selectedCabinetId, onlyWithPhoto, loadArticles])
+
+  // Сводная — после завершения загрузки справочника артикулов (в т.ч. пустого каталога)
+  useEffect(() => {
+    if (isManagerOrAdmin && selectedSellerId === undefined) return
+    if (articleCatalogLoading) return
+    void loadSummary()
+  }, [
+    loadSummary,
+    articleCatalogLoading,
+    excludedNmIds,
+    selectedCabinetId,
+    selectedSellerId,
+    isManagerOrAdmin,
+  ])
 
   // Синхронизация с фильтром в Товарах: сначала читаем общий ключ (порядок важен — до эффекта записи ниже)
   useEffect(() => {
@@ -585,17 +598,43 @@ export default function AnalyticsSummary() {
     return `${dateFrom} - ${dateTo}`
   }
 
-  if ((loading || sellersLoading || (isManagerOrAdmin && workContext.workContextLoading)) && !summary) {
+  const showInitialLoader =
+    (loading ||
+      sellersLoading ||
+      (isManagerOrAdmin && workContext.workContextLoading) ||
+      articleCatalogLoading) &&
+    !summary
+
+  if (showInitialLoader) {
     return (
-      <div style={{ 
-        padding: spacing.xxl, 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        minHeight: '400px'
-      }}>
-        <Spin size="large" />
-      </div>
+      <>
+        <Header
+          workContextCabinetSelect={isManagerOrAdmin ? workContext.workContextCabinetSelectProps : undefined}
+          cabinetSelectProps={
+            !isManagerOrAdmin && cabinets.length > 0
+              ? {
+                  cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
+                  selectedCabinetId,
+                  onCabinetChange: setSelectedCabinetId,
+                  loading: cabinetsLoading,
+                }
+              : undefined
+          }
+          headerRightExtra={null}
+        />
+        <Breadcrumbs />
+        <div
+          style={{
+            padding: spacing.xxl,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '400px',
+          }}
+        >
+          <Spin size="large" />
+        </div>
+      </>
     )
   }
 
