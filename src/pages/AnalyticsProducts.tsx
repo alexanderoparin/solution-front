@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef, type RefObject } from 'react'
+import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Spin, Input, Button, Popover, Checkbox, message } from 'antd'
 import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled, HolderOutlined } from '@ant-design/icons'
@@ -9,6 +9,17 @@ import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import type { ArticleSummary, Period } from '../types/analytics'
 import { colors, typography, spacing, borderRadius, transitions, shadows, PRODUCT_PHOTO_WIDTH, PRODUCT_PHOTO_HEIGHT } from '../styles/analytics'
+import {
+  analyticsSharedKeys,
+  readSharedFilterToNone,
+  readSharedOnlyPriority,
+  readSharedOnlyWithPhoto,
+  readSharedSearch,
+  writeSharedFilterToNone,
+  writeSharedOnlyPriority,
+  writeSharedOnlyWithPhoto,
+  writeSharedSearch,
+} from '../utils/analyticsSharedFilterStorage'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -36,8 +47,6 @@ function getLast7DaysPeriod(): Period {
 }
 
 const STORAGE_KEY_PREFIX = 'products_selected_nm_ids_'
-/** Общий ключ с Сводной: один и тот же выбор артикулов при переключении между Сводной и Товарами */
-const SHARED_FILTER_KEY_PREFIX = 'analytics_shared_selected_nm_ids_'
 /** Порядок строк в списке товаров (перетаскивание), по кабинету */
 const PRODUCTS_ROW_ORDER_STORAGE_PREFIX = 'products_row_order_'
 
@@ -73,7 +82,7 @@ function persistProductsRowOrder(cabinetId: number | null, order: number[]) {
 function getStoredSelectedNmIds(cabinetId: number | null): number[] {
   if (cabinetId == null) return []
   try {
-    const sharedRaw = localStorage.getItem(`${SHARED_FILTER_KEY_PREFIX}${cabinetId}`)
+    const sharedRaw = localStorage.getItem(analyticsSharedKeys.selectedNmIds(cabinetId))
     if (sharedRaw != null) {
       const parsed = JSON.parse(sharedRaw) as number[]
       if (Array.isArray(parsed)) return parsed
@@ -89,7 +98,7 @@ function getStoredSelectedNmIds(cabinetId: number | null): number[] {
 
 function setStoredSelectedNmIds(cabinetId: number | null, nmIds: number[]) {
   if (cabinetId == null) return
-  const key = `${SHARED_FILTER_KEY_PREFIX}${cabinetId}`
+  const key = analyticsSharedKeys.selectedNmIds(cabinetId)
   localStorage.setItem(key, JSON.stringify(nmIds))
   localStorage.setItem(`${STORAGE_KEY_PREFIX}${cabinetId}`, JSON.stringify(nmIds))
 }
@@ -254,9 +263,26 @@ export default function AnalyticsProducts() {
     () => filterListData?.articles ?? [],
     [filterListData]
   )
+  const filterListNmIdSet = useMemo(() => new Set(filterListArticles.map((a) => a.nmId)), [filterListArticles])
   /** Общее число артикулов (как в Сводной), из API; для списка в фильтре может быть загружено меньше из-за лимита */
   const filterListTotal = filterListData?.totalArticles ?? filterListArticles.length
   filterListArticlesRef.current = filterListArticles
+
+  /** Сколько из явного списка nmId реально есть в текущем каталоге (после «только приоритетные» и т.д.) — для бейджа «выбрано/всего» */
+  const filterBadgeSelectedCount = useMemo(() => {
+    if (allDeselected) return 0
+    if (selectedNmIds.length === 0) return filterListTotal
+    return selectedNmIds.filter((id) => filterListNmIdSet.has(id)).length
+  }, [allDeselected, selectedNmIds, filterListTotal, filterListNmIdSet])
+
+  /** Теги под фильтром: при полной загрузке каталога показываем только nmId из текущего списка (как в бейдже) */
+  const selectedNmIdsForTags = useMemo(() => {
+    if (selectedNmIds.length === 0) return []
+    const catalogFullyLoaded = filterListTotal > 0 && filterListArticles.length >= filterListTotal
+    const sorted = [...selectedNmIds].sort((a, b) => a - b)
+    if (!catalogFullyLoaded) return sorted
+    return sorted.filter((id) => filterListNmIdSet.has(id))
+  }, [selectedNmIds, filterListTotal, filterListArticles.length, filterListNmIdSet])
 
   const summaryErrorMessage =
     summaryError && (summaryErr as any)?.response?.data?.error ||
@@ -331,21 +357,52 @@ export default function AnalyticsProducts() {
         }
       : undefined
 
-  // Восстановление выбранных артикулов из localStorage при смене кабинета
-  useEffect(() => {
+  // Восстановление фильтров и выбранных артикулов при смене кабинета (общие с «Сводной»).
+  // useLayoutEffect: до эффектов записи в storage, иначе пустые дефолты перезапишут сохранённые значения.
+  useLayoutEffect(() => {
+    if (selectedCabinetId == null) return
+    setSearchQuery(readSharedSearch(selectedCabinetId))
+    setOnlyWithPhoto(readSharedOnlyWithPhoto(selectedCabinetId))
+    setOnlyPriority(readSharedOnlyPriority(selectedCabinetId))
+    const ftn = readSharedFilterToNone(selectedCabinetId)
+    setAllDeselected(ftn)
     const stored = getStoredSelectedNmIds(selectedCabinetId)
-    setSelectedNmIds(stored)
-    setAllDeselected(false)
-    if (stored.length > 0) skipNextWriteRef.current = true
+    setSelectedNmIds(ftn ? [] : stored)
+    skipNextWriteRef.current = !ftn && stored.length > 0
   }, [selectedCabinetId])
 
   useEffect(() => {
+    if (selectedCabinetId == null) return
+    writeSharedSearch(selectedCabinetId, searchQuery)
+  }, [selectedCabinetId, searchQuery])
+
+  useEffect(() => {
+    if (selectedCabinetId == null) return
+    writeSharedOnlyWithPhoto(selectedCabinetId, onlyWithPhoto)
+  }, [selectedCabinetId, onlyWithPhoto])
+
+  useEffect(() => {
+    if (selectedCabinetId == null) return
+    writeSharedOnlyPriority(selectedCabinetId, onlyPriority)
+  }, [selectedCabinetId, onlyPriority])
+
+  useEffect(() => {
+    writeSharedFilterToNone(selectedCabinetId, allDeselected)
     if (selectedNmIds.length === 0 && skipNextWriteRef.current) {
       skipNextWriteRef.current = false
       return
     }
+    if (allDeselected && selectedCabinetId != null) {
+      try {
+        localStorage.setItem(analyticsSharedKeys.selectedNmIds(selectedCabinetId), JSON.stringify([]))
+        localStorage.setItem(`${STORAGE_KEY_PREFIX}${selectedCabinetId}`, JSON.stringify([]))
+      } catch {
+        /* ignore */
+      }
+      return
+    }
     setStoredSelectedNmIds(selectedCabinetId, selectedNmIds)
-  }, [selectedCabinetId, selectedNmIds])
+  }, [selectedCabinetId, selectedNmIds, allDeselected])
 
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -665,7 +722,7 @@ export default function AnalyticsProducts() {
                       marginLeft: 4,
                     }}
                   >
-                    {allDeselected ? 0 : selectedNmIds.length > 0 ? selectedNmIds.length : filterListTotal}/{filterListTotal}
+                    {filterBadgeSelectedCount}/{filterListTotal}
                   </span>
                 )}
               </Button>
@@ -686,7 +743,7 @@ export default function AnalyticsProducts() {
           </div>
 
           {/* Выбранные артикулы ВБ под фильтром — на всю ширину; по клику «ещё» раскрывается весь список */}
-          {selectedNmIds.length > 0 && (
+          {selectedNmIdsForTags.length > 0 && (
             <div
               style={{
                 width: '100%',
@@ -710,7 +767,7 @@ export default function AnalyticsProducts() {
                   boxSizing: 'border-box',
                 }}
               >
-                {(tagsExpanded ? [...selectedNmIds].sort((a, b) => a - b) : [...selectedNmIds].sort((a, b) => a - b).slice(0, 8)).map((nmId) => (
+                {(tagsExpanded ? selectedNmIdsForTags : selectedNmIdsForTags.slice(0, 8)).map((nmId) => (
                   <span
                     key={nmId}
                     style={{
@@ -744,7 +801,7 @@ export default function AnalyticsProducts() {
                     </button>
                   </span>
                 ))}
-                {!tagsExpanded && selectedNmIds.length > 8 && (
+                {!tagsExpanded && selectedNmIdsForTags.length > 8 && (
                   <button
                     type="button"
                     onClick={() => setTagsExpanded(true)}
@@ -759,10 +816,10 @@ export default function AnalyticsProducts() {
                       fontWeight: 500,
                     }}
                   >
-                    … ещё {selectedNmIds.length - 8}
+                    … ещё {selectedNmIdsForTags.length - 8}
                   </button>
                 )}
-                {tagsExpanded && selectedNmIds.length > 8 && (
+                {tagsExpanded && selectedNmIdsForTags.length > 8 && (
                   <button
                     type="button"
                     onClick={() => setTagsExpanded(false)}

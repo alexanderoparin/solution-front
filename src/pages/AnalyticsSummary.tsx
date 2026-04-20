@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useState, useCallback, useMemo } from 'react'
 import { DatePicker, Spin, Tooltip, Popover, Button, Input, Checkbox, message } from 'antd'
 import { InfoCircleOutlined, PlusOutlined, DeleteOutlined, CaretRightOutlined, CaretDownOutlined, FilterOutlined, SearchOutlined, SyncOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -10,6 +10,18 @@ import { userApi } from '../api/user'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import { generateDefaultPeriods, validatePeriods } from '../utils/periodGenerator'
 import { analyticsRequestQueue } from '../utils/requestQueue'
+import {
+  analyticsSharedKeys,
+  excludedNmIdsStorageKey,
+  readSharedFilterToNone,
+  readSharedOnlyPriority,
+  readSharedOnlyWithPhoto,
+  readSharedSearch,
+  writeSharedFilterToNone,
+  writeSharedOnlyPriority,
+  writeSharedOnlyWithPhoto,
+  writeSharedSearch,
+} from '../utils/analyticsSharedFilterStorage'
 import type { SummaryResponse, MetricGroupResponse, Period, ArticleSummary } from '../types/analytics'
 import type { CabinetDto } from '../types/api'
 import { colors, typography, spacing, shadows, borderRadius, transitions } from '../styles/analytics'
@@ -334,6 +346,7 @@ export default function AnalyticsSummary() {
   const [loadingMetrics, setLoadingMetrics] = useState<Set<string>>(new Set())
   const [articleSearchText, setArticleSearchText] = useState<string>('')
   const [onlyWithPhoto, setOnlyWithPhoto] = useState(true)
+  const [onlyPriority, setOnlyPriority] = useState(false)
   const [originalArticles, setOriginalArticles] = useState<ArticleSummary[]>([])
 
   // 1) Список артикулов — отдельный лёгкий эндпоинт (только справочная информация для фильтра)
@@ -341,7 +354,12 @@ export default function AnalyticsSummary() {
     if (isManagerOrAdmin && selectedSellerId === undefined) return
     setArticleCatalogLoading(true)
     try {
-      const list = await analyticsApi.getArticleList(selectedSellerId ?? undefined, selectedCabinetId ?? undefined, onlyWithPhoto)
+      const list = await analyticsApi.getArticleList(
+        selectedSellerId ?? undefined,
+        selectedCabinetId ?? undefined,
+        onlyWithPhoto,
+        onlyPriority,
+      )
       setOriginalArticles(list ?? [])
     } catch (err) {
       console.error('Ошибка загрузки списка артикулов:', err)
@@ -349,7 +367,7 @@ export default function AnalyticsSummary() {
     } finally {
       setArticleCatalogLoading(false)
     }
-  }, [selectedSellerId, selectedCabinetId, onlyWithPhoto, isManagerOrAdmin])
+  }, [selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, isManagerOrAdmin])
 
   // 2) Сводная только по выбранным артикулам (после того как список и фильтр готовы)
   const loadSummary = useCallback(async () => {
@@ -367,6 +385,7 @@ export default function AnalyticsSummary() {
         sellerId: selectedSellerId,
         cabinetId: selectedCabinetId ?? undefined,
         onlyWithPhoto: onlyWithPhoto || undefined,
+        onlyPriority: onlyPriority || undefined,
       })
       setSummary(data)
       setMetricGroups(new Map())
@@ -377,7 +396,7 @@ export default function AnalyticsSummary() {
     } finally {
       setLoading(false)
     }
-  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, onlyWithPhoto, isManagerOrAdmin])
+  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, isManagerOrAdmin])
 
   const queryClient = useQueryClient()
   const selectedSeller = useMemo(
@@ -442,29 +461,50 @@ export default function AnalyticsSummary() {
     },
   })
 
-  // Порядок периодов слева направо: старый → новый (для таблицы)
-  const periodsSorted = useMemo(
-    () => [...periods].sort((a, b) => a.dateFrom.localeCompare(b.dateFrom)),
-    [periods]
-  )
-
   useEffect(() => {
     // Сохраняем периоды в localStorage при изменении
     localStorage.setItem('analytics_periods', JSON.stringify(periods))
   }, [periods])
   
-  const SHARED_FILTER_KEY_PREFIX = 'analytics_shared_selected_nm_ids_'
+  // Общие настройки поиска/чекбоксов (общие с «Товарами») при смене кабинета.
+  // useLayoutEffect: до эффектов записи, иначе дефолты перезапишут localStorage.
+  useLayoutEffect(() => {
+    if (selectedCabinetId == null) return
+    setArticleSearchText(readSharedSearch(selectedCabinetId))
+    setOnlyWithPhoto(readSharedOnlyWithPhoto(selectedCabinetId))
+    setOnlyPriority(readSharedOnlyPriority(selectedCabinetId))
+  }, [selectedCabinetId])
+
+  useEffect(() => {
+    if (selectedCabinetId == null) return
+    writeSharedSearch(selectedCabinetId, articleSearchText)
+  }, [selectedCabinetId, articleSearchText])
+
+  useEffect(() => {
+    if (selectedCabinetId == null) return
+    writeSharedOnlyWithPhoto(selectedCabinetId, onlyWithPhoto)
+  }, [selectedCabinetId, onlyWithPhoto])
+
+  useEffect(() => {
+    if (selectedCabinetId == null) return
+    writeSharedOnlyPriority(selectedCabinetId, onlyPriority)
+  }, [selectedCabinetId, onlyPriority])
 
   // Смена селлера (админ/менеджер) или кабинета/фильтра (продавец/работник): фильтр из localStorage + список артикулов
   useEffect(() => {
     if (isManagerOrAdmin) {
       if (selectedSellerId === undefined) return
-      const saved = localStorage.getItem(`analytics_excluded_nm_ids_${selectedSellerId}`)
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved) as number[]
-          setExcludedNmIds(new Set(parsed))
-        } catch {
+      const exKey = excludedNmIdsStorageKey(selectedCabinetId, selectedSellerId)
+      if (exKey) {
+        const saved = localStorage.getItem(exKey)
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved) as number[]
+            setExcludedNmIds(new Set(parsed))
+          } catch {
+            setExcludedNmIds(new Set())
+          }
+        } else {
           setExcludedNmIds(new Set())
         }
       } else {
@@ -476,7 +516,7 @@ export default function AnalyticsSummary() {
     }
     // SELLER / WORKER: sellerId в API не передаём — только кабинет и фильтр фото
     void loadArticles()
-  }, [isManagerOrAdmin, selectedSellerId, selectedCabinetId, onlyWithPhoto, loadArticles])
+  }, [isManagerOrAdmin, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, loadArticles])
 
   // Сводная — после завершения загрузки справочника артикулов (в т.ч. пустого каталога)
   useEffect(() => {
@@ -492,14 +532,24 @@ export default function AnalyticsSummary() {
     isManagerOrAdmin,
   ])
 
-  // Синхронизация с фильтром в Товарах: сначала читаем общий ключ (порядок важен — до эффекта записи ниже)
+  // Синхронизация с «Товарами»: общий список включённых nmId или режим «ничего не выбрано»
   useEffect(() => {
     if (selectedCabinetId == null || originalArticles.length === 0) return
+    if (readSharedFilterToNone(selectedCabinetId)) {
+      setExcludedNmIds(new Set(originalArticles.map((a) => a.nmId)))
+      return
+    }
     try {
-      const raw = localStorage.getItem(`${SHARED_FILTER_KEY_PREFIX}${selectedCabinetId}`)
+      const raw = localStorage.getItem(analyticsSharedKeys.selectedNmIds(selectedCabinetId))
       if (raw == null) return
       const included = JSON.parse(raw) as number[]
-      if (!Array.isArray(included) || included.length === 0) return
+      if (!Array.isArray(included)) return
+      if (included.length === 0) {
+        if (!readSharedFilterToNone(selectedCabinetId)) {
+          setExcludedNmIds(new Set())
+        }
+        return
+      }
       const excluded = new Set(originalArticles.filter((a) => !included.includes(a.nmId)).map((a) => a.nmId))
       setExcludedNmIds(excluded)
     } catch {
@@ -509,16 +559,23 @@ export default function AnalyticsSummary() {
 
   // Сохраняем фильтр артикулов в localStorage при изменении (и в общий ключ для Товаров)
   useEffect(() => {
-    if (selectedSellerId !== undefined) {
-      const excludedArray = Array.from(excludedNmIds)
-      localStorage.setItem(
-        `analytics_excluded_nm_ids_${selectedSellerId}`,
-        JSON.stringify(excludedArray)
-      )
+    const exKey = excludedNmIdsStorageKey(selectedCabinetId, selectedSellerId)
+    if (exKey) {
+      try {
+        localStorage.setItem(exKey, JSON.stringify(Array.from(excludedNmIds)))
+      } catch {
+        /* ignore */
+      }
     }
     if (selectedCabinetId != null && originalArticles.length > 0) {
-      const included = originalArticles.filter((a) => !excludedNmIds.has(a.nmId)).map((a) => a.nmId)
-      localStorage.setItem(`${SHARED_FILTER_KEY_PREFIX}${selectedCabinetId}`, JSON.stringify(included))
+      const allExcluded = excludedNmIds.size === originalArticles.length
+      writeSharedFilterToNone(selectedCabinetId, allExcluded)
+      try {
+        const included = originalArticles.filter((a) => !excludedNmIds.has(a.nmId)).map((a) => a.nmId)
+        localStorage.setItem(analyticsSharedKeys.selectedNmIds(selectedCabinetId), JSON.stringify(included))
+      } catch {
+        /* ignore */
+      }
     }
   }, [excludedNmIds, selectedSellerId, selectedCabinetId, originalArticles])
 
@@ -540,6 +597,7 @@ export default function AnalyticsSummary() {
           sellerId: selectedSellerId,
           cabinetId: selectedCabinetId ?? undefined,
           onlyWithPhoto: onlyWithPhoto || undefined,
+          onlyPriority: onlyPriority || undefined,
         })
       )
       setMetricGroups(prev => new Map(prev).set(metricName, data))
@@ -787,10 +845,22 @@ export default function AnalyticsSummary() {
                       allowClear
                     />
                     <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                    <Button size="small" onClick={() => setExcludedNmIds(new Set())}>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        if (selectedCabinetId != null) writeSharedFilterToNone(selectedCabinetId, false)
+                        setExcludedNmIds(new Set())
+                      }}
+                    >
                       Выбрать все
                     </Button>
-                    <Button size="small" onClick={() => setExcludedNmIds(new Set(originalArticles.map((a) => a.nmId)))}>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        if (selectedCabinetId != null) writeSharedFilterToNone(selectedCabinetId, true)
+                        setExcludedNmIds(new Set(originalArticles.map((a) => a.nmId)))
+                      }}
+                    >
                       Снять все
                     </Button>
                   </div>
@@ -861,7 +931,7 @@ export default function AnalyticsSummary() {
                       marginLeft: '4px',
                     }}
                   >
-                    {originalArticles.length - excludedNmIds.size}/{originalArticles.length}
+                    {originalArticles.filter((a) => !excludedNmIds.has(a.nmId)).length}/{originalArticles.length}
                   </span>
                 </Button>
               </Popover>
@@ -895,6 +965,9 @@ export default function AnalyticsSummary() {
               onChange={(e) => setOnlyWithPhoto(e.target.checked)}
             >
               Только с фото
+            </Checkbox>
+            <Checkbox checked={onlyPriority} onChange={(e) => setOnlyPriority(e.target.checked)}>
+              Только приоритетные
             </Checkbox>
             </div>
           </div>
@@ -1000,8 +1073,8 @@ export default function AnalyticsSummary() {
           <table style={{ width: '100%', minWidth: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: `${METRIC_COLUMN_WIDTH_PERCENT}%` }} />
-              {periodsSorted.map((period) => (
-                <col key={period.id} style={{ width: `${(100 - METRIC_COLUMN_WIDTH_PERCENT) / periodsSorted.length}%` }} />
+              {periods.map((period) => (
+                <col key={period.id} style={{ width: `${(100 - METRIC_COLUMN_WIDTH_PERCENT) / periods.length}%` }} />
               ))}
             </colgroup>
             <thead>
@@ -1015,7 +1088,7 @@ export default function AnalyticsSummary() {
                 }}>
                   Метрика
                 </th>
-                {periodsSorted.map(period => (
+                {periods.map(period => (
                   <th key={period.id} style={{
                     textAlign: 'center',
                     padding: spacing.md,
@@ -1101,9 +1174,9 @@ export default function AnalyticsSummary() {
                           {metricNameRu}
                         </div>
                       </td>
-                      {periodsSorted.map((period, periodIndex) => {
+                      {periods.map((period, periodIndex) => {
                         const value = getMetricValue(period.id)
-                        const prevValue = periodIndex > 0 ? getMetricValue(periodsSorted[periodIndex - 1].id) : null
+                        const prevValue = periodIndex > 0 ? getMetricValue(periods[periodIndex - 1].id) : null
                         const changePercent = prevValue != null && prevValue !== 0 && value != null
                           ? ((Number(value) - Number(prevValue)) / Number(prevValue)) * 100
                           : null
@@ -1240,7 +1313,7 @@ export default function AnalyticsSummary() {
                             </div>
                           </div>
                         </td>
-                        {periodsSorted.map(period => {
+                        {periods.map(period => {
                           const periodData = article.periods.find(p => p.periodId === period.id)
                           const value = periodData?.value ?? null
                           const changePercent = periodData?.changePercent ?? null

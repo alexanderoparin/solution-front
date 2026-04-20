@@ -40,11 +40,17 @@ export const analyticsApi = {
   /**
    * Список артикулов кабинета/продавца — только справочная информация для фильтра (nmId, title, photoTm и т.д.).
    */
-  getArticleList: async (sellerId?: number, cabinetId?: number, onlyWithPhoto?: boolean): Promise<ArticleSummary[]> => {
+  getArticleList: async (
+    sellerId?: number,
+    cabinetId?: number,
+    onlyWithPhoto?: boolean,
+    onlyPriority?: boolean
+  ): Promise<ArticleSummary[]> => {
     const params = new URLSearchParams()
     if (sellerId != null) params.set('sellerId', String(sellerId))
     if (cabinetId != null) params.set('cabinetId', String(cabinetId))
     if (onlyWithPhoto === true) params.set('onlyWithPhoto', 'true')
+    if (onlyPriority === true) params.set('onlyPriority', 'true')
     const query = params.toString()
     const response = await apiClient.get<ArticleSummary[]>(
       `/analytics/articles${query ? `?${query}` : ''}`
