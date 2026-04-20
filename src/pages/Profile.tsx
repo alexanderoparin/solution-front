@@ -6,7 +6,13 @@ import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutli
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
-import type { UserProfileResponse, ChangePasswordRequest, CabinetDto, CreateCabinetRequest } from '../types/api'
+import type {
+  UserProfileResponse,
+  ChangePasswordRequest,
+  CabinetDto,
+  CreateCabinetRequest,
+  UserRole,
+} from '../types/api'
 import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -16,6 +22,7 @@ dayjs.locale('ru')
 import Breadcrumbs from '../components/Breadcrumbs'
 import UsersManagementSection from '../components/UsersManagementSection'
 import { USER_MANAGEMENT_VIEW, type UserManagementView } from '../constants/userManagementView'
+import { userRoleLabel, USER_ROLE_TAG_COLORS } from '../constants/userRoleLabels'
 
 const { Text } = Typography
 
@@ -429,8 +436,8 @@ export default function Profile() {
                   <div>
                     <Text type="secondary">Роль:</Text>
                     <div style={{ marginTop: '4px' }}>
-                      <Tag color={profile.role === 'SELLER' ? 'purple' : 'blue'}>
-                        {profile.role === 'SELLER' ? 'Продавец' : profile.role}
+                      <Tag color={USER_ROLE_TAG_COLORS[profile.role as UserRole] ?? 'blue'}>
+                        {userRoleLabel(profile.role)}
                       </Tag>
                     </div>
                   </div>

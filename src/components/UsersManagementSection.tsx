@@ -49,26 +49,13 @@ import { useAuthStore } from '../store/authStore'
 import { SORT_DIRECTIONS, USER_SORT_FIELDS, type SortDirection, type UserSortField } from '../constants/userSorting'
 import { CABINET_SORT_FIELDS, type CabinetSortField } from '../constants/cabinetSorting'
 import { USER_MANAGEMENT_VIEW, type UserManagementView } from '../constants/userManagementView'
+import { USER_ROLE_LABELS, USER_ROLE_TAG_COLORS } from '../constants/userRoleLabels'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 
 dayjs.locale('ru')
 
 const { Text } = Typography
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: 'Администратор',
-  MANAGER: 'Менеджер',
-  SELLER: 'Селлер',
-  WORKER: 'Работник',
-}
-
-const ROLE_COLORS: Record<UserRole, string> = {
-  ADMIN: 'red',
-  MANAGER: 'purple',
-  SELLER: 'blue',
-  WORKER: 'green',
-}
 
 /** Совпадает с rowKey таблицы кабинетов — из него читаем sellerId в кастомной строке (rc-table не передаёт record в RowComponent). */
 function managedCabinetRowKey(row: ManagedCabinetRowDto): string {
@@ -451,7 +438,9 @@ export default function UsersManagementSection({
       title: 'Роль',
       dataIndex: 'role',
       key: 'role',
-      render: (roleVal: UserRole) => <Tag color={ROLE_COLORS[roleVal]}>{ROLE_LABELS[roleVal]}</Tag>,
+      render: (roleVal: UserRole) => (
+        <Tag color={USER_ROLE_TAG_COLORS[roleVal]}>{USER_ROLE_LABELS[roleVal]}</Tag>
+      ),
       sorter: true,
       sortOrder: sortBy === USER_SORT_FIELDS.ROLE
         ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
@@ -832,7 +821,7 @@ export default function UsersManagementSection({
             <Select>
               {getCreatableRoles().map((r) => (
                 <Select.Option key={r} value={r}>
-                  {ROLE_LABELS[r]}
+                  {USER_ROLE_LABELS[r]}
                 </Select.Option>
               ))}
             </Select>

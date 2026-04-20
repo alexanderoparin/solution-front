@@ -25,6 +25,7 @@ import { userApi } from '../api/user'
 import type { PlanDto, SubscriptionDto, PaymentDto, UserListItem } from '../types/api'
 import { getPaymentStatusLabel, getPaymentStatusColor, getSubscriptionStatusLabel } from '../utils/paymentStatus'
 import { useAuthStore } from '../store/authStore'
+import { userRoleLabel } from '../constants/userRoleLabels'
 import dayjs from 'dayjs'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -305,7 +306,7 @@ export default function AdminPlansAndSubscriptions() {
                         optionFilterProp="label"
                         options={users.map((u: UserListItem) => ({
                           value: u.id,
-                          label: `${u.email} (${u.role})`,
+                          label: `${u.email} (${userRoleLabel(u.role)})`,
                         }))}
                       />
                     </div>

@@ -22,26 +22,13 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { UserListItem, CreateUserRequest, UpdateUserRequest, UserRole } from '../types/api'
+import { USER_ROLE_LABELS, USER_ROLE_TAG_COLORS } from '../constants/userRoleLabels'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 
 dayjs.locale('ru')
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  ADMIN: 'Администратор',
-  MANAGER: 'Менеджер',
-  SELLER: 'Селлер',
-  WORKER: 'Работник',
-}
-
-const ROLE_COLORS: Record<UserRole, string> = {
-  ADMIN: 'red',
-  MANAGER: 'purple',
-  SELLER: 'blue',
-  WORKER: 'green',
-}
 
 export default function UsersManagement() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -161,7 +148,7 @@ export default function UsersManagement() {
       dataIndex: 'role',
       key: 'role',
       render: (role: UserRole) => (
-        <Tag color={ROLE_COLORS[role]}>{ROLE_LABELS[role]}</Tag>
+        <Tag color={USER_ROLE_TAG_COLORS[role]}>{USER_ROLE_LABELS[role]}</Tag>
       ),
     },
     {
@@ -332,7 +319,7 @@ export default function UsersManagement() {
               <Select>
                 {getCreatableRoles().map((r) => (
                   <Select.Option key={r} value={r}>
-                    {ROLE_LABELS[r]}
+                    {USER_ROLE_LABELS[r]}
                   </Select.Option>
                 ))}
               </Select>
