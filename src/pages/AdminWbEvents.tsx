@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Checkbox, Drawer, Input, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
+import type { FilterValue, SorterResult, TableCurrentDataSource, TablePaginationConfig } from 'antd/es/table/interface'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { SyncOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
@@ -9,7 +10,7 @@ import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useAuthStore } from '../store/authStore'
 import { adminApi } from '../api/admin'
-import type { WbApiEventDto, WbApiEventStatus, WbApiEventType } from '../types/api'
+import type { SortDirection, WbApiEventDto, WbApiEventSortField, WbApiEventStatus, WbApiEventType } from '../types/api'
 
 const STATUS_COLORS: Record<WbApiEventStatus, string> = {
   CREATED: 'blue',
@@ -59,6 +60,21 @@ const TYPE_COLORS: Record<WbApiEventType, string> = {
   STOCKS_BY_NMID: 'blue',
 }
 
+const COLUMN_SORT_FIELDS = {
+  id: 'ID',
+  eventType: 'EVENT_TYPE',
+  status: 'STATUS',
+  cabinetId: 'CABINET_ID',
+  attemptCount: 'ATTEMPT_COUNT',
+  maxAttempts: 'MAX_ATTEMPTS',
+  startedAt: 'STARTED_AT',
+  nextAttemptAt: 'NEXT_ATTEMPT_AT',
+  createdAt: 'CREATED_AT',
+  finishedAt: 'FINISHED_AT',
+} as const satisfies Record<string, WbApiEventSortField>
+
+type SortableColumnKey = keyof typeof COLUMN_SORT_FIELDS
+
 export default function AdminWbEvents() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -70,6 +86,8 @@ export default function AdminWbEvents() {
   const [eventType, setEventType] = useState<WbApiEventType | undefined>(undefined)
   const [cabinetIdInput, setCabinetIdInput] = useState('')
   const [groupByType, setGroupByType] = useState(false)
+  const [sortBy, setSortBy] = useState<WbApiEventSortField>('ID')
+  const [sortDir, setSortDir] = useState<SortDirection>('DESC')
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
 
   if (role !== 'ADMIN') {
@@ -83,8 +101,8 @@ export default function AdminWbEvents() {
   }, [cabinetIdInput])
 
   const { data, isLoading } = useQuery({
-    queryKey: ['adminWbEvents', page, size, status, eventType, cabinetId],
-    queryFn: () => adminApi.getWbEvents({ page, size, status, eventType, cabinetId }),
+    queryKey: ['adminWbEvents', page, size, status, eventType, cabinetId, sortBy, sortDir],
+    queryFn: () => adminApi.getWbEvents({ page, size, status, eventType, cabinetId, sortBy, sortDir }),
     refetchInterval: 5000,
   })
   const { data: stats } = useQuery({
@@ -138,30 +156,64 @@ export default function AdminWbEvents() {
   })
 
   const columns: ColumnsType<WbApiEventDto> = [
-    { title: 'ID', dataIndex: 'id', width: 90 },
+    { title: 'ID', dataIndex: 'id', width: 90, sorter: true, sortOrder: sortBy === 'ID' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null },
     {
       title: 'Тип',
       dataIndex: 'eventType',
       width: 250,
+      sorter: true,
+      sortOrder: sortBy === 'EVENT_TYPE' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
       render: (value: WbApiEventType) => TYPE_LABELS[value],
     },
     {
       title: 'Статус',
       dataIndex: 'status',
       width: 190,
+      sorter: true,
+      sortOrder: sortBy === 'STATUS' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
       render: (value: WbApiEventStatus) => <Tag color={STATUS_COLORS[value]}>{STATUS_LABELS[value]}</Tag>,
     },
-    { title: 'Кабинет', dataIndex: 'cabinetId', width: 120 },
-    { title: 'Попытки', key: 'attempts', width: 120, render: (_, row) => `${row.attemptCount}/${row.maxAttempts}` },
+    { title: 'Кабинет', dataIndex: 'cabinetId', width: 120, sorter: true, sortOrder: sortBy === 'CABINET_ID' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null },
+    {
+      title: 'Попытки',
+      key: 'attempts',
+      width: 120,
+      sorter: true,
+      sortOrder: sortBy === 'ATTEMPT_COUNT' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
+      render: (_, row) => `${row.attemptCount}/${row.maxAttempts}`,
+    },
     {
       title: 'Начало выполнения',
       dataIndex: 'startedAt',
       width: 190,
+      sorter: true,
+      sortOrder: sortBy === 'STARTED_AT' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
       render: (v: string | null) => (v ? dayjs(v).format('DD.MM HH:mm:ss') : '—'),
     },
-    { title: 'Следующая попытка', dataIndex: 'nextAttemptAt', width: 180, render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss') },
-    { title: 'Создано', dataIndex: 'createdAt', width: 180, render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss') },
-    { title: 'Завершено', dataIndex: 'finishedAt', width: 180, render: (v: string | null) => (v ? dayjs(v).format('DD.MM HH:mm:ss') : '—') },
+    {
+      title: 'Следующая попытка',
+      dataIndex: 'nextAttemptAt',
+      width: 180,
+      sorter: true,
+      sortOrder: sortBy === 'NEXT_ATTEMPT_AT' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
+      render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss'),
+    },
+    {
+      title: 'Создано',
+      dataIndex: 'createdAt',
+      width: 180,
+      sorter: true,
+      sortOrder: sortBy === 'CREATED_AT' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
+      render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss'),
+    },
+    {
+      title: 'Завершено',
+      dataIndex: 'finishedAt',
+      width: 180,
+      sorter: true,
+      sortOrder: sortBy === 'FINISHED_AT' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
+      render: (v: string | null) => (v ? dayjs(v).format('DD.MM HH:mm:ss') : '—'),
+    },
     {
       title: (
         <Space size={6}>
@@ -195,6 +247,28 @@ export default function AdminWbEvents() {
       ),
     },
   ]
+
+  const handleTableChange = (
+    pagination: TablePaginationConfig,
+    _filters: Record<string, FilterValue | null>,
+    sorter: SorterResult<WbApiEventDto> | SorterResult<WbApiEventDto>[],
+    _extra: TableCurrentDataSource<WbApiEventDto>
+  ) => {
+    const singleSorter = Array.isArray(sorter) ? sorter[0] : sorter
+    const columnKey = (singleSorter?.field ?? singleSorter?.columnKey) as SortableColumnKey | undefined
+    const nextOrder = singleSorter?.order
+
+    if (columnKey && nextOrder && COLUMN_SORT_FIELDS[columnKey]) {
+      setSortBy(COLUMN_SORT_FIELDS[columnKey])
+      setSortDir(nextOrder === 'ascend' ? 'ASC' : 'DESC')
+    } else {
+      setSortBy('ID')
+      setSortDir('DESC')
+    }
+
+    setPage((pagination.current ?? 1) - 1)
+    setSize(pagination.pageSize ?? size)
+  }
 
   return (
     <>
@@ -316,6 +390,7 @@ export default function AdminWbEvents() {
               loading={isLoading}
               columns={columns}
               dataSource={data?.content ?? []}
+              onChange={handleTableChange}
               pagination={{
                 current: (data?.number ?? 0) + 1,
                 pageSize: data?.size ?? size,

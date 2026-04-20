@@ -10,6 +10,8 @@ import type {
   WbApiEventDto,
   WbApiEventStatus,
   WbApiEventType,
+  WbApiEventSortField,
+  SortDirection,
   PageResponse,
   WbApiEventStatsDto,
   WbApiEventTypeStatsDto,
@@ -59,6 +61,8 @@ export const adminApi = {
     status?: WbApiEventStatus
     eventType?: WbApiEventType
     cabinetId?: number
+    sortBy?: WbApiEventSortField
+    sortDir?: SortDirection
   }): Promise<PageResponse<WbApiEventDto>> => {
     const response = await apiClient.get<PageResponse<WbApiEventDto>>('/admin/wb-events', { params })
     return response.data

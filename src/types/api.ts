@@ -220,6 +220,20 @@ export type WbApiEventType =
   | 'WAREHOUSES_SYNC_CABINET'
   | 'STOCKS_BY_NMID'
 
+export type WbApiEventSortField =
+  | 'ID'
+  | 'EVENT_TYPE'
+  | 'STATUS'
+  | 'CABINET_ID'
+  | 'ATTEMPT_COUNT'
+  | 'MAX_ATTEMPTS'
+  | 'STARTED_AT'
+  | 'NEXT_ATTEMPT_AT'
+  | 'CREATED_AT'
+  | 'FINISHED_AT'
+
+export type SortDirection = 'ASC' | 'DESC'
+
 export interface WbApiEventDto {
   id: number
   eventType: WbApiEventType
