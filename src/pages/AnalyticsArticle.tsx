@@ -738,13 +738,13 @@ export default function AnalyticsArticle() {
 
   const renderFunnelStatFloat = () => {
     if (!funnelStatSelection || funnelStatAggregates === null) return null
-    const WIDGET_W = 272
-    const WIDGET_H = 132
     const pad = 8
+    const maxW = Math.min(320, window.innerWidth - 2 * pad)
+    const estH = 118
     let left = funnelStatSelection.clientX + pad
     let top = funnelStatSelection.clientY + pad
-    left = Math.max(pad, Math.min(left, window.innerWidth - WIDGET_W - pad))
-    top = Math.max(pad, Math.min(top, window.innerHeight - WIDGET_H - pad))
+    left = Math.max(pad, Math.min(left, window.innerWidth - maxW - pad))
+    top = Math.max(pad, Math.min(top, window.innerHeight - estH - pad))
     const mk = funnelStatSelection.metricKey
     const isPercentCol =
       mk.includes('conversion') ||
@@ -779,18 +779,38 @@ export default function AnalyticsArticle() {
           left,
           top,
           zIndex: 2000,
-          width: WIDGET_W,
+          width: 'max-content',
+          maxWidth: maxW,
+          boxSizing: 'border-box',
           backgroundColor: colors.bgWhite,
           border: `1px solid ${colors.border}`,
           borderRadius: borderRadius.sm,
-          padding: `${spacing.sm}px ${spacing.md}px`,
+          padding: '6px 10px',
           boxShadow: shadows.lg,
           ...typography.body,
-          ...FONT_PAGE_SMALL,
+          fontSize: 11,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-          <div style={{ fontWeight: 600, color: colors.textPrimary, lineHeight: 1.25 }}>{colTitle}</div>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 6,
+            marginBottom: 4,
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 600,
+              color: colors.textPrimary,
+              lineHeight: 1.25,
+              wordBreak: 'break-word',
+              paddingRight: 2,
+            }}
+          >
+            {colTitle}
+          </div>
           <button
             type="button"
             aria-label="Закрыть"
@@ -799,33 +819,33 @@ export default function AnalyticsArticle() {
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              padding: '0 4px',
-              fontSize: 16,
+              padding: '0 2px',
+              fontSize: 14,
               lineHeight: 1,
               color: colors.textSecondary,
+              flexShrink: 0,
             }}
           >
             ×
           </button>
         </div>
         {funnelStatAggregates.empty ? (
-          <div style={{ color: colors.textSecondary }}>Нет числовых значений в выделении</div>
+          <div style={{ color: colors.textSecondary, fontSize: 11 }}>Нет числовых значений в выделении</div>
         ) : (
           <>
-            <div style={{ marginBottom: 4 }}>
+            <div style={{ marginBottom: 2, fontSize: 11, whiteSpace: 'nowrap' }}>
               <span style={{ color: colors.textSecondary }}>Сумма: </span>
               <span style={{ fontWeight: 600 }}>{fmtStat(funnelStatAggregates.sum)}</span>
             </div>
-            <div style={{ marginBottom: 4 }}>
+            <div style={{ marginBottom: 2, fontSize: 11, whiteSpace: 'nowrap' }}>
               <span style={{ color: colors.textSecondary }}>Среднее: </span>
               <span style={{ fontWeight: 600 }}>{fmtStat(funnelStatAggregates.avg)}</span>
             </div>
-            <div style={{ fontSize: 10, color: colors.textSecondary }}>
-              Учтено ячеек: {funnelStatAggregates.n} (пустые и «—» пропущены)
+            <div style={{ fontSize: 10, color: colors.textSecondary, whiteSpace: 'nowrap' }}>
+              Учтено ячеек: {funnelStatAggregates.n}
             </div>
           </>
         )}
-        <div style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>Esc или клик вне таблицы — сброс</div>
       </div>
     )
   }
