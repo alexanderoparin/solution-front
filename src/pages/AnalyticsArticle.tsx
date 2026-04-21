@@ -240,6 +240,18 @@ export default function AnalyticsArticle() {
   /** false = натуральный размер (прокрутка); true = уместить в окно */
   const [imagePreviewFitWindow, setImagePreviewFitWindow] = useState(false)
 
+  /** Вертикальное выделение в таблице воронок (одна метрика) + позиция плашки статистики */
+  type FunnelStatSelection = {
+    metricKey: string
+    startRowIndex: number
+    endRowIndex: number
+    clientX: number
+    clientY: number
+  }
+  const [funnelStatSelection, setFunnelStatSelection] = useState<FunnelStatSelection | null>(null)
+  const funnelStatDragRef = useRef<{ metricKey: string } | null>(null)
+  const funnelTableWrapRef = useRef<HTMLDivElement>(null)
+
   // Периоды для сравнения (по умолчанию - две недели, разбитые по неделям)
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>([
     defaultDateFrom,
@@ -637,6 +649,185 @@ export default function AnalyticsArticle() {
     const prev = getMetricValueForDate(metricKey, prevDate)
     if (current === null || prev === null) return null
     return current - prev
+  }
+
+  const isFunnelStatMetricCellSelected = useCallback(
+    (metricKey: string, rowIndex: number) => {
+      if (!funnelStatSelection) return false
+      if (funnelStatSelection.metricKey !== metricKey) return false
+      const lo = Math.min(funnelStatSelection.startRowIndex, funnelStatSelection.endRowIndex)
+      const hi = Math.max(funnelStatSelection.startRowIndex, funnelStatSelection.endRowIndex)
+      return rowIndex >= lo && rowIndex <= hi
+    },
+    [funnelStatSelection],
+  )
+
+  const funnelStatAggregates = useMemo(() => {
+    if (!funnelStatSelection) return null
+    const { metricKey, startRowIndex, endRowIndex } = funnelStatSelection
+    const lo = Math.min(startRowIndex, endRowIndex)
+    const hi = Math.max(startRowIndex, endRowIndex)
+    const values: number[] = []
+    for (let i = lo; i <= hi; i++) {
+      const date = rangeDatesDesc[i]
+      const v = getMetricValueForDate(metricKey, date)
+      if (v != null && Number.isFinite(v)) values.push(v)
+    }
+    if (values.length === 0) return { empty: true as const }
+    const sum = values.reduce((a, b) => a + b, 0)
+    return { empty: false as const, sum, avg: sum / values.length, n: values.length }
+  }, [funnelStatSelection, article, rangeDatesDesc])
+
+  useEffect(() => {
+    setFunnelStatSelection(null)
+    funnelStatDragRef.current = null
+  }, [dateRange, selectedFunnelKeys])
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!funnelStatDragRef.current) return
+      const expectedMk = funnelStatDragRef.current.metricKey
+      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
+      const td = el?.closest('td[data-funnel-stat-metric]') as HTMLElement | null
+      if (!td || td.dataset.funnelStatMetric !== expectedMk) return
+      const row = td.dataset.funnelStatRow
+      if (row === undefined) return
+      const endRowIndex = Number(row)
+      setFunnelStatSelection((prev) => {
+        if (!prev || prev.metricKey !== expectedMk) return prev
+        if (prev.endRowIndex === endRowIndex && prev.clientX === e.clientX && prev.clientY === e.clientY) return prev
+        return { ...prev, endRowIndex, clientX: e.clientX, clientY: e.clientY }
+      })
+    }
+    const onUp = (e: MouseEvent) => {
+      if (!funnelStatDragRef.current) return
+      funnelStatDragRef.current = null
+      setFunnelStatSelection((prev) => {
+        if (!prev) return null
+        return { ...prev, clientX: e.clientX, clientY: e.clientY }
+      })
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!funnelStatSelection) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFunnelStatSelection(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [funnelStatSelection])
+
+  useEffect(() => {
+    if (!funnelStatSelection) return
+    const onDocMouseDown = (e: MouseEvent) => {
+      const root = funnelTableWrapRef.current
+      const t = e.target as Node | null
+      if (root && t && root.contains(t)) return
+      setFunnelStatSelection(null)
+    }
+    document.addEventListener('mousedown', onDocMouseDown, true)
+    return () => document.removeEventListener('mousedown', onDocMouseDown, true)
+  }, [funnelStatSelection])
+
+  const renderFunnelStatFloat = () => {
+    if (!funnelStatSelection || funnelStatAggregates === null) return null
+    const WIDGET_W = 272
+    const WIDGET_H = 132
+    const pad = 8
+    let left = funnelStatSelection.clientX + pad
+    let top = funnelStatSelection.clientY + pad
+    left = Math.max(pad, Math.min(left, window.innerWidth - WIDGET_W - pad))
+    top = Math.max(pad, Math.min(top, window.innerHeight - WIDGET_H - pad))
+    const mk = funnelStatSelection.metricKey
+    const isPercentCol =
+      mk.includes('conversion') ||
+      mk === 'ctr' ||
+      mk === 'drr' ||
+      mk === 'seller_discount' ||
+      mk === 'wb_club_discount' ||
+      mk === 'spp_percent'
+    const isCurrencyCol =
+      mk.includes('price') ||
+      mk === 'orders_amount' ||
+      mk === 'costs' ||
+      mk === 'cpc' ||
+      mk === 'cpo' ||
+      mk === 'spp_amount'
+    const fmtStat = (n: number) =>
+      isPercentCol ? formatPercent(n) : isCurrencyCol ? formatCurrency(n) : formatValue(n)
+    let colTitle = mk
+    for (const fk of FUNNEL_ORDER) {
+      const found = FUNNELS[fk].metrics.find((x) => x.key === mk)
+      if (found) {
+        colTitle = found.name.replace(/\n/g, ' ')
+        break
+      }
+    }
+    return (
+      <div
+        role="status"
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
+          position: 'fixed',
+          left,
+          top,
+          zIndex: 2000,
+          width: WIDGET_W,
+          backgroundColor: colors.bgWhite,
+          border: `1px solid ${colors.border}`,
+          borderRadius: borderRadius.sm,
+          padding: `${spacing.sm}px ${spacing.md}px`,
+          boxShadow: shadows.lg,
+          ...typography.body,
+          ...FONT_PAGE_SMALL,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+          <div style={{ fontWeight: 600, color: colors.textPrimary, lineHeight: 1.25 }}>{colTitle}</div>
+          <button
+            type="button"
+            aria-label="Закрыть"
+            onClick={() => setFunnelStatSelection(null)}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              padding: '0 4px',
+              fontSize: 16,
+              lineHeight: 1,
+              color: colors.textSecondary,
+            }}
+          >
+            ×
+          </button>
+        </div>
+        {funnelStatAggregates.empty ? (
+          <div style={{ color: colors.textSecondary }}>Нет числовых значений в выделении</div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ color: colors.textSecondary }}>Сумма: </span>
+              <span style={{ fontWeight: 600 }}>{fmtStat(funnelStatAggregates.sum)}</span>
+            </div>
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ color: colors.textSecondary }}>Среднее: </span>
+              <span style={{ fontWeight: 600 }}>{fmtStat(funnelStatAggregates.avg)}</span>
+            </div>
+            <div style={{ fontSize: 10, color: colors.textSecondary }}>
+              Учтено ячеек: {funnelStatAggregates.n} (пустые и «—» пропущены)
+            </div>
+          </>
+        )}
+        <div style={{ fontSize: 10, color: colors.textSecondary, marginTop: 6 }}>Esc или клик вне таблицы — сброс</div>
+      </div>
+    )
   }
 
   // Выгрузка воронок в Excel: столбцы выбранных воронок в том же порядке, что и в таблице
@@ -1231,11 +1422,15 @@ export default function AnalyticsArticle() {
             </div>
           </div>
           {selectedFunnel1 ? (
-          <div style={{
-            maxHeight: 438,
-            overflowY: 'auto',
-            overflowX: 'auto'
-          }}>
+          <div
+            ref={funnelTableWrapRef}
+            style={{
+              maxHeight: 438,
+              overflowY: 'auto',
+              overflowX: 'auto',
+              position: 'relative',
+            }}
+          >
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
             <thead>
               <tr>
@@ -1265,7 +1460,24 @@ export default function AnalyticsArticle() {
                   const isLastInFunnel1 = index === FUNNELS[selectedFunnel1].metrics.length - 1
                   const borderRight = !isLastInFunnel1 ? `1px solid ${colors.border}` : (!selectedFunnel2 && !selectedFunnel3) ? 'none' : `2px solid ${colors.border}`
                   return (
-                    <th key={metric.key} style={{
+                    <th
+                      key={metric.key}
+                      title="Клик — выделить столбец; в ячейках — протащите мышь по вертикали"
+                      onMouseDown={(e) => {
+                        if (e.button !== 0) return
+                        e.preventDefault()
+                        e.stopPropagation()
+                        funnelStatDragRef.current = null
+                        const rect = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect()
+                        setFunnelStatSelection({
+                          metricKey: metric.key,
+                          startRowIndex: 0,
+                          endRowIndex: Math.max(0, rangeDatesDesc.length - 1),
+                          clientX: rect.left + rect.width / 2,
+                          clientY: rect.bottom + 6,
+                        })
+                      }}
+                      style={{
                       textAlign: 'center',
                       padding: '4px 6px',
                       borderBottom: `1px solid ${colors.border}`,
@@ -1279,7 +1491,8 @@ export default function AnalyticsArticle() {
                       width: totalCols ? `${100 / totalCols}%` : undefined,
                       position: 'sticky',
                       top: 0,
-                      zIndex: 2
+                      zIndex: 2,
+                      cursor: 'cell',
                     }}>
                       {metric.name}
                     </th>
@@ -1294,7 +1507,24 @@ export default function AnalyticsArticle() {
                   const isLastInFunnel2 = index === FUNNELS[selectedFunnel2].metrics.length - 1
                   const borderRight = !isLastInFunnel2 ? `1px solid ${colors.border}` : !selectedFunnel3 ? 'none' : `2px solid ${colors.border}`
                   return (
-                    <th key={metric.key} style={{
+                    <th
+                      key={metric.key}
+                      title="Клик — выделить столбец; в ячейках — протащите мышь по вертикали"
+                      onMouseDown={(e) => {
+                        if (e.button !== 0) return
+                        e.preventDefault()
+                        e.stopPropagation()
+                        funnelStatDragRef.current = null
+                        const rect = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect()
+                        setFunnelStatSelection({
+                          metricKey: metric.key,
+                          startRowIndex: 0,
+                          endRowIndex: Math.max(0, rangeDatesDesc.length - 1),
+                          clientX: rect.left + rect.width / 2,
+                          clientY: rect.bottom + 6,
+                        })
+                      }}
+                      style={{
                       textAlign: 'center',
                       padding: '4px 6px',
                       borderBottom: `1px solid ${colors.border}`,
@@ -1308,7 +1538,8 @@ export default function AnalyticsArticle() {
                       width: `${100 / totalCols}%`,
                       position: 'sticky',
                       top: 0,
-                      zIndex: 2
+                      zIndex: 2,
+                      cursor: 'cell',
                     }}>
                       {metric.name}
                     </th>
@@ -1323,7 +1554,24 @@ export default function AnalyticsArticle() {
                   const totalCols = len1 + len2 + len3
                   const isLastInFunnel3 = index === len3 - 1
                   return (
-                    <th key={metric.key} style={{
+                    <th
+                      key={metric.key}
+                      title="Клик — выделить столбец; в ячейках — протащите мышь по вертикали"
+                      onMouseDown={(e) => {
+                        if (e.button !== 0) return
+                        e.preventDefault()
+                        e.stopPropagation()
+                        funnelStatDragRef.current = null
+                        const rect = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect()
+                        setFunnelStatSelection({
+                          metricKey: metric.key,
+                          startRowIndex: 0,
+                          endRowIndex: Math.max(0, rangeDatesDesc.length - 1),
+                          clientX: rect.left + rect.width / 2,
+                          clientY: rect.bottom + 6,
+                        })
+                      }}
+                      style={{
                       textAlign: 'center',
                       padding: '4px 6px',
                       borderBottom: `1px solid ${colors.border}`,
@@ -1337,7 +1585,8 @@ export default function AnalyticsArticle() {
                       width: `${100 / totalCols}%`,
                       position: 'sticky',
                       top: 0,
-                      zIndex: 2
+                      zIndex: 2,
+                      cursor: 'cell',
                     }}>
                       {metric.name}
                     </th>
@@ -1420,8 +1669,25 @@ export default function AnalyticsArticle() {
                       const changeColor = change !== null && change !== 0 ? (lowerIsBetter ? (change < 0 ? colors.success : colors.error) : (change > 0 ? colors.success : colors.error)) : undefined
                       const isLast1 = index === len1 - 1
                       const borderRight1 = !isLast1 ? `1px solid ${colors.border}` : (!selectedFunnel2 && !selectedFunnel3) ? 'none' : `2px solid ${colors.border}`
+                      const statSel = isFunnelStatMetricCellSelected(metric.key, dateIndex)
                       return (
-                        <td key={metric.key} style={{
+                        <td
+                          key={metric.key}
+                          data-funnel-stat-metric={metric.key}
+                          data-funnel-stat-row={dateIndex}
+                          onMouseDown={(e) => {
+                            if (e.button !== 0) return
+                            e.preventDefault()
+                            funnelStatDragRef.current = { metricKey: metric.key }
+                            setFunnelStatSelection({
+                              metricKey: metric.key,
+                              startRowIndex: dateIndex,
+                              endRowIndex: dateIndex,
+                              clientX: e.clientX,
+                              clientY: e.clientY,
+                            })
+                          }}
+                          style={{
                           textAlign: 'center',
                           padding: '4px 6px',
                           borderTop: dateIndex === 0 ? 'none' : undefined,
@@ -1432,7 +1698,9 @@ export default function AnalyticsArticle() {
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           transition: transitions.fast,
-                          position: 'relative'
+                          position: 'relative',
+                          cursor: 'cell',
+                          boxShadow: statSel ? `inset 0 0 0 2px ${colors.primary}` : undefined,
                         }}>
                           {value === null ? '-' : (
                             isPercent ? formatPercent(value) :
@@ -1471,8 +1739,25 @@ export default function AnalyticsArticle() {
                       const changeColor = change !== null && change !== 0 ? (lowerIsBetter ? (change < 0 ? colors.success : colors.error) : (change > 0 ? colors.success : colors.error)) : undefined
                       const isLast2 = index === FUNNELS[selectedFunnel2].metrics.length - 1
                       const borderRight2 = !isLast2 ? `1px solid ${colors.border}` : !selectedFunnel3 ? 'none' : `2px solid ${colors.border}`
+                      const statSel2 = isFunnelStatMetricCellSelected(metric.key, dateIndex)
                       return (
-                        <td key={metric.key} style={{
+                        <td
+                          key={metric.key}
+                          data-funnel-stat-metric={metric.key}
+                          data-funnel-stat-row={dateIndex}
+                          onMouseDown={(e) => {
+                            if (e.button !== 0) return
+                            e.preventDefault()
+                            funnelStatDragRef.current = { metricKey: metric.key }
+                            setFunnelStatSelection({
+                              metricKey: metric.key,
+                              startRowIndex: dateIndex,
+                              endRowIndex: dateIndex,
+                              clientX: e.clientX,
+                              clientY: e.clientY,
+                            })
+                          }}
+                          style={{
                           textAlign: 'center',
                           padding: '4px 6px',
                           borderTop: dateIndex === 0 ? 'none' : undefined,
@@ -1483,7 +1768,9 @@ export default function AnalyticsArticle() {
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           transition: transitions.fast,
-                          position: 'relative'
+                          position: 'relative',
+                          cursor: 'cell',
+                          boxShadow: statSel2 ? `inset 0 0 0 2px ${colors.primary}` : undefined,
                         }}>
                           {value === null ? '-' : (
                             isPercent ? formatPercent(value) :
@@ -1520,8 +1807,25 @@ export default function AnalyticsArticle() {
                       const showChangeNumber = METRICS_WITH_CHANGE_NUMBER.includes(metric.key)
                       const lowerIsBetter = ['cpc', 'cpo', 'costs', 'drr'].includes(metric.key)
                       const changeColor = change !== null && change !== 0 ? (lowerIsBetter ? (change < 0 ? colors.success : colors.error) : (change > 0 ? colors.success : colors.error)) : undefined
+                      const statSel3 = isFunnelStatMetricCellSelected(metric.key, dateIndex)
                       return (
-                        <td key={metric.key} style={{
+                        <td
+                          key={metric.key}
+                          data-funnel-stat-metric={metric.key}
+                          data-funnel-stat-row={dateIndex}
+                          onMouseDown={(e) => {
+                            if (e.button !== 0) return
+                            e.preventDefault()
+                            funnelStatDragRef.current = { metricKey: metric.key }
+                            setFunnelStatSelection({
+                              metricKey: metric.key,
+                              startRowIndex: dateIndex,
+                              endRowIndex: dateIndex,
+                              clientX: e.clientX,
+                              clientY: e.clientY,
+                            })
+                          }}
+                          style={{
                           textAlign: 'center',
                           padding: '4px 6px',
                           borderTop: dateIndex === 0 ? 'none' : undefined,
@@ -1532,7 +1836,9 @@ export default function AnalyticsArticle() {
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           transition: transitions.fast,
-                          position: 'relative'
+                          position: 'relative',
+                          cursor: 'cell',
+                          boxShadow: statSel3 ? `inset 0 0 0 2px ${colors.primary}` : undefined,
                         }}>
                           {value === null ? '-' : (
                             isPercent ? formatPercent(value) :
@@ -1658,6 +1964,7 @@ export default function AnalyticsArticle() {
               </tr>
             </tbody>
           </table>
+          {renderFunnelStatFloat()}
           </div>
           ) : (
             <div style={{ ...typography.body,
