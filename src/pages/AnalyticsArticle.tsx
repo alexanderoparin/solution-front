@@ -25,6 +25,7 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
+import { useFunnelTableVerticalSelection } from '../hooks/useFunnelTableVerticalSelection'
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
 import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
@@ -239,18 +240,6 @@ export default function AnalyticsArticle() {
   const [imagePreview, setImagePreview] = useState<{ url: string; fileName: string } | null>(null)
   /** false = натуральный размер (прокрутка); true = уместить в окно */
   const [imagePreviewFitWindow, setImagePreviewFitWindow] = useState(false)
-
-  /** Вертикальное выделение в таблице воронок (одна метрика) + позиция плашки статистики */
-  type FunnelStatSelection = {
-    metricKey: string
-    startRowIndex: number
-    endRowIndex: number
-    clientX: number
-    clientY: number
-  }
-  const [funnelStatSelection, setFunnelStatSelection] = useState<FunnelStatSelection | null>(null)
-  const funnelStatDragRef = useRef<{ metricKey: string } | null>(null)
-  const funnelTableWrapRef = useRef<HTMLDivElement>(null)
 
   // Периоды для сравнения (по умолчанию - две недели, разбитые по неделям)
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>([
@@ -651,204 +640,40 @@ export default function AnalyticsArticle() {
     return current - prev
   }
 
-  const isFunnelStatMetricCellSelected = useCallback(
-    (metricKey: string, rowIndex: number) => {
-      if (!funnelStatSelection) return false
-      if (funnelStatSelection.metricKey !== metricKey) return false
-      const lo = Math.min(funnelStatSelection.startRowIndex, funnelStatSelection.endRowIndex)
-      const hi = Math.max(funnelStatSelection.startRowIndex, funnelStatSelection.endRowIndex)
-      return rowIndex >= lo && rowIndex <= hi
-    },
-    [funnelStatSelection],
+  const getFunnelNumericForStats = useCallback(
+    (metricKey: string, date: string) => getMetricValueForDate(metricKey, date),
+    [article],
   )
 
-  const funnelStatAggregates = useMemo(() => {
-    if (!funnelStatSelection) return null
-    const { metricKey, startRowIndex, endRowIndex } = funnelStatSelection
-    const lo = Math.min(startRowIndex, endRowIndex)
-    const hi = Math.max(startRowIndex, endRowIndex)
-    const values: number[] = []
-    for (let i = lo; i <= hi; i++) {
-      const date = rangeDatesDesc[i]
-      const v = getMetricValueForDate(metricKey, date)
-      if (v != null && Number.isFinite(v)) values.push(v)
+  const getFunnelStatColumnTitle = useCallback((metricKey: string) => {
+    for (const fk of FUNNEL_ORDER) {
+      const found = FUNNELS[fk].metrics.find((x) => x.key === metricKey)
+      if (found) return found.name.replace(/\n/g, ' ')
     }
-    if (values.length === 0) return { empty: true as const }
-    const sum = values.reduce((a, b) => a + b, 0)
-    return { empty: false as const, sum, avg: sum / values.length, n: values.length }
-  }, [funnelStatSelection, article, rangeDatesDesc])
-
-  useEffect(() => {
-    setFunnelStatSelection(null)
-    funnelStatDragRef.current = null
-  }, [dateRange, selectedFunnelKeys])
-
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (!funnelStatDragRef.current) return
-      const expectedMk = funnelStatDragRef.current.metricKey
-      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
-      const td = el?.closest('td[data-funnel-stat-metric]') as HTMLElement | null
-      if (!td || td.dataset.funnelStatMetric !== expectedMk) return
-      const row = td.dataset.funnelStatRow
-      if (row === undefined) return
-      const endRowIndex = Number(row)
-      setFunnelStatSelection((prev) => {
-        if (!prev || prev.metricKey !== expectedMk) return prev
-        if (prev.endRowIndex === endRowIndex && prev.clientX === e.clientX && prev.clientY === e.clientY) return prev
-        return { ...prev, endRowIndex, clientX: e.clientX, clientY: e.clientY }
-      })
-    }
-    const onUp = (e: MouseEvent) => {
-      if (!funnelStatDragRef.current) return
-      funnelStatDragRef.current = null
-      setFunnelStatSelection((prev) => {
-        if (!prev) return null
-        return { ...prev, clientX: e.clientX, clientY: e.clientY }
-      })
-    }
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-    return () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
+    return metricKey
   }, [])
 
-  useEffect(() => {
-    if (!funnelStatSelection) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setFunnelStatSelection(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [funnelStatSelection])
+  const funnelTableStatsResetKey = useMemo(
+    () =>
+      `${nmId ?? ''}|${dateRange[0].format('YYYY-MM-DD')}|${dateRange[1].format('YYYY-MM-DD')}|${selectedFunnelKeys.join(',')}`,
+    [nmId, dateRange, selectedFunnelKeys],
+  )
 
-  useEffect(() => {
-    if (!funnelStatSelection) return
-    const onDocMouseDown = (e: MouseEvent) => {
-      const root = funnelTableWrapRef.current
-      const t = e.target as Node | null
-      if (root && t && root.contains(t)) return
-      setFunnelStatSelection(null)
-    }
-    document.addEventListener('mousedown', onDocMouseDown, true)
-    return () => document.removeEventListener('mousedown', onDocMouseDown, true)
-  }, [funnelStatSelection])
-
-  const renderFunnelStatFloat = () => {
-    if (!funnelStatSelection || funnelStatAggregates === null) return null
-    const pad = 8
-    const maxW = Math.min(320, window.innerWidth - 2 * pad)
-    const estH = 118
-    let left = funnelStatSelection.clientX + pad
-    let top = funnelStatSelection.clientY + pad
-    left = Math.max(pad, Math.min(left, window.innerWidth - maxW - pad))
-    top = Math.max(pad, Math.min(top, window.innerHeight - estH - pad))
-    const mk = funnelStatSelection.metricKey
-    const isPercentCol =
-      mk.includes('conversion') ||
-      mk === 'ctr' ||
-      mk === 'drr' ||
-      mk === 'seller_discount' ||
-      mk === 'wb_club_discount' ||
-      mk === 'spp_percent'
-    const isCurrencyCol =
-      mk.includes('price') ||
-      mk === 'orders_amount' ||
-      mk === 'costs' ||
-      mk === 'cpc' ||
-      mk === 'cpo' ||
-      mk === 'spp_amount'
-    const fmtStat = (n: number) =>
-      isPercentCol ? formatPercent(n) : isCurrencyCol ? formatCurrency(n) : formatValue(n)
-    let colTitle = mk
-    for (const fk of FUNNEL_ORDER) {
-      const found = FUNNELS[fk].metrics.find((x) => x.key === mk)
-      if (found) {
-        colTitle = found.name.replace(/\n/g, ' ')
-        break
-      }
-    }
-    return (
-      <div
-        role="status"
-        onMouseDown={(e) => e.stopPropagation()}
-        style={{
-          position: 'fixed',
-          left,
-          top,
-          zIndex: 2000,
-          width: 'max-content',
-          maxWidth: maxW,
-          boxSizing: 'border-box',
-          backgroundColor: colors.bgWhite,
-          border: `1px solid ${colors.border}`,
-          borderRadius: borderRadius.sm,
-          padding: '6px 10px',
-          boxShadow: shadows.lg,
-          ...typography.body,
-          fontSize: 11,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: 6,
-            marginBottom: 4,
-          }}
-        >
-          <div
-            style={{
-              fontWeight: 600,
-              color: colors.textPrimary,
-              lineHeight: 1.25,
-              wordBreak: 'break-word',
-              paddingRight: 2,
-            }}
-          >
-            {colTitle}
-          </div>
-          <button
-            type="button"
-            aria-label="Закрыть"
-            onClick={() => setFunnelStatSelection(null)}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              padding: '0 2px',
-              fontSize: 14,
-              lineHeight: 1,
-              color: colors.textSecondary,
-              flexShrink: 0,
-            }}
-          >
-            ×
-          </button>
-        </div>
-        {funnelStatAggregates.empty ? (
-          <div style={{ color: colors.textSecondary, fontSize: 11 }}>Нет числовых значений в выделении</div>
-        ) : (
-          <>
-            <div style={{ marginBottom: 2, fontSize: 11, whiteSpace: 'nowrap' }}>
-              <span style={{ color: colors.textSecondary }}>Сумма: </span>
-              <span style={{ fontWeight: 600 }}>{fmtStat(funnelStatAggregates.sum)}</span>
-            </div>
-            <div style={{ marginBottom: 2, fontSize: 11, whiteSpace: 'nowrap' }}>
-              <span style={{ color: colors.textSecondary }}>Среднее: </span>
-              <span style={{ fontWeight: 600 }}>{fmtStat(funnelStatAggregates.avg)}</span>
-            </div>
-            <div style={{ fontSize: 10, color: colors.textSecondary, whiteSpace: 'nowrap' }}>
-              Учтено ячеек: {funnelStatAggregates.n}
-            </div>
-          </>
-        )}
-      </div>
-    )
-  }
+  const {
+    funnelTableWrapRef,
+    isFunnelStatMetricCellSelected,
+    renderFunnelStatFloat,
+    onMetricHeaderMouseDown,
+    onMetricCellMouseDown,
+  } = useFunnelTableVerticalSelection({
+    rangeDatesDesc,
+    getNumericValue: getFunnelNumericForStats,
+    getColumnTitle: getFunnelStatColumnTitle,
+    formatValue,
+    formatPercent,
+    formatCurrency,
+    resetSelectionKey: funnelTableStatsResetKey,
+  })
 
   // Выгрузка воронок в Excel: столбцы выбранных воронок в том же порядке, что и в таблице
   const handleExportFunnelsExcel = () => {
@@ -1483,20 +1308,7 @@ export default function AnalyticsArticle() {
                     <th
                       key={metric.key}
                       title="Клик — выделить столбец; в ячейках — протащите мышь по вертикали"
-                      onMouseDown={(e) => {
-                        if (e.button !== 0) return
-                        e.preventDefault()
-                        e.stopPropagation()
-                        funnelStatDragRef.current = null
-                        const rect = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect()
-                        setFunnelStatSelection({
-                          metricKey: metric.key,
-                          startRowIndex: 0,
-                          endRowIndex: Math.max(0, rangeDatesDesc.length - 1),
-                          clientX: rect.left + rect.width / 2,
-                          clientY: rect.bottom + 6,
-                        })
-                      }}
+                      onMouseDown={(e) => onMetricHeaderMouseDown(metric.key, e)}
                       style={{
                       textAlign: 'center',
                       padding: '4px 6px',
@@ -1530,20 +1342,7 @@ export default function AnalyticsArticle() {
                     <th
                       key={metric.key}
                       title="Клик — выделить столбец; в ячейках — протащите мышь по вертикали"
-                      onMouseDown={(e) => {
-                        if (e.button !== 0) return
-                        e.preventDefault()
-                        e.stopPropagation()
-                        funnelStatDragRef.current = null
-                        const rect = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect()
-                        setFunnelStatSelection({
-                          metricKey: metric.key,
-                          startRowIndex: 0,
-                          endRowIndex: Math.max(0, rangeDatesDesc.length - 1),
-                          clientX: rect.left + rect.width / 2,
-                          clientY: rect.bottom + 6,
-                        })
-                      }}
+                      onMouseDown={(e) => onMetricHeaderMouseDown(metric.key, e)}
                       style={{
                       textAlign: 'center',
                       padding: '4px 6px',
@@ -1577,20 +1376,7 @@ export default function AnalyticsArticle() {
                     <th
                       key={metric.key}
                       title="Клик — выделить столбец; в ячейках — протащите мышь по вертикали"
-                      onMouseDown={(e) => {
-                        if (e.button !== 0) return
-                        e.preventDefault()
-                        e.stopPropagation()
-                        funnelStatDragRef.current = null
-                        const rect = (e.currentTarget as HTMLTableCellElement).getBoundingClientRect()
-                        setFunnelStatSelection({
-                          metricKey: metric.key,
-                          startRowIndex: 0,
-                          endRowIndex: Math.max(0, rangeDatesDesc.length - 1),
-                          clientX: rect.left + rect.width / 2,
-                          clientY: rect.bottom + 6,
-                        })
-                      }}
+                      onMouseDown={(e) => onMetricHeaderMouseDown(metric.key, e)}
                       style={{
                       textAlign: 'center',
                       padding: '4px 6px',
@@ -1695,18 +1481,7 @@ export default function AnalyticsArticle() {
                           key={metric.key}
                           data-funnel-stat-metric={metric.key}
                           data-funnel-stat-row={dateIndex}
-                          onMouseDown={(e) => {
-                            if (e.button !== 0) return
-                            e.preventDefault()
-                            funnelStatDragRef.current = { metricKey: metric.key }
-                            setFunnelStatSelection({
-                              metricKey: metric.key,
-                              startRowIndex: dateIndex,
-                              endRowIndex: dateIndex,
-                              clientX: e.clientX,
-                              clientY: e.clientY,
-                            })
-                          }}
+                          onMouseDown={(e) => onMetricCellMouseDown(metric.key, dateIndex, e)}
                           style={{
                           textAlign: 'center',
                           padding: '4px 6px',
@@ -1765,18 +1540,7 @@ export default function AnalyticsArticle() {
                           key={metric.key}
                           data-funnel-stat-metric={metric.key}
                           data-funnel-stat-row={dateIndex}
-                          onMouseDown={(e) => {
-                            if (e.button !== 0) return
-                            e.preventDefault()
-                            funnelStatDragRef.current = { metricKey: metric.key }
-                            setFunnelStatSelection({
-                              metricKey: metric.key,
-                              startRowIndex: dateIndex,
-                              endRowIndex: dateIndex,
-                              clientX: e.clientX,
-                              clientY: e.clientY,
-                            })
-                          }}
+                          onMouseDown={(e) => onMetricCellMouseDown(metric.key, dateIndex, e)}
                           style={{
                           textAlign: 'center',
                           padding: '4px 6px',
@@ -1833,18 +1597,7 @@ export default function AnalyticsArticle() {
                           key={metric.key}
                           data-funnel-stat-metric={metric.key}
                           data-funnel-stat-row={dateIndex}
-                          onMouseDown={(e) => {
-                            if (e.button !== 0) return
-                            e.preventDefault()
-                            funnelStatDragRef.current = { metricKey: metric.key }
-                            setFunnelStatSelection({
-                              metricKey: metric.key,
-                              startRowIndex: dateIndex,
-                              endRowIndex: dateIndex,
-                              clientX: e.clientX,
-                              clientY: e.clientY,
-                            })
-                          }}
+                          onMouseDown={(e) => onMetricCellMouseDown(metric.key, dateIndex, e)}
                           style={{
                           textAlign: 'center',
                           padding: '4px 6px',

@@ -16,6 +16,7 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
+import { useFunnelTableVerticalSelection } from '../hooks/useFunnelTableVerticalSelection'
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
 import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
@@ -486,6 +487,41 @@ export default function AdvertisingCampaignDetail() {
     return current - prev
   }, [funnelDailyData, rangeDatesDesc, getMetricValueForDate])
 
+  const getFunnelNumericForStats = useCallback(
+    (metricKey: string, date: string) => getMetricValueForDate(funnelDailyData, metricKey, date),
+    [funnelDailyData, getMetricValueForDate],
+  )
+
+  const getFunnelStatColumnTitle = useCallback((metricKey: string) => {
+    for (const fk of FUNNEL_ORDER) {
+      const found = FUNNELS[fk].metrics.find((x) => x.key === metricKey)
+      if (found) return found.name.replace(/\n/g, ' ')
+    }
+    return metricKey
+  }, [])
+
+  const funnelTableStatsResetKey = useMemo(
+    () =>
+      `${campaignId}|${selectedFunnelArticleNmId}|${dateRange[0].format('YYYY-MM-DD')}|${dateRange[1].format('YYYY-MM-DD')}|${selectedFunnelKeys.join(',')}`,
+    [campaignId, selectedFunnelArticleNmId, dateRange, selectedFunnelKeys],
+  )
+
+  const {
+    funnelTableWrapRef,
+    isFunnelStatMetricCellSelected,
+    renderFunnelStatFloat,
+    onMetricHeaderMouseDown,
+    onMetricCellMouseDown,
+  } = useFunnelTableVerticalSelection({
+    rangeDatesDesc,
+    getNumericValue: getFunnelNumericForStats,
+    getColumnTitle: getFunnelStatColumnTitle,
+    formatValue,
+    formatPercent,
+    formatCurrency,
+    resetSelectionKey: funnelTableStatsResetKey,
+  })
+
   const sortedFunnelKeys = useMemo(
     () => [...selectedFunnelKeys].sort((a, b) => FUNNEL_ORDER.indexOf(a) - FUNNEL_ORDER.indexOf(b)),
     [selectedFunnelKeys]
@@ -784,7 +820,10 @@ export default function AdvertisingCampaignDetail() {
                   )
                   const totalCols = metricsWithFunnel.length
                   return (
-                  <div style={{ maxHeight: 438, overflowY: 'auto', overflowX: 'auto' }}>
+                  <div
+                    ref={funnelTableWrapRef}
+                    style={{ maxHeight: 438, overflowY: 'auto', overflowX: 'auto', position: 'relative' }}
+                  >
                     <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
                       <thead>
                         <tr style={{ fontWeight: 700 }}>
@@ -795,7 +834,28 @@ export default function AdvertisingCampaignDetail() {
                             const isPricing = funnelKey === 'pricing'
                             const headerBg = isGeneral ? colors.funnelBg : isAdvertising ? colors.advertisingBg : isPricing ? colors.pricingBg : colors.bgWhite
                             return (
-                              <th key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderBottom: `1px solid ${colors.border}`, boxShadow: `0 1px 0 0 ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, fontSize: 10, fontWeight: 700, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: headerBg, position: 'sticky', top: 0, zIndex: 2, width: totalCols ? `${100 / totalCols}%` : undefined }}>
+                              <th
+                                key={m.key}
+                                title="Клик — выделить столбец; в ячейках — протащите мышь по вертикали"
+                                onMouseDown={(e) => onMetricHeaderMouseDown(m.key, e)}
+                                style={{
+                                  textAlign: 'center',
+                                  padding: '4px 6px',
+                                  borderBottom: `1px solid ${colors.border}`,
+                                  boxShadow: `0 1px 0 0 ${colors.border}`,
+                                  borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`,
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  whiteSpace: 'pre-line',
+                                  lineHeight: 1.2,
+                                  backgroundColor: headerBg,
+                                  position: 'sticky',
+                                  top: 0,
+                                  zIndex: 2,
+                                  width: totalCols ? `${100 / totalCols}%` : undefined,
+                                  cursor: 'cell',
+                                }}
+                              >
                                 {m.name}
                               </th>
                             )
@@ -849,8 +909,29 @@ export default function AdvertisingCampaignDetail() {
                               const isAdvertising = funnelKey === 'advertising'
                               const isPricing = funnelKey === 'pricing'
                               const cellBg = isGeneral ? colors.funnelBg : isAdvertising ? colors.advertisingBg : isPricing ? colors.pricingBg : colors.bgWhite
+                              const statSel = isFunnelStatMetricCellSelected(m.key, dateIndex)
                               return (
-                                <td key={m.key} style={{ textAlign: 'center', padding: '4px 6px', borderTop: dateIndex === 0 ? 'none' : undefined, borderBottom: `1px solid ${colors.border}`, borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`, backgroundColor: cellBg, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', transition: transitions.fast, position: 'relative' }}>
+                                <td
+                                  key={m.key}
+                                  data-funnel-stat-metric={m.key}
+                                  data-funnel-stat-row={dateIndex}
+                                  onMouseDown={(e) => onMetricCellMouseDown(m.key, dateIndex, e)}
+                                  style={{
+                                    textAlign: 'center',
+                                    padding: '4px 6px',
+                                    borderTop: dateIndex === 0 ? 'none' : undefined,
+                                    borderBottom: `1px solid ${colors.border}`,
+                                    borderRight: index === totalCols - 1 ? 'none' : `1px solid ${colors.border}`,
+                                    backgroundColor: cellBg,
+                                    fontSize: 11,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    transition: transitions.fast,
+                                    position: 'relative',
+                                    cursor: 'cell',
+                                    boxShadow: statSel ? `inset 0 0 0 2px ${colors.primary}` : undefined,
+                                  }}
+                                >
                                   {(v === null || v === 0) ? '-' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v)}
                                   {change !== null && change !== 0 && changeColor && (
                                     <div style={{ position: 'absolute', top: 1, right: 2, display: 'flex', alignItems: 'center', gap: 0, fontSize: '9px', fontWeight: 600, color: changeColor, lineHeight: 1 }}>
@@ -880,6 +961,7 @@ export default function AdvertisingCampaignDetail() {
                         </tr>
                       </tbody>
                     </table>
+                    {renderFunnelStatFloat()}
                   </div>
                   )
                 })()}
