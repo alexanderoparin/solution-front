@@ -88,7 +88,7 @@ export default function Profile() {
   const { data: cabinets = [], isLoading: cabinetsLoading } = useQuery<CabinetDto[]>({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
-    enabled: profile?.role === 'SELLER',
+    enabled: profile?.role === 'SELLER' || profile?.role === 'WORKER',
   })
 
   const changePasswordMutation = useMutation({
@@ -611,8 +611,8 @@ export default function Profile() {
           </Row>
         </Card>
 
-        {/* Управление кабинетами (только для продавцов) */}
-        {profile.role === 'SELLER' && (
+        {/* Кабинеты для SELLER/WORKER (для WORKER — только просмотр) */}
+        {(profile.role === 'SELLER' || profile.role === 'WORKER') && (
           <Card
             title={
               <Space>
@@ -627,82 +627,90 @@ export default function Profile() {
               <Spin />
             ) : (
               <>
-                <div style={{ marginBottom: '20px' }}>
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => setAddCabinetModalOpen(true)}
-                    style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
-                  >
-                    Добавить кабинет
-                  </Button>
-                </div>
-
-                <Modal
-                  title="Новый кабинет"
-                  open={addCabinetModalOpen}
-                  destroyOnClose
-                  onCancel={() => {
-                    setAddCabinetModalOpen(false)
-                    cabinetCreateForm.resetFields()
-                  }}
-                  footer={[
+                {profile.role === 'SELLER' && (
+                  <div style={{ marginBottom: '20px' }}>
                     <Button
-                      key="cancel"
-                      onClick={() => {
-                        setAddCabinetModalOpen(false)
-                        cabinetCreateForm.resetFields()
-                      }}
-                    >
-                      Отмена
-                    </Button>,
-                    <Button
-                      key="submit"
                       type="primary"
-                      loading={createCabinetMutation.isPending}
+                      icon={<PlusOutlined />}
+                      onClick={() => setAddCabinetModalOpen(true)}
                       style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
-                      onClick={() => cabinetCreateForm.submit()}
                     >
-                      Создать
-                    </Button>,
-                  ]}
-                >
-                  <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-                    Название обязательно, если не вводите API ключ WB. Если ключ указан без названия — имя кабинета
-                    подставится из ответа WB.
-                  </Text>
-                  <Form
-                    form={cabinetCreateForm}
-                    layout="vertical"
-                    autoComplete="off"
-                    onFinish={(values) => createCabinetMutation.mutate(values)}
+                      Добавить кабинет
+                    </Button>
+                  </div>
+                )}
+
+                {profile.role === 'SELLER' && (
+                  <Modal
+                    title="Новый кабинет"
+                    open={addCabinetModalOpen}
+                    destroyOnClose
+                    onCancel={() => {
+                      setAddCabinetModalOpen(false)
+                      cabinetCreateForm.resetFields()
+                    }}
+                    footer={[
+                      <Button
+                        key="cancel"
+                        onClick={() => {
+                          setAddCabinetModalOpen(false)
+                          cabinetCreateForm.resetFields()
+                        }}
+                      >
+                        Отмена
+                      </Button>,
+                      <Button
+                        key="submit"
+                        type="primary"
+                        loading={createCabinetMutation.isPending}
+                        style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
+                        onClick={() => cabinetCreateForm.submit()}
+                      >
+                        Создать
+                      </Button>,
+                    ]}
                   >
-                    <Form.Item name="apiKey" label="WB API ключ">
-                      <Input.Password placeholder="Необязательно" autoComplete="off" />
-                    </Form.Item>
-                    <Form.Item
-                      name="name"
-                      label="Название кабинета"
-                      dependencies={['apiKey']}
-                      rules={[
-                        ({ getFieldValue }) => ({
-                          validator(_, value) {
-                            const key = (getFieldValue('apiKey') as string | undefined)?.trim()
-                            if (!key && !(value as string | undefined)?.trim()) {
-                              return Promise.reject(new Error('Введите название кабинета или API ключ WB'))
-                            }
-                            return Promise.resolve()
-                          },
-                        }),
-                      ]}
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+                      Название обязательно, если не вводите API ключ WB. Если ключ указан без названия — имя кабинета
+                      подставится из ответа WB.
+                    </Text>
+                    <Form
+                      form={cabinetCreateForm}
+                      layout="vertical"
+                      autoComplete="off"
+                      onFinish={(values) => createCabinetMutation.mutate(values)}
                     >
-                      <Input placeholder="Обязательно без ключа WB" />
-                    </Form.Item>
-                  </Form>
-                </Modal>
+                      <Form.Item name="apiKey" label="WB API ключ">
+                        <Input.Password placeholder="Необязательно" autoComplete="off" />
+                      </Form.Item>
+                      <Form.Item
+                        name="name"
+                        label="Название кабинета"
+                        dependencies={['apiKey']}
+                        rules={[
+                          ({ getFieldValue }) => ({
+                            validator(_, value) {
+                              const key = (getFieldValue('apiKey') as string | undefined)?.trim()
+                              if (!key && !(value as string | undefined)?.trim()) {
+                                return Promise.reject(new Error('Введите название кабинета или API ключ WB'))
+                              }
+                              return Promise.resolve()
+                            },
+                          }),
+                        ]}
+                      >
+                        <Input placeholder="Обязательно без ключа WB" />
+                      </Form.Item>
+                    </Form>
+                  </Modal>
+                )}
 
                 {cabinets.length === 0 ? (
-                  <Text type="secondary">Нет кабинетов. Нажмите «Добавить кабинет» и заполните форму.</Text>
+                  <Text type="secondary">
+                    {profile.role === 'SELLER'
+                      ? 'Нет кабинетов. Нажмите «Добавить кабинет» и заполните форму.'
+                      : 'Нет доступных кабинетов.'}
+                  </Text>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     {cabinets.map((cab) => (
@@ -717,7 +725,7 @@ export default function Profile() {
                       >
                         {/* Название кабинета */}
                         <div style={{ marginBottom: '16px' }}>
-                          {editingCabinetId === cab.id ? (
+                          {profile.role === 'SELLER' && editingCabinetId === cab.id ? (
                             <Space>
                               <Input
                                 value={editingCabinetName}
@@ -750,38 +758,42 @@ export default function Profile() {
                           ) : (
                             <Space>
                               <Text strong style={{ fontSize: '16px' }}>{cab.name}</Text>
-                              <Button
-                                type="link"
-                                size="small"
-                                icon={<EditOutlined />}
-                                onClick={() => {
-                                  setEditingCabinetId(cab.id)
-                                  setEditingCabinetName(cab.name)
-                                }}
-                              />
-                              <Button
-                                type="link"
-                                size="small"
-                                danger
-                                icon={<DeleteOutlined />}
-                                loading={deleteCabinetMutation.isPending}
-                                onClick={() => {
-                                  Modal.confirm({
-                                    title: 'Удалить кабинет?',
-                                    content: `Кабинет «${cab.name}» и все связанные данные (остатки, аналитика, кампании, заметки) будут удалены. Это действие нельзя отменить.`,
-                                    okText: 'Удалить',
-                                    okType: 'danger',
-                                    cancelText: 'Отмена',
-                                    onOk: () => deleteCabinetMutation.mutate(cab.id),
-                                  })
-                                }}
-                              />
+                              {profile.role === 'SELLER' && (
+                                <>
+                                  <Button
+                                    type="link"
+                                    size="small"
+                                    icon={<EditOutlined />}
+                                    onClick={() => {
+                                      setEditingCabinetId(cab.id)
+                                      setEditingCabinetName(cab.name)
+                                    }}
+                                  />
+                                  <Button
+                                    type="link"
+                                    size="small"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    loading={deleteCabinetMutation.isPending}
+                                    onClick={() => {
+                                      Modal.confirm({
+                                        title: 'Удалить кабинет?',
+                                        content: `Кабинет «${cab.name}» и все связанные данные (остатки, аналитика, кампании, заметки) будут удалены. Это действие нельзя отменить.`,
+                                        okText: 'Удалить',
+                                        okType: 'danger',
+                                        cancelText: 'Отмена',
+                                        onOk: () => deleteCabinetMutation.mutate(cab.id),
+                                      })
+                                    }}
+                                  />
+                                </>
+                              )}
                             </Space>
                           )}
                         </div>
 
                         {/* Под кабинетом — инфо по ключу как раньше */}
-                        {showApiKeyFormForCabinetId === cab.id ? (
+                        {profile.role === 'SELLER' && showApiKeyFormForCabinetId === cab.id ? (
                           <>
                             <Divider style={{ margin: '12px 0' }} />
                             <Space align="start">
@@ -832,47 +844,63 @@ export default function Profile() {
                                     <Text type="secondary">API Ключ:</Text>
                                     <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
                                       {cab.apiKey?.apiKey ? (
-                                        <Space>
+                                        profile.role === 'WORKER' ? (
                                           <Text
                                             code
-                                            copyable={{ text: cab.apiKey.apiKey }}
                                             style={{
-                                              cursor: 'pointer',
                                               fontSize: '13px',
                                               fontFamily: 'monospace',
                                               maxWidth: '100%',
                                               wordBreak: 'break-all',
                                             }}
-                                            onClick={() => setExpandedKeyCabinetId(expandedKeyCabinetId === cab.id ? null : cab.id)}
                                           >
-                                            {expandedKeyCabinetId === cab.id
-                                              ? cab.apiKey.apiKey
-                                              : `${cab.apiKey.apiKey.substring(0, 8)}...${cab.apiKey.apiKey.substring(cab.apiKey.apiKey.length - 8)}`}
+                                            {`${cab.apiKey.apiKey.substring(0, 8)}...${cab.apiKey.apiKey.substring(cab.apiKey.apiKey.length - 8)}`}
                                           </Text>
-                                          <Button
-                                            type="text"
-                                            size="small"
-                                            icon={expandedKeyCabinetId === cab.id ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                                            onClick={() => setExpandedKeyCabinetId(expandedKeyCabinetId === cab.id ? null : cab.id)}
-                                            style={{ padding: '0 4px' }}
-                                          />
-                                        </Space>
+                                        ) : (
+                                          <Space>
+                                            <Text
+                                              code
+                                              copyable={{ text: cab.apiKey.apiKey }}
+                                              style={{
+                                                cursor: 'pointer',
+                                                fontSize: '13px',
+                                                fontFamily: 'monospace',
+                                                maxWidth: '100%',
+                                                wordBreak: 'break-all',
+                                              }}
+                                              onClick={() => setExpandedKeyCabinetId(expandedKeyCabinetId === cab.id ? null : cab.id)}
+                                            >
+                                              {expandedKeyCabinetId === cab.id
+                                                ? cab.apiKey.apiKey
+                                                : `${cab.apiKey.apiKey.substring(0, 8)}...${cab.apiKey.apiKey.substring(cab.apiKey.apiKey.length - 8)}`}
+                                            </Text>
+                                            <Button
+                                              type="text"
+                                              size="small"
+                                              icon={expandedKeyCabinetId === cab.id ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                                              onClick={() => setExpandedKeyCabinetId(expandedKeyCabinetId === cab.id ? null : cab.id)}
+                                              style={{ padding: '0 4px' }}
+                                            />
+                                          </Space>
+                                        )
                                       ) : (
                                         <Text type="secondary">Не задан</Text>
                                       )}
                                     </div>
                                   </div>
-                                  <Button
-                                    type="default"
-                                    icon={<EditOutlined />}
-                                    onClick={() => {
-                                      setShowApiKeyFormForCabinetId(cab.id)
-                                      setCabinetNewKeyValue('')
-                                    }}
-                                    style={{ width: '100%' }}
-                                  >
-                                    Сменить ключ
-                                  </Button>
+                                  {profile.role === 'SELLER' && (
+                                    <Button
+                                      type="default"
+                                      icon={<EditOutlined />}
+                                      onClick={() => {
+                                        setShowApiKeyFormForCabinetId(cab.id)
+                                        setCabinetNewKeyValue('')
+                                      }}
+                                      style={{ width: '100%' }}
+                                    >
+                                      Сменить ключ
+                                    </Button>
+                                  )}
                                 </Space>
                               </Col>
                               <Col xs={24} sm={12} lg={6}>
