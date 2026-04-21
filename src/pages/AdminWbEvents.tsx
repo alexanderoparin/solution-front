@@ -65,6 +65,8 @@ const COLUMN_SORT_FIELDS = {
   eventType: 'EVENT_TYPE',
   status: 'STATUS',
   cabinetId: 'CABINET_ID',
+  /** Колонка «Попытки» с key: attempts, без dataIndex */
+  attempts: 'ATTEMPT_COUNT',
   attemptCount: 'ATTEMPT_COUNT',
   maxAttempts: 'MAX_ATTEMPTS',
   startedAt: 'STARTED_AT',
@@ -391,6 +393,8 @@ export default function AdminWbEvents() {
               columns={columns}
               dataSource={data?.content ?? []}
               onChange={handleTableChange}
+              /** По умолчанию в antd ['ascend','descend']: при активном DESC следующий клик — «отмена», а не ASC. У нас дефолт ID DESC. */
+              sortDirections={['descend', 'ascend']}
               pagination={{
                 current: (data?.number ?? 0) + 1,
                 pageSize: data?.size ?? size,

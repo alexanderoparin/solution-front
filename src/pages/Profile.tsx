@@ -208,6 +208,18 @@ export default function Profile() {
     },
   })
 
+  const triggerStocksUpdateMutation = useMutation({
+    mutationFn: (cabinetId: number) => userApi.triggerCabinetStocksUpdate(cabinetId),
+    onSuccess: (data) => {
+      message.success(data.message || 'Обновление остатков запущено')
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+      queryClient.invalidateQueries({ queryKey: ['cabinets'] })
+    },
+    onError: (error: any) => {
+      message.error(error.response?.data?.message || 'Ошибка запуска обновления остатков')
+    },
+  })
+
   const triggerAllCabinetsUpdateMutation = useMutation({
     mutationFn: (includeStocks: boolean) => userApi.triggerAllCabinetsUpdate(includeStocks),
     onSuccess: (data) => {
@@ -243,6 +255,7 @@ export default function Profile() {
 
   // Минимальный интервал между обновлениями (6 часов)
   const MIN_UPDATE_INTERVAL_HOURS = 6
+  const STOCKS_UPDATE_COOLDOWN_HOURS = 1
 
   // Более поздняя из двух дат: реальный старт обновления или запрос (кнопка нажата, задача в очереди)
   const getLastUpdateOrRequested = (cab: CabinetDto): string | null => {
@@ -271,6 +284,35 @@ export default function Profile() {
     const minutesSinceLastUpdate = dayjs().diff(lastUpdate, 'minute')
     if (hoursSinceLastUpdate >= MIN_UPDATE_INTERVAL_HOURS) return null
     const remainingMinutes = MIN_UPDATE_INTERVAL_HOURS * 60 - minutesSinceLastUpdate
+    const remainingHours = Math.floor(remainingMinutes / 60)
+    const remainingMins = remainingMinutes % 60
+    if (remainingHours > 0) {
+      return `${remainingHours} ${getHoursWord(remainingHours)} ${remainingMins > 0 ? `и ${remainingMins} ${getMinutesWord(remainingMins)}` : ''}`
+    }
+    return `${remainingMins} ${getMinutesWord(remainingMins)}`
+  }
+
+  const getLastStocksUpdateOrRequested = (cab: CabinetDto): string | null => {
+    const a = cab.lastStocksUpdateAt ?? cab.apiKey?.lastStocksUpdateAt ?? null
+    const b = cab.lastStocksUpdateRequestedAt ?? null
+    if (!a && !b) return null
+    if (!a) return b
+    if (!b) return a
+    return dayjs(a).isAfter(dayjs(b)) ? a : b
+  }
+
+  const canUpdateStocks = (cab: CabinetDto): boolean => {
+    const lastAt = getLastStocksUpdateOrRequested(cab)
+    if (!lastAt) return true
+    return dayjs().diff(dayjs(lastAt), 'hour') >= STOCKS_UPDATE_COOLDOWN_HOURS
+  }
+
+  const getStocksRemainingTime = (cab: CabinetDto): string | null => {
+    const lastAt = getLastStocksUpdateOrRequested(cab)
+    if (!lastAt) return null
+    const minutesSinceLastUpdate = dayjs().diff(dayjs(lastAt), 'minute')
+    if (minutesSinceLastUpdate >= STOCKS_UPDATE_COOLDOWN_HOURS * 60) return null
+    const remainingMinutes = STOCKS_UPDATE_COOLDOWN_HOURS * 60 - minutesSinceLastUpdate
     const remainingHours = Math.floor(remainingMinutes / 60)
     const remainingMins = remainingMinutes % 60
     if (remainingHours > 0) {
@@ -783,8 +825,8 @@ export default function Profile() {
                                 <Text type="danger">{cab.apiKey.validationError}</Text>
                               </div>
                             )}
-                            <Row gutter={24} style={{ marginBottom: 0 }}>
-                              <Col xs={24} sm={8}>
+                            <Row gutter={[16, 16]} style={{ marginBottom: 0 }}>
+                              <Col xs={24} sm={12} lg={6}>
                                 <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
                                   <div style={{ textAlign: 'center', width: '100%' }}>
                                     <Text type="secondary">API Ключ:</Text>
@@ -833,7 +875,7 @@ export default function Profile() {
                                   </Button>
                                 </Space>
                               </Col>
-                              <Col xs={24} sm={8}>
+                              <Col xs={24} sm={12} lg={6}>
                                 <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
                                   {cab.apiKey?.lastValidatedAt ? (
                                     <div style={{ textAlign: 'center', width: '100%' }}>
@@ -872,18 +914,12 @@ export default function Profile() {
                                   })()}
                                 </Space>
                               </Col>
-                              <Col xs={24} sm={8}>
+                              <Col xs={24} sm={12} lg={6}>
                                 <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
                                   <div style={{ textAlign: 'center', width: '100%' }}>
                                     <Text type="secondary" style={{ fontSize: '12px' }}>Основное обновление:</Text>
                                     <div style={{ marginTop: '4px' }}>
                                       <Text style={{ fontSize: '12px' }}>{formatDate(cab.apiKey?.lastDataUpdateAt ?? cab.lastDataUpdateAt ?? null)}</Text>
-                                    </div>
-                                    <Text type="secondary" style={{ fontSize: '12px', marginTop: '6px', display: 'block' }}>
-                                      Последнее обновление остатков:
-                                    </Text>
-                                    <div style={{ marginTop: '4px' }}>
-                                      <Text style={{ fontSize: '12px' }}>{formatDate(cab.apiKey?.lastStocksUpdateAt ?? cab.lastStocksUpdateAt ?? null)}</Text>
                                     </div>
                                   </div>
                                   {(() => {
@@ -903,6 +939,37 @@ export default function Profile() {
                                           style={{ width: '100%' }}
                                         >
                                           Обновить данные
+                                        </Button>
+                                      </Tooltip>
+                                    )
+                                  })()}
+                                </Space>
+                              </Col>
+                              <Col xs={24} sm={12} lg={6}>
+                                <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
+                                  <div style={{ textAlign: 'center', width: '100%' }}>
+                                    <Text type="secondary" style={{ fontSize: '12px' }}>Последнее обновление остатков:</Text>
+                                    <div style={{ marginTop: '4px' }}>
+                                      <Text style={{ fontSize: '12px' }}>{formatDate(cab.apiKey?.lastStocksUpdateAt ?? cab.lastStocksUpdateAt ?? null)}</Text>
+                                    </div>
+                                  </div>
+                                  {(() => {
+                                    const canUpdateStocksValue = canUpdateStocks(cab)
+                                    const stocksRemainingTime = getStocksRemainingTime(cab)
+                                    const tooltipTitle = canUpdateStocksValue
+                                      ? 'Запускает только обновление остатков по кабинету.'
+                                      : `Обновление остатков не чаще одного раза в ${STOCKS_UPDATE_COOLDOWN_HOURS} ч. Через ${stocksRemainingTime || '…'}.`
+                                    return (
+                                      <Tooltip title={tooltipTitle}>
+                                        <Button
+                                          type="default"
+                                          icon={<SyncOutlined />}
+                                          onClick={() => triggerStocksUpdateMutation.mutate(cab.id)}
+                                          loading={triggerStocksUpdateMutation.isPending}
+                                          disabled={!canUpdateStocksValue || triggerStocksUpdateMutation.isPending}
+                                          style={{ width: '100%' }}
+                                        >
+                                          Обновить остатки
                                         </Button>
                                       </Tooltip>
                                     )
