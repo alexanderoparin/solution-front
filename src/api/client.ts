@@ -62,20 +62,9 @@ apiClient.interceptors.response.use(
       return Promise.reject(error)
     }
     
-    // 403 - запрещено
-    // 403 «Подтвердите почту» — не редиректим, показываем сообщение на странице (AccessGuard)
+    // 403 - запрещено: сессию не сбрасываем, чтобы не разлогинивать пользователя
     if (status === 403) {
-      const message = (error.response?.data as { message?: string })?.message ?? ''
-      if (message.includes('Подтвердите почту')) {
-        return Promise.reject(error)
-      }
-      const publicEndpoints = ['/auth/login', '/health']
-      const isPublicEndpoint = publicEndpoints.some(endpoint => url.includes(endpoint))
-      if (!isPublicEndpoint) {
-        useAuthStore.getState().clearAuth()
-        window.location.href = '/login'
-        return Promise.reject(error)
-      }
+      return Promise.reject(error)
     }
     
     return Promise.reject(error)

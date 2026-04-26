@@ -873,17 +873,22 @@ export default function Profile() {
                                     <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
                                       {cab.apiKey?.apiKey ? (
                                         profile.role === 'WORKER' ? (
-                                          <Text
-                                            code
-                                            style={{
-                                              fontSize: '13px',
-                                              fontFamily: 'monospace',
-                                              maxWidth: '100%',
-                                              wordBreak: 'break-all',
-                                            }}
-                                          >
-                                            {`${cab.apiKey.apiKey.substring(0, 8)}...${cab.apiKey.apiKey.substring(cab.apiKey.apiKey.length - 8)}`}
-                                          </Text>
+                                          <Space>
+                                            <Text
+                                              code
+                                              style={{
+                                                fontSize: '13px',
+                                                fontFamily: 'monospace',
+                                                maxWidth: '100%',
+                                                wordBreak: 'break-all',
+                                              }}
+                                            >
+                                              {`${cab.apiKey.apiKey.substring(0, 8)}...${cab.apiKey.apiKey.substring(cab.apiKey.apiKey.length - 8)}`}
+                                            </Text>
+                                            <Tag color="blue" style={{ marginInlineEnd: 0 }}>
+                                              {tokenTypeLabel(cab.apiKey?.tokenType ?? null)}
+                                            </Tag>
+                                          </Space>
                                         ) : (
                                           <Space>
                                             <Text
@@ -937,31 +942,33 @@ export default function Profile() {
                                   ) : (
                                     <div style={{ height: '40px' }} />
                                   )}
-                                  {(() => {
-                                    const cabinetCooldown = validateCooldowns[cab.id] ?? 0
-                                    return (
-                                  <Tooltip
-                                    title={
-                                      cabinetCooldown > 0
-                                        ? `Следующая проверка доступна через ${cabinetCooldown} сек (не чаще 1 раза в 30 сек)`
-                                        : 'Проверка подключения и доступа токена к категориям WB API'
-                                    }
-                                  >
-                                    <span style={{ display: 'inline-block', width: '100%' }}>
-                                      <Button
-                                        type="default"
-                                        icon={<CheckCircleOutlined />}
-                                        onClick={() => validateCabinetKeyMutation.mutate(cab.id)}
-                                        loading={validateCabinetKeyMutation.isPending}
-                                        disabled={cabinetCooldown > 0}
-                                        style={{ width: '100%' }}
-                                      >
-                                        Проверить ключ
-                                      </Button>
-                                    </span>
-                                  </Tooltip>
-                                    )
-                                  })()}
+                                  {profile.role === 'SELLER' || profile.role === 'WORKER' ? (
+                                    (() => {
+                                      const cabinetCooldown = validateCooldowns[cab.id] ?? 0
+                                      return (
+                                        <Tooltip
+                                          title={
+                                            cabinetCooldown > 0
+                                              ? `Следующая проверка доступна через ${cabinetCooldown} сек (не чаще 1 раза в 30 сек)`
+                                              : 'Проверка подключения и доступа токена к категориям WB API'
+                                          }
+                                        >
+                                          <span style={{ display: 'inline-block', width: '100%' }}>
+                                            <Button
+                                              type="default"
+                                              icon={<CheckCircleOutlined />}
+                                              onClick={() => validateCabinetKeyMutation.mutate(cab.id)}
+                                              loading={validateCabinetKeyMutation.isPending}
+                                              disabled={cabinetCooldown > 0}
+                                              style={{ width: '100%' }}
+                                            >
+                                              Проверить ключ
+                                            </Button>
+                                          </span>
+                                        </Tooltip>
+                                      )
+                                    })()
+                                  ) : (<div style={{ height: '32px' }} />)}
                                 </Space>
                               </Col>
                               <Col xs={24} sm={12} lg={6}>
