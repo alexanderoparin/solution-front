@@ -3,6 +3,7 @@ import { message } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { WORK_CONTEXT_CABINETS_QUERY_KEY } from './useWorkContextForManagerAdmin'
+import type { CabinetTokenType } from '../types/api'
 
 function invalidateCabinetListCaches(queryClient: ReturnType<typeof useQueryClient>, sellerId: number) {
   void queryClient.invalidateQueries({ queryKey: ['sellerCabinets', sellerId] })
@@ -18,6 +19,7 @@ export function useCabinetAdminPanel(sellerId: number) {
   const [validateCooldown, setValidateCooldown] = useState(0)
   const [editingKey, setEditingKey] = useState(false)
   const [editKeyValue, setEditKeyValue] = useState('')
+  const [editTokenType, setEditTokenType] = useState<CabinetTokenType>('BASIC')
 
   useEffect(() => {
     if (validateCooldown <= 0) return
@@ -38,10 +40,10 @@ export function useCabinetAdminPanel(sellerId: number) {
   })
 
   const updateKeyMutation = useMutation({
-    mutationFn: ({ cabinetId, apiKey }: { cabinetId: number; apiKey: string }) =>
-      userApi.updateSellerCabinetKey(cabinetId, apiKey),
+    mutationFn: ({ cabinetId, apiKey, tokenType }: { cabinetId: number; apiKey?: string; tokenType?: CabinetTokenType }) =>
+      userApi.updateSellerCabinetKey(cabinetId, apiKey, tokenType),
     onSuccess: () => {
-      message.success('Ключ обновлён')
+      message.success('Кабинет обновлён')
       invalidateCabinetListCaches(queryClient, sellerId)
       setEditingKey(false)
       setEditKeyValue('')
@@ -79,6 +81,8 @@ export function useCabinetAdminPanel(sellerId: number) {
     setEditingKey,
     editKeyValue,
     setEditKeyValue,
+    editTokenType,
+    setEditTokenType,
     validateKeyMutation,
     updateKeyMutation,
     triggerCabinetUpdateMutation,

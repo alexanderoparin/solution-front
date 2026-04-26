@@ -13,6 +13,7 @@ import {
   AccessStatusResponse,
   PaymentDto,
 } from '../types/api'
+import type { CabinetTokenType } from '../types/api'
 import type { SortDirection, UserSortField } from '../constants/userSorting'
 import type { CabinetSortField } from '../constants/cabinetSorting'
 
@@ -217,8 +218,11 @@ export const userApi = {
   /**
    * Обновление API ключа кабинета селлера (для ADMIN/MANAGER).
    */
-  updateSellerCabinetKey: async (cabinetId: number, apiKey: string): Promise<CabinetDto> => {
-    const response = await apiClient.patch<CabinetDto>(`/users/cabinets/${cabinetId}`, { apiKey })
+  updateSellerCabinetKey: async (cabinetId: number, apiKey?: string, tokenType?: CabinetTokenType): Promise<CabinetDto> => {
+    const payload: { apiKey?: string; tokenType?: CabinetTokenType } = {}
+    if (apiKey !== undefined) payload.apiKey = apiKey
+    if (tokenType !== undefined) payload.tokenType = tokenType
+    const response = await apiClient.patch<CabinetDto>(`/users/cabinets/${cabinetId}`, payload)
     return response.data
   },
 }

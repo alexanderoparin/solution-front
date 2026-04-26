@@ -1,4 +1,4 @@
-import { Button, Input, Space, Tooltip, Typography, message } from 'antd'
+import { Button, Input, Select, Space, Tag, Tooltip, Typography, message } from 'antd'
 import {
   EditOutlined,
   CheckCircleOutlined,
@@ -21,6 +21,11 @@ import {
 
 const { Text } = Typography
 
+const tokenTypeLabel = (tokenType?: 'PERSONAL' | 'BASIC' | null): string => {
+  if (tokenType === 'PERSONAL') return 'Персональный'
+  return 'Базовый'
+}
+
 export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetDto; sellerId: number }) {
   const {
     validateCooldown,
@@ -28,6 +33,8 @@ export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetD
     setEditingKey,
     editKeyValue,
     setEditKeyValue,
+    editTokenType,
+    setEditTokenType,
     validateKeyMutation,
     updateKeyMutation,
     triggerCabinetUpdateMutation,
@@ -66,17 +73,33 @@ export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetD
               style={{ width: 280, fontFamily: 'monospace', fontSize: 12 }}
               autoComplete="off"
             />
+            <Select
+              value={editTokenType}
+              onChange={(value) => setEditTokenType(value)}
+              style={{ width: 160 }}
+              options={[
+                { value: 'BASIC', label: 'Базовый' },
+                { value: 'PERSONAL', label: 'Персональный' },
+              ]}
+            />
             <Space>
               <Button
                 type="primary"
                 size="small"
                 onClick={() => {
                   const key = editKeyValue.trim()
-                  if (!key) {
-                    message.warning('Введите ключ')
+                  const currentTokenType = cab.apiKey?.tokenType ?? 'BASIC'
+                  const hasKeyChange = key.length > 0
+                  const hasTypeChange = editTokenType !== currentTokenType
+                  if (!hasKeyChange && !hasTypeChange) {
+                    message.warning('Нет изменений для сохранения')
                     return
                   }
-                  updateKeyMutation.mutate({ cabinetId: cab.id, apiKey: key })
+                  updateKeyMutation.mutate({
+                    cabinetId: cab.id,
+                    ...(hasKeyChange ? { apiKey: key } : {}),
+                    ...(hasTypeChange ? { tokenType: editTokenType } : {}),
+                  })
                 }}
                 loading={updateKeyMutation.isPending}
               >
@@ -87,6 +110,7 @@ export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetD
                 onClick={() => {
                   setEditingKey(false)
                   setEditKeyValue('')
+                  setEditTokenType(cab.apiKey?.tokenType ?? 'BASIC')
                 }}
               >
                 Отмена
@@ -109,6 +133,9 @@ export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetD
                   не задан
                 </Text>
               )}
+              <Tag color="blue" style={{ margin: 0 }}>
+                {tokenTypeLabel(cab.apiKey?.tokenType ?? null)}
+              </Tag>
               <Tooltip title="Редактировать ключ">
                 <Button
                   type="link"
@@ -116,7 +143,8 @@ export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetD
                   icon={<EditOutlined />}
                   onClick={() => {
                     setEditingKey(true)
-                    setEditKeyValue('')
+                    setEditKeyValue(cab.apiKey?.apiKey ?? '')
+                    setEditTokenType(cab.apiKey?.tokenType ?? 'BASIC')
                   }}
                   style={{ padding: 0, height: 'auto' }}
                 />

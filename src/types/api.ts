@@ -45,6 +45,7 @@ export interface UserProfileResponse {
 
 export interface ApiKeyInfo {
   apiKey: string | null
+  tokenType?: CabinetTokenType | null
   isValid: boolean | null
   lastValidatedAt: string | null
   validationError: string | null
@@ -92,6 +93,7 @@ export interface UpdateUserRequest {
 
 export interface CabinetApiKeyInfo {
   apiKey: string | null
+  tokenType?: CabinetTokenType | null
   isValid: boolean | null
   lastValidatedAt: string | null
   validationError: string | null
@@ -303,6 +305,8 @@ export interface CreateCabinetRequest {
   name?: string
   /** Если задан без name — название берётся из WB seller-info. */
   apiKey?: string
+  /** Тип токена WB API. По умолчанию BASIC. */
+  tokenType?: CabinetTokenType
 }
 
 /** Ответ API с ошибкой (часто 4xx/429). */
@@ -314,4 +318,7 @@ export interface ErrorResponseBody {
 export interface UpdateCabinetRequest {
   name?: string
   apiKey?: string
+  tokenType?: CabinetTokenType
 }
+
+export type CabinetTokenType = 'PERSONAL' | 'BASIC'

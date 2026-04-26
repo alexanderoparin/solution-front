@@ -1,4 +1,4 @@
-import { Button, Input, Space, Tag, Tooltip, Typography, message } from 'antd'
+import { Button, Input, Select, Space, Tag, Tooltip, Typography, message } from 'antd'
 import { EditOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import type { ManagedCabinetRowDto } from '../types/api'
 import { useCabinetTableRowAdmin } from './CabinetTableRowAdminContext'
@@ -7,6 +7,10 @@ import { formatCabinetAdminDate, maskApiKeyPreview } from '../utils/cabinetAdmin
 const { Text } = Typography
 
 const tagStyle = { margin: 0, fontSize: 11, lineHeight: '18px', padding: '0 6px' }
+const tokenTypeLabel = (tokenType?: 'PERSONAL' | 'BASIC' | null): string => {
+  if (tokenType === 'PERSONAL') return 'Персональный'
+  return 'Базовый'
+}
 
 export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
   const cab = row.cabinet
@@ -16,6 +20,8 @@ export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
     setEditingKey,
     editKeyValue,
     setEditKeyValue,
+    editTokenType,
+    setEditTokenType,
     validateKeyMutation,
     updateKeyMutation,
   } = useCabinetTableRowAdmin()
@@ -44,23 +50,40 @@ export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
           autoComplete="off"
           size="small"
         />
+        <Select
+          size="small"
+          value={editTokenType}
+          onChange={(value) => setEditTokenType(value)}
+          style={{ width: 130 }}
+          options={[
+            { value: 'BASIC', label: 'Базовый' },
+            { value: 'PERSONAL', label: 'Персональный' },
+          ]}
+        />
         <Space size={4}>
           <Button
             type="primary"
             size="small"
             onClick={() => {
               const key = editKeyValue.trim()
-              if (!key) {
-                message.warning('Введите ключ')
+              const currentTokenType = cab.apiKey?.tokenType ?? 'BASIC'
+              const hasKeyChange = key.length > 0
+              const hasTypeChange = editTokenType !== currentTokenType
+              if (!hasKeyChange && !hasTypeChange) {
+                message.warning('Нет изменений для сохранения')
                 return
               }
-              updateKeyMutation.mutate({ cabinetId: cab.id, apiKey: key })
+              updateKeyMutation.mutate({
+                cabinetId: cab.id,
+                ...(hasKeyChange ? { apiKey: key } : {}),
+                ...(hasTypeChange ? { tokenType: editTokenType } : {}),
+              })
             }}
             loading={updateKeyMutation.isPending}
           >
             Сохранить
           </Button>
-          <Button size="small" onClick={() => { setEditingKey(false); setEditKeyValue('') }}>
+          <Button size="small" onClick={() => { setEditingKey(false); setEditKeyValue(''); setEditTokenType(cab.apiKey?.tokenType ?? 'BASIC') }}>
             Отмена
           </Button>
         </Space>
@@ -87,6 +110,9 @@ export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
             </Text>
           )}
         </div>
+        <Tag color="blue" style={tagStyle}>
+          {tokenTypeLabel(cab.apiKey?.tokenType ?? null)}
+        </Tag>
         <Tooltip
           title={
             validateCooldown > 0
@@ -111,7 +137,8 @@ export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
             icon={<EditOutlined />}
             onClick={() => {
               setEditingKey(true)
-              setEditKeyValue('')
+              setEditKeyValue(cab.apiKey?.apiKey ?? '')
+              setEditTokenType(cab.apiKey?.tokenType ?? 'BASIC')
             }}
             style={{ padding: '0 4px', minWidth: 28, flexShrink: 0 }}
           />

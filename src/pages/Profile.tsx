@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal, Checkbox, Segmented } from 'antd'
-import { UserOutlined, KeyOutlined, LockOutlined, EyeOutlined, EyeInvisibleOutlined, EditOutlined, CheckCircleOutlined, CloseCircleOutlined, MinusOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined, CreditCardOutlined } from '@ant-design/icons'
+import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal, Checkbox, Segmented, Select } from 'antd'
+import { UserOutlined, KeyOutlined, LockOutlined, EditOutlined, CheckCircleOutlined, CloseCircleOutlined, MinusOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined, CreditCardOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
@@ -10,6 +10,7 @@ import type {
   UserProfileResponse,
   ChangePasswordRequest,
   CabinetDto,
+  CabinetTokenType,
   CreateCabinetRequest,
   UserRole,
 } from '../types/api'
@@ -39,9 +40,9 @@ export default function Profile() {
   const [editingCabinetId, setEditingCabinetId] = useState<number | null>(null)
   const [editingCabinetName, setEditingCabinetName] = useState('')
   const [addCabinetModalOpen, setAddCabinetModalOpen] = useState(false)
-  const [expandedKeyCabinetId, setExpandedKeyCabinetId] = useState<number | null>(null)
   const [showApiKeyFormForCabinetId, setShowApiKeyFormForCabinetId] = useState<number | null>(null)
   const [cabinetNewKeyValue, setCabinetNewKeyValue] = useState('')
+  const [cabinetNewTokenType, setCabinetNewTokenType] = useState<CabinetTokenType>('BASIC')
   /**
    * Кулдаун кнопки «Проверить ключ» по кабинетам: не чаще 1 раза в 30 сек на каждый ключ.
    * Храним оставшиеся секунды для каждого cabinetId.
@@ -142,13 +143,18 @@ export default function Profile() {
   })
 
   const updateCabinetMutation = useMutation({
-    mutationFn: ({ id, name, apiKey }: { id: number; name?: string; apiKey?: string }) =>
-      cabinetsApi.update(id, { ...(name !== undefined && { name }), ...(apiKey !== undefined && { apiKey }) }),
+    mutationFn: ({ id, name, apiKey, tokenType }: { id: number; name?: string; apiKey?: string; tokenType?: CabinetTokenType }) =>
+      cabinetsApi.update(id, {
+        ...(name !== undefined && { name }),
+        ...(apiKey !== undefined && { apiKey }),
+        ...(tokenType !== undefined && { tokenType }),
+      }),
     onSuccess: (_, variables) => {
       setEditingCabinetId(null)
-      if (variables.apiKey !== undefined) {
+      if (variables.apiKey !== undefined || variables.tokenType !== undefined) {
         setShowApiKeyFormForCabinetId(null)
         setCabinetNewKeyValue('')
+        setCabinetNewTokenType('BASIC')
       }
       queryClient.invalidateQueries({ queryKey: ['cabinets'] })
       queryClient.invalidateQueries({ queryKey: ['userProfile'] })
@@ -319,6 +325,11 @@ export default function Profile() {
       return `${remainingHours} ${getHoursWord(remainingHours)} ${remainingMins > 0 ? `и ${remainingMins} ${getMinutesWord(remainingMins)}` : ''}`
     }
     return `${remainingMins} ${getMinutesWord(remainingMins)}`
+  }
+
+  const tokenTypeLabel = (tokenType?: 'PERSONAL' | 'BASIC' | null): string => {
+    if (tokenType === 'PERSONAL') return 'Персональный'
+    return 'Базовый'
   }
 
   // Возвращает правильное склонение слова "час/часа/часов"
@@ -805,10 +816,20 @@ export default function Profile() {
                                 style={{ width: 320 }}
                                 autoComplete="off"
                               />
+                              <Select
+                                value={cabinetNewTokenType}
+                                onChange={(v) => setCabinetNewTokenType(v)}
+                                style={{ width: 160 }}
+                                options={[
+                                  { value: 'BASIC', label: 'Базовый' },
+                                  { value: 'PERSONAL', label: 'Персональный' },
+                                ]}
+                              />
                               <Button
                                 onClick={() => {
                                   setShowApiKeyFormForCabinetId(null)
                                   setCabinetNewKeyValue('')
+                                  setCabinetNewTokenType(cab.apiKey?.tokenType ?? 'BASIC')
                                 }}
                               >
                                 Отмена
@@ -819,14 +840,21 @@ export default function Profile() {
                                 style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
                                 onClick={() => {
                                   const key = cabinetNewKeyValue.trim()
-                                  if (key) {
-                                    updateCabinetMutation.mutate({ id: cab.id, apiKey: key })
-                                  } else {
-                                    message.warning('Введите ключ')
+                                  const currentTokenType = cab.apiKey?.tokenType ?? 'BASIC'
+                                  const hasKeyChange = key.length > 0
+                                  const hasTypeChange = cabinetNewTokenType !== currentTokenType
+                                  if (!hasKeyChange && !hasTypeChange) {
+                                    message.warning('Нет изменений для сохранения')
+                                    return
                                   }
+                                  updateCabinetMutation.mutate({
+                                    id: cab.id,
+                                    ...(hasKeyChange ? { apiKey: key } : {}),
+                                    ...(hasTypeChange ? { tokenType: cabinetNewTokenType } : {}),
+                                  })
                                 }}
                               >
-                                Сохранить ключ
+                                Сохранить
                               </Button>
                             </Space>
                           </>
@@ -868,19 +896,12 @@ export default function Profile() {
                                                 maxWidth: '100%',
                                                 wordBreak: 'break-all',
                                               }}
-                                              onClick={() => setExpandedKeyCabinetId(expandedKeyCabinetId === cab.id ? null : cab.id)}
                                             >
-                                              {expandedKeyCabinetId === cab.id
-                                                ? cab.apiKey.apiKey
-                                                : `${cab.apiKey.apiKey.substring(0, 8)}...${cab.apiKey.apiKey.substring(cab.apiKey.apiKey.length - 8)}`}
+                                              {`${cab.apiKey.apiKey.substring(0, 8)}...${cab.apiKey.apiKey.substring(cab.apiKey.apiKey.length - 8)}`}
                                             </Text>
-                                            <Button
-                                              type="text"
-                                              size="small"
-                                              icon={expandedKeyCabinetId === cab.id ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                                              onClick={() => setExpandedKeyCabinetId(expandedKeyCabinetId === cab.id ? null : cab.id)}
-                                              style={{ padding: '0 4px' }}
-                                            />
+                                            <Tag color="blue" style={{ marginInlineEnd: 0 }}>
+                                              {tokenTypeLabel(cab.apiKey?.tokenType ?? null)}
+                                            </Tag>
                                           </Space>
                                         )
                                       ) : (
@@ -894,11 +915,12 @@ export default function Profile() {
                                       icon={<EditOutlined />}
                                       onClick={() => {
                                         setShowApiKeyFormForCabinetId(cab.id)
-                                        setCabinetNewKeyValue('')
+                                        setCabinetNewKeyValue(cab.apiKey?.apiKey ?? '')
+                                        setCabinetNewTokenType(cab.apiKey?.tokenType ?? 'BASIC')
                                       }}
                                       style={{ width: '100%' }}
                                     >
-                                      Сменить ключ
+                                      Редактировать ключ
                                     </Button>
                                   )}
                                 </Space>
