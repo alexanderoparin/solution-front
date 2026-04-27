@@ -26,6 +26,11 @@ const USER_SORT_FIELD_TO_BACKEND: Record<UserSortField, string> = {
   lastDataUpdateRequestedAt: 'LAST_DATA_UPDATE_REQUESTED_AT',
 }
 
+/** React Query: ключ и время жизни свежего кеша статуса доступа (префетч после логина / при старте SPA). */
+export const ACCESS_STATUS_QUERY_KEY = ['accessStatus'] as const
+
+export const ACCESS_STATUS_STALE_MS = 60_000
+
 const CABINET_SORT_FIELD_TO_BACKEND: Record<CabinetSortField, string> = {
   cabinetId: 'CABINET_ID',
   cabinetName: 'CABINET_NAME',
@@ -42,7 +47,9 @@ export const userApi = {
 
   /** Доступ к функционалу и статус подписки (для редиректа на «Оформите подписку») */
   getAccessStatus: async (): Promise<AccessStatusResponse> => {
-    const response = await apiClient.get<AccessStatusResponse>('/user/access')
+    const response = await apiClient.get<AccessStatusResponse>('/user/access', {
+      timeout: 45_000,
+    })
     return response.data
   },
 

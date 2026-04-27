@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Button, Card, Spin, Table, Typography, message, Tag, Tooltip } from 'antd'
-import { userApi } from '../api/user'
+import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
 import { subscriptionApi } from '../api/subscription'
 import type { PaymentDto } from '../types/api'
 import { getPaymentStatusLabel, getPaymentStatusColor } from '../utils/paymentStatus'
@@ -26,8 +26,9 @@ export default function Subscription() {
     refetch: refetchAccess,
     error: accessErr,
   } = useQuery({
-    queryKey: ['accessStatus'],
+    queryKey: ACCESS_STATUS_QUERY_KEY,
     queryFn: () => userApi.getAccessStatus(),
+    staleTime: ACCESS_STATUS_STALE_MS,
     retry: (failureCount, err) => failureCount < 3 && isTransientRequestError(err),
     retryDelay: (attempt) => Math.min(1200 * 2 ** attempt, 10000),
   })

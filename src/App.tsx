@@ -22,6 +22,7 @@ import Privacy from './pages/Privacy'
 import Refund from './pages/Refund'
 import Oferta from './pages/Oferta'
 import Footer from './components/Footer'
+import AccessStatusPrefetch from './components/AccessStatusPrefetch'
 import { useAuthStore } from './store/authStore'
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <AccessStatusPrefetch />
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div>
           <Routes>

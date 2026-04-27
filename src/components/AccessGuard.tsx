@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate, Navigate } from 'react-router-dom'
 import { Button, Card, Spin, Typography } from 'antd'
 import { MailOutlined } from '@ant-design/icons'
-import { userApi } from '../api/user'
+import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
 import { getRequestFailureDescription, isTransientRequestError } from '../utils/requestError'
 import Header from './Header'
 import Breadcrumbs from './Breadcrumbs'
@@ -26,8 +26,9 @@ export default function AccessGuard({ children }: AccessGuardProps) {
     refetch,
     error: accessError,
   } = useQuery({
-    queryKey: ['accessStatus'],
+    queryKey: ACCESS_STATUS_QUERY_KEY,
     queryFn: () => userApi.getAccessStatus(),
+    staleTime: ACCESS_STATUS_STALE_MS,
     retry: (failureCount, err) => failureCount < 3 && isTransientRequestError(err),
     retryDelay: (attempt) => Math.min(1200 * 2 ** attempt, 10000),
   })

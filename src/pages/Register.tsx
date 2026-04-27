@@ -1,9 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Form, Input, Button, Card, Typography, message, Checkbox, Tooltip } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { authApi } from '../api/auth'
-import { userApi } from '../api/user'
+import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
 import { useAuthStore } from '../store/authStore'
 import type { RegisterRequest } from '../types/api'
 
@@ -11,6 +11,7 @@ const { Title, Text } = Typography
 
 export default function Register() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [form] = Form.useForm()
   const setAuth = useAuthStore((state) => state.setAuth)
   const agreeToOffer = Form.useWatch('agreeToOffer', form)
@@ -24,6 +25,15 @@ export default function Register() {
         setAuth(auth.token, auth.email, auth.userId, auth.role)
         userApi.sendEmailConfirmation().catch(() => { /* письмо не чаще 1 раза в 24 ч или ошибка отправки */ })
         message.success('Регистрация успешна')
+        try {
+          await queryClient.prefetchQuery({
+            queryKey: ACCESS_STATUS_QUERY_KEY,
+            queryFn: () => userApi.getAccessStatus(),
+            staleTime: ACCESS_STATUS_STALE_MS,
+          })
+        } catch {
+          /* см. Login */
+        }
         navigate('/profile')
       } catch {
         message.success('Регистрация успешна. Войдите в систему.')

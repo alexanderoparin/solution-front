@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Form, Input, Button, Card, Typography, message } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { authApi } from '../api/auth'
+import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
 import { useAuthStore } from '../store/authStore'
 import ChangePasswordModal from '../components/ChangePasswordModal'
 import type { LoginRequest } from '../types/api'
@@ -13,6 +14,7 @@ const { Title, Text } = Typography
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
+  const queryClient = useQueryClient()
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const setAuth = useAuthStore((state) => state.setAuth)
 
@@ -30,15 +32,25 @@ export default function Login() {
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setAuth(data.token, data.email, data.userId, data.role)
-      
+
       if (data.isTemporaryPassword) {
         setShowChangePasswordModal(true)
-      } else {
-        message.success('Вход выполнен успешно')
-        navigate(getInitialRoute())
+        return
       }
+
+      message.success('Вход выполнен успешно')
+      try {
+        await queryClient.prefetchQuery({
+          queryKey: ACCESS_STATUS_QUERY_KEY,
+          queryFn: () => userApi.getAccessStatus(),
+          staleTime: ACCESS_STATUS_STALE_MS,
+        })
+      } catch {
+        /* AccessStatusPrefetch / AccessGuard повторят запрос */
+      }
+      navigate(getInitialRoute())
     },
     onError: (error: any) => {
       const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Ошибка входа'
@@ -160,9 +172,18 @@ export default function Login() {
 
       <ChangePasswordModal
         open={showChangePasswordModal}
-        onSuccess={() => {
+        onSuccess={async () => {
           setShowChangePasswordModal(false)
           message.success('Пароль успешно изменен')
+          try {
+            await queryClient.prefetchQuery({
+              queryKey: ACCESS_STATUS_QUERY_KEY,
+              queryFn: () => userApi.getAccessStatus(),
+              staleTime: ACCESS_STATUS_STALE_MS,
+            })
+          } catch {
+            /* см. Login onSuccess */
+          }
           navigate(getInitialRoute())
         }}
         onCancel={() => {
