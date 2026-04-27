@@ -5,6 +5,7 @@ import { userApi } from '../api/user'
 import { subscriptionApi } from '../api/subscription'
 import type { PaymentDto } from '../types/api'
 import { getPaymentStatusLabel, getPaymentStatusColor } from '../utils/paymentStatus'
+import { getRequestFailureDescription, isTransientRequestError } from '../utils/requestError'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import dayjs from 'dayjs'
@@ -20,13 +21,15 @@ export default function Subscription() {
   const {
     data: access,
     isPending: accessPending,
-    isError: accessError,
+    isError: accessQueryFailed,
     isFetching: accessFetching,
     refetch: refetchAccess,
+    error: accessErr,
   } = useQuery({
     queryKey: ['accessStatus'],
     queryFn: () => userApi.getAccessStatus(),
-    retry: false,
+    retry: (failureCount, err) => failureCount < 3 && isTransientRequestError(err),
+    retryDelay: (attempt) => Math.min(1200 * 2 ** attempt, 10000),
   })
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery<PaymentDto[]>({
@@ -68,7 +71,7 @@ export default function Subscription() {
     transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
   }
 
-  if (accessError) {
+  if (accessQueryFailed) {
     return (
       <>
         <Header />
@@ -86,7 +89,7 @@ export default function Subscription() {
           }}
         >
           <Typography.Paragraph type="danger" style={{ marginBottom: 0, maxWidth: 420 }}>
-            Не удалось загрузить статус подписки. Проверьте интернет-соединение.
+            Не удалось загрузить статус подписки. {getRequestFailureDescription(accessErr)}
           </Typography.Paragraph>
           <Button type="primary" loading={accessFetching} onClick={() => refetchAccess()} style={{ backgroundColor: accent, borderColor: accent }}>
             Повторить

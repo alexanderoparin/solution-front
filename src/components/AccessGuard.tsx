@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { Button, Card, Spin, Typography } from 'antd'
 import { MailOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
+import { getRequestFailureDescription, isTransientRequestError } from '../utils/requestError'
 import Header from './Header'
 import Breadcrumbs from './Breadcrumbs'
 
@@ -23,10 +24,12 @@ export default function AccessGuard({ children }: AccessGuardProps) {
     isError,
     isFetching,
     refetch,
+    error: accessError,
   } = useQuery({
     queryKey: ['accessStatus'],
     queryFn: () => userApi.getAccessStatus(),
-    retry: false,
+    retry: (failureCount, err) => failureCount < 3 && isTransientRequestError(err),
+    retryDelay: (attempt) => Math.min(1200 * 2 ** attempt, 10000),
   })
 
   /**
@@ -50,7 +53,7 @@ export default function AccessGuard({ children }: AccessGuardProps) {
         }}
       >
         <Typography.Paragraph type="danger" style={{ marginBottom: 0 }}>
-          Не удалось проверить доступ к сервису. Проверьте интернет или попробуйте позже.
+          Не удалось проверить доступ к сервису. {getRequestFailureDescription(accessError)}
         </Typography.Paragraph>
         <Button type="primary" loading={isFetching} onClick={() => refetch()} style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}>
           Повторить
