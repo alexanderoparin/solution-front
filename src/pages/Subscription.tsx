@@ -17,9 +17,16 @@ const border = '#E2E8F0'
 export default function Subscription() {
   const navigate = useNavigate()
 
-  const { data: access, isLoading: accessLoading } = useQuery({
+  const {
+    data: access,
+    isPending: accessPending,
+    isError: accessError,
+    isFetching: accessFetching,
+    refetch: refetchAccess,
+  } = useQuery({
     queryKey: ['accessStatus'],
     queryFn: () => userApi.getAccessStatus(),
+    retry: false,
   })
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery<PaymentDto[]>({
@@ -61,7 +68,35 @@ export default function Subscription() {
     transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
   }
 
-  if (accessLoading || access === undefined) {
+  if (accessError) {
+    return (
+      <>
+        <Header />
+        <Breadcrumbs />
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 16,
+            padding: 48,
+            backgroundColor: '#F8FAFC',
+            textAlign: 'center',
+          }}
+        >
+          <Typography.Paragraph type="danger" style={{ marginBottom: 0, maxWidth: 420 }}>
+            Не удалось загрузить статус подписки. Проверьте интернет-соединение.
+          </Typography.Paragraph>
+          <Button type="primary" loading={accessFetching} onClick={() => refetchAccess()} style={{ backgroundColor: accent, borderColor: accent }}>
+            Повторить
+          </Button>
+        </div>
+      </>
+    )
+  }
+
+  if (accessPending || access === undefined) {
     return (
       <>
         <Header />

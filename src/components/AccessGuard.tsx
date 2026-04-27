@@ -17,13 +17,49 @@ interface AccessGuardProps {
  */
 export default function AccessGuard({ children }: AccessGuardProps) {
   const navigate = useNavigate()
-  const { data: access, isLoading } = useQuery({
+  const {
+    data: access,
+    isPending,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['accessStatus'],
     queryFn: () => userApi.getAccessStatus(),
     retry: false,
   })
 
-  if (isLoading || access === undefined) {
+  /**
+   * Раньше условие «access === undefined» без учёта isError давало вечный спиннер после любой ошибки
+   * (таймаут / обрыв сети на мобильном). Явно показываем ошибку и повтор запроса.
+   */
+  if (isError) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '60vh',
+          padding: 24,
+          gap: 16,
+          textAlign: 'center',
+          maxWidth: 420,
+          margin: '0 auto',
+        }}
+      >
+        <Typography.Paragraph type="danger" style={{ marginBottom: 0 }}>
+          Не удалось проверить доступ к сервису. Проверьте интернет или попробуйте позже.
+        </Typography.Paragraph>
+        <Button type="primary" loading={isFetching} onClick={() => refetch()} style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}>
+          Повторить
+        </Button>
+      </div>
+    )
+  }
+
+  if (isPending || access === undefined) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <Spin size="large" />
