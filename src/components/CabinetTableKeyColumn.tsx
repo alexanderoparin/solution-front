@@ -11,6 +11,10 @@ const tokenTypeLabel = (tokenType?: 'PERSONAL' | 'BASIC' | null): string => {
   if (tokenType === 'PERSONAL') return 'Персональный'
   return 'Базовый'
 }
+const tokenTypeColor = (tokenType?: 'PERSONAL' | 'BASIC' | null): 'cyan' | 'blue' => {
+  if (tokenType === 'PERSONAL') return 'cyan'
+  return 'blue'
+}
 
 export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
   const cab = row.cabinet
@@ -110,7 +114,7 @@ export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
             </Text>
           )}
         </div>
-        <Tag color="blue" style={tagStyle}>
+        <Tag color={tokenTypeColor(cab.apiKey?.tokenType ?? null)} style={tagStyle}>
           {tokenTypeLabel(cab.apiKey?.tokenType ?? null)}
         </Tag>
         <Tooltip

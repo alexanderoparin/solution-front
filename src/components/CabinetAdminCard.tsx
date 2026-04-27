@@ -25,6 +25,10 @@ const tokenTypeLabel = (tokenType?: 'PERSONAL' | 'BASIC' | null): string => {
   if (tokenType === 'PERSONAL') return 'Персональный'
   return 'Базовый'
 }
+const tokenTypeColor = (tokenType?: 'PERSONAL' | 'BASIC' | null): 'cyan' | 'blue' => {
+  if (tokenType === 'PERSONAL') return 'cyan'
+  return 'blue'
+}
 
 export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetDto; sellerId: number }) {
   const {
@@ -133,7 +137,7 @@ export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetD
                   не задан
                 </Text>
               )}
-              <Tag color="blue" style={{ margin: 0 }}>
+              <Tag color={tokenTypeColor(cab.apiKey?.tokenType ?? null)} style={{ margin: 0 }}>
                 {tokenTypeLabel(cab.apiKey?.tokenType ?? null)}
               </Tag>
               <Tooltip title="Редактировать ключ">

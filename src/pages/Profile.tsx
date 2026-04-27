@@ -331,6 +331,10 @@ export default function Profile() {
     if (tokenType === 'PERSONAL') return 'Персональный'
     return 'Базовый'
   }
+  const tokenTypeColor = (tokenType?: 'PERSONAL' | 'BASIC' | null): 'cyan' | 'blue' => {
+    if (tokenType === 'PERSONAL') return 'cyan'
+    return 'blue'
+  }
 
   // Возвращает правильное склонение слова "час/часа/часов"
   const getHoursWord = (hours: number): string => {
@@ -885,7 +889,7 @@ export default function Profile() {
                                             >
                                               {`${cab.apiKey.apiKey.substring(0, 8)}...${cab.apiKey.apiKey.substring(cab.apiKey.apiKey.length - 8)}`}
                                             </Text>
-                                            <Tag color="blue" style={{ marginInlineEnd: 0 }}>
+                                            <Tag color={tokenTypeColor(cab.apiKey?.tokenType ?? null)} style={{ marginInlineEnd: 0 }}>
                                               {tokenTypeLabel(cab.apiKey?.tokenType ?? null)}
                                             </Tag>
                                           </Space>
@@ -904,7 +908,7 @@ export default function Profile() {
                                             >
                                               {`${cab.apiKey.apiKey.substring(0, 8)}...${cab.apiKey.apiKey.substring(cab.apiKey.apiKey.length - 8)}`}
                                             </Text>
-                                            <Tag color="blue" style={{ marginInlineEnd: 0 }}>
+                                            <Tag color={tokenTypeColor(cab.apiKey?.tokenType ?? null)} style={{ marginInlineEnd: 0 }}>
                                               {tokenTypeLabel(cab.apiKey?.tokenType ?? null)}
                                             </Tag>
                                           </Space>
