@@ -268,6 +268,17 @@ export interface WbApiEventTypeStatsDto {
   byType: Record<WbApiEventType, number>
 }
 
+export interface WbApiEventCabinetStatsDto {
+  baseStatus: WbApiEventStatus | null
+  baseEventType: WbApiEventType | null
+  total: number
+  byCabinet: Array<{
+    cabinetId: number
+    cabinetName: string
+    count: number
+  }>
+}
+
 /** Ответ GET /user/access: доступ к функционалу и статус подписки */
 export interface AccessStatusResponse {
   hasAccess: boolean

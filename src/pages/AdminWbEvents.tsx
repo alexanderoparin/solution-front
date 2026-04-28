@@ -88,6 +88,7 @@ const MOBILE_SORT_OPTIONS: { value: WbApiEventSortField; label: string }[] = [
 
 type SortableColumnKey = keyof typeof COLUMN_SORT_FIELDS
 const GROUP_BY_TYPE_STORAGE_KEY = 'admin_wb_events_group_by_type'
+const GROUP_BY_CABINET_STORAGE_KEY = 'admin_wb_events_group_by_cabinet'
 const { useBreakpoint } = Grid
 
 export default function AdminWbEvents() {
@@ -104,6 +105,10 @@ export default function AdminWbEvents() {
     const raw = localStorage.getItem(GROUP_BY_TYPE_STORAGE_KEY)
     return raw == null ? true : raw === 'true'
   })
+  const [groupByCabinet, setGroupByCabinet] = useState<boolean>(() => {
+    const raw = localStorage.getItem(GROUP_BY_CABINET_STORAGE_KEY)
+    return raw == null ? false : raw === 'true'
+  })
   const [sortBy, setSortBy] = useState<WbApiEventSortField>('ID')
   const [sortDir, setSortDir] = useState<SortDirection>('DESC')
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
@@ -113,6 +118,9 @@ export default function AdminWbEvents() {
   useEffect(() => {
     localStorage.setItem(GROUP_BY_TYPE_STORAGE_KEY, String(groupByType))
   }, [groupByType])
+  useEffect(() => {
+    localStorage.setItem(GROUP_BY_CABINET_STORAGE_KEY, String(groupByCabinet))
+  }, [groupByCabinet])
 
   if (role !== 'ADMIN') {
     navigate('/profile', { replace: true })
@@ -138,6 +146,12 @@ export default function AdminWbEvents() {
     queryKey: ['adminWbEventsTypeStats', status],
     queryFn: () => adminApi.getWbEventsStatsByType(status),
     enabled: groupByType,
+    refetchInterval: 5000,
+  })
+  const { data: cabinetStats } = useQuery({
+    queryKey: ['adminWbEventsCabinetStats', status, eventType],
+    queryFn: () => adminApi.getWbEventsStatsByCabinet(status, eventType),
+    enabled: groupByCabinet,
     refetchInterval: 5000,
   })
   const failedFinalCount = stats?.byStatus?.FAILED_FINAL ?? 0
@@ -347,12 +361,18 @@ export default function AdminWbEvents() {
                   </Tag>
                 ))}
               </Space>
-              <Checkbox checked={groupByType} onChange={(e) => setGroupByType(e.target.checked)}>
-                Группировать по типу
-              </Checkbox>
+              <Space direction="vertical" size={4} style={{ alignItems: 'flex-start' }}>
+                <Checkbox checked={groupByType} onChange={(e) => setGroupByType(e.target.checked)}>
+                  Группировать по типу
+                </Checkbox>
+                <Checkbox checked={groupByCabinet} onChange={(e) => setGroupByCabinet(e.target.checked)}>
+                  Группировать по кабинетам
+                </Checkbox>
+              </Space>
             </div>
             {groupByType && (
-              <Space wrap style={{ marginTop: 8, marginBottom: 12 }}>
+              <div style={{ marginTop: 8, marginBottom: 12 }}>
+                <Space wrap>
                 {(Object.keys(TYPE_LABELS) as WbApiEventType[])
                   .filter((t) => (typeStats?.byType?.[t] ?? 0) > 0)
                   .map((t) => (
@@ -372,7 +392,38 @@ export default function AdminWbEvents() {
                       {TYPE_LABELS[t]}: {typeStats?.byType?.[t] ?? 0}
                     </Tag>
                   ))}
-              </Space>
+                </Space>
+              </div>
+            )}
+            {groupByCabinet && (
+              <div style={{ marginTop: 8, marginBottom: 12 }}>
+                <Space wrap>
+                {(cabinetStats?.byCabinet ?? [])
+                  .filter((item) => (item.count ?? 0) > 0)
+                  .sort((a, b) => b.count - a.count)
+                  .map((item) => {
+                    const cabId = String(item.cabinetId)
+                    const active = String(cabinetId ?? '') === cabId
+                    return (
+                      <Tag
+                        key={cabId}
+                        color="geekblue"
+                        style={{
+                          cursor: 'pointer',
+                          fontWeight: active ? 600 : undefined,
+                          boxShadow: active ? '0 0 0 1px rgba(0,0,0,0.15) inset' : undefined,
+                        }}
+                        onClick={() => {
+                          setPage(0)
+                          setCabinetIdInput((prev) => (prev === cabId ? '' : cabId))
+                        }}
+                      >
+                        {cabId} ({item.cabinetName || 'без названия'}): {item.count}
+                      </Tag>
+                    )
+                  })}
+                </Space>
+              </div>
             )}
             <Space wrap style={{ marginBottom: 16 }}>
               <Select
