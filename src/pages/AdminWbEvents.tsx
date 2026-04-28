@@ -221,6 +221,14 @@ export default function AdminWbEvents() {
       render: (_, row) => `${row.attemptCount}/${row.maxAttempts}`,
     },
     {
+      title: 'Создано',
+      dataIndex: 'createdAt',
+      width: 180,
+      sorter: true,
+      sortOrder: sortBy === 'CREATED_AT' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
+      render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss'),
+    },
+    {
       title: 'Начало выполнения',
       dataIndex: 'startedAt',
       width: 190,
@@ -234,14 +242,6 @@ export default function AdminWbEvents() {
       width: 180,
       sorter: true,
       sortOrder: sortBy === 'NEXT_ATTEMPT_AT' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
-      render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss'),
-    },
-    {
-      title: 'Создано',
-      dataIndex: 'createdAt',
-      width: 180,
-      sorter: true,
-      sortOrder: sortBy === 'CREATED_AT' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
       render: (v: string) => dayjs(v).format('DD.MM HH:mm:ss'),
     },
     {
