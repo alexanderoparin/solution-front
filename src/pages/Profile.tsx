@@ -177,6 +177,8 @@ export default function Profile() {
     },
     onError: (err: any) => {
       message.error(err.response?.data?.message || 'Ошибка проверки ключа')
+      queryClient.invalidateQueries({ queryKey: ['cabinets'] })
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] })
     },
   })
 
@@ -1050,7 +1052,7 @@ export default function Profile() {
                                       : 'Не проверялось'
                                     const tooltipTitle =
                                       s.success === false && s.errorMessage
-                                        ? `${checkedText}\nТекст ошибки от API WB:\n«${s.errorMessage}»`
+                                        ? `${checkedText}\nПояснение:\n«${s.errorMessage}»`
                                         : checkedText
                                     return (
                                       <Tooltip

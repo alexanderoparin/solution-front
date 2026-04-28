@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Checkbox, Drawer, Input, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
@@ -76,6 +76,7 @@ const COLUMN_SORT_FIELDS = {
 } as const satisfies Record<string, WbApiEventSortField>
 
 type SortableColumnKey = keyof typeof COLUMN_SORT_FIELDS
+const GROUP_BY_TYPE_STORAGE_KEY = 'admin_wb_events_group_by_type'
 
 export default function AdminWbEvents() {
   const navigate = useNavigate()
@@ -87,10 +88,17 @@ export default function AdminWbEvents() {
   const [status, setStatus] = useState<WbApiEventStatus | undefined>(undefined)
   const [eventType, setEventType] = useState<WbApiEventType | undefined>(undefined)
   const [cabinetIdInput, setCabinetIdInput] = useState('')
-  const [groupByType, setGroupByType] = useState(false)
+  const [groupByType, setGroupByType] = useState<boolean>(() => {
+    const raw = localStorage.getItem(GROUP_BY_TYPE_STORAGE_KEY)
+    return raw == null ? true : raw === 'true'
+  })
   const [sortBy, setSortBy] = useState<WbApiEventSortField>('ID')
   const [sortDir, setSortDir] = useState<SortDirection>('DESC')
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
+
+  useEffect(() => {
+    localStorage.setItem(GROUP_BY_TYPE_STORAGE_KEY, String(groupByType))
+  }, [groupByType])
 
   if (role !== 'ADMIN') {
     navigate('/profile', { replace: true })

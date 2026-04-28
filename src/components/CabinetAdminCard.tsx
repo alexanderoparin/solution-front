@@ -272,7 +272,7 @@ export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetD
                 : 'Не проверялось'
               const tooltipTitle =
                 s.success === false && s.errorMessage
-                  ? `${checkedText}\nТекст ошибки от API WB:\n«${s.errorMessage}»`
+                  ? `${checkedText}\nПояснение:\n«${s.errorMessage}»`
                   : checkedText
               return (
                 <Tooltip

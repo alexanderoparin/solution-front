@@ -36,6 +36,7 @@ export function useCabinetAdminPanel(sellerId: number) {
     },
     onError: (err: any) => {
       message.error(err.response?.data?.message || 'Ошибка проверки ключа')
+      invalidateCabinetListCaches(queryClient, sellerId)
     },
   })
 
