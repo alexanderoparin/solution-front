@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Card, Checkbox, Drawer, Input, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd'
+import { Button, Card, Checkbox, Drawer, Grid, Input, Pagination, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { FilterValue, SorterResult, TableCurrentDataSource, TablePaginationConfig } from 'antd/es/table/interface'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -74,9 +74,21 @@ const COLUMN_SORT_FIELDS = {
   createdAt: 'CREATED_AT',
   finishedAt: 'FINISHED_AT',
 } as const satisfies Record<string, WbApiEventSortField>
+const MOBILE_SORT_OPTIONS: { value: WbApiEventSortField; label: string }[] = [
+  { value: 'ID', label: 'ID' },
+  { value: 'EVENT_TYPE', label: 'Тип события' },
+  { value: 'STATUS', label: 'Статус' },
+  { value: 'CABINET_ID', label: 'Кабинет' },
+  { value: 'ATTEMPT_COUNT', label: 'Попытки' },
+  { value: 'STARTED_AT', label: 'Начало выполнения' },
+  { value: 'NEXT_ATTEMPT_AT', label: 'Следующая попытка' },
+  { value: 'CREATED_AT', label: 'Создано' },
+  { value: 'FINISHED_AT', label: 'Завершено' },
+]
 
 type SortableColumnKey = keyof typeof COLUMN_SORT_FIELDS
 const GROUP_BY_TYPE_STORAGE_KEY = 'admin_wb_events_group_by_type'
+const { useBreakpoint } = Grid
 
 export default function AdminWbEvents() {
   const navigate = useNavigate()
@@ -84,7 +96,7 @@ export default function AdminWbEvents() {
   const role = useAuthStore((state) => state.role)
 
   const [page, setPage] = useState(0)
-  const [size, setSize] = useState(20)
+  const [size, setSize] = useState(50)
   const [status, setStatus] = useState<WbApiEventStatus | undefined>(undefined)
   const [eventType, setEventType] = useState<WbApiEventType | undefined>(undefined)
   const [cabinetIdInput, setCabinetIdInput] = useState('')
@@ -95,6 +107,8 @@ export default function AdminWbEvents() {
   const [sortBy, setSortBy] = useState<WbApiEventSortField>('ID')
   const [sortDir, setSortDir] = useState<SortDirection>('DESC')
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
 
   useEffect(() => {
     localStorage.setItem(GROUP_BY_TYPE_STORAGE_KEY, String(groupByType))
@@ -231,7 +245,7 @@ export default function AdminWbEvents() {
           <Tooltip
             title={
               failedFinalCount > 0
-                ? `Retry всех финальных ошибок (${failedFinalCount})`
+                ? `Повтор всех финальных ошибок (${failedFinalCount})`
                 : 'Нет событий в статусе "Ошибка (финальная)"'
             }
           >
@@ -280,13 +294,21 @@ export default function AdminWbEvents() {
     setSize(pagination.pageSize ?? size)
   }
 
+  const renderRowActions = (row: WbApiEventDto) => (
+    <Space wrap>
+      <Button size="small" onClick={() => setSelectedEventId(row.id)}>Детали</Button>
+      <Button size="small" onClick={() => retryMutation.mutate(row.id)} loading={retryMutation.isPending}>Повтор</Button>
+      <Button size="small" danger onClick={() => cancelMutation.mutate(row.id)} loading={cancelMutation.isPending}>Отменить</Button>
+    </Space>
+  )
+
   return (
     <>
       <Header />
       <Breadcrumbs />
-      <div style={{ width: '100%', padding: 24, minHeight: '100vh', backgroundColor: '#F8FAFC', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ width: '100%', padding: isMobile ? 12 : 24, minHeight: '100vh', backgroundColor: '#F8FAFC', display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: 1400 }}>
-          <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 24 }}>
+          <Typography.Title level={isMobile ? 5 : 4} style={{ marginTop: 16, marginBottom: isMobile ? 16 : 24 }}>
             Администрирование. WB API события
           </Typography.Title>
 
@@ -356,7 +378,7 @@ export default function AdminWbEvents() {
               <Select
                 allowClear
                 placeholder="Статус"
-                style={{ width: 220 }}
+                style={{ width: isMobile ? '100%' : 220 }}
                 value={status}
                 onChange={(value) => {
                   setPage(0)
@@ -367,7 +389,7 @@ export default function AdminWbEvents() {
               <Select
                 allowClear
                 placeholder="Тип события"
-                style={{ width: 260 }}
+                style={{ width: isMobile ? '100%' : 260 }}
                 value={eventType}
                 onChange={(value) => { setPage(0); setEventType(value) }}
                 options={[
@@ -385,35 +407,103 @@ export default function AdminWbEvents() {
               />
               <Input
                 placeholder="Cabinet ID"
-                style={{ width: 160 }}
+                style={{ width: isMobile ? '100%' : 160 }}
                 value={cabinetIdInput}
                 onChange={(e) => setCabinetIdInput(e.target.value)}
                 onPressEnter={() => setPage(0)}
               />
-              <Button onClick={() => { setPage(0); queryClient.invalidateQueries({ queryKey: ['adminWbEvents'] }) }}>
+              <Button style={{ width: isMobile ? '100%' : undefined }} onClick={() => { setPage(0); queryClient.invalidateQueries({ queryKey: ['adminWbEvents'] }) }}>
                 Применить
               </Button>
             </Space>
+            {isMobile && (
+              <Space wrap style={{ marginBottom: 16, width: '100%' }}>
+                <Select
+                  placeholder="Сортировка"
+                  style={{ width: '100%' }}
+                  value={sortBy}
+                  onChange={(value) => {
+                    setPage(0)
+                    setSortBy(value)
+                  }}
+                  options={MOBILE_SORT_OPTIONS}
+                />
+                <Select
+                  placeholder="Направление"
+                  style={{ width: '100%' }}
+                  value={sortDir}
+                  onChange={(value) => {
+                    setPage(0)
+                    setSortDir(value)
+                  }}
+                  options={[
+                    { value: 'DESC', label: 'По убыванию' },
+                    { value: 'ASC', label: 'По возрастанию' },
+                  ]}
+                />
+              </Space>
+            )}
 
-            <Table<WbApiEventDto>
-              rowKey="id"
-              loading={isLoading}
-              columns={columns}
-              dataSource={data?.content ?? []}
-              onChange={handleTableChange}
-              /** По умолчанию в antd ['ascend','descend']: при активном DESC следующий клик — «отмена», а не ASC. У нас дефолт ID DESC. */
-              sortDirections={['descend', 'ascend']}
-              pagination={{
-                current: (data?.number ?? 0) + 1,
-                pageSize: data?.size ?? size,
-                total: data?.totalElements ?? 0,
-                onChange: (current, pageSize) => {
-                  setPage(current - 1)
-                  setSize(pageSize)
-                },
-              }}
-              scroll={{ x: 1300 }}
-            />
+            {isMobile ? (
+              <>
+                <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                  {(data?.content ?? []).map((row) => (
+                    <Card key={row.id} size="small" bodyStyle={{ padding: 12 }}>
+                      <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                        <Space wrap size={[6, 6]}>
+                          <Tag color="blue">#{row.id}</Tag>
+                          <Tag color={TYPE_COLORS[row.eventType]}>{TYPE_LABELS[row.eventType]}</Tag>
+                          <Tag color={STATUS_COLORS[row.status]}>{STATUS_LABELS[row.status]}</Tag>
+                        </Space>
+                        <Typography.Text type="secondary">
+                          Кабинет: {row.cabinetId} · Попытки: {row.attemptCount}/{row.maxAttempts}
+                        </Typography.Text>
+                        <Typography.Text type="secondary">
+                          Создано: {dayjs(row.createdAt).format('DD.MM HH:mm:ss')}
+                        </Typography.Text>
+                        <Typography.Text type="secondary">
+                          Следующая: {dayjs(row.nextAttemptAt).format('DD.MM HH:mm:ss')}
+                        </Typography.Text>
+                        {renderRowActions(row)}
+                      </Space>
+                    </Card>
+                  ))}
+                </Space>
+                <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center' }}>
+                  <Pagination
+                    size="small"
+                    current={(data?.number ?? 0) + 1}
+                    pageSize={data?.size ?? size}
+                    total={data?.totalElements ?? 0}
+                    showSizeChanger={false}
+                    onChange={(current) => setPage(current - 1)}
+                  />
+                </div>
+              </>
+            ) : (
+              <Table<WbApiEventDto>
+                rowKey="id"
+                loading={isLoading}
+                columns={columns.map((c) => (c.key === 'actions' ? { ...c, render: (_, row) => renderRowActions(row) } : c))}
+                dataSource={data?.content ?? []}
+                onChange={handleTableChange}
+                /** По умолчанию в antd ['ascend','descend']: при активном DESC следующий клик — «отмена», а не ASC. У нас дефолт ID DESC. */
+                sortDirections={['descend', 'ascend']}
+                pagination={{
+                  current: (data?.number ?? 0) + 1,
+                  pageSize: data?.size ?? size,
+                  total: data?.totalElements ?? 0,
+                  showSizeChanger: true,
+                  pageSizeOptions: [20, 50, 100],
+                  locale: { items_per_page: '/ стр.' },
+                  onChange: (current, pageSize) => {
+                    setPage(current - 1)
+                    setSize(pageSize)
+                  },
+                }}
+                scroll={{ x: 1300 }}
+              />
+            )}
           </Card>
         </div>
       </div>
@@ -422,7 +512,7 @@ export default function AdminWbEvents() {
         title={selectedEventId ? `Событие #${selectedEventId}` : 'Событие'}
         open={selectedEventId != null}
         onClose={() => setSelectedEventId(null)}
-        width={720}
+        width={isMobile ? '100%' : 720}
       >
         {selectedLoading || !selectedEvent ? (
           <Typography.Text>Загрузка...</Typography.Text>
@@ -432,18 +522,18 @@ export default function AdminWbEvents() {
             <Typography.Text><b>Тип (читаемо):</b> {TYPE_LABELS[selectedEvent.eventType]}</Typography.Text>
             <Typography.Text><b>Статус:</b> {selectedEvent.status}</Typography.Text>
             <Typography.Text><b>Статус (читаемо):</b> {STATUS_LABELS[selectedEvent.status]}</Typography.Text>
-            <Typography.Text><b>Executor:</b> {selectedEvent.executorBeanName}</Typography.Text>
+            <Typography.Text><b>Исполнитель:</b> {selectedEvent.executorBeanName}</Typography.Text>
             <Typography.Text><b>Кабинет:</b> {selectedEvent.cabinetId}</Typography.Text>
-            <Typography.Text><b>Dedup key:</b> {selectedEvent.dedupKey}</Typography.Text>
+            <Typography.Text><b>Ключ дедупликации:</b> {selectedEvent.dedupKey}</Typography.Text>
             <Typography.Text><b>Попытки:</b> {selectedEvent.attemptCount}/{selectedEvent.maxAttempts}</Typography.Text>
-            <Typography.Text><b>Priority:</b> {selectedEvent.priority}</Typography.Text>
-            <Typography.Text><b>Source:</b> {selectedEvent.triggerSource}</Typography.Text>
-            <Typography.Text><b>Created:</b> {dayjs(selectedEvent.createdAt).format('DD.MM.YYYY HH:mm:ss')}</Typography.Text>
-            <Typography.Text><b>Started:</b> {selectedEvent.startedAt ? dayjs(selectedEvent.startedAt).format('DD.MM.YYYY HH:mm:ss') : '—'}</Typography.Text>
-            <Typography.Text><b>Finished:</b> {selectedEvent.finishedAt ? dayjs(selectedEvent.finishedAt).format('DD.MM.YYYY HH:mm:ss') : '—'}</Typography.Text>
-            <Typography.Text><b>Next attempt:</b> {dayjs(selectedEvent.nextAttemptAt).format('DD.MM.YYYY HH:mm:ss')}</Typography.Text>
+            <Typography.Text><b>Приоритет:</b> {selectedEvent.priority}</Typography.Text>
+            <Typography.Text><b>Источник:</b> {selectedEvent.triggerSource}</Typography.Text>
+            <Typography.Text><b>Создано:</b> {dayjs(selectedEvent.createdAt).format('DD.MM.YYYY HH:mm:ss')}</Typography.Text>
+            <Typography.Text><b>Начато:</b> {selectedEvent.startedAt ? dayjs(selectedEvent.startedAt).format('DD.MM.YYYY HH:mm:ss') : '—'}</Typography.Text>
+            <Typography.Text><b>Завершено:</b> {selectedEvent.finishedAt ? dayjs(selectedEvent.finishedAt).format('DD.MM.YYYY HH:mm:ss') : '—'}</Typography.Text>
+            <Typography.Text><b>Следующая попытка:</b> {dayjs(selectedEvent.nextAttemptAt).format('DD.MM.YYYY HH:mm:ss')}</Typography.Text>
             <Typography.Paragraph copyable={{ text: selectedEvent.lastError ?? '' }}>
-              <b>Last error:</b> {selectedEvent.lastError ?? '—'}
+              <b>Последняя ошибка:</b> {selectedEvent.lastError ?? '—'}
             </Typography.Paragraph>
           </Space>
         )}
