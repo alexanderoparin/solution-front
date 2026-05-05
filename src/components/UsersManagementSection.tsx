@@ -616,6 +616,11 @@ export default function UsersManagementSection({
             prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
             value={searchEmail}
             onChange={(e) => setSearchEmail(e.target.value)}
+            autoComplete="off"
+            name="managed-cabinets-search"
+            id="managed-cabinets-search"
+            data-lpignore="true"
+            data-form-type="other"
             allowClear
             style={{ width: 280 }}
           />

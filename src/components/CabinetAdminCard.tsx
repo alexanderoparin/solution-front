@@ -70,12 +70,27 @@ export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetD
         </Text>
         {editingKey ? (
           <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            {/* Ловушка для менеджеров автозаполнения браузера (Yandex/Chromium), чтобы не заполняли поле поиска email-ом. */}
+            <input
+              type="text"
+              autoComplete="username"
+              name="wb-api-key-edit-username-trap"
+              tabIndex={-1}
+              aria-hidden="true"
+              style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+              readOnly
+              value=""
+            />
             <Input.Password
               placeholder="Новый API ключ"
               value={editKeyValue}
               onChange={(e) => setEditKeyValue(e.target.value)}
               style={{ width: 280, fontFamily: 'monospace', fontSize: 12 }}
-              autoComplete="off"
+              autoComplete="new-password"
+              name="wb-api-key-edit-password"
+              id={`wb-api-key-edit-password-${cab.id}`}
+              data-lpignore="true"
+              data-form-type="other"
             />
             <Select
               value={editTokenType}
