@@ -140,6 +140,7 @@ export default function UsersManagementSection({
   const [editingUser, setEditingUser] = useState<UserListItem | null>(null)
   const [internalManagementView] = useState<UserManagementView>(USER_MANAGEMENT_VIEW.CABINETS)
   const [searchEmail, setSearchEmail] = useState('')
+  const [searchReadOnly, setSearchReadOnly] = useState(true)
   const [onlySellers, setOnlySellers] = useState(true)
   const [cabinetPage, setCabinetPage] = useState(1)
   const [cabinetPageSize, setCabinetPageSize] = useState(20)
@@ -616,7 +617,10 @@ export default function UsersManagementSection({
             prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
             value={searchEmail}
             onChange={(e) => setSearchEmail(e.target.value)}
-            autoComplete="off"
+            onFocus={() => setSearchReadOnly(false)}
+            onBlur={() => setSearchReadOnly(true)}
+            readOnly={searchReadOnly}
+            autoComplete="new-password"
             name="managed-cabinets-search"
             id="managed-cabinets-search"
             data-lpignore="true"
