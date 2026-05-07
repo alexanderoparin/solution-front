@@ -16,10 +16,24 @@ export function isTransientRequestError(error: unknown): boolean {
  * Краткое пояснение для пользователя по ошибке axios (сеть, таймаут, HTTP-код).
  */
 export function getRequestFailureDescription(error: unknown): string {
-  const err = error as AxiosError<{ message?: string }>
+  const err = error as AxiosError<unknown>
   const data = err.response?.data
-  if (data && typeof data === 'object' && typeof data.message === 'string' && data.message.trim()) {
-    return data.message.trim()
+  if (data && typeof data === 'object') {
+    const dataObject = data as Record<string, unknown>
+    if (typeof dataObject.message === 'string' && dataObject.message.trim()) {
+      return dataObject.message.trim()
+    }
+    if (typeof dataObject.error === 'string' && dataObject.error.trim()) {
+      return dataObject.error.trim()
+    }
+
+    // Ошибки валидации из Spring часто приходят как map: { fieldName: "error text" }
+    const firstFieldError = Object.values(dataObject).find(
+      (value) => typeof value === 'string' && value.trim(),
+    ) as string | undefined
+    if (firstFieldError) {
+      return firstFieldError.trim()
+    }
   }
   const status = err.response?.status
   if (status === 502 || status === 503 || status === 504) {

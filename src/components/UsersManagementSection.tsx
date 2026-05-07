@@ -50,6 +50,7 @@ import { SORT_DIRECTIONS, USER_SORT_FIELDS, type SortDirection, type UserSortFie
 import { CABINET_SORT_FIELDS, type CabinetSortField } from '../constants/cabinetSorting'
 import { USER_MANAGEMENT_VIEW, type UserManagementView } from '../constants/userManagementView'
 import { USER_ROLE_LABELS, USER_ROLE_TAG_COLORS } from '../constants/userRoleLabels'
+import { getRequestFailureDescription } from '../utils/requestError'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 
@@ -124,6 +125,18 @@ function SellerCabinetsInline({ sellerId }: { sellerId: number }) {
       </div>
     </div>
   )
+}
+
+function getExplicitUserMutationError(error: unknown, fallback: string): string {
+  const description = getRequestFailureDescription(error)
+  const normalized = description.toLowerCase()
+  if (normalized.includes('email') && normalized.includes('уже существует')) {
+    const emailMatch = description.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)
+    return emailMatch
+      ? `Пользователь с email ${emailMatch[0]} уже существует. Укажите другой email.`
+      : 'Пользователь с таким email уже существует. Укажите другой email.'
+  }
+  return description || fallback
 }
 
 export interface UsersManagementSectionProps {
@@ -321,14 +334,14 @@ export default function UsersManagementSection({
   const createMutation = useMutation({
     mutationFn: userApi.createUser,
     onSuccess: () => {
-      message.success('Пользователь успешно создан')
+      message.success({ content: 'Пользователь успешно создан', duration: 3 })
       setIsCreateModalOpen(false)
       createForm.resetFields()
       void queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
       void queryClient.invalidateQueries({ queryKey: ['managedCabinets'] })
     },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Ошибка при создании пользователя')
+    onError: (error: unknown) => {
+      message.error({ content: getExplicitUserMutationError(error, 'Ошибка при создании пользователя'), duration: 6 })
     },
   })
 
@@ -336,15 +349,15 @@ export default function UsersManagementSection({
     mutationFn: ({ userId, data }: { userId: number; data: UpdateUserRequest }) =>
       userApi.updateUser(userId, data),
     onSuccess: () => {
-      message.success('Пользователь успешно обновлен')
+      message.success({ content: 'Пользователь успешно обновлен', duration: 3 })
       setIsEditModalOpen(false)
       setEditingUser(null)
       editForm.resetFields()
       void queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
       void queryClient.invalidateQueries({ queryKey: ['managedCabinets'] })
     },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Ошибка при обновлении пользователя')
+    onError: (error: unknown) => {
+      message.error({ content: getExplicitUserMutationError(error, 'Ошибка при обновлении пользователя'), duration: 6 })
     },
   })
 
@@ -352,36 +365,36 @@ export default function UsersManagementSection({
     mutationFn: ({ sellerId, includeStocks }: { sellerId: number; includeStocks: boolean }) =>
       userApi.triggerSellerDataUpdate(sellerId, includeStocks),
     onSuccess: (data) => {
-      message.success(data.message || 'Обновление кабинетов запущено')
+      message.success({ content: data.message || 'Обновление кабинетов запущено', duration: 3 })
       void queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
       void queryClient.invalidateQueries({ queryKey: ['managedCabinets'] })
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Ошибка при запуске обновления')
+      message.error({ content: getRequestFailureDescription(error) || 'Ошибка при запуске обновления', duration: 6 })
     },
   })
 
   const toggleActiveMutation = useMutation({
     mutationFn: userApi.toggleUserActive,
     onSuccess: () => {
-      message.success('Статус активности изменен')
+      message.success({ content: 'Статус активности изменен', duration: 3 })
       void queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
       void queryClient.invalidateQueries({ queryKey: ['managedCabinets'] })
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Ошибка при изменении статуса')
+      message.error({ content: getRequestFailureDescription(error) || 'Ошибка при изменении статуса', duration: 6 })
     },
   })
 
   const deleteUserMutation = useMutation({
     mutationFn: userApi.deleteUser,
     onSuccess: () => {
-      message.success('Пользователь удалён')
+      message.success({ content: 'Пользователь удалён', duration: 3 })
       void queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
       void queryClient.invalidateQueries({ queryKey: ['managedCabinets'] })
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Ошибка при удалении пользователя')
+      message.error({ content: getRequestFailureDescription(error) || 'Ошибка при удалении пользователя', duration: 6 })
     },
   })
 
