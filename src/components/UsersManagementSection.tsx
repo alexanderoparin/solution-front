@@ -141,6 +141,8 @@ export default function UsersManagementSection({
   const [internalManagementView] = useState<UserManagementView>(USER_MANAGEMENT_VIEW.CABINETS)
   const [searchEmail, setSearchEmail] = useState('')
   const [searchReadOnly, setSearchReadOnly] = useState(true)
+  const [createEmailReadOnly, setCreateEmailReadOnly] = useState(true)
+  const [createPasswordReadOnly, setCreatePasswordReadOnly] = useState(true)
   const [onlySellers, setOnlySellers] = useState(true)
   const [cabinetPage, setCabinetPage] = useState(1)
   const [cabinetPageSize, setCabinetPageSize] = useState(20)
@@ -155,13 +157,14 @@ export default function UsersManagementSection({
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role) as UserRole
   const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER'
+  const effectiveOnlySellers = role === 'SELLER' ? false : onlySellers
   const isManagementControlled =
     isAdminOrManager && managementViewProp !== undefined && onManagementViewChange !== undefined
   const managementView = isManagementControlled ? managementViewProp! : internalManagementView
 
   useEffect(() => {
     setPage(1)
-  }, [searchEmail, onlySellers])
+  }, [searchEmail, effectiveOnlySellers])
 
   useEffect(() => {
     setCabinetPage(1)
@@ -182,12 +185,12 @@ export default function UsersManagementSection({
   }
 
   const { data, isLoading } = useQuery({
-    queryKey: ['managedUsers', page, pageSize, searchEmail, onlySellers, sortBy, sortDir],
+    queryKey: ['managedUsers', page, pageSize, searchEmail, effectiveOnlySellers, sortBy, sortDir],
     queryFn: () => userApi.getManagedUsers({
       page: page - 1,
       size: pageSize,
       email: searchEmail.trim() || undefined,
-      onlySellers,
+      onlySellers: effectiveOnlySellers,
       sortBy,
       sortDir,
     }),
@@ -628,7 +631,7 @@ export default function UsersManagementSection({
             allowClear
             style={{ width: 280 }}
           />
-          {showUsersTable && (
+          {showUsersTable && role !== 'SELLER' && (
             <Checkbox checked={onlySellers} onChange={(e) => setOnlySellers(e.target.checked)}>
               Только селлеры
             </Checkbox>
@@ -795,6 +798,8 @@ export default function UsersManagementSection({
         open={isCreateModalOpen}
         onCancel={() => {
           setIsCreateModalOpen(false)
+          setCreateEmailReadOnly(true)
+          setCreatePasswordReadOnly(true)
           createForm.resetFields()
         }}
         footer={null}
@@ -809,7 +814,17 @@ export default function UsersManagementSection({
               { type: 'email', message: 'Некорректный email' },
             ]}
           >
-            <Input placeholder="email@example.com" />
+            <Input
+              placeholder="email@example.com"
+              readOnly={createEmailReadOnly}
+              onFocus={() => setCreateEmailReadOnly(false)}
+              onBlur={() => setCreateEmailReadOnly(true)}
+              autoComplete="off"
+              name="create-user-email"
+              id="create-user-email"
+              data-lpignore="true"
+              data-form-type="other"
+            />
           </Form.Item>
           <Form.Item
             name="password"
@@ -819,7 +834,17 @@ export default function UsersManagementSection({
               { min: 6, message: 'Пароль должен содержать минимум 6 символов' },
             ]}
           >
-            <Input.Password placeholder="Временный пароль" />
+            <Input.Password
+              placeholder="Временный пароль"
+              readOnly={createPasswordReadOnly}
+              onFocus={() => setCreatePasswordReadOnly(false)}
+              onBlur={() => setCreatePasswordReadOnly(true)}
+              autoComplete="new-password"
+              name="create-user-temp-password"
+              id="create-user-temp-password"
+              data-lpignore="true"
+              data-form-type="other"
+            />
           </Form.Item>
           <Form.Item
             name="role"
