@@ -1077,9 +1077,11 @@ export default function AdvertisingCampaignDetail() {
               ))}
             </div>
 
-            {/* Блок 4 + 5 в один ряд: слева — сравнение периодов (суммарно), справа — остатки (оформление как в «Инфа по артикулу») */}
+            {/* Блок 4 + 5 в один ряд: слева — сравнение периодов (суммарно), справа — остатки (оформление как в «Инфа по артикулу»).
+                Сравнение периодов рендерим всегда — даже если за один из периодов нет данных. Пустые значения показываем
+                как «-», а блок Остатков остаётся справа в фиксированной ширине, не растягиваясь на всё. */}
             <div style={{ display: 'flex', gap: spacing.lg, alignItems: 'stretch', marginBottom: spacing.lg, flexWrap: 'wrap', backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, boxShadow: shadows.md }}>
-              {totalPeriod1 && totalPeriod2 && (() => {
+              {(() => {
                 const getVal = (key: string, tot: typeof totalPeriod1) => {
                   if (!tot) return null
                   const map: Record<string, number | null | undefined> = {
