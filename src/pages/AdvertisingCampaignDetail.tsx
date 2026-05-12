@@ -244,7 +244,10 @@ export default function AdvertisingCampaignDetail() {
     queryKey: ['campaign-detail', campaignId, cabinetIdForRequest, sellerIdForRequest],
     queryFn: () =>
       analyticsApi.getCampaignDetail(campaignId, sellerIdForRequest, cabinetIdForRequest),
-    enabled: !Number.isNaN(campaignId),
+    enabled:
+      !Number.isNaN(campaignId)
+      && cabinetIdForRequest != null
+      && (isManagerOrAdmin ? selectedSellerId != null : userId != null),
     refetchOnMount: 'always',
   })
 
