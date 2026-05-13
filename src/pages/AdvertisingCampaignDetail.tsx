@@ -83,6 +83,29 @@ function getDatesInRange(from: Dayjs, to: Dayjs): string[] {
   return days
 }
 
+/**
+ * Ключ YYYY-MM-DD для сопоставления {@link DailyData.date} с датами из селектора.
+ * Учитывает ISO-строку и массив [год, месяц, день], который иногда отдаёт JSON.
+ */
+function toDailyDateKey(raw: unknown): string {
+  if (raw == null) return ''
+  if (typeof raw === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+    const head = raw.slice(0, 10)
+    if (raw.length >= 10 && /^\d{4}-\d{2}-\d{2}$/.test(head)) return head
+    const parsed = dayjs(raw)
+    return parsed.isValid() ? parsed.format('YYYY-MM-DD') : ''
+  }
+  if (Array.isArray(raw) && raw.length >= 3) {
+    const y = Number(raw[0])
+    const mo = Number(raw[1])
+    const da = Number(raw[2])
+    if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(da)) return ''
+    return `${y}-${String(mo).padStart(2, '0')}-${String(da).padStart(2, '0')}`
+  }
+  return ''
+}
+
 const COMPARE_PERIODS_STORAGE_KEY = 'solution.adCampaignDetail.comparePeriods.v1'
 
 type ComparePeriodsStored = {
@@ -280,14 +303,21 @@ export default function AdvertisingCampaignDetail() {
     )
   }, [])
 
+  const dailyDataFrom = dateRange[0].format('YYYY-MM-DD')
+  const dailyDataTo = dateRange[1].format('YYYY-MM-DD')
+
   const { data: funnelArticle, isLoading: funnelArticleLoading } = useQuery({
-    queryKey: ['article', selectedFunnelArticleNmId, cabinetIdForRequest],
+    queryKey: ['article', selectedFunnelArticleNmId, cabinetIdForRequest, dailyDataFrom, dailyDataTo],
     queryFn: () =>
       analyticsApi.getArticle(
         selectedFunnelArticleNmId!,
         [],
         getSelectedSellerId() ?? undefined,
-        cabinetIdForRequest
+        cabinetIdForRequest,
+        undefined,
+        undefined,
+        dailyDataFrom,
+        dailyDataTo
       ),
     enabled: selectedFunnelArticleNmId != null && selectedFunnelArticleNmId !== ALL_ARTICLES_NM_ID && cabinetIdForRequest != null,
   })
@@ -295,9 +325,18 @@ export default function AdvertisingCampaignDetail() {
   const articleNmIds = useMemo(() => articles.map((a) => a.nmId), [articles])
   const articleQueries = useQueries({
     queries: articleNmIds.map((nmId) => ({
-      queryKey: ['article-combo', nmId, cabinetIdForRequest],
+      queryKey: ['article-combo', nmId, cabinetIdForRequest, dailyDataFrom, dailyDataTo],
       queryFn: () =>
-        analyticsApi.getArticle(nmId, [], getSelectedSellerId() ?? undefined, cabinetIdForRequest),
+        analyticsApi.getArticle(
+          nmId,
+          [],
+          getSelectedSellerId() ?? undefined,
+          cabinetIdForRequest,
+          undefined,
+          undefined,
+          dailyDataFrom,
+          dailyDataTo
+        ),
       enabled: cabinetIdForRequest != null && articleNmIds.length > 0,
     })),
   })
@@ -344,7 +383,7 @@ export default function AdvertisingCampaignDetail() {
       priceFields.forEach((f) => { priceSums[f] = 0; priceCounts[f] = 0 })
       for (const art of articles) {
         const data = articleDataByNmId[art.nmId]
-        const daily = data?.dailyData?.find((d) => d.date === date)
+        const daily = data?.dailyData?.find((d) => toDailyDateKey(d.date) === date)
         if (!daily) continue
         transitions += daily.transitions ?? 0
         cart += daily.cart ?? 0
@@ -395,7 +434,7 @@ export default function AdvertisingCampaignDetail() {
 
   const getMetricValueForDate = useCallback((dailyData: DailyData[] | undefined, metricKey: string, date: string): number | null => {
     if (!dailyData?.length) return null
-    const d = dailyData.find((x) => x.date === date)
+    const d = dailyData.find((x) => toDailyDateKey(x.date) === date)
     if (!d) return null
     const map: Record<string, number | null | undefined> = {
       transitions: d.transitions, cart: d.cart, orders: d.orders, orders_amount: d.ordersAmount,

@@ -256,6 +256,7 @@ export const analyticsApi = {
   /**
    * Получает детальную информацию по артикулу.
    * campaignDateFrom/To — период для метрик РК в блоке «Список РК» (опционально).
+   * dailyDataDateFrom/To — диапазон дней для поля dailyData (опционально); если не заданы — последние 14 дней до вчера.
    */
   getArticle: async (
     nmId: number,
@@ -263,11 +264,15 @@ export const analyticsApi = {
     sellerId?: number,
     cabinetId?: number,
     campaignDateFrom?: string,
-    campaignDateTo?: string
+    campaignDateTo?: string,
+    dailyDataDateFrom?: string,
+    dailyDataDateTo?: string
   ): Promise<ArticleResponse> => {
     const body: Record<string, unknown> = { periods, sellerId, cabinetId }
     if (campaignDateFrom != null) body.campaignDateFrom = campaignDateFrom
     if (campaignDateTo != null) body.campaignDateTo = campaignDateTo
+    if (dailyDataDateFrom != null) body.dailyDataDateFrom = dailyDataDateFrom
+    if (dailyDataDateTo != null) body.dailyDataDateTo = dailyDataDateTo
     const response = await apiClient.post<ArticleResponse>(`/analytics/article/${nmId}`, body)
     return response.data
   },
