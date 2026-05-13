@@ -348,6 +348,60 @@ export default function AdvertisingCampaignDetail() {
     return map
   }, [articleQueries, articleNmIds])
 
+  /** Объединение периодов сравнения — один запрос dailyData на все nmId кампании. */
+  const compareDailyRange = useMemo(() => {
+    const startDay = period1[0].isBefore(period2[0]) ? period1[0] : period2[0]
+    const endDay = period1[1].isAfter(period2[1]) ? period1[1] : period2[1]
+    return {
+      startDay,
+      endDay,
+      from: startDay.format('YYYY-MM-DD'),
+      to: endDay.format('YYYY-MM-DD'),
+    }
+  }, [period1, period2])
+
+  /** Если оба периода сравнения целиком внутри верхнего диапазона — дублирующий запрос не нужен. */
+  const compareUseMainDailyData = useMemo(() => {
+    return (
+      !compareDailyRange.startDay.startOf('day').isBefore(dateRange[0].startOf('day')) &&
+      !compareDailyRange.endDay.startOf('day').isAfter(dateRange[1].startOf('day'))
+    )
+  }, [compareDailyRange, dateRange])
+
+  const articleCompareQueries = useQueries({
+    queries: articleNmIds.map((nmId) => ({
+      queryKey: ['article-combo-compare', nmId, cabinetIdForRequest, compareDailyRange.from, compareDailyRange.to],
+      queryFn: () =>
+        analyticsApi.getArticle(
+          nmId,
+          [],
+          getSelectedSellerId() ?? undefined,
+          cabinetIdForRequest,
+          undefined,
+          undefined,
+          compareDailyRange.from,
+          compareDailyRange.to
+        ),
+      enabled:
+        cabinetIdForRequest != null &&
+        articleNmIds.length > 0 &&
+        !compareUseMainDailyData,
+    })),
+  })
+
+  const articleCompareDataByNmId = useMemo(() => {
+    const map: Record<number, ArticleResponse> = {}
+    articleCompareQueries.forEach((q, i) => {
+      if (q.data && articleNmIds[i] != null) map[articleNmIds[i]] = q.data
+    })
+    return map
+  }, [articleCompareQueries, articleNmIds])
+
+  const comparePeriodsDataLoading =
+    !compareUseMainDailyData &&
+    articleNmIds.length > 0 &&
+    articleCompareQueries.some((q) => q.isFetching)
+
   const { data: stockArticle } = useQuery({
     queryKey: ['article-stocks', selectedStockNmId, cabinetIdForRequest],
     queryFn: () =>
@@ -553,7 +607,7 @@ export default function AdvertisingCampaignDetail() {
   const periodAggregatesByNmId = useMemo(() => {
     const map: Record<number, { p1: ReturnType<typeof aggregatePeriodData>; p2: ReturnType<typeof aggregatePeriodData> }> = {}
     articles.forEach((art) => {
-      const data = articleDataByNmId[art.nmId]
+      const data = compareUseMainDailyData ? articleDataByNmId[art.nmId] : articleCompareDataByNmId[art.nmId]
       const daily = data?.dailyData
       map[art.nmId] = {
         p1: aggregatePeriodData(daily, period1[0], period1[1]),
@@ -561,7 +615,15 @@ export default function AdvertisingCampaignDetail() {
       }
     })
     return map
-  }, [articles, articleDataByNmId, period1, period2, aggregatePeriodData])
+  }, [
+    articles,
+    compareUseMainDailyData,
+    articleDataByNmId,
+    articleCompareDataByNmId,
+    period1,
+    period2,
+    aggregatePeriodData,
+  ])
 
   const totalPeriod1 = useMemo(() => {
     let t = { transitions: 0, cart: 0, orders: 0, ordersAmount: 0, views: 0, clicks: 0, costs: 0 }
@@ -1001,7 +1063,10 @@ export default function AdvertisingCampaignDetail() {
 
             {/* Блок 3 — Сравнение периодов: два блока один под другим (период 1, период 2) */}
             <div style={{ backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, marginBottom: spacing.lg, boxShadow: shadows.md }}>
-              <h2 style={{ ...typography.h2, margin: '0 0 16px 0', fontSize: 16, color: colors.textPrimary }}>Сравнение периодов</h2>
+              <h2 style={{ ...typography.h2, margin: '0 0 16px 0', fontSize: 16, color: colors.textPrimary, display: 'flex', alignItems: 'center', gap: 8 }}>
+                Сравнение периодов
+                {comparePeriodsDataLoading && <Spin size="small" />}
+              </h2>
               {([{ period: 1, periodDates: period1, setPeriod: setPeriod1, aggKey: 'p1' as const, total: totalPeriod1 }, { period: 2, periodDates: period2, setPeriod: setPeriod2, aggKey: 'p2' as const, total: totalPeriod2 }] as const).map(({ period, periodDates, setPeriod, aggKey, total }) => (
                 <div key={period} style={{ marginBottom: period === 1 ? spacing.xl : 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}>
@@ -1142,8 +1207,9 @@ export default function AdvertisingCampaignDetail() {
                 const tdCell = { padding: spacing.md, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 12 }
                 return (
                 <div style={{ flex: '0 1 75%', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                  <h2 style={{ ...typography.h2, margin: '0 0 12px 0', fontSize: 16, color: colors.textPrimary }}>
+                  <h2 style={{ ...typography.h2, margin: '0 0 12px 0', fontSize: 16, color: colors.textPrimary, display: 'flex', alignItems: 'center', gap: 8 }}>
                     Сравнение периодов (суммарно по Рекламной Компании)
+                    {comparePeriodsDataLoading && <Spin size="small" />}
                   </h2>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg, alignContent: 'start' }}>
                     {/* Таблица: Общая воронка */}
