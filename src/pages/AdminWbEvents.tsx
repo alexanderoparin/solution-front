@@ -41,6 +41,7 @@ const TYPE_LABELS: Record<WbApiEventType, string> = {
   PROMOTION_COUNT: 'Промо: count кампаний',
   PROMOTION_ADVERTS_BATCH: 'Промо: батч adverts v2',
   PROMOTION_STATS_BATCH: 'Промо: батч full stats',
+  PROMOTION_NORMQUERY_STATS_BATCH: 'Промо: батч normquery (кластеры)',
   FEEDBACKS_SYNC_CABINET: 'Отзывы: кабинет',
   PROMOTION_CALENDAR_SYNC_CABINET: 'Календарь акций: кабинет',
   WAREHOUSES_SYNC_CABINET: 'Склады WB: кабинет',
@@ -54,6 +55,7 @@ const TYPE_COLORS: Record<WbApiEventType, string> = {
   PROMOTION_COUNT: 'orange',
   PROMOTION_ADVERTS_BATCH: 'volcano',
   PROMOTION_STATS_BATCH: 'red',
+  PROMOTION_NORMQUERY_STATS_BATCH: 'volcano',
   FEEDBACKS_SYNC_CABINET: 'purple',
   PROMOTION_CALENDAR_SYNC_CABINET: 'magenta',
   WAREHOUSES_SYNC_CABINET: 'lime',
@@ -201,7 +203,7 @@ export default function AdminWbEvents() {
       width: 250,
       sorter: true,
       sortOrder: sortBy === 'EVENT_TYPE' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
-      render: (value: WbApiEventType) => TYPE_LABELS[value],
+      render: (value: WbApiEventType) => TYPE_LABELS[value] ?? value,
     },
     {
       title: 'Статус',
@@ -450,6 +452,7 @@ export default function AdminWbEvents() {
                   { value: 'PROMOTION_COUNT', label: TYPE_LABELS.PROMOTION_COUNT },
                   { value: 'PROMOTION_ADVERTS_BATCH', label: TYPE_LABELS.PROMOTION_ADVERTS_BATCH },
                   { value: 'PROMOTION_STATS_BATCH', label: TYPE_LABELS.PROMOTION_STATS_BATCH },
+                  { value: 'PROMOTION_NORMQUERY_STATS_BATCH', label: TYPE_LABELS.PROMOTION_NORMQUERY_STATS_BATCH },
                   { value: 'FEEDBACKS_SYNC_CABINET', label: TYPE_LABELS.FEEDBACKS_SYNC_CABINET },
                   { value: 'PROMOTION_CALENDAR_SYNC_CABINET', label: TYPE_LABELS.PROMOTION_CALENDAR_SYNC_CABINET },
                   { value: 'WAREHOUSES_SYNC_CABINET', label: TYPE_LABELS.WAREHOUSES_SYNC_CABINET },
@@ -503,7 +506,7 @@ export default function AdminWbEvents() {
                       <Space direction="vertical" size={6} style={{ width: '100%' }}>
                         <Space wrap size={[6, 6]}>
                           <Tag color="blue">#{row.id}</Tag>
-                          <Tag color={TYPE_COLORS[row.eventType]}>{TYPE_LABELS[row.eventType]}</Tag>
+                          <Tag color={TYPE_COLORS[row.eventType] ?? 'default'}>{TYPE_LABELS[row.eventType] ?? row.eventType}</Tag>
                           <Tag color={STATUS_COLORS[row.status]}>{STATUS_LABELS[row.status]}</Tag>
                         </Space>
                         <Typography.Text type="secondary">
@@ -570,7 +573,7 @@ export default function AdminWbEvents() {
         ) : (
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <Typography.Text><b>Тип:</b> {selectedEvent.eventType}</Typography.Text>
-            <Typography.Text><b>Тип (читаемо):</b> {TYPE_LABELS[selectedEvent.eventType]}</Typography.Text>
+            <Typography.Text><b>Тип (читаемо):</b> {TYPE_LABELS[selectedEvent.eventType] ?? selectedEvent.eventType}</Typography.Text>
             <Typography.Text><b>Статус:</b> {selectedEvent.status}</Typography.Text>
             <Typography.Text><b>Статус (читаемо):</b> {STATUS_LABELS[selectedEvent.status]}</Typography.Text>
             <Typography.Text><b>Исполнитель:</b> {selectedEvent.executorBeanName}</Typography.Text>
