@@ -125,11 +125,20 @@ export const analyticsApi = {
 
   /**
    * Детали комбо-кампании: название, статус, список артикулов.
+   * При передаче advertisingStatsFrom/To (yyyy-MM-dd) дополнительно приходит разбивка рекламы по appType (WB fullstats).
    */
-  getCampaignDetail: async (campaignId: number, sellerId?: number, cabinetId?: number): Promise<CampaignDetail> => {
+  getCampaignDetail: async (
+    campaignId: number,
+    sellerId?: number,
+    cabinetId?: number,
+    advertisingStatsFrom?: string,
+    advertisingStatsTo?: string,
+  ): Promise<CampaignDetail> => {
     const searchParams = new URLSearchParams()
     if (sellerId != null) searchParams.set('sellerId', String(sellerId))
     if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    if (advertisingStatsFrom != null) searchParams.set('advertisingStatsFrom', advertisingStatsFrom)
+    if (advertisingStatsTo != null) searchParams.set('advertisingStatsTo', advertisingStatsTo)
     const query = searchParams.toString()
     const params = query ? `?${query}` : ''
     const response = await apiClient.get<CampaignDetail>(`/advertising/campaigns/${campaignId}${params}`)

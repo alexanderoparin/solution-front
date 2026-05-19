@@ -1,13 +1,10 @@
 import { Link } from 'react-router-dom'
+import { LEGAL_OPERATOR } from '../constants/legalOperator'
 
 const ACCENT = '#7C3AED'
 const ACCENT_HOVER = '#6D28D9'
 
-const REQUISITES = {
-  name: 'Индивидуальный предприниматель Бурцев Даниил Викторович',
-  inn: '482619660921',
-}
-const CONTACT_EMAIL = 'support@wb-solution.ru'
+const CONTACT_EMAIL = LEGAL_OPERATOR.email
 const CONTACT_PHONE = '+7 920 526 5666'
 const TELEGRAM_URL = 'https://t.me/buryanexx'
 const WHATSAPP_URL = 'https://wa.me/79205265666?text=Добрый%20день!%20Хочу%20узнать%20про%20WB-Solution.'
@@ -32,8 +29,8 @@ export default function Footer() {
           <div style={{ fontSize: 15, fontWeight: 600, color: '#1E293B' }}>
             © {new Date().getFullYear()} WB-Solution
           </div>
-          <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>{REQUISITES.name}</div>
-          <div style={{ fontSize: 13, color: '#64748B' }}>ИНН: {REQUISITES.inn}</div>
+          <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>{LEGAL_OPERATOR.name}</div>
+          <div style={{ fontSize: 13, color: '#64748B' }}>ИНН: {LEGAL_OPERATOR.inn}</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 2 }}>Документы</div>

@@ -18,7 +18,7 @@ export default function LegalPageLayout({ title, children }: LegalPageLayoutProp
         padding: '24px 24px 48px',
       }}
     >
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         <Link to="/">
           <Button type="text" icon={<ArrowLeftOutlined />} style={{ marginBottom: 24, color: '#64748B' }}>
             На главную

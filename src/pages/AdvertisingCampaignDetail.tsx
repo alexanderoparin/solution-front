@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef, Fragment, type CSSProperties } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Spin, DatePicker, Checkbox, Switch, Button, Select, message, Input, Modal, Tooltip, Upload } from 'antd'
 import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, RightOutlined, DownOutlined, ReloadOutlined, PaperClipOutlined, EyeOutlined } from '@ant-design/icons'
@@ -235,6 +235,12 @@ export default function AdvertisingCampaignDetail() {
   const userId = useAuthStore((s) => s.userId)
   const getSelectedSellerId = () => (isManagerOrAdmin ? selectedSellerId : userId ?? undefined)
 
+  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>(() => {
+    const end = dayjs().subtract(1, 'day')
+    const start = end.subtract(13, 'day')
+    return [start, end]
+  })
+
   const campaignId = id != null ? parseInt(id, 10) : NaN
   const cabinetIdForRequest = selectedCabinetId ?? undefined
   const sellerIdForRequest = isManagerOrAdmin ? selectedSellerId ?? undefined : userId ?? undefined
@@ -244,9 +250,22 @@ export default function AdvertisingCampaignDetail() {
     isFetched,
     error,
   } = useQuery({
-    queryKey: ['campaign-detail', campaignId, cabinetIdForRequest, sellerIdForRequest],
+    queryKey: [
+      'campaign-detail',
+      campaignId,
+      cabinetIdForRequest,
+      sellerIdForRequest,
+      dateRange[0].format('YYYY-MM-DD'),
+      dateRange[1].format('YYYY-MM-DD'),
+    ],
     queryFn: () =>
-      analyticsApi.getCampaignDetail(campaignId, sellerIdForRequest, cabinetIdForRequest),
+      analyticsApi.getCampaignDetail(
+        campaignId,
+        sellerIdForRequest,
+        cabinetIdForRequest,
+        dateRange[0].format('YYYY-MM-DD'),
+        dateRange[1].format('YYYY-MM-DD'),
+      ),
     enabled:
       !Number.isNaN(campaignId)
       && cabinetIdForRequest != null
@@ -258,11 +277,6 @@ export default function AdvertisingCampaignDetail() {
   const firstNmId = articles.length > 0 ? articles[0].nmId : null
 
   const [selectedFunnelArticleNmId, setSelectedFunnelArticleNmId] = useState<number | null>(() => ALL_ARTICLES_NM_ID)
-  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>(() => {
-    const end = dayjs().subtract(1, 'day')
-    const start = end.subtract(13, 'day')
-    return [start, end]
-  })
   const [selectedFunnelKeys, setSelectedFunnelKeys] = useState<FunnelKey[]>(['general', 'advertising'])
   const [showChart, setShowChart] = useState(false)
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>(() => {
@@ -841,6 +855,98 @@ export default function AdvertisingCampaignDetail() {
                 </div>
               </div>
             </div>
+
+            {campaign.advertisingByPlatform != null && campaign.advertisingByPlatform.length > 0 ? (
+              <div
+                style={{
+                  backgroundColor: colors.bgWhite,
+                  border: `1px solid ${colors.borderLight}`,
+                  borderRadius: borderRadius.md,
+                  padding: spacing.lg,
+                  marginBottom: spacing.lg,
+                  boxShadow: shadows.md,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: spacing.sm, flexWrap: 'wrap' }}>
+                  <h2 style={{ ...typography.h2, margin: 0, fontSize: 16, color: colors.textPrimary }}>Реклама по площадкам WB</h2>
+                  <Tooltip
+                    title={
+                      'Источник: GET /adv/v3/fullstats, поле appType. В openapi WB указаны значения «сайт», «Android», «iOS». ' +
+                      'Совпадение с вкладкой личного кабинета «По зонам показов» (Поиск / Каталог / рекомендательные полки) не гарантировано — при необходимости сверяйте числа вручную.'
+                    }
+                  >
+                    <span
+                      style={{
+                        ...typography.body,
+                        fontSize: 12,
+                        color: colors.textSecondary,
+                        cursor: 'help',
+                        borderBottom: `1px dotted ${colors.textSecondary}`,
+                      }}
+                    >
+                      Справка
+                    </span>
+                  </Tooltip>
+                </div>
+                <p style={{ ...typography.body, fontSize: 12, color: colors.textSecondary, margin: '0 0 12px 0' }}>
+                  Суммарно по артикулам РК за период календаря воронок. Данные после синхронизации статистики кампаний.
+                </p>
+                {campaign.advertisingByPlatform.map((day) => {
+                  const th: CSSProperties = {
+                    padding: '6px 8px',
+                    border: `1px solid ${colors.border}`,
+                    textAlign: 'center',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    backgroundColor: colors.bgGrayLight,
+                  }
+                  const td: CSSProperties = { padding: '6px 8px', border: `1px solid ${colors.border}`, textAlign: 'center', fontSize: 11 }
+                  return (
+                    <div key={day.date} style={{ marginBottom: spacing.lg }}>
+                      <div style={{ ...typography.body, fontWeight: 600, marginBottom: spacing.sm, fontSize: 13 }}>
+                        {dayjs(day.date).format('DD.MM.YYYY')}
+                      </div>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr>
+                              <th style={{ ...th, textAlign: 'left' }}>Площадка (WB)</th>
+                              <th style={th}>Доля показов</th>
+                              <th style={th}>Показы</th>
+                              <th style={th}>Клики</th>
+                              <th style={th}>CTR</th>
+                              <th style={th}>CPC</th>
+                              <th style={th}>Затраты</th>
+                              <th style={th}>Корзины</th>
+                              <th style={th}>Заказы</th>
+                              <th style={th}>CR</th>
+                              <th style={th}>CPO</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {day.platforms.map((p) => (
+                              <tr key={`${day.date}-${p.appType}`}>
+                                <td style={{ ...td, textAlign: 'left', whiteSpace: 'nowrap' }}>{p.wbLabelRu}</td>
+                                <td style={td}>{p.viewsSharePercent == null ? '-' : formatPercent(p.viewsSharePercent)}</td>
+                                <td style={td}>{p.views == null ? '-' : formatValue(p.views)}</td>
+                                <td style={td}>{p.clicks == null ? '-' : formatValue(p.clicks)}</td>
+                                <td style={td}>{p.ctr == null ? '-' : formatPercent(p.ctr)}</td>
+                                <td style={td}>{p.cpc == null ? '-' : formatCurrency(p.cpc)}</td>
+                                <td style={td}>{p.costs == null ? '-' : formatCurrency(p.costs)}</td>
+                                <td style={td}>{p.cart == null ? '-' : formatValue(p.cart)}</td>
+                                <td style={td}>{p.orders == null ? '-' : formatValue(p.orders)}</td>
+                                <td style={td}>{p.cr == null ? '-' : formatPercent(p.cr)}</td>
+                                <td style={td}>{p.cpo == null ? '-' : formatCurrency(p.cpo)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : null}
 
             {/* Блок 2 — Воронки + выбор артикула */}
             <div

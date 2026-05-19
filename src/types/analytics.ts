@@ -150,6 +150,27 @@ export interface Campaign {
   orders?: number | null
 }
 
+/** Срез рекламы кампании по дню и appType из WB fullstats (сайт / Android / iOS). */
+export interface CampaignAdvertisingPlatformSlice {
+  appType: number
+  wbLabelRu: string
+  viewsSharePercent: number | null
+  views: number | null
+  clicks: number | null
+  ctr: number | null
+  cpc: number | null
+  costs: number | null
+  cart: number | null
+  orders: number | null
+  cr: number | null
+  cpo: number | null
+}
+
+export interface CampaignAdvertisingPlatformDay {
+  date: string
+  platforms: CampaignAdvertisingPlatformSlice[]
+}
+
 /** Детали страницы комбо-кампании: название, статус, артикулы. */
 export interface CampaignDetail {
   id: number
@@ -159,6 +180,8 @@ export interface CampaignDetail {
   articlesCount: number
   articles: ArticleSummary[]
   createdAt: string
+  /** Разбивка рекламы по площадкам WB за период (если запрошено с датами). */
+  advertisingByPlatform?: CampaignAdvertisingPlatformDay[] | null
 }
 
 export interface Stock {
