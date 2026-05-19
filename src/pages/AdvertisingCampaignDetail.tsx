@@ -5,11 +5,21 @@ import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOu
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
-import { useQuery, useQueries, useQueryClient, useMutation } from '@tanstack/react-query'
+import { useQuery, useQueries, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import { userApi } from '../api/user'
-import type { ArticleSummary, ArticleResponse, DailyData, Stock, StockSize, CampaignNote } from '../types/analytics'
+import type {
+  ArticleSummary,
+  ArticleResponse,
+  DailyData,
+  Stock,
+  StockSize,
+  CampaignNote,
+  NormQueryClusterRow,
+  NormQueryClusterSortDirection,
+  NormQueryClusterSortField,
+} from '../types/analytics'
 import { resolveArticlePhotoUrl } from '../types/analytics'
 import { colors, typography, spacing, borderRadius, shadows, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
@@ -27,6 +37,8 @@ import CampaignNormQueryClustersTable from '../components/CampaignNormQueryClust
 dayjs.locale('ru')
 
 const COMBO_PHOTO_SIZE = 80
+const CLUSTERS_PAGE_SIZE = 20
+const CLUSTERS_EXPORT_PAGE_SIZE = 100
 const STOCKS_NM_SELECT_STYLE = { width: 115, minWidth: 115, flexShrink: 0 } as const
 /** Значение «все артикулы» для воронки (таблица/график по сумме по всем артикулам). */
 const ALL_ARTICLES_NM_ID = 0
@@ -282,6 +294,15 @@ export default function AdvertisingCampaignDetail() {
   const [selectedFunnelArticleNmId, setSelectedFunnelArticleNmId] = useState<number | null>(() => ALL_ARTICLES_NM_ID)
   const [selectedClusterArticleNmId, setSelectedClusterArticleNmId] = useState<number | null>(null)
   const [clusterSearch, setClusterSearch] = useState('')
+  const [clusterSearchDebounced, setClusterSearchDebounced] = useState('')
+  const [clusterSortBy, setClusterSortBy] = useState<NormQueryClusterSortField>('clicks')
+  const [clusterSortDir, setClusterSortDir] = useState<NormQueryClusterSortDirection>('desc')
+  const [clustersExporting, setClustersExporting] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setClusterSearchDebounced(clusterSearch.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [clusterSearch])
   const [selectedFunnelKeys, setSelectedFunnelKeys] = useState<FunnelKey[]>(['general', 'advertising'])
   const [showChart, setShowChart] = useState(false)
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>(() => {
@@ -460,10 +481,12 @@ export default function AdvertisingCampaignDetail() {
   }
 
   const {
-    data: clustersData,
+    data: clustersPages,
     isLoading: clustersLoading,
-    refetch: refetchClusters,
-  } = useQuery({
+    fetchNextPage: fetchNextClustersPage,
+    hasNextPage: hasNextClustersPage,
+    isFetchingNextPage: isFetchingNextClustersPage,
+  } = useInfiniteQuery({
     queryKey: [
       'campaign-normquery-clusters',
       campaignId,
@@ -472,8 +495,11 @@ export default function AdvertisingCampaignDetail() {
       dailyDataFrom,
       dailyDataTo,
       selectedClusterArticleNmId,
+      clusterSearchDebounced,
+      clusterSortBy,
+      clusterSortDir,
     ],
-    queryFn: () =>
+    queryFn: ({ pageParam }) =>
       analyticsApi.getCampaignNormQueryClusters(
         campaignId,
         dailyDataFrom,
@@ -481,7 +507,16 @@ export default function AdvertisingCampaignDetail() {
         sellerIdForRequest,
         cabinetIdForRequest,
         selectedClusterArticleNmId!,
+        {
+          page: pageParam as number,
+          size: CLUSTERS_PAGE_SIZE,
+          search: clusterSearchDebounced || undefined,
+          sortBy: clusterSortBy,
+          sortDir: clusterSortDir,
+        },
       ),
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
+    initialPageParam: 0,
     enabled:
       viewMode === 'clusters'
       && !Number.isNaN(campaignId)
@@ -491,19 +526,99 @@ export default function AdvertisingCampaignDetail() {
     refetchOnMount: 'always',
   })
 
-  const promotionSyncMutation = useMutation({
-    mutationFn: () =>
-      analyticsApi.enqueuePromotionSync(sellerIdForRequest, cabinetIdForRequest, dailyDataFrom, dailyDataTo),
-    onSuccess: (res) => {
-      if (res.enqueued) {
-        message.success('Синхронизация рекламы поставлена в очередь. Данные кластеров появятся после загрузки.')
-      } else {
-        message.info('Синхронизация за этот период уже выполняется')
+  const clustersTotals = clustersPages?.pages[0]?.totals
+  const clustersRows = useMemo(
+    () => clustersPages?.pages.flatMap((p) => p.rows) ?? [],
+    [clustersPages],
+  )
+  const clustersLastSyncedAt = clustersPages?.pages[0]?.lastSyncedAt
+
+  const handleExportClustersExcel = useCallback(async () => {
+    if (selectedClusterArticleNmId == null || Number.isNaN(campaignId)) return
+    setClustersExporting(true)
+    try {
+      const allRows: NormQueryClusterRow[] = []
+      let totals: NormQueryClusterRow | null = null
+      let page = 0
+      let hasMore = true
+      while (hasMore) {
+        const res = await analyticsApi.getCampaignNormQueryClusters(
+          campaignId,
+          dailyDataFrom,
+          dailyDataTo,
+          sellerIdForRequest,
+          cabinetIdForRequest,
+          selectedClusterArticleNmId,
+          {
+            page,
+            size: CLUSTERS_EXPORT_PAGE_SIZE,
+            search: clusterSearchDebounced || undefined,
+            sortBy: clusterSortBy,
+            sortDir: clusterSortDir,
+          },
+        )
+        if (page === 0) {
+          totals = res.totals
+        }
+        allRows.push(...res.rows)
+        hasMore = res.hasMore
+        page += 1
       }
-      void refetchClusters()
-    },
-    onError: () => message.error('Не удалось запустить синхронизацию'),
-  })
+      if (allRows.length === 0 && (totals?.clicks ?? 0) === 0) {
+        message.warning('Нет данных для выгрузки')
+        return
+      }
+      const headers = ['Кластер', 'Средняя позиция', 'Клики', 'Корзины', 'Заказы, шт', 'Затраты, ₽', 'CPC, ₽']
+      const sheetRows: (string | number)[][] = [headers]
+      if (totals) {
+        sheetRows.push([
+          'Всего по топ кластерам',
+          totals.avgPos != null ? formatDecimal(totals.avgPos, 2) : '',
+          totals.clicks ?? '',
+          totals.atbs ?? '',
+          totals.orders ?? '',
+          totals.spend != null ? formatCurrency(totals.spend) : '',
+          totals.cpc != null ? formatDecimal(totals.cpc, 2) : '',
+        ])
+      }
+      for (const row of allRows) {
+        sheetRows.push([
+          row.normQuery,
+          row.avgPos != null ? formatDecimal(row.avgPos, 2) : '',
+          row.clicks ?? '',
+          row.atbs ?? '',
+          row.orders ?? '',
+          row.spend != null ? formatCurrency(row.spend) : '',
+          row.cpc != null ? formatDecimal(row.cpc, 2) : '',
+        ])
+      }
+      const ws = XLSX.utils.aoa_to_sheet(sheetRows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Кластеры')
+      XLSX.writeFile(
+        wb,
+        `combo_${selectedClusterArticleNmId}_кластеры_${dateRange[0].format('YYYY-MM-DD')}_${dateRange[1].format('YYYY-MM-DD')}.xlsx`,
+      )
+      message.success('Файл выгружен')
+    } catch {
+      message.error('Не удалось выгрузить файл')
+    } finally {
+      setClustersExporting(false)
+    }
+  }, [
+    campaignId,
+    dailyDataFrom,
+    dailyDataTo,
+    sellerIdForRequest,
+    cabinetIdForRequest,
+    selectedClusterArticleNmId,
+    clusterSearchDebounced,
+    clusterSortBy,
+    clusterSortDir,
+    dateRange,
+    formatDecimal,
+    formatCurrency,
+  ])
 
   const rangeDates = useMemo(() => getDatesInRange(dateRange[0], dateRange[1]), [dateRange])
   const rangeDatesDesc = useMemo(() => [...rangeDates].reverse(), [rangeDates])
@@ -1253,8 +1368,8 @@ export default function AdvertisingCampaignDetail() {
                 boxShadow: shadows.md,
               }}
             >
-              <div style={{ display: 'flex', marginBottom: spacing.md, alignItems: 'center', gap: spacing.md, flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
+              <div style={{ display: 'flex', marginBottom: spacing.md, alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
                   <DatePicker.RangePicker
                     locale={locale.DatePicker}
                     value={dateRange}
@@ -1272,13 +1387,13 @@ export default function AdvertisingCampaignDetail() {
                   />
                 </div>
                 <Button
-                  type="default"
-                  icon={<ReloadOutlined />}
-                  loading={promotionSyncMutation.isPending}
-                  onClick={() => promotionSyncMutation.mutate()}
-                  style={{ flexShrink: 0 }}
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  loading={clustersExporting}
+                  onClick={() => { void handleExportClustersExcel() }}
+                  disabled={clustersExporting || (!clustersLoading && clustersRows.length === 0 && (clustersTotals?.clicks ?? 0) === 0)}
                 >
-                  Обновить данные WB
+                  Выгрузить
                 </Button>
               </div>
               <div style={{ marginBottom: spacing.md, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }}>
@@ -1292,15 +1407,24 @@ export default function AdvertisingCampaignDetail() {
                   </Checkbox>
                 ))}
               </div>
-              {clustersData?.lastSyncedAt == null && !clustersLoading && (
+              {clustersLastSyncedAt == null && !clustersLoading && (
                 <p style={{ ...typography.body, color: colors.textSecondary, marginBottom: spacing.md }}>
                   Нет сохранённых данных за период. Запустите синхронизацию рекламы — кластеры загружаются после статистики кампаний.
                 </p>
               )}
               <CampaignNormQueryClustersTable
-                data={clustersData}
+                rows={clustersRows}
+                totals={clustersTotals}
                 isLoading={clustersLoading}
-                search={clusterSearch}
+                isFetchingNextPage={isFetchingNextClustersPage}
+                hasNextPage={hasNextClustersPage ?? false}
+                fetchNextPage={() => { void fetchNextClustersPage() }}
+                sortBy={clusterSortBy}
+                sortDir={clusterSortDir}
+                onSortChange={(field, dir) => {
+                  setClusterSortBy(field)
+                  setClusterSortDir(dir)
+                }}
                 formatNumber={formatNumber}
                 formatCurrency={formatCurrency}
                 formatDecimal={formatDecimal}

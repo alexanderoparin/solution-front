@@ -194,9 +194,24 @@ export interface NormQueryClusterRow {
   cpc: number | null
 }
 
+export type NormQueryClusterSortField =
+  | 'normQuery'
+  | 'avgPos'
+  | 'clicks'
+  | 'atbs'
+  | 'orders'
+  | 'spend'
+  | 'cpc'
+
+export type NormQueryClusterSortDirection = 'asc' | 'desc'
+
 export interface NormQueryClustersResponse {
   totals: NormQueryClusterRow | null
   rows: NormQueryClusterRow[]
+  totalElements: number
+  page: number
+  size: number
+  hasMore: boolean
   lastSyncedAt: string | null
 }
 

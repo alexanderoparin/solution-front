@@ -1,12 +1,33 @@
-import { useMemo, type CSSProperties } from 'react'
+import { useCallback, type CSSProperties, type UIEvent } from 'react'
 import { Spin } from 'antd'
-import type { NormQueryClusterRow, NormQueryClustersResponse } from '../types/analytics'
+import { CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
+import type {
+  NormQueryClusterRow,
+  NormQueryClusterSortDirection,
+  NormQueryClusterSortField,
+} from '../types/analytics'
 import { colors, spacing, borderRadius } from '../styles/analytics'
 
+const COLUMNS: { key: NormQueryClusterSortField; label: string; align: 'left' | 'right' }[] = [
+  { key: 'normQuery', label: 'Кластер', align: 'left' },
+  { key: 'avgPos', label: 'Средняя позиция', align: 'right' },
+  { key: 'clicks', label: 'Клики', align: 'right' },
+  { key: 'atbs', label: 'Корзина', align: 'right' },
+  { key: 'orders', label: 'Заказы, шт', align: 'right' },
+  { key: 'spend', label: 'Затраты, ₽', align: 'right' },
+  { key: 'cpc', label: 'CPC, ₽', align: 'right' },
+]
+
 interface CampaignNormQueryClustersTableProps {
-  data: NormQueryClustersResponse | undefined
+  rows: NormQueryClusterRow[]
+  totals: NormQueryClusterRow | null | undefined
   isLoading: boolean
-  search: string
+  isFetchingNextPage: boolean
+  hasNextPage: boolean
+  fetchNextPage: () => void
+  sortBy: NormQueryClusterSortField
+  sortDir: NormQueryClusterSortDirection
+  onSortChange: (field: NormQueryClusterSortField, dir: NormQueryClusterSortDirection) => void
   formatNumber: (value: number | null | undefined) => string
   formatCurrency: (value: number) => string
   formatDecimal: (value: number | null | undefined, digits?: number) => string
@@ -21,20 +42,19 @@ function formatPos(
 }
 
 export default function CampaignNormQueryClustersTable({
-  data,
+  rows,
+  totals,
   isLoading,
-  search,
+  isFetchingNextPage,
+  hasNextPage,
+  fetchNextPage,
+  sortBy,
+  sortDir,
+  onSortChange,
   formatNumber,
   formatCurrency,
   formatDecimal,
 }: CampaignNormQueryClustersTableProps) {
-  const filteredRows = useMemo(() => {
-    const rows = data?.rows ?? []
-    const q = search.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((r) => r.normQuery.toLowerCase().includes(q))
-  }, [data?.rows, search])
-
   const th: CSSProperties = {
     padding: '10px 12px',
     borderBottom: `2px solid ${colors.borderHeader}`,
@@ -47,6 +67,8 @@ export default function CampaignNormQueryClustersTable({
     top: 0,
     zIndex: 1,
     whiteSpace: 'nowrap',
+    cursor: 'pointer',
+    userSelect: 'none',
   }
 
   const td: CSSProperties = {
@@ -55,6 +77,28 @@ export default function CampaignNormQueryClustersTable({
     textAlign: 'right',
     fontSize: 12,
     color: colors.textPrimary,
+  }
+
+  const handleSort = (field: NormQueryClusterSortField) => {
+    if (sortBy === field) {
+      onSortChange(field, sortDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      onSortChange(field, field === 'normQuery' ? 'asc' : 'desc')
+    }
+  }
+
+  const renderSortIcon = (field: NormQueryClusterSortField) => {
+    if (sortBy !== field) {
+      return (
+        <span style={{ display: 'inline-flex', flexDirection: 'column', marginLeft: 4, opacity: 0.35, verticalAlign: 'middle' }}>
+          <CaretUpOutlined style={{ fontSize: 9, lineHeight: 1, marginBottom: -2 }} />
+          <CaretDownOutlined style={{ fontSize: 9, lineHeight: 1 }} />
+        </span>
+      )
+    }
+    return sortDir === 'asc'
+      ? <CaretUpOutlined style={{ fontSize: 10, marginLeft: 4, color: colors.primary }} />
+      : <CaretDownOutlined style={{ fontSize: 10, marginLeft: 4, color: colors.primary }} />
   }
 
   const renderRow = (row: NormQueryClusterRow, label: string, isTotal?: boolean) => (
@@ -71,30 +115,51 @@ export default function CampaignNormQueryClustersTable({
     </tr>
   )
 
+  const onScroll = useCallback(
+    (e: UIEvent<HTMLDivElement>) => {
+      if (!hasNextPage || isFetchingNextPage) return
+      const el = e.currentTarget
+      if (el.scrollHeight - el.scrollTop - el.clientHeight < 80) {
+        fetchNextPage()
+      }
+    },
+    [hasNextPage, isFetchingNextPage, fetchNextPage],
+  )
+
   return (
     <div>
-      {isLoading ? (
+      {isLoading && rows.length === 0 ? (
         <div style={{ textAlign: 'center', padding: spacing.xl }}>
           <Spin />
         </div>
       ) : (
-        <div style={{ maxHeight: 520, overflow: 'auto', border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.sm }}>
+        <div
+          style={{ maxHeight: 520, overflow: 'auto', border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.sm }}
+          onScroll={onScroll}
+        >
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
             <thead>
               <tr>
-                <th style={{ ...th, textAlign: 'left', minWidth: 200 }}>Кластер</th>
-                <th style={th}>Средняя позиция</th>
-                <th style={th}>Клики</th>
-                <th style={th}>Корзина</th>
-                <th style={th}>Заказы, шт</th>
-                <th style={th}>Затраты, ₽</th>
-                <th style={th}>CPC, ₽</th>
+                {COLUMNS.map((col) => (
+                  <th
+                    key={col.key}
+                    style={{
+                      ...th,
+                      textAlign: col.align,
+                      minWidth: col.key === 'normQuery' ? 200 : undefined,
+                    }}
+                    onClick={() => handleSort(col.key)}
+                  >
+                    {col.label}
+                    {renderSortIcon(col.key)}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {data?.totals && renderRow({ ...data.totals, normQuery: '' }, 'Всего по топ кластерам', true)}
-              {filteredRows.map((row) => renderRow(row, row.normQuery))}
-              {!isLoading && filteredRows.length === 0 && (data?.totals?.clicks ?? 0) === 0 && (
+              {totals && renderRow({ ...totals, normQuery: '' }, 'Всего по топ кластерам', true)}
+              {rows.map((row) => renderRow(row, row.normQuery))}
+              {!isLoading && rows.length === 0 && (totals?.clicks ?? 0) === 0 && (
                 <tr>
                   <td colSpan={7} style={{ ...td, textAlign: 'center', color: colors.textSecondary, padding: spacing.xl }}>
                     Нет данных за выбранный период
@@ -103,6 +168,13 @@ export default function CampaignNormQueryClustersTable({
               )}
             </tbody>
           </table>
+          {isFetchingNextPage && (
+            <div>
+              <div style={{ textAlign: 'center', padding: spacing.sm }}>
+                <Spin size="small" />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

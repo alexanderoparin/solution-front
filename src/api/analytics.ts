@@ -153,6 +153,13 @@ export const analyticsApi = {
     sellerId?: number,
     cabinetId?: number,
     nmId?: number,
+    options?: {
+      page?: number
+      size?: number
+      search?: string
+      sortBy?: string
+      sortDir?: string
+    },
   ): Promise<NormQueryClustersResponse> => {
     const searchParams = new URLSearchParams()
     searchParams.set('from', from)
@@ -160,6 +167,11 @@ export const analyticsApi = {
     if (sellerId != null) searchParams.set('sellerId', String(sellerId))
     if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
     if (nmId != null) searchParams.set('nmId', String(nmId))
+    if (options?.page != null) searchParams.set('page', String(options.page))
+    if (options?.size != null) searchParams.set('size', String(options.size))
+    if (options?.search) searchParams.set('search', options.search)
+    if (options?.sortBy) searchParams.set('sortBy', options.sortBy)
+    if (options?.sortDir) searchParams.set('sortDir', options.sortDir)
     const response = await apiClient.get<NormQueryClustersResponse>(
       `/advertising/campaigns/${campaignId}/normquery-clusters?${searchParams.toString()}`,
     )
