@@ -5,7 +5,7 @@ import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOu
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
-import { useQuery, useQueries, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueries, useQueryClient, useMutation } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import { userApi } from '../api/user'
@@ -21,6 +21,8 @@ import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
 import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
 import { linkifyNoteText } from '../utils/linkifyNoteText'
+import CampaignDetailViewSwitch, { type CampaignDetailViewMode } from '../components/CampaignDetailViewSwitch'
+import CampaignNormQueryClustersTable from '../components/CampaignNormQueryClustersTable'
 
 dayjs.locale('ru')
 
@@ -276,7 +278,10 @@ export default function AdvertisingCampaignDetail() {
   const articles = campaign?.articles ?? []
   const firstNmId = articles.length > 0 ? articles[0].nmId : null
 
+  const [viewMode, setViewMode] = useState<CampaignDetailViewMode>('statistics')
   const [selectedFunnelArticleNmId, setSelectedFunnelArticleNmId] = useState<number | null>(() => ALL_ARTICLES_NM_ID)
+  const [selectedClusterArticleNmId, setSelectedClusterArticleNmId] = useState<number | null>(null)
+  const [clusterSearch, setClusterSearch] = useState('')
   const [selectedFunnelKeys, setSelectedFunnelKeys] = useState<FunnelKey[]>(['general', 'advertising'])
   const [showChart, setShowChart] = useState(false)
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>(() => {
@@ -304,6 +309,16 @@ export default function AdvertisingCampaignDetail() {
   useEffect(() => {
     if (firstNmId != null && selectedStockNmId == null) setSelectedStockNmId(firstNmId)
   }, [firstNmId, selectedStockNmId])
+
+  useEffect(() => {
+    if (articles.length === 0) {
+      setSelectedClusterArticleNmId(null)
+      return
+    }
+    setSelectedClusterArticleNmId((prev) =>
+      prev != null && articles.some((a) => a.nmId === prev) ? prev : articles[0].nmId,
+    )
+  }, [articles])
 
   useEffect(() => {
     setExpandedStocks(new Set())
@@ -435,6 +450,60 @@ export default function AdvertisingCampaignDetail() {
   const formatPercent = (value: number): string => `${value.toFixed(2).replace('.', ',')}%`
   const formatCurrency = (value: number): string =>
     `${value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`
+  const formatDecimal = (value: number | null | undefined, digits = 2): string => {
+    if (value == null) return '-'
+    return value.toLocaleString('ru-RU', { minimumFractionDigits: digits, maximumFractionDigits: digits })
+  }
+  const formatNumber = (value: number | null | undefined): string => {
+    if (value == null) return '-'
+    return value.toLocaleString('ru-RU')
+  }
+
+  const {
+    data: clustersData,
+    isLoading: clustersLoading,
+    refetch: refetchClusters,
+  } = useQuery({
+    queryKey: [
+      'campaign-normquery-clusters',
+      campaignId,
+      cabinetIdForRequest,
+      sellerIdForRequest,
+      dailyDataFrom,
+      dailyDataTo,
+      selectedClusterArticleNmId,
+    ],
+    queryFn: () =>
+      analyticsApi.getCampaignNormQueryClusters(
+        campaignId,
+        dailyDataFrom,
+        dailyDataTo,
+        sellerIdForRequest,
+        cabinetIdForRequest,
+        selectedClusterArticleNmId!,
+      ),
+    enabled:
+      viewMode === 'clusters'
+      && !Number.isNaN(campaignId)
+      && cabinetIdForRequest != null
+      && selectedClusterArticleNmId != null
+      && (isManagerOrAdmin ? selectedSellerId != null : userId != null),
+    refetchOnMount: 'always',
+  })
+
+  const promotionSyncMutation = useMutation({
+    mutationFn: () =>
+      analyticsApi.enqueuePromotionSync(sellerIdForRequest, cabinetIdForRequest, dailyDataFrom, dailyDataTo),
+    onSuccess: (res) => {
+      if (res.enqueued) {
+        message.success('Синхронизация рекламы поставлена в очередь. Данные кластеров появятся после загрузки.')
+      } else {
+        message.info('Синхронизация за этот период уже выполняется')
+      }
+      void refetchClusters()
+    },
+    onError: () => message.error('Не удалось запустить синхронизацию'),
+  })
 
   const rangeDates = useMemo(() => getDatesInRange(dateRange[0], dateRange[1]), [dateRange])
   const rangeDatesDesc = useMemo(() => [...rangeDates].reverse(), [rangeDates])
@@ -856,7 +925,9 @@ export default function AdvertisingCampaignDetail() {
               </div>
             </div>
 
-            {campaign.advertisingByPlatform != null && campaign.advertisingByPlatform.length > 0 ? (
+            <CampaignDetailViewSwitch value={viewMode} onChange={setViewMode} />
+
+            {viewMode === 'statistics' && campaign.advertisingByPlatform != null && campaign.advertisingByPlatform.length > 0 ? (
               <div
                 style={{
                   backgroundColor: colors.bgWhite,
@@ -948,6 +1019,8 @@ export default function AdvertisingCampaignDetail() {
               </div>
             ) : null}
 
+            {viewMode === 'statistics' && (
+            <>
             {/* Блок 2 — Воронки + выбор артикула */}
             <div
               style={{
@@ -1166,6 +1239,74 @@ export default function AdvertisingCampaignDetail() {
                 />
               )}
             </div>
+            </>
+            )}
+
+            {viewMode === 'clusters' && (
+            <div
+              style={{
+                backgroundColor: colors.bgWhite,
+                border: `1px solid ${colors.borderLight}`,
+                borderRadius: borderRadius.md,
+                padding: spacing.lg,
+                marginBottom: spacing.lg,
+                boxShadow: shadows.md,
+              }}
+            >
+              <div style={{ display: 'flex', marginBottom: spacing.md, alignItems: 'center', gap: spacing.md, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap', flex: '1 1 auto', minWidth: 0 }}>
+                  <DatePicker.RangePicker
+                    locale={locale.DatePicker}
+                    value={dateRange}
+                    onChange={(dates) => dates?.[0] && dates?.[1] && setDateRange([dates[0], dates[1]])}
+                    format="DD.MM.YYYY"
+                    separator="→"
+                    style={{ width: 220, flexShrink: 0 }}
+                  />
+                  <Input.Search
+                    placeholder="Искать кластер"
+                    allowClear
+                    value={clusterSearch}
+                    onChange={(e) => setClusterSearch(e.target.value)}
+                    style={{ width: 220, maxWidth: '100%', flexShrink: 0 }}
+                  />
+                </div>
+                <Button
+                  type="default"
+                  icon={<ReloadOutlined />}
+                  loading={promotionSyncMutation.isPending}
+                  onClick={() => promotionSyncMutation.mutate()}
+                  style={{ flexShrink: 0 }}
+                >
+                  Обновить данные WB
+                </Button>
+              </div>
+              <div style={{ marginBottom: spacing.md, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }}>
+                {articles.map((art) => (
+                  <Checkbox
+                    key={art.nmId}
+                    checked={selectedClusterArticleNmId === art.nmId}
+                    onChange={() => setSelectedClusterArticleNmId(art.nmId)}
+                  >
+                    {art.nmId}
+                  </Checkbox>
+                ))}
+              </div>
+              {clustersData?.lastSyncedAt == null && !clustersLoading && (
+                <p style={{ ...typography.body, color: colors.textSecondary, marginBottom: spacing.md }}>
+                  Нет сохранённых данных за период. Запустите синхронизацию рекламы — кластеры загружаются после статистики кампаний.
+                </p>
+              )}
+              <CampaignNormQueryClustersTable
+                data={clustersData}
+                isLoading={clustersLoading}
+                search={clusterSearch}
+                formatNumber={formatNumber}
+                formatCurrency={formatCurrency}
+                formatDecimal={formatDecimal}
+              />
+            </div>
+            )}
 
             {/* Блок 3 — Сравнение периодов: два блока один под другим (период 1, период 2) */}
             <div style={{ backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, marginBottom: spacing.lg, boxShadow: shadows.md }}>

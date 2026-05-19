@@ -184,6 +184,22 @@ export interface CampaignDetail {
   advertisingByPlatform?: CampaignAdvertisingPlatformDay[] | null
 }
 
+export interface NormQueryClusterRow {
+  normQuery: string
+  avgPos: number | null
+  clicks: number | null
+  atbs: number | null
+  orders: number | null
+  spend: number | null
+  cpc: number | null
+}
+
+export interface NormQueryClustersResponse {
+  totals: NormQueryClusterRow | null
+  rows: NormQueryClusterRow[]
+  lastSyncedAt: string | null
+}
+
 export interface Stock {
   warehouseName: string
   amount: number

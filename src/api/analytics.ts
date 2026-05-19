@@ -13,6 +13,7 @@ import type {
   Campaign,
   CampaignDetail,
   CampaignNote,
+  NormQueryClustersResponse,
 } from '../types/analytics'
 
 export interface SummaryRequest {
@@ -142,6 +143,26 @@ export const analyticsApi = {
     const query = searchParams.toString()
     const params = query ? `?${query}` : ''
     const response = await apiClient.get<CampaignDetail>(`/advertising/campaigns/${campaignId}${params}`)
+    return response.data
+  },
+
+  getCampaignNormQueryClusters: async (
+    campaignId: number,
+    from: string,
+    to: string,
+    sellerId?: number,
+    cabinetId?: number,
+    nmId?: number,
+  ): Promise<NormQueryClustersResponse> => {
+    const searchParams = new URLSearchParams()
+    searchParams.set('from', from)
+    searchParams.set('to', to)
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    if (nmId != null) searchParams.set('nmId', String(nmId))
+    const response = await apiClient.get<NormQueryClustersResponse>(
+      `/advertising/campaigns/${campaignId}/normquery-clusters?${searchParams.toString()}`,
+    )
     return response.data
   },
 
