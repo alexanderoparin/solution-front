@@ -148,8 +148,12 @@ export default function Register() {
                 Договора публичной оферты
               </Link>
               ,{' '}
+              <Link to="/user-agreement" target="_blank" rel="noopener noreferrer" style={{ color: '#7C3AED' }}>
+                Пользовательского соглашения
+              </Link>
+              ,{' '}
               <Link to="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#7C3AED' }}>
-                политики конфиденциальности
+                Политика конфиденциальности
               </Link>
               {' '}и даю согласие на обработку моих персональных данных.
             </Checkbox>

@@ -8,5 +8,11 @@ export const LEGAL_OPERATOR = {
   address:
     '681003, Россия, Хабаровский край, г. Комсомольск-на-Амуре, Интернациональный проспект, д. 1',
   email: 'mel.olga.al@yandex.ru',
+  phone: '+7 (993) 613-02-59',
+  phoneTel: '+79936130259',
   site: 'https://wb-solution.ru',
 } as const
+
+/** Дата редакции юридических документов на сайте. */
+export const LEGAL_PUBLICATION_DATE = '20.05.2026'
+export const LEGAL_PUBLICATION_DATE_LABEL = '20 мая 2026 г.'

@@ -1,13 +1,16 @@
 import { Link } from 'react-router-dom'
 import { LEGAL_OPERATOR } from '../constants/legalOperator'
 
+const WHATSAPP_MESSAGE = encodeURIComponent('Добрый день! Хочу узнать про WB-Solution.')
+
 const ACCENT = '#7C3AED'
 const ACCENT_HOVER = '#6D28D9'
 
 const CONTACT_EMAIL = LEGAL_OPERATOR.email
-const CONTACT_PHONE = '+7 920 526 5666'
+const CONTACT_PHONE = LEGAL_OPERATOR.phone
+const CONTACT_PHONE_TEL = LEGAL_OPERATOR.phoneTel
 const TELEGRAM_URL = 'https://t.me/buryanexx'
-const WHATSAPP_URL = 'https://wa.me/79205265666?text=Добрый%20день!%20Хочу%20узнать%20про%20WB-Solution.'
+const WHATSAPP_URL = `https://wa.me/${CONTACT_PHONE_TEL.replace(/\D/g, '')}?text=${WHATSAPP_MESSAGE}`
 
 export default function Footer() {
   return (
@@ -35,6 +38,7 @@ export default function Footer() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 2 }}>Документы</div>
           <Link to="/privacy" className="footer-link" style={{ color: ACCENT, fontSize: 14, textDecoration: 'none', transition: 'color 0.2s' }}>Политика конфиденциальности</Link>
+          <Link to="/user-agreement" className="footer-link" style={{ color: ACCENT, fontSize: 14, textDecoration: 'none', transition: 'color 0.2s' }}>Пользовательское соглашение</Link>
           <Link to="/refund" className="footer-link" style={{ color: ACCENT, fontSize: 14, textDecoration: 'none', transition: 'color 0.2s' }}>Политика возврата</Link>
           <Link to="/oferta" className="footer-link" style={{ color: ACCENT, fontSize: 14, textDecoration: 'none', transition: 'color 0.2s' }}>Публичная оферта</Link>
         </div>
@@ -42,7 +46,7 @@ export default function Footer() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 2 }}>Контакты</div>
             <a href={`mailto:${CONTACT_EMAIL}`} className="footer-link" style={{ color: ACCENT, fontSize: 14, textDecoration: 'none', transition: 'color 0.2s' }}>{CONTACT_EMAIL}</a>
-            <a href={`tel:${CONTACT_PHONE.replace(/\s/g, '')}`} className="footer-link" style={{ color: ACCENT, fontSize: 14, textDecoration: 'none', transition: 'color 0.2s' }}>{CONTACT_PHONE}</a>
+            <a href={`tel:${CONTACT_PHONE_TEL}`} className="footer-link" style={{ color: ACCENT, fontSize: 14, textDecoration: 'none', transition: 'color 0.2s' }}>{CONTACT_PHONE}</a>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="footer-icon" style={{ width: 44, height: 44, borderRadius: '50%', backgroundColor: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569', transition: 'transform 0.2s, background 0.2s, color 0.2s' }}>

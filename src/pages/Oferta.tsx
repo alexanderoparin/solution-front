@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom'
 import LegalPageLayout from '../components/LegalPageLayout'
-import { LEGAL_OPERATOR } from '../constants/legalOperator'
+import { LEGAL_OPERATOR, LEGAL_PUBLICATION_DATE, LEGAL_PUBLICATION_DATE_LABEL } from '../constants/legalOperator'
 
 export default function Oferta() {
-  const { site, email } = LEGAL_OPERATOR
+  const { site, email, phone, phoneTel } = LEGAL_OPERATOR
 
   return (
     <LegalPageLayout title="Публичная оферта">
+      <p style={{ marginBottom: 8, color: '#64748B', fontSize: 14 }}>
+        Редакция от {LEGAL_PUBLICATION_DATE_LABEL}. Опубликовано {LEGAL_PUBLICATION_DATE}.
+      </p>
       <p style={{ marginBottom: 16 }}>
         Настоящий документ является официальным предложением (публичной офертой) {LEGAL_OPERATOR.name}, ИНН{' '}
         {LEGAL_OPERATOR.inn}, ОГРНИП {LEGAL_OPERATOR.ogrnip} (далее — Оператор), адресованным любому
@@ -103,6 +106,10 @@ export default function Oferta() {
         Контакт для связи:{' '}
         <a href={`mailto:${email}`} style={{ color: '#7C3AED' }}>
           {email}
+        </a>
+        , телефон{' '}
+        <a href={`tel:${phoneTel}`} style={{ color: '#7C3AED' }}>
+          {phone}
         </a>
         .
       </p>

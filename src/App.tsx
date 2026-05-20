@@ -21,6 +21,7 @@ import AccessGuard from './components/AccessGuard'
 import Privacy from './pages/Privacy'
 import Refund from './pages/Refund'
 import Oferta from './pages/Oferta'
+import UserAgreement from './pages/UserAgreement'
 import Footer from './components/Footer'
 import AccessStatusPrefetch from './components/AccessStatusPrefetch'
 import { useAuthStore } from './store/authStore'
@@ -100,6 +101,7 @@ function App() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/refund" element={<Refund />} />
         <Route path="/oferta" element={<Oferta />} />
+        <Route path="/user-agreement" element={<UserAgreement />} />
         <Route path="/users" element={token ? <Navigate to="/profile" replace /> : <Navigate to="/login" replace />} />
           </Routes>
         </div>

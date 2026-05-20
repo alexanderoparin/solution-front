@@ -1,17 +1,17 @@
 import { Link } from 'react-router-dom'
 import LegalPageLayout from '../components/LegalPageLayout'
-import { LEGAL_OPERATOR } from '../constants/legalOperator'
+import { LEGAL_OPERATOR, LEGAL_PUBLICATION_DATE, LEGAL_PUBLICATION_DATE_LABEL } from '../constants/legalOperator'
 
 const h3 = { marginTop: 24, marginBottom: 8 } as const
 const ul = { paddingLeft: 24, marginBottom: 16 } as const
 
 export default function Privacy() {
-  const { site, email } = LEGAL_OPERATOR
+  const { site, email, phone, phoneTel } = LEGAL_OPERATOR
 
   return (
     <LegalPageLayout title="Политика конфиденциальности и обработки данных">
       <p style={{ marginBottom: 8, color: '#64748B', fontSize: 14 }}>
-        Действует с момента размещения на Сайте.
+        Редакция от {LEGAL_PUBLICATION_DATE_LABEL}. Опубликовано {LEGAL_PUBLICATION_DATE}.
       </p>
       <p style={{ marginBottom: 24, lineHeight: 1.6 }}>
         <strong>{LEGAL_OPERATOR.name}</strong>
@@ -25,6 +25,11 @@ export default function Privacy() {
         Электронная почта:{' '}
         <a href={`mailto:${email}`} style={{ color: '#7C3AED' }}>
           {email}
+        </a>
+        <br />
+        Телефон:{' '}
+        <a href={`tel:${phoneTel}`} style={{ color: '#7C3AED' }}>
+          {phone}
         </a>
       </p>
 
