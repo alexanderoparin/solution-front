@@ -60,6 +60,11 @@ const { Text } = Typography
 
 const formatAgencyClient = (value?: boolean | null): string => (value ? 'Да' : 'Нет')
 
+const formatOwnerEmail = (email?: string | null): string => {
+  const trimmed = email?.trim()
+  return trimmed ? trimmed : '—'
+}
+
 const DEFAULT_USER_SORT_BY = USER_SORT_FIELDS.LAST_DATA_UPDATE_AT
 const DEFAULT_USER_SORT_DIR = SORT_DIRECTIONS.ASC
 const DEFAULT_CABINET_SORT_BY = CABINET_SORT_FIELDS.LAST_DATA_UPDATE_AT
@@ -304,6 +309,19 @@ export default function UsersManagementSection({
         render: (_: unknown, row: ManagedCabinetRowDto) => formatAgencyClient(row.sellerAgencyClient),
       },
       {
+        title: 'Владелец селлера',
+        key: CABINET_SORT_FIELDS.SELLER_OWNER_EMAIL,
+        width: 224,
+        ellipsis: true,
+        align: 'left',
+        sorter: true,
+        sortOrder:
+          cabinetSortBy === CABINET_SORT_FIELDS.SELLER_OWNER_EMAIL
+            ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
+            : null,
+        render: (_: unknown, row: ManagedCabinetRowDto) => formatOwnerEmail(row.sellerOwnerEmail),
+      },
+      {
         title: 'Основное обновление',
         key: CABINET_SORT_FIELDS.LAST_DATA_UPDATE_AT,
         width: 156,
@@ -503,6 +521,18 @@ export default function UsersManagementSection({
       render: (_: unknown, record: UserListItem) => formatAgencyClient(record.isAgencyClient),
     },
     {
+      title: 'Владелец селлера',
+      key: USER_SORT_FIELDS.OWNER_EMAIL,
+      width: 224,
+      ellipsis: true,
+      align: 'left' as const,
+      sorter: true,
+      sortOrder: sortBy === USER_SORT_FIELDS.OWNER_EMAIL
+        ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
+        : null,
+      render: (_: unknown, record: UserListItem) => formatOwnerEmail(record.ownerEmail),
+    },
+    {
       title: 'Статус',
       key: 'isActive',
       render: (_: any, record: UserListItem) => (
@@ -542,8 +572,10 @@ export default function UsersManagementSection({
     {
       title: 'Действия',
       key: 'actions',
+      width: 140,
+      align: 'left' as const,
       render: (_: any, record: UserListItem) => (
-        <Space>
+        <Space direction="vertical" size={0} align="start">
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -563,7 +595,6 @@ export default function UsersManagementSection({
               icon={record.isActive ? <CloseCircleOutlined /> : <CheckCircleOutlined />}
               danger={record.isActive}
               size="small"
-              style={{ minWidth: 140 }}
             >
               {record.isActive ? 'Деактивировать' : 'Активировать'}
             </Button>
@@ -720,7 +751,7 @@ export default function UsersManagementSection({
           rowKey={managedCabinetRowKey}
           loading={managedCabinetsLoading}
           components={cabinetTableComponents}
-          scroll={{ x: 1440 }}
+          scroll={{ x: 1664 }}
           pagination={{
             current: cabinetPage,
             pageSize: cabinetPageSize,

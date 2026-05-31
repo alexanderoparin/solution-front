@@ -157,6 +157,14 @@ export default function UsersManagement() {
       render: (_: unknown, record: UserListItem) => (record.isAgencyClient ? 'Да' : 'Нет'),
     },
     {
+      title: 'Владелец селлера',
+      key: 'ownerEmail',
+      render: (_: unknown, record: UserListItem) => {
+        const trimmed = record.ownerEmail?.trim()
+        return trimmed ? trimmed : '—'
+      },
+    },
+    {
       title: 'Статус',
       key: 'status',
       render: (_: any, record: UserListItem) => (

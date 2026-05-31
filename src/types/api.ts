@@ -136,6 +136,7 @@ export interface ManagedCabinetRowDto {
   sellerId: number
   sellerEmail: string
   sellerAgencyClient?: boolean
+  sellerOwnerEmail?: string | null
   cabinet: CabinetDto
 }
 

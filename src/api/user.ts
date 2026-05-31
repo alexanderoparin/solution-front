@@ -22,6 +22,7 @@ const USER_SORT_FIELD_TO_BACKEND: Record<UserSortField, string> = {
   role: 'ROLE',
   isActive: 'IS_ACTIVE',
   isAgencyClient: 'IS_AGENCY_CLIENT',
+  ownerEmail: 'OWNER_EMAIL',
   createdAt: 'CREATED_AT',
   lastDataUpdateAt: 'LAST_DATA_UPDATE_AT',
   lastDataUpdateRequestedAt: 'LAST_DATA_UPDATE_REQUESTED_AT',
@@ -37,6 +38,7 @@ const CABINET_SORT_FIELD_TO_BACKEND: Record<CabinetSortField, string> = {
   cabinetName: 'CABINET_NAME',
   sellerEmail: 'SELLER_EMAIL',
   sellerAgencyClient: 'SELLER_AGENCY_CLIENT',
+  sellerOwnerEmail: 'SELLER_OWNER_EMAIL',
   lastDataUpdateAt: 'LAST_DATA_UPDATE_AT',
   lastStocksUpdateAt: 'LAST_STOCKS_UPDATE_AT',
 }
