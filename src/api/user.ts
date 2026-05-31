@@ -21,6 +21,7 @@ const USER_SORT_FIELD_TO_BACKEND: Record<UserSortField, string> = {
   email: 'EMAIL',
   role: 'ROLE',
   isActive: 'IS_ACTIVE',
+  isAgencyClient: 'IS_AGENCY_CLIENT',
   createdAt: 'CREATED_AT',
   lastDataUpdateAt: 'LAST_DATA_UPDATE_AT',
   lastDataUpdateRequestedAt: 'LAST_DATA_UPDATE_REQUESTED_AT',
@@ -35,6 +36,7 @@ const CABINET_SORT_FIELD_TO_BACKEND: Record<CabinetSortField, string> = {
   cabinetId: 'CABINET_ID',
   cabinetName: 'CABINET_NAME',
   sellerEmail: 'SELLER_EMAIL',
+  sellerAgencyClient: 'SELLER_AGENCY_CLIENT',
   lastDataUpdateAt: 'LAST_DATA_UPDATE_AT',
   lastStocksUpdateAt: 'LAST_STOCKS_UPDATE_AT',
 }
@@ -199,6 +201,7 @@ export const userApi = {
     page: number
     size: number
     search?: string
+    onlyActive?: boolean
     sortBy?: CabinetSortField
     sortDir?: SortDirection
   }): Promise<PageResponse<ManagedCabinetRowDto>> => {
@@ -207,6 +210,7 @@ export const userApi = {
         page: params.page,
         size: params.size,
         search: params.search,
+        onlyActive: params.onlyActive,
         sortBy: params.sortBy ? CABINET_SORT_FIELD_TO_BACKEND[params.sortBy] : undefined,
         sortDir: params.sortDir ? params.sortDir.toUpperCase() : undefined,
       },

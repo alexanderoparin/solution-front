@@ -152,6 +152,11 @@ export default function UsersManagement() {
       ),
     },
     {
+      title: 'Клиент агентства',
+      key: 'isAgencyClient',
+      render: (_: unknown, record: UserListItem) => (record.isAgencyClient ? 'Да' : 'Нет'),
+    },
+    {
       title: 'Статус',
       key: 'status',
       render: (_: any, record: UserListItem) => (

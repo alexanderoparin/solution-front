@@ -3,6 +3,7 @@ export const CABINET_SORT_FIELDS = {
   CABINET_ID: 'cabinetId',
   CABINET_NAME: 'cabinetName',
   SELLER_EMAIL: 'sellerEmail',
+  SELLER_AGENCY_CLIENT: 'sellerAgencyClient',
   LAST_DATA_UPDATE_AT: 'lastDataUpdateAt',
   LAST_STOCKS_UPDATE_AT: 'lastStocksUpdateAt',
 } as const

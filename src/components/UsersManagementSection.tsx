@@ -28,7 +28,7 @@ import {
   DownOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
-import type { SortOrder, SorterResult, TablePaginationConfig } from 'antd/es/table/interface'
+import type { SortOrder, SorterResult, TableCurrentDataSource, TablePaginationConfig } from 'antd/es/table/interface'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { CabinetAdminCard } from './CabinetAdminCard'
@@ -57,6 +57,19 @@ import 'dayjs/locale/ru'
 dayjs.locale('ru')
 
 const { Text } = Typography
+
+const formatAgencyClient = (value?: boolean | null): string => (value ? 'Да' : 'Нет')
+
+const DEFAULT_USER_SORT_BY = USER_SORT_FIELDS.LAST_DATA_UPDATE_AT
+const DEFAULT_USER_SORT_DIR = SORT_DIRECTIONS.ASC
+const DEFAULT_CABINET_SORT_BY = CABINET_SORT_FIELDS.LAST_DATA_UPDATE_AT
+const DEFAULT_CABINET_SORT_DIR = SORT_DIRECTIONS.ASC
+
+const isUserSortField = (field: string): field is UserSortField =>
+  (Object.values(USER_SORT_FIELDS) as string[]).includes(field)
+
+const isCabinetSortField = (field: string): field is CabinetSortField =>
+  (Object.values(CABINET_SORT_FIELDS) as string[]).includes(field)
 
 /** Совпадает с rowKey таблицы кабинетов — из него читаем sellerId в кастомной строке (rc-table не передаёт record в RowComponent). */
 function managedCabinetRowKey(row: ManagedCabinetRowDto): string {
@@ -157,6 +170,7 @@ export default function UsersManagementSection({
   const [createEmailReadOnly, setCreateEmailReadOnly] = useState(true)
   const [createPasswordReadOnly, setCreatePasswordReadOnly] = useState(true)
   const [onlySellers, setOnlySellers] = useState(true)
+  const [onlyActiveCabinets, setOnlyActiveCabinets] = useState(true)
   const [cabinetPage, setCabinetPage] = useState(1)
   const [cabinetPageSize, setCabinetPageSize] = useState(20)
   const [page, setPage] = useState(1)
@@ -181,7 +195,7 @@ export default function UsersManagementSection({
 
   useEffect(() => {
     setCabinetPage(1)
-  }, [searchEmail, managementView, cabinetSortBy, cabinetSortDir])
+  }, [searchEmail, managementView, cabinetSortBy, cabinetSortDir, onlyActiveCabinets])
 
   const getCreatableRole = (): UserRole => {
     if (role === 'ADMIN') return 'MANAGER'
@@ -222,6 +236,7 @@ export default function UsersManagementSection({
       searchEmail,
       cabinetSortBy,
       cabinetSortDir,
+      onlyActiveCabinets,
       managementView,
     ],
     queryFn: () =>
@@ -229,6 +244,7 @@ export default function UsersManagementSection({
         page: cabinetPage - 1,
         size: cabinetPageSize,
         search: searchEmail.trim() || undefined,
+        onlyActive: onlyActiveCabinets,
         sortBy: cabinetSortBy,
         sortDir: cabinetSortDir,
       }),
@@ -274,6 +290,18 @@ export default function UsersManagementSection({
           cabinetSortBy === CABINET_SORT_FIELDS.SELLER_EMAIL
             ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
             : null,
+      },
+      {
+        title: 'Клиент агентства',
+        key: CABINET_SORT_FIELDS.SELLER_AGENCY_CLIENT,
+        width: 130,
+        align: 'center',
+        sorter: true,
+        sortOrder:
+          cabinetSortBy === CABINET_SORT_FIELDS.SELLER_AGENCY_CLIENT
+            ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
+            : null,
+        render: (_: unknown, row: ManagedCabinetRowDto) => formatAgencyClient(row.sellerAgencyClient),
       },
       {
         title: 'Основное обновление',
@@ -464,6 +492,17 @@ export default function UsersManagementSection({
         : null,
     },
     {
+      title: 'Клиент агентства',
+      key: USER_SORT_FIELDS.IS_AGENCY_CLIENT,
+      width: 130,
+      align: 'center' as const,
+      sorter: true,
+      sortOrder: sortBy === USER_SORT_FIELDS.IS_AGENCY_CLIENT
+        ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
+        : null,
+      render: (_: unknown, record: UserListItem) => formatAgencyClient(record.isAgencyClient),
+    },
+    {
       title: 'Статус',
       key: 'isActive',
       render: (_: any, record: UserListItem) => (
@@ -649,6 +688,11 @@ export default function UsersManagementSection({
               Только селлеры
             </Checkbox>
           )}
+          {showCabinetsTable && (
+            <Checkbox checked={onlyActiveCabinets} onChange={(e) => setOnlyActiveCabinets(e.target.checked)}>
+              Только активные
+            </Checkbox>
+          )}
         </Space>
         <Button
           type="primary"
@@ -676,7 +720,7 @@ export default function UsersManagementSection({
           rowKey={managedCabinetRowKey}
           loading={managedCabinetsLoading}
           components={cabinetTableComponents}
-          scroll={{ x: 1310 }}
+          scroll={{ x: 1440 }}
           pagination={{
             current: cabinetPage,
             pageSize: cabinetPageSize,
@@ -692,7 +736,7 @@ export default function UsersManagementSection({
             },
             locale: tablePaginationLocale,
           }}
-          onChange={(pagination: TablePaginationConfig, _filters, sorter) => {
+          onChange={(pagination: TablePaginationConfig, _filters, sorter, extra: TableCurrentDataSource<ManagedCabinetRowDto>) => {
             const current = pagination.current ?? 1
             const size = pagination.pageSize ?? cabinetPageSize
             setCabinetPage(current)
@@ -701,22 +745,23 @@ export default function UsersManagementSection({
               setCabinetPage(1)
             }
 
+            if (extra.action !== 'sort') {
+              return
+            }
+
             const resolvedSorter = Array.isArray(sorter) ? sorter[0] : (sorter as SorterResult<ManagedCabinetRowDto>)
             const order = resolvedSorter?.order
-            const field = (resolvedSorter?.field ?? resolvedSorter?.columnKey) as string | undefined
 
-            if (order && field) {
-              const dir: SortDirection = order === 'ascend' ? SORT_DIRECTIONS.ASC : SORT_DIRECTIONS.DESC
-              if (
-                field === CABINET_SORT_FIELDS.CABINET_ID ||
-                field === CABINET_SORT_FIELDS.CABINET_NAME ||
-                field === CABINET_SORT_FIELDS.SELLER_EMAIL ||
-                field === CABINET_SORT_FIELDS.LAST_DATA_UPDATE_AT ||
-                field === CABINET_SORT_FIELDS.LAST_STOCKS_UPDATE_AT
-              ) {
-                setCabinetSortBy(field as CabinetSortField)
-                setCabinetSortDir(dir)
-              }
+            if (!order) {
+              setCabinetSortBy(DEFAULT_CABINET_SORT_BY)
+              setCabinetSortDir(DEFAULT_CABINET_SORT_DIR)
+              return
+            }
+
+            const field = (resolvedSorter?.field ?? resolvedSorter?.columnKey) as string | undefined
+            if (field && isCabinetSortField(field)) {
+              setCabinetSortBy(field)
+              setCabinetSortDir(order === 'ascend' ? SORT_DIRECTIONS.ASC : SORT_DIRECTIONS.DESC)
             }
           }}
           locale={{ emptyText: managedCabinetsLoading ? 'Загрузка…' : 'Нет кабинетов' }}
@@ -749,7 +794,7 @@ export default function UsersManagementSection({
           },
           locale: tablePaginationLocale,
         }}
-        onChange={(pagination: TablePaginationConfig, _filters, sorter) => {
+        onChange={(pagination: TablePaginationConfig, _filters, sorter, extra: TableCurrentDataSource<UserListItem>) => {
           const current = pagination.current ?? 1
           const size = pagination.pageSize ?? pageSize
           setPage(current)
@@ -758,22 +803,23 @@ export default function UsersManagementSection({
             setPage(1)
           }
 
+          if (extra.action !== 'sort') {
+            return
+          }
+
           const resolvedSorter = Array.isArray(sorter) ? sorter[0] : (sorter as SorterResult<UserListItem>)
           const order = resolvedSorter?.order
-          const field = (resolvedSorter?.field ?? resolvedSorter?.columnKey) as string | undefined
 
-          if (order && field) {
-            const dir: SortDirection = order === 'ascend' ? SORT_DIRECTIONS.ASC : SORT_DIRECTIONS.DESC
-            if (
-              field === USER_SORT_FIELDS.EMAIL ||
-              field === USER_SORT_FIELDS.ROLE ||
-              field === USER_SORT_FIELDS.CREATED_AT ||
-              field === USER_SORT_FIELDS.LAST_DATA_UPDATE_AT ||
-              field === USER_SORT_FIELDS.IS_ACTIVE
-            ) {
-              setSortBy(field as UserSortField)
-              setSortDir(dir)
-            }
+          if (!order) {
+            setSortBy(DEFAULT_USER_SORT_BY)
+            setSortDir(DEFAULT_USER_SORT_DIR)
+            return
+          }
+
+          const field = (resolvedSorter?.field ?? resolvedSorter?.columnKey) as string | undefined
+          if (field && isUserSortField(field)) {
+            setSortBy(field)
+            setSortDir(order === 'ascend' ? SORT_DIRECTIONS.ASC : SORT_DIRECTIONS.DESC)
           }
         }}
         expandable={

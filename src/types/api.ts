@@ -66,6 +66,7 @@ export interface UserListItem {
   isTemporaryPassword: boolean
   createdAt: string
   ownerEmail: string | null
+  isAgencyClient?: boolean
   lastDataUpdateAt: string | null
   lastDataUpdateRequestedAt: string | null
 }
@@ -134,6 +135,7 @@ export interface CabinetDto {
 export interface ManagedCabinetRowDto {
   sellerId: number
   sellerEmail: string
+  sellerAgencyClient?: boolean
   cabinet: CabinetDto
 }
 
