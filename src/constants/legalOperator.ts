@@ -10,7 +10,7 @@ export const LEGAL_OPERATOR = {
   email: 'mel.olga.al@yandex.ru',
   phone: '+7 (993) 613-02-59',
   phoneTel: '+79936130259',
-  site: 'https://wb-solution.ru',
+  site: 'https://click-i.ru',
 } as const
 
 /** Дата редакции юридических документов на сайте. */
