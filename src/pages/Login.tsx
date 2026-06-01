@@ -8,6 +8,7 @@ import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api
 import { useAuthStore } from '../store/authStore'
 import ChangePasswordModal from '../components/ChangePasswordModal'
 import type { LoginRequest } from '../types/api'
+import { LEGAL_OPERATOR } from '../constants/legalOperator'
 
 const { Title, Text } = Typography
 
@@ -102,7 +103,7 @@ export default function Login() {
           </Link>
           <div style={{ textAlign: 'center' }}>
             <Title level={2} style={{ marginBottom: 4, color: '#1E293B', margin: 0 }}>
-              WB-Solution
+              {LEGAL_OPERATOR.siteBrandName}
             </Title>
             <Text type="secondary" style={{ color: '#64748B', fontSize: 14 }}>
               Управление рекламными кампаниями Wildberries

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Button, Card, Spin } from 'antd'
 import { subscriptionApi } from '../api/subscription'
+import { LEGAL_OPERATOR } from '../constants/legalOperator'
 
 const accent = '#7C3AED'
 const accentHover = '#6D28D9'
@@ -78,7 +79,7 @@ export default function Landing() {
           >
             S
           </div>
-          <span style={{ fontSize: 19, fontWeight: 600, color: textPrimary, letterSpacing: '-0.02em' }}>WB-Solution</span>
+          <span style={{ fontSize: 19, fontWeight: 600, color: textPrimary, letterSpacing: '-0.02em' }}>{LEGAL_OPERATOR.siteBrandName}</span>
         </div>
         <Button
           type="primary"

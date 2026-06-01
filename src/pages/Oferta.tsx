@@ -3,7 +3,7 @@ import LegalPageLayout from '../components/LegalPageLayout'
 import { LEGAL_OPERATOR, LEGAL_PUBLICATION_DATE, LEGAL_PUBLICATION_DATE_LABEL } from '../constants/legalOperator'
 
 export default function Oferta() {
-  const { site, email, phone, phoneTel } = LEGAL_OPERATOR
+  const { site, siteBrandName, email, phone, phoneTel } = LEGAL_OPERATOR
 
   return (
     <LegalPageLayout title="Публичная оферта">
@@ -14,12 +14,12 @@ export default function Oferta() {
         Настоящий документ является официальным предложением (публичной офертой) {LEGAL_OPERATOR.name}, ИНН{' '}
         {LEGAL_OPERATOR.inn}, ОГРНИП {LEGAL_OPERATOR.ogrnip} (далее — Оператор), адресованным любому
         физическому или юридическому лицу (далее — Пользователь), заключить договор на предоставление доступа
-        к сервису Solution на изложенных ниже условиях.
+        к сервису {siteBrandName} на изложенных ниже условиях.
       </p>
 
       <h3 style={{ marginTop: 24, marginBottom: 8 }}>1. Термины</h3>
       <p>
-        <strong>Сервис Solution</strong> — веб-сервис по адресу {site}, предназначенный для управления
+        <strong>Сервис {siteBrandName}</strong> — веб-сервис по адресу {site}, предназначенный для управления
         рекламными кампаниями и аналитики Wildberries (личный кабинет, отчёты, настройка рекламы и т.п.).
       </p>
       <p>
@@ -32,7 +32,7 @@ export default function Oferta() {
 
       <h3 style={{ marginTop: 24, marginBottom: 8 }}>2. Предмет договора</h3>
       <p>
-        Оператор обязуется предоставить Пользователю доступ к Сервису Solution на условиях выбранного
+        Оператор обязуется предоставить Пользователю доступ к Сервису {siteBrandName} на условиях выбранного
         тарифного плана, а Пользователь обязуется оплатить подписку и соблюдать правила использования Сервиса.
       </p>
 
