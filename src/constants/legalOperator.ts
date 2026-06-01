@@ -8,7 +8,7 @@ export const LEGAL_OPERATOR = {
   address:
     '681003, Россия, Хабаровский край, г. Комсомольск-на-Амуре, Интернациональный проспект, д. 1',
   /** Контакт для поддержки и юридических обращений на сайте. */
-  email: 'support@click-i.ru',
+  email: 'corp@click-i.ru',
   phone: '+7 (993) 613-02-59',
   phoneTel: '+79936130259',
   site: 'https://click-i.ru',
