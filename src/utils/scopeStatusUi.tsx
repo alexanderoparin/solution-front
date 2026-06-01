@@ -15,13 +15,7 @@ export function buildScopeStatusTooltip(
     : 'Не проверялось'
   const lines: string[] = [checkedText]
   if (isScopeWriteReadOnly(s)) {
-    lines.push('Запись: только чтение (запуск и пауза РК недоступны)')
-    if (s.writeBlockedUntil) {
-      lines.push(`Повторная попытка после:\n${formatCabinetAdminDate(s.writeBlockedUntil)}`)
-    }
-    if (s.errorMessage) {
-      lines.push(`«${s.errorMessage}»`)
-    }
+    lines.push('Запись: только чтение (управление РК недоступно)')
   } else if (s.success === false && s.errorMessage) {
     lines.push(`«${s.errorMessage}»`)
   }
