@@ -518,11 +518,9 @@ export default function BidderCampaigns() {
                 message="Управление РК недоступно"
                 description={
                   <>
-                    {controlCapabilities.message}
+                    <div>{controlCapabilities.message}</div>
                     {controlCapabilities.nextAvailableInSeconds > 0 && (
-                      <div style={{ marginTop: 6 }}>
-                        {formatRetryHint(controlCapabilities.nextAvailableInSeconds)}
-                      </div>
+                      <div style={{ marginTop: 6 }}>{formatRetryHint(controlCapabilities.nextAvailableInSeconds)}</div>
                     )}
                   </>
                 }
