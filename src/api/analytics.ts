@@ -22,6 +22,13 @@ export interface CampaignControlEnqueueResponse {
   message?: string | null
 }
 
+export interface PromotionControlCapabilities {
+  canControl: boolean
+  message?: string | null
+  nextAvailableInSeconds: number
+  blockedUntil?: string | null
+}
+
 function buildCampaignControlParams(sellerId?: number, cabinetId?: number): string {
   const searchParams = new URLSearchParams()
   if (sellerId != null) searchParams.set('sellerId', String(sellerId))
@@ -120,6 +127,17 @@ export const analyticsApi = {
   /**
    * Постановка в очередь обновления РК и статистики за период (те же query, что у списка кампаний).
    */
+  getPromotionControlCapabilities: async (
+    sellerId?: number,
+    cabinetId?: number
+  ): Promise<PromotionControlCapabilities> => {
+    const searchParams = buildCampaignControlParams(sellerId, cabinetId)
+    const response = await apiClient.get<PromotionControlCapabilities>(
+      `/advertising/campaigns/control-capabilities${searchParams}`
+    )
+    return response.data
+  },
+
   startCampaign: async (
     advertId: number,
     sellerId?: number,

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
-import { Spin, Input, Select, DatePicker, message } from 'antd'
+import { Spin, Input, Select, DatePicker, message, Alert } from 'antd'
 import { SearchOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -74,18 +74,25 @@ function formatControlError(err: unknown): string {
   const ax = err as {
     response?: { status?: number; data?: { message?: string; error?: string; nextAvailableInSeconds?: number } }
   }
-  if (ax.response?.status === 429) {
+  if (ax.response?.status === 429 || ax.response?.status === 403) {
     const data = ax.response.data
     if (data?.message) return data.message
     const sec = data?.nextAvailableInSeconds
-    if (sec != null) {
+    if (sec != null && sec > 0) {
       if (sec >= 60) {
-        return `Превышен лимит запросов к WB API. Повторите примерно через ${Math.ceil(sec / 60)} мин.`
+        return `Повторите примерно через ${Math.ceil(sec / 60)} мин.`
       }
-      return `Превышен лимит запросов к WB API. Повторите через ${sec} сек.`
+      return `Повторите через ${sec} сек.`
     }
   }
   return ax.response?.data?.error || ax.response?.data?.message || 'Не удалось выполнить действие'
+}
+
+function formatRetryHint(seconds: number): string {
+  if (seconds >= 60) {
+    return `Повторная попытка примерно через ${Math.ceil(seconds / 60)} мин.`
+  }
+  return `Повторная попытка через ${seconds} сек.`
 }
 
 export default function BidderCampaigns() {
@@ -131,6 +138,30 @@ export default function BidderCampaigns() {
   const dateToStr = dateRange[1].format('YYYY-MM-DD')
 
   const queryKey = ['bidder-campaigns', isManagerOrAdmin ? selectedSellerId : null, selectedCabinetId, dateFromStr, dateToStr] as const
+  const capabilitiesQueryKey = [
+    'bidder-control-capabilities',
+    isManagerOrAdmin ? selectedSellerId : null,
+    selectedCabinetId,
+  ] as const
+
+  const { data: controlCapabilities, refetch: refetchCapabilities } = useQuery({
+    queryKey: capabilitiesQueryKey,
+    queryFn: () =>
+      analyticsApi.getPromotionControlCapabilities(
+        isManagerOrAdmin ? selectedSellerId ?? undefined : undefined,
+        selectedCabinetId ?? undefined
+      ),
+    enabled: selectedCabinetId != null,
+    refetchInterval: (query) => {
+      const caps = query.state.data
+      if (caps != null && !caps.canControl && caps.nextAvailableInSeconds > 0) {
+        return 30_000
+      }
+      return false
+    },
+  })
+
+  const controlBlocked = controlCapabilities != null && !controlCapabilities.canControl
 
   const { data: campaignsRaw = [], isLoading: campaignsLoading, isError: campaignsError, error: campaignsErr } = useQuery({
     queryKey,
@@ -164,11 +195,15 @@ export default function BidderCampaigns() {
         message.success(data.message ?? 'Запуск поставлен в очередь')
         setPollUntil(Date.now() + 30_000)
         void queryClient.invalidateQueries({ queryKey })
+        void refetchCapabilities()
       } else {
         message.info(data.message ?? 'Запуск уже в очереди')
       }
     },
-    onError: (err) => message.error(formatControlError(err)),
+    onError: (err) => {
+      message.error(formatControlError(err))
+      void refetchCapabilities()
+    },
   })
 
   const pauseMutation = useMutation({
@@ -185,11 +220,15 @@ export default function BidderCampaigns() {
         message.success(data.message ?? 'Пауза поставлена в очередь')
         setPollUntil(Date.now() + 30_000)
         void queryClient.invalidateQueries({ queryKey })
+        void refetchCapabilities()
       } else {
         message.info(data.message ?? 'Пауза уже в очереди')
       }
     },
-    onError: (err) => message.error(formatControlError(err)),
+    onError: (err) => {
+      message.error(formatControlError(err))
+      void refetchCapabilities()
+    },
   })
 
   const backendErrorMessage =
@@ -334,6 +373,7 @@ export default function BidderCampaigns() {
     const active = isActive(c)
     const rowLoading = loadingAdvertId === c.id
     const actionBusy = rowLoading && (pauseMutation.isPending || startMutation.isPending)
+    const actionsDisabled = controlBlocked || actionBusy
 
     const badgeStyle: CSSProperties = {
       ...statusChipStyle(STATUS_BADGE_WIDTH),
@@ -357,18 +397,20 @@ export default function BidderCampaigns() {
           {canPause(c) ? (
             <button
               type="button"
-              disabled={actionBusy}
+              disabled={actionsDisabled}
+              title={controlBlocked ? controlCapabilities?.message ?? undefined : undefined}
               onClick={() => pauseMutation.mutate(c.id)}
-              style={actionButtonStyle(colors.warning, actionBusy)}
+              style={actionButtonStyle(colors.warning, actionsDisabled)}
             >
               II Пауза
             </button>
           ) : canStart(c) ? (
             <button
               type="button"
-              disabled={actionBusy}
+              disabled={actionsDisabled}
+              title={controlBlocked ? controlCapabilities?.message ?? undefined : undefined}
               onClick={() => startMutation.mutate(c.id)}
-              style={actionButtonStyle(colors.primary, actionBusy)}
+              style={actionButtonStyle(colors.primary, actionsDisabled)}
             >
               ▷ Запуск
             </button>
@@ -467,6 +509,25 @@ export default function BidderCampaigns() {
                 style={{ minWidth: 160, borderRadius: borderRadius.sm }}
               />
             </div>
+
+            {controlBlocked && controlCapabilities?.message && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: spacing.md }}
+                message="Управление РК недоступно"
+                description={
+                  <>
+                    {controlCapabilities.message}
+                    {controlCapabilities.nextAvailableInSeconds > 0 && (
+                      <div style={{ marginTop: 6 }}>
+                        {formatRetryHint(controlCapabilities.nextAvailableInSeconds)}
+                      </div>
+                    )}
+                  </>
+                }
+              />
+            )}
 
             {campaignsLoading ? (
               <div style={{ textAlign: 'center', padding: spacing.xxl }}>
