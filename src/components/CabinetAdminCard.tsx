@@ -1,11 +1,6 @@
 import { Button, Input, Select, Space, Tag, Tooltip, Typography, message } from 'antd'
-import {
-  EditOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  SyncOutlined,
-  MinusOutlined,
-} from '@ant-design/icons'
+import { CheckCircleOutlined, EditOutlined, SyncOutlined } from '@ant-design/icons'
+import { buildScopeStatusTooltip, ScopeStatusIcon } from '../utils/scopeStatusUi'
 import type { CabinetDto } from '../types/api'
 import { useCabinetAdminPanel } from '../hooks/useCabinetAdminPanel'
 import {
@@ -281,37 +276,30 @@ export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetD
             Доступ к категориям WB API
           </Text>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
-            {cab.scopeStatuses.map((s) => {
-              const checkedText = s.lastCheckedAt
-                ? `Последняя проверка:\n${formatCabinetAdminDate(s.lastCheckedAt)}`
-                : 'Не проверялось'
-              const tooltipTitle =
-                s.success === false && s.errorMessage
-                  ? `${checkedText}\nПояснение:\n«${s.errorMessage}»`
-                  : checkedText
-              return (
-                <Tooltip
-                  key={s.category}
-                  title={<span style={{ whiteSpace: 'pre-line' }}>{tooltipTitle}</span>}
-                  overlayInnerStyle={{ maxWidth: 520 }}
-                >
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      fontSize: 12,
-                      cursor: 'default',
-                    }}
-                  >
-                    {s.success === true && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                    {s.success === false && <CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                    {s.success !== true && s.success !== false && <MinusOutlined style={{ color: '#8c8c8c' }} />}
-                    <span>{s.categoryDisplayName}</span>
+            {cab.scopeStatuses.map((s) => (
+              <Tooltip
+                key={s.category}
+                title={
+                  <span style={{ whiteSpace: 'pre-line' }}>
+                    {buildScopeStatusTooltip(s, 'Последняя проверка')}
                   </span>
-                </Tooltip>
-              )
-            })}
+                }
+                overlayInnerStyle={{ maxWidth: 520 }}
+              >
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    fontSize: 12,
+                    cursor: 'default',
+                  }}
+                >
+                  <ScopeStatusIcon s={s} fontSize={12} />
+                  <span>{s.categoryDisplayName}</span>
+                </span>
+              </Tooltip>
+            ))}
           </div>
         </div>
       )}

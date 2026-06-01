@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal, Checkbox, Segmented, Select } from 'antd'
-import { UserOutlined, KeyOutlined, LockOutlined, EditOutlined, CheckCircleOutlined, CloseCircleOutlined, MinusOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined, CreditCardOutlined } from '@ant-design/icons'
+import { UserOutlined, KeyOutlined, LockOutlined, EditOutlined, CheckCircleOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined, CreditCardOutlined } from '@ant-design/icons'
+import { buildScopeStatusTooltip, ScopeStatusIcon } from '../utils/scopeStatusUi'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
@@ -1046,39 +1047,30 @@ export default function Profile() {
                                   Доступ к категориям WB API
                                 </Text>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px' }}>
-                                  {cab.scopeStatuses.map((s) => {
-                                    const checkedText = s.lastCheckedAt
-                                      ? `Последняя проверка:\n${formatDate(s.lastCheckedAt)}`
-                                      : 'Не проверялось'
-                                    const tooltipTitle =
-                                      s.success === false && s.errorMessage
-                                        ? `${checkedText}\nПояснение:\n«${s.errorMessage}»`
-                                        : checkedText
-                                    return (
-                                      <Tooltip
-                                        key={s.category}
-                                        title={<span style={{ whiteSpace: 'pre-line' }}>{tooltipTitle}</span>}
-                                        overlayInnerStyle={{ maxWidth: 520 }}
-                                      >
-                                        <span
-                                          style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            fontSize: '13px',
-                                            cursor: 'default',
-                                          }}
-                                        >
-                                          {s.success === true && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
-                                          {s.success === false && <CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                                          {s.success !== true && s.success !== false && (
-                                            <MinusOutlined style={{ color: '#8c8c8c' }} />
-                                          )}
-                                          <span>{s.categoryDisplayName}</span>
+                                  {cab.scopeStatuses.map((s) => (
+                                    <Tooltip
+                                      key={s.category}
+                                      title={
+                                        <span style={{ whiteSpace: 'pre-line' }}>
+                                          {buildScopeStatusTooltip(s, 'Последняя проверка')}
                                         </span>
-                                      </Tooltip>
-                                    )
-                                  })}
+                                      }
+                                      overlayInnerStyle={{ maxWidth: 520 }}
+                                    >
+                                      <span
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '6px',
+                                          fontSize: '13px',
+                                          cursor: 'default',
+                                        }}
+                                      >
+                                        <ScopeStatusIcon s={s} fontSize={14} />
+                                        <span>{s.categoryDisplayName}</span>
+                                      </span>
+                                    </Tooltip>
+                                  ))}
                                 </div>
                               </div>
                             )}

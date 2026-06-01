@@ -111,6 +111,8 @@ export interface ScopeStatusDto {
   lastCheckedAt: string | null
   success: boolean | null
   errorMessage: string | null
+  writeBlockedUntil?: string | null
+  writeReadOnly?: boolean
 }
 
 export interface CabinetDto {
