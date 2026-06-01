@@ -13,11 +13,10 @@ const linkStyle: React.CSSProperties = {
   transition: 'color 0.2s',
 }
 
+/** Публичная оферта и политика возврата временно скрыты из футера до обновления текстов. */
 const FOOTER_DOCUMENT_LINKS = [
   { to: '/privacy', label: 'Политика конфиденциальности' },
   { to: '/user-agreement', label: 'Пользовательское соглашение' },
-  { to: '/refund', label: 'Политика возврата' },
-  { to: '/oferta', label: 'Публичная оферта' },
 ] as const
 
 export default function Footer() {
@@ -66,14 +65,7 @@ export default function Footer() {
           >
             Документы
           </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, minmax(140px, max-content))',
-              columnGap: 32,
-              rowGap: 8,
-            }}
-          >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {FOOTER_DOCUMENT_LINKS.map(({ to, label }) => (
               <Link key={to} to={to} className="footer-link" style={linkStyle}>
                 {label}

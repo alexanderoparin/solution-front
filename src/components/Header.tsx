@@ -185,6 +185,11 @@ export default function Header({
                 label: 'Рекламные компании',
                 onClick: () => navigate('/advertising/campaigns'),
               },
+              {
+                key: 'bidder',
+                label: 'Управление РК',
+                onClick: () => navigate('/advertising/bidder'),
+              },
             ],
           }}
           trigger={['click']}

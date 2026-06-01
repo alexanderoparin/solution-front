@@ -10,6 +10,7 @@ import AnalyticsArticle from './pages/AnalyticsArticle'
 import AnalyticsProducts from './pages/AnalyticsProducts'
 import AdvertisingCampaigns from './pages/AdvertisingCampaigns'
 import AdvertisingCampaignDetail from './pages/AdvertisingCampaignDetail'
+import BidderCampaigns from './pages/BidderCampaigns'
 import Profile from './pages/Profile'
 import AdminPlansAndSubscriptions from './pages/AdminPlansAndSubscriptions'
 import AdminWbEvents from './pages/AdminWbEvents'
@@ -65,6 +66,10 @@ function App() {
         <Route
           path="/advertising/campaigns"
           element={token ? <AccessGuard><AdvertisingCampaigns /></AccessGuard> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/advertising/bidder"
+          element={token ? <AccessGuard><BidderCampaigns /></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/advertising/campaigns/:id"

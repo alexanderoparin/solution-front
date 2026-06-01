@@ -16,6 +16,20 @@ import type {
   NormQueryClustersResponse,
 } from '../types/analytics'
 
+export interface CampaignControlEnqueueResponse {
+  enqueued: boolean
+  eventId?: number | null
+  message?: string | null
+}
+
+function buildCampaignControlParams(sellerId?: number, cabinetId?: number): string {
+  const searchParams = new URLSearchParams()
+  if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+  if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+  const query = searchParams.toString()
+  return query ? `?${query}` : ''
+}
+
 export interface SummaryRequest {
   periods: Period[]
   excludedNmIds?: number[]
@@ -106,6 +120,30 @@ export const analyticsApi = {
   /**
    * Постановка в очередь обновления РК и статистики за период (те же query, что у списка кампаний).
    */
+  startCampaign: async (
+    advertId: number,
+    sellerId?: number,
+    cabinetId?: number
+  ): Promise<CampaignControlEnqueueResponse> => {
+    const searchParams = buildCampaignControlParams(sellerId, cabinetId)
+    const response = await apiClient.post<CampaignControlEnqueueResponse>(
+      `/advertising/campaigns/${advertId}/start${searchParams}`
+    )
+    return response.data
+  },
+
+  pauseCampaign: async (
+    advertId: number,
+    sellerId?: number,
+    cabinetId?: number
+  ): Promise<CampaignControlEnqueueResponse> => {
+    const searchParams = buildCampaignControlParams(sellerId, cabinetId)
+    const response = await apiClient.post<CampaignControlEnqueueResponse>(
+      `/advertising/campaigns/${advertId}/pause${searchParams}`
+    )
+    return response.data
+  },
+
   enqueuePromotionSync: async (
     sellerId?: number,
     cabinetId?: number,

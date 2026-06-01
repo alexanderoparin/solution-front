@@ -30,6 +30,8 @@ export default function Breadcrumbs() {
       { label: 'Товары', path: '/analytics/products' },
       { label: params.nmId }
     )
+  } else if (pathname === '/advertising/bidder') {
+    items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Управление РК' })
   } else if (pathname === '/advertising/campaigns') {
     items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Рекламные компании' })
   } else if (pathname.match(/^\/advertising\/campaigns\/\d+$/) && params.id) {
