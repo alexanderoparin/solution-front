@@ -7,7 +7,8 @@ export const LEGAL_OPERATOR = {
   ogrnipRegistered: '4 марта 2024 г.',
   address:
     '681003, Россия, Хабаровский край, г. Комсомольск-на-Амуре, Интернациональный проспект, д. 1',
-  email: 'mel.olga.al@yandex.ru',
+  /** Контакт для поддержки и юридических обращений на сайте. */
+  email: 'support@click-i.ru',
   phone: '+7 (993) 613-02-59',
   phoneTel: '+79936130259',
   site: 'https://click-i.ru',
