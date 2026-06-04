@@ -37,7 +37,7 @@ export default function Profile() {
   const clearAuth = useAuthStore((state) => state.clearAuth)
   const [passwordForm] = Form.useForm()
   const [cabinetCreateForm] = Form.useForm<{ name?: string; apiKey?: string }>()
-  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [editingCabinetId, setEditingCabinetId] = useState<number | null>(null)
   const [editingCabinetName, setEditingCabinetName] = useState('')
   const [addCabinetModalOpen, setAddCabinetModalOpen] = useState(false)
@@ -98,7 +98,7 @@ export default function Profile() {
     onSuccess: () => {
       message.success('Пароль успешно изменен')
       passwordForm.resetFields()
-      setShowPasswordForm(false)
+      setPasswordModalOpen(false)
     },
     onError: (error: any) => {
       message.error(error.response?.data?.message || 'Ошибка смены пароля')
@@ -255,6 +255,16 @@ export default function Profile() {
       currentPassword: values.currentPassword,
       newPassword: values.newPassword,
     })
+  }
+
+  const openPasswordModal = () => {
+    passwordForm.resetFields()
+    setPasswordModalOpen(true)
+  }
+
+  const closePasswordModal = () => {
+    setPasswordModalOpen(false)
+    passwordForm.resetFields()
   }
 
   const formatDate = (dateString: string | null) => {
@@ -550,29 +560,24 @@ export default function Profile() {
                       icon={<CreditCardOutlined />}
                       onClick={() => navigate('/admin/plans')}
                       size="large"
-                      style={{
-                        ...profileAdminActionGridButtonStyle,
-                        gridColumn: showPasswordForm ? '1 / -1' : undefined,
-                      }}
+                      style={profileAdminActionGridButtonStyle}
                     >
                       Планы и подписки
                     </Button>
-                    {!showPasswordForm ? (
-                      <Button
-                        block
-                        type="primary"
-                        icon={<LockOutlined />}
-                        onClick={() => setShowPasswordForm(true)}
-                        size="large"
-                        style={{
-                          ...profileAdminActionGridButtonStyle,
-                          backgroundColor: '#7C3AED',
-                          borderColor: '#7C3AED',
-                        }}
-                      >
-                        Сменить пароль
-                      </Button>
-                    ) : null}
+                    <Button
+                      block
+                      type="primary"
+                      icon={<LockOutlined />}
+                      onClick={openPasswordModal}
+                      size="large"
+                      style={{
+                        ...profileAdminActionGridButtonStyle,
+                        backgroundColor: '#7C3AED',
+                        borderColor: '#7C3AED',
+                      }}
+                    >
+                      Сменить пароль
+                    </Button>
                     <Button
                       block
                       icon={<CreditCardOutlined />}
@@ -604,21 +609,19 @@ export default function Profile() {
                 )}
                 {profile.role !== 'ADMIN' && (
                   <Space size={12} wrap style={{ justifyContent: 'flex-end', display: 'flex', flexWrap: 'wrap' }}>
-                    {!showPasswordForm ? (
-                      <Button
-                        type="primary"
-                        icon={<LockOutlined />}
-                        onClick={() => setShowPasswordForm(true)}
-                        size="large"
-                        style={{
-                          backgroundColor: '#7C3AED',
-                          borderColor: '#7C3AED',
-                          fontSize: 14,
-                        }}
-                      >
-                        Сменить пароль
-                      </Button>
-                    ) : null}
+                    <Button
+                      type="primary"
+                      icon={<LockOutlined />}
+                      onClick={openPasswordModal}
+                      size="large"
+                      style={{
+                        backgroundColor: '#7C3AED',
+                        borderColor: '#7C3AED',
+                        fontSize: 14,
+                      }}
+                    >
+                      Сменить пароль
+                    </Button>
                     <Button type="primary" danger icon={<LogoutOutlined />} onClick={handleLogout} size="large" style={{ fontSize: 14 }}>
                       Выйти из системы
                     </Button>
@@ -1145,103 +1148,83 @@ export default function Profile() {
           </Card>
         )}
 
-        {/* Смена пароля */}
-        {showPasswordForm && (
-          <Card 
-            title={
-              <Space>
-                <LockOutlined />
-                <span>Смена пароля</span>
-              </Space>
-            }
-          >
-            <Form
-              form={passwordForm}
-              onFinish={handlePasswordSubmit}
-              layout="vertical"
-              autoComplete="off"
+        <Modal
+          title="Смена пароля"
+          open={passwordModalOpen}
+          destroyOnClose
+          onCancel={closePasswordModal}
+          footer={[
+            <Button key="cancel" onClick={closePasswordModal}>
+              Отмена
+            </Button>,
+            <Button
+              key="submit"
+              type="primary"
+              loading={changePasswordMutation.isPending}
+              style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
+              onClick={() => passwordForm.submit()}
             >
-              <Form.Item
-                label="Текущий пароль"
-                name="currentPassword"
-                rules={[{ required: true, message: 'Введите текущий пароль' }]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Введите текущий пароль"
-                  size="large"
-                  autoComplete="current-password"
-                />
-              </Form.Item>
+              Изменить пароль
+            </Button>,
+          ]}
+        >
+          <Form
+            form={passwordForm}
+            onFinish={handlePasswordSubmit}
+            layout="vertical"
+            autoComplete="off"
+          >
+            <Form.Item
+              label="Текущий пароль"
+              name="currentPassword"
+              rules={[{ required: true, message: 'Введите текущий пароль' }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Введите текущий пароль"
+                autoComplete="current-password"
+              />
+            </Form.Item>
 
-              <Form.Item
-                label="Новый пароль"
-                name="newPassword"
-                rules={[
-                  { required: true, message: 'Введите новый пароль' },
-                  { min: 6, message: 'Пароль должен содержать минимум 6 символов' },
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Введите новый пароль"
-                  size="large"
-                  autoComplete="new-password"
-                />
-              </Form.Item>
+            <Form.Item
+              label="Новый пароль"
+              name="newPassword"
+              rules={[
+                { required: true, message: 'Введите новый пароль' },
+                { min: 6, message: 'Пароль должен содержать минимум 6 символов' },
+              ]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Введите новый пароль"
+                autoComplete="new-password"
+              />
+            </Form.Item>
 
-              <Form.Item
-                label="Подтвердите новый пароль"
-                name="confirmPassword"
-                dependencies={['newPassword']}
-                rules={[
-                  { required: true, message: 'Подтвердите новый пароль' },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('newPassword') === value) {
-                        return Promise.resolve()
-                      }
-                      return Promise.reject(new Error('Пароли не совпадают'))
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Подтвердите новый пароль"
-                  size="large"
-                  autoComplete="new-password"
-                />
-              </Form.Item>
-
-              <Form.Item style={{ marginBottom: 0 }}>
-                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                  <Button
-                    onClick={() => {
-                      setShowPasswordForm(false)
-                      passwordForm.resetFields()
-                    }}
-                    size="large"
-                  >
-                    Отмена
-                  </Button>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={changePasswordMutation.isPending}
-                    size="large"
-                    style={{
-                      backgroundColor: '#7C3AED',
-                      borderColor: '#7C3AED',
-                    }}
-                  >
-                    Изменить пароль
-                  </Button>
-                </Space>
-              </Form.Item>
-            </Form>
-          </Card>
-        )}
+            <Form.Item
+              label="Подтвердите новый пароль"
+              name="confirmPassword"
+              dependencies={['newPassword']}
+              rules={[
+                { required: true, message: 'Подтвердите новый пароль' },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('newPassword') === value) {
+                      return Promise.resolve()
+                    }
+                    return Promise.reject(new Error('Пароли не совпадают'))
+                  },
+                }),
+              ]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Подтвердите новый пароль"
+                autoComplete="new-password"
+              />
+            </Form.Item>
+          </Form>
+        </Modal>
 
       </div>
     </>
