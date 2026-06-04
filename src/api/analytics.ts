@@ -364,13 +364,16 @@ export const analyticsApi = {
     campaignDateFrom?: string,
     campaignDateTo?: string,
     dailyDataDateFrom?: string,
-    dailyDataDateTo?: string
+    dailyDataDateTo?: string,
+    /** advert_id РК — рекламные метрики в dailyData только по этой кампании */
+    dailyDataCampaignAdvertId?: number
   ): Promise<ArticleResponse> => {
     const body: Record<string, unknown> = { periods, sellerId, cabinetId }
     if (campaignDateFrom != null) body.campaignDateFrom = campaignDateFrom
     if (campaignDateTo != null) body.campaignDateTo = campaignDateTo
     if (dailyDataDateFrom != null) body.dailyDataDateFrom = dailyDataDateFrom
     if (dailyDataDateTo != null) body.dailyDataDateTo = dailyDataDateTo
+    if (dailyDataCampaignAdvertId != null) body.dailyDataCampaignAdvertId = dailyDataCampaignAdvertId
     const response = await apiClient.post<ArticleResponse>(`/analytics/article/${nmId}`, body)
     return response.data
   },

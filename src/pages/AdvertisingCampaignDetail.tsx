@@ -357,7 +357,7 @@ export default function AdvertisingCampaignDetail() {
   const dailyDataTo = dateRange[1].format('YYYY-MM-DD')
 
   const { data: funnelArticle, isLoading: funnelArticleLoading } = useQuery({
-    queryKey: ['article', selectedFunnelArticleNmId, cabinetIdForRequest, dailyDataFrom, dailyDataTo],
+    queryKey: ['article', selectedFunnelArticleNmId, cabinetIdForRequest, dailyDataFrom, dailyDataTo, campaignId],
     queryFn: () =>
       analyticsApi.getArticle(
         selectedFunnelArticleNmId!,
@@ -367,7 +367,8 @@ export default function AdvertisingCampaignDetail() {
         undefined,
         undefined,
         dailyDataFrom,
-        dailyDataTo
+        dailyDataTo,
+        campaignId
       ),
     enabled: selectedFunnelArticleNmId != null && selectedFunnelArticleNmId !== ALL_ARTICLES_NM_ID && cabinetIdForRequest != null,
   })
@@ -375,7 +376,7 @@ export default function AdvertisingCampaignDetail() {
   const articleNmIds = useMemo(() => articles.map((a) => a.nmId), [articles])
   const articleQueries = useQueries({
     queries: articleNmIds.map((nmId) => ({
-      queryKey: ['article-combo', nmId, cabinetIdForRequest, dailyDataFrom, dailyDataTo],
+      queryKey: ['article-combo', nmId, cabinetIdForRequest, dailyDataFrom, dailyDataTo, campaignId],
       queryFn: () =>
         analyticsApi.getArticle(
           nmId,
@@ -385,7 +386,8 @@ export default function AdvertisingCampaignDetail() {
           undefined,
           undefined,
           dailyDataFrom,
-          dailyDataTo
+          dailyDataTo,
+          campaignId
         ),
       enabled: cabinetIdForRequest != null && articleNmIds.length > 0,
     })),
@@ -420,7 +422,7 @@ export default function AdvertisingCampaignDetail() {
 
   const articleCompareQueries = useQueries({
     queries: articleNmIds.map((nmId) => ({
-      queryKey: ['article-combo-compare', nmId, cabinetIdForRequest, compareDailyRange.from, compareDailyRange.to],
+      queryKey: ['article-combo-compare', nmId, cabinetIdForRequest, compareDailyRange.from, compareDailyRange.to, campaignId],
       queryFn: () =>
         analyticsApi.getArticle(
           nmId,
@@ -430,7 +432,8 @@ export default function AdvertisingCampaignDetail() {
           undefined,
           undefined,
           compareDailyRange.from,
-          compareDailyRange.to
+          compareDailyRange.to,
+          campaignId
         ),
       enabled:
         cabinetIdForRequest != null &&
@@ -747,6 +750,37 @@ export default function AdvertisingCampaignDetail() {
   const funnelDailyData =
     selectedFunnelArticleNmId === ALL_ARTICLES_NM_ID ? aggregatedFunnelDailyData : funnelArticle?.dailyData
 
+  /** Итоги за выбранный период: суммы и пересчёт CPC/CTR/CPO/ДРР от итогов (как в списке РК). */
+  const funnelPeriodTotal = useMemo(
+    () => aggregatePeriodData(funnelDailyData, dateRange[0], dateRange[1]),
+    [funnelDailyData, dateRange, aggregatePeriodData]
+  )
+
+  const getPeriodTotalValue = useCallback((metricKey: string): number | null => {
+    if (funnelPeriodTotal) {
+      const map: Record<string, number | null | undefined> = {
+        transitions: funnelPeriodTotal.transitions,
+        cart: funnelPeriodTotal.cart,
+        orders: funnelPeriodTotal.orders,
+        orders_amount: funnelPeriodTotal.ordersAmount,
+        cart_conversion: funnelPeriodTotal.cartConversion,
+        order_conversion: funnelPeriodTotal.orderConversion,
+        views: funnelPeriodTotal.views,
+        clicks: funnelPeriodTotal.clicks,
+        costs: funnelPeriodTotal.costs,
+        cpc: funnelPeriodTotal.cpc,
+        ctr: funnelPeriodTotal.ctr,
+        cpo: funnelPeriodTotal.cpo,
+        drr: funnelPeriodTotal.drr,
+      }
+      if (metricKey in map) {
+        const v = map[metricKey]
+        return v != null ? v : null
+      }
+    }
+    return getMetricTotalForPeriod(funnelDailyData, rangeDates, metricKey)
+  }, [funnelPeriodTotal, funnelDailyData, rangeDates, getMetricTotalForPeriod])
+
   /** Метрики, у которых показываем число изменения (остальные — только стрелка) */
   const METRICS_WITH_CHANGE_NUMBER = ['transitions', 'cart', 'orders', 'views', 'clicks']
 
@@ -898,7 +932,7 @@ export default function AdvertisingCampaignDetail() {
     }
     const totalRow: (string | number)[] = ['Весь период']
     for (const metricKey of metricKeys) {
-      const v = getMetricTotalForPeriod(funnelDailyData, rangeDates, metricKey)
+      const v = getPeriodTotalValue(metricKey)
       const isPercent = metricKey.includes('conversion') || metricKey === 'ctr' || metricKey === 'drr' || metricKey === 'seller_discount' || metricKey === 'wb_club_discount' || metricKey === 'spp_percent'
       const isCurrency = metricKey === 'orders_amount' || metricKey === 'costs' || metricKey === 'cpc' || metricKey === 'cpo' || metricKey.startsWith('price_') || metricKey === 'spp_amount'
       totalRow.push(v === null ? '' : isPercent ? formatPercent(v) : isCurrency ? formatCurrency(v) : formatValue(v))
@@ -910,7 +944,7 @@ export default function AdvertisingCampaignDetail() {
     const fileSuffix = selectedFunnelArticleNmId === ALL_ARTICLES_NM_ID ? 'all' : String(selectedFunnelArticleNmId)
     XLSX.writeFile(wb, `combo_${fileSuffix}_воронки_${dateRange[0].format('YYYY-MM-DD')}_${dateRange[1].format('YYYY-MM-DD')}.xlsx`)
     message.success('Файл выгружен')
-  }, [funnelDailyData, selectedFunnelArticleNmId, rangeDatesDesc, rangeDates, dateRange, getMetricValueForDate, getMetricTotalForPeriod, formatValue, formatPercent, formatCurrency])
+  }, [funnelDailyData, selectedFunnelArticleNmId, rangeDatesDesc, dateRange, getMetricValueForDate, getPeriodTotalValue, formatValue, formatPercent, formatCurrency])
 
   const isActive = campaign?.status === 9
   const statusLabel = campaign ? (isActive ? 'активна' : 'приостановлена') : ''
@@ -1327,7 +1361,7 @@ export default function AdvertisingCampaignDetail() {
                             Весь период
                           </td>
                           {metricsWithFunnel.map(({ m }, index) => {
-                            const v = getMetricTotalForPeriod(funnelDailyData, rangeDates, m.key)
+                            const v = getPeriodTotalValue(m.key)
                             const isPercent = m.key.includes('conversion') || m.key === 'ctr' || m.key === 'drr' || m.key === 'seller_discount' || m.key === 'wb_club_discount' || m.key === 'spp_percent'
                             const isCurrency = m.key === 'orders_amount' || m.key === 'costs' || m.key === 'cpc' || m.key === 'cpo' || m.key.startsWith('price_') || m.key === 'spp_amount'
                             return (
