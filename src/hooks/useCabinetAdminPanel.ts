@@ -49,8 +49,10 @@ export function useCabinetAdminPanel(sellerId: number) {
       setEditingKey(false)
       setEditKeyValue('')
     },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'Ошибка обновления ключа')
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { error?: string; message?: string } } }
+      const d = ax.response?.data
+      message.error(d?.error ?? d?.message ?? 'Ошибка обновления ключа')
     },
   })
 

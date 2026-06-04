@@ -1062,6 +1062,12 @@ export default function AdvertisingCampaignDetail() {
                 <span style={{ ...typography.body, color: colors.textSecondary }}>
                   {campaign.articlesCount} шт.
                 </span>
+                <Link
+                  to={`/advertising/campaigns/${campaign.id}/manage`}
+                  style={{ marginLeft: 'auto', color: colors.primary, fontSize: 13, textDecoration: 'none' }}
+                >
+                  Управление →
+                </Link>
               </div>
 
               {/* Перечень товаров комбо: в строку, фото + название и артикул в две строки по высоте фото */}

@@ -310,3 +310,50 @@ export function resolveArticleBundleThumbUrl(photo: {
   const hi = photo.photoC246x328?.trim()
   return hi || null
 }
+
+/** Слот расписания РК (страница управления). */
+export interface CampaignScheduleSlot {
+  id: number
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  budgetRub: number
+  repeatGroupId?: string | null
+  repeatMode?: string | null
+}
+
+export interface CampaignAutoBudgetSettings {
+  enabled: boolean
+  topUpAmount: number | null
+  sourceType: number | null
+  thresholdRub: number | null
+  maxTopUpsPerDay: number | null
+  locked: boolean
+}
+
+export interface CampaignChangeLogEntry {
+  createdAt: string
+  userDisplay: string
+  message: string
+}
+
+export interface CampaignManageData {
+  id: number
+  name: string
+  status: number | null
+  statusName: string | null
+  articlesCount: number
+  articles: ArticleSummary[]
+  operationalStatus: 'RUNNING' | 'STOPPED'
+  autoBudget: CampaignAutoBudgetSettings
+  slots: CampaignScheduleSlot[]
+  recentChangeLog: CampaignChangeLogEntry[]
+}
+
+export interface BalanceSourceOption {
+  type: number
+  label: string
+  availableRub: number | null
+}
+
+export type CampaignSlotRepeatMode = 'DAILY' | 'WEEKENDS' | 'WEEKDAYS'

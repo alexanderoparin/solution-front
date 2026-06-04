@@ -161,8 +161,8 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: ['userProfile'] })
       message.success('Кабинет обновлён')
     },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'Ошибка обновления кабинета')
+    onError: (err: unknown) => {
+      message.error(formatAddCabinetError(err) || 'Ошибка обновления кабинета')
     },
   })
 

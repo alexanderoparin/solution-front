@@ -622,12 +622,12 @@ export default function BidderCampaigns() {
                             {formatCampaignDateTime(c.updatedAt)}
                           </td>
                           <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT_PAGE_SMALL }}>
-                            <Link to={`/advertising/campaigns/${c.id}`} style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}>
+                            <Link to={`/advertising/campaigns/${c.id}/manage`} style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}>
                               {c.name}
                             </Link>
                           </td>
                           <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT_PAGE_SMALL, color: colors.textSecondary }}>
-                            <Link to={`/advertising/campaigns/${c.id}`} style={{ color: colors.textSecondary, textDecoration: 'none' }}>
+                            <Link to={`/advertising/campaigns/${c.id}/manage`} style={{ color: colors.textSecondary, textDecoration: 'none' }}>
                               {c.id}
                             </Link>
                           </td>

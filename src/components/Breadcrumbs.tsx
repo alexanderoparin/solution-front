@@ -34,6 +34,12 @@ export default function Breadcrumbs() {
     items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Управление РК' })
   } else if (pathname === '/advertising/campaigns') {
     items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Рекламные компании' })
+  } else if (pathname.match(/^\/advertising\/campaigns\/\d+\/manage$/) && params.id) {
+    items.push(
+      { label: 'Реклама', path: '/advertising/campaigns' },
+      { label: 'Управление РК', path: '/advertising/bidder' },
+      { label: params.id }
+    )
   } else if (pathname.match(/^\/advertising\/campaigns\/\d+$/) && params.id) {
     items.push(
       { label: 'Реклама', path: '/advertising/campaigns' },
