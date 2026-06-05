@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { CampaignScheduleSlot } from '../../types/analytics'
 import {
   DAY_LABELS,
@@ -13,6 +13,14 @@ const HOUR_HEIGHT = 48
 const HALF_HEIGHT = HOUR_HEIGHT / 2
 const HOURS = 24
 const GRID_HEIGHT = HOURS * HOUR_HEIGHT
+/** Видимая высота календаря (~8 ч); полные сутки прокручиваются внутри. */
+const CALENDAR_VIEWPORT_HEIGHT = 400
+const TIME_COLUMN_WIDTH = 36
+const DAY_MIN_WIDTH = 56
+const CALENDAR_MIN_WIDTH = TIME_COLUMN_WIDTH + DAY_MIN_WIDTH * 7
+const DAY_HEADER_HEIGHT = 26
+/** При открытии — прокрутка к 08:00. */
+const INITIAL_SCROLL_TOP = 8 * HOUR_HEIGHT
 
 export interface SlotCreateRange {
   dayOfWeek: number
@@ -42,15 +50,16 @@ interface DragState {
 function slotStyle(top: number, height: number): CSSProperties {
   return {
     position: 'absolute',
-    left: 2,
-    right: 2,
+    left: 1,
+    right: 1,
     top,
     height: Math.max(HALF_HEIGHT, height),
     backgroundColor: 'rgba(124, 58, 237, 0.35)',
     border: `1px solid ${colors.primary}`,
     borderRadius: borderRadius.sm,
-    fontSize: 10,
-    padding: '2px 4px',
+    fontSize: 9,
+    padding: '1px 2px',
+    lineHeight: 1.2,
     overflow: 'hidden',
     cursor: 'pointer',
     boxSizing: 'border-box',
@@ -75,8 +84,17 @@ export default function CampaignWeekCalendar({
   onEditSlot,
   onDeleteSlot,
 }: CampaignWeekCalendarProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
+  /** Актуальное состояние drag для window-слушателей (без stale closure). */
+  const dragRef = useRef<DragState | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTop = INITIAL_SCROLL_TOP
+  }, [])
 
   const finishDrag = useCallback(
     (state: DragState) => {
@@ -108,29 +126,36 @@ export default function CampaignWeekCalendar({
     [onCreateRange, onUpdateSlot, slots],
   )
 
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!drag || !gridRef.current) return
-      const rect = gridRef.current.getBoundingClientRect()
-      const dayWidth = (rect.width - 48) / 7
-      const dayIndex = Math.floor((e.clientX - rect.left - 48) / dayWidth)
-      const day = Math.min(7, Math.max(1, dayIndex + 1))
-      const y = e.clientY - rect.top
-      const minutes = yToMinutes(y)
-      setDrag((d) => (d ? { ...d, day: drag.mode === 'create' ? day : d.day, currentMinutes: minutes } : d))
-    },
-    [drag],
-  )
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    const current = dragRef.current
+    if (!current || !gridRef.current) return
+    const gridRect = gridRef.current.getBoundingClientRect()
+    const dayWidth = gridRect.width / 7
+    const dayIndex = Math.floor((e.clientX - gridRect.left) / dayWidth)
+    const day = Math.min(7, Math.max(1, dayIndex + 1))
+    const y = e.clientY - gridRect.top
+    const minutes = yToMinutes(y)
+    const next: DragState = {
+      ...current,
+      day: current.mode === 'create' ? day : current.day,
+      currentMinutes: minutes,
+    }
+    dragRef.current = next
+    setDrag(next)
+  }, [])
 
   const handleMouseUp = useCallback(() => {
-    if (drag) finishDrag(drag)
+    const current = dragRef.current
+    if (current) finishDrag(current)
+    dragRef.current = null
     setDrag(null)
     window.removeEventListener('mousemove', handleMouseMove)
     window.removeEventListener('mouseup', handleMouseUp)
-  }, [drag, finishDrag, handleMouseMove])
+  }, [finishDrag, handleMouseMove])
 
   const startDrag = (state: DragState) => {
     if (disabled) return
+    dragRef.current = state
     setDrag(state)
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
@@ -151,130 +176,162 @@ export default function CampaignWeekCalendar({
   }
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <div style={{ display: 'flex', minWidth: 720 }}>
-        <div style={{ width: 48, flexShrink: 0, paddingTop: 28 }}>
-          {Array.from({ length: HOURS }, (_, h) => (
+    <div>
+      <div
+        style={{
+          display: 'flex',
+          minWidth: CALENDAR_MIN_WIDTH,
+          borderBottom: `1px solid ${colors.borderLight}`,
+          backgroundColor: colors.bgWhite,
+        }}
+      >
+        <div style={{ width: TIME_COLUMN_WIDTH, flexShrink: 0 }} />
+        <div style={{ flex: 1, display: 'flex', minWidth: 0 }}>
+          {DAY_LABELS.map((label) => (
             <div
-              key={h}
+              key={label}
               style={{
-                height: HOUR_HEIGHT,
-                fontSize: 10,
-                color: colors.textSecondary,
-                textAlign: 'right',
-                paddingRight: 4,
-                boxSizing: 'border-box',
+                flex: 1,
+                minWidth: DAY_MIN_WIDTH,
+                textAlign: 'center',
+                fontWeight: 600,
+                fontSize: 11,
+                height: DAY_HEADER_HEIGHT,
+                lineHeight: `${DAY_HEADER_HEIGHT}px`,
+                borderLeft: `1px solid ${colors.borderLight}`,
               }}
             >
-              {String(h).padStart(2, '0')}:00
+              {label}
             </div>
           ))}
         </div>
-        <div style={{ flex: 1, display: 'flex' }} ref={gridRef}>
-          {DAY_LABELS.map((label, idx) => {
-            const day = idx + 1
-            const daySlots = slots.filter((s) => s.dayOfWeek === day)
-            const preview = previewForDay(day)
-            return (
-              <div key={day} style={{ flex: 1, minWidth: 80, borderLeft: `1px solid ${colors.borderLight}` }}>
-                <div
-                  style={{
-                    textAlign: 'center',
-                    fontWeight: 600,
-                    fontSize: 12,
-                    padding: spacing.xs,
-                    borderBottom: `1px solid ${colors.borderLight}`,
-                  }}
-                >
-                  {label}
-                </div>
-                <div
-                  style={{ position: 'relative', height: GRID_HEIGHT, backgroundColor: colors.bgGray }}
-                  onMouseDown={(e) => onDayMouseDown(day, e)}
-                >
-                  {Array.from({ length: HOURS }, (_, h) => (
-                    <div
-                      key={h}
-                      style={{
-                        position: 'absolute',
-                        top: h * HOUR_HEIGHT,
-                        left: 0,
-                        right: 0,
-                        height: HOUR_HEIGHT,
-                        borderTop: `1px solid ${colors.borderLight}`,
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  ))}
-                  {preview ? (
-                    <div
-                      style={{
-                        ...slotStyle(preview.top, preview.height),
-                        backgroundColor: 'rgba(124, 58, 237, 0.2)',
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  ) : null}
-                  {daySlots.map((slot) => {
-                    const top = minutesToY(parseTimeToMinutes(slot.startTime))
-                    const bottom = minutesToY(parseTimeToMinutes(slot.endTime))
-                    const height = bottom - top
-                    return (
-                      <div
-                        key={slot.id}
-                        data-slot
-                        style={slotStyle(top, height)}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onEditSlot(slot)
-                        }}
-                        onContextMenu={(e) => {
-                          e.preventDefault()
-                          if (window.confirm('Удалить слот?')) onDeleteSlot(slot.id)
-                        }}
-                      >
-                        <div
-                          style={{ height: 6, cursor: 'ns-resize', margin: '-2px -4px 0' }}
-                          onMouseDown={(e) => {
-                            e.stopPropagation()
-                            startDrag({
-                              mode: 'resize-top',
-                              day,
-                              slotId: slot.id,
-                              startMinutes: parseTimeToMinutes(slot.startTime),
-                              currentMinutes: parseTimeToMinutes(slot.startTime),
-                            })
-                          }}
-                        />
-                        <div>
-                          {slot.startTime}–{slot.endTime}
-                          <br />
-                          {slot.budgetRub} ₽
-                        </div>
-                        <div
-                          style={{ height: 6, cursor: 'ns-resize', margin: '0 -4px -2px', position: 'absolute', bottom: 0, left: 0, right: 0 }}
-                          onMouseDown={(e) => {
-                            e.stopPropagation()
-                            startDrag({
-                              mode: 'resize-bottom',
-                              day,
-                              slotId: slot.id,
-                              startMinutes: parseTimeToMinutes(slot.endTime),
-                              currentMinutes: parseTimeToMinutes(slot.endTime),
-                            })
-                          }}
-                        />
-                      </div>
-                    )
-                  })}
-                </div>
+      </div>
+      <div
+        ref={scrollRef}
+        style={{
+          maxHeight: CALENDAR_VIEWPORT_HEIGHT,
+          overflowY: 'auto',
+          overflowX: 'auto',
+          border: `1px solid ${colors.borderLight}`,
+          borderTop: 'none',
+          borderRadius: `0 0 ${borderRadius.sm} ${borderRadius.sm}`,
+        }}
+      >
+        <div style={{ display: 'flex', minWidth: CALENDAR_MIN_WIDTH }}>
+          <div style={{ width: TIME_COLUMN_WIDTH, flexShrink: 0 }}>
+            {Array.from({ length: HOURS }, (_, h) => (
+              <div
+                key={h}
+                style={{
+                  height: HOUR_HEIGHT,
+                  fontSize: 9,
+                  color: colors.textSecondary,
+                  textAlign: 'right',
+                  paddingRight: 2,
+                  boxSizing: 'border-box',
+                }}
+              >
+                {String(h).padStart(2, '0')}:00
               </div>
-            )
-          })}
+            ))}
+          </div>
+          <div style={{ flex: 1, display: 'flex', minWidth: 0 }} ref={gridRef}>
+            {DAY_LABELS.map((_, idx) => {
+              const day = idx + 1
+              const daySlots = slots.filter((s) => s.dayOfWeek === day)
+              const preview = previewForDay(day)
+              return (
+                <div key={day} style={{ flex: 1, minWidth: DAY_MIN_WIDTH, borderLeft: `1px solid ${colors.borderLight}` }}>
+                  <div
+                    style={{ position: 'relative', height: GRID_HEIGHT, backgroundColor: colors.bgGray }}
+                    onMouseDown={(e) => onDayMouseDown(day, e)}
+                  >
+                    {Array.from({ length: HOURS }, (_, h) => (
+                      <div
+                        key={h}
+                        style={{
+                          position: 'absolute',
+                          top: h * HOUR_HEIGHT,
+                          left: 0,
+                          right: 0,
+                          height: HOUR_HEIGHT,
+                          borderTop: `1px solid ${colors.borderLight}`,
+                          pointerEvents: 'none',
+                        }}
+                      />
+                    ))}
+                    {preview ? (
+                      <div
+                        style={{
+                          ...slotStyle(preview.top, preview.height),
+                          backgroundColor: 'rgba(124, 58, 237, 0.2)',
+                          pointerEvents: 'none',
+                        }}
+                      />
+                    ) : null}
+                    {daySlots.map((slot) => {
+                      const top = minutesToY(parseTimeToMinutes(slot.startTime))
+                      const bottom = minutesToY(parseTimeToMinutes(slot.endTime))
+                      const height = bottom - top
+                      return (
+                        <div
+                          key={slot.id}
+                          data-slot
+                          style={slotStyle(top, height)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onEditSlot(slot)
+                          }}
+                          onContextMenu={(e) => {
+                            e.preventDefault()
+                            if (window.confirm('Удалить слот?')) onDeleteSlot(slot.id)
+                          }}
+                        >
+                          <div
+                            style={{ height: 6, cursor: 'ns-resize', margin: '-2px -4px 0' }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation()
+                              startDrag({
+                                mode: 'resize-top',
+                                day,
+                                slotId: slot.id,
+                                startMinutes: parseTimeToMinutes(slot.startTime),
+                                currentMinutes: parseTimeToMinutes(slot.startTime),
+                              })
+                            }}
+                          />
+                          <div>
+                            {slot.startTime}–{slot.endTime}
+                            <br />
+                            {slot.budgetRub} ₽
+                          </div>
+                          <div
+                            style={{ height: 6, cursor: 'ns-resize', margin: '0 -4px -2px', position: 'absolute', bottom: 0, left: 0, right: 0 }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation()
+                              startDrag({
+                                mode: 'resize-bottom',
+                                day,
+                                slotId: slot.id,
+                                startMinutes: parseTimeToMinutes(slot.endTime),
+                                currentMinutes: parseTimeToMinutes(slot.endTime),
+                              })
+                            }}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
       <p style={{ fontSize: 11, color: colors.textSecondary, marginTop: spacing.sm }}>
-        Перетащите по пустой ячейке, чтобы создать слот (шаг 30 мин). Правый клик по слоту — удалить. Тяните верх/низ слота для изменения времени.
+        {disabled
+          ? 'Управление расписанием недоступно (ограничение API WB).'
+          : 'Кликните или перетащите по пустой ячейке, чтобы создать слот (шаг 30 мин). Клик по слоту — редактирование. Правый клик по слоту — удалить. Тяните верх/низ слота для изменения времени.'}
       </p>
     </div>
   )

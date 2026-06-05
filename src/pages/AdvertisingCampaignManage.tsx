@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Spin, Checkbox, InputNumber, Select, Button, message, Table } from 'antd'
+import { Spin, Checkbox, InputNumber, Select, Button, message, Table, Alert } from 'antd'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { campaignManageApi, type CampaignAutoBudgetRequest, type CampaignScheduleSlotRequest } from '../api/campaignManage'
 import { analyticsApi } from '../api/analytics'
@@ -366,6 +366,15 @@ export default function AdvertisingCampaignManage() {
             </div>
 
             <div style={cardStyle}>
+              {controlBlocked && controlCapabilities?.message && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  style={{ marginBottom: spacing.md }}
+                  message="Управление расписанием недоступно"
+                  description={controlCapabilities.message}
+                />
+              )}
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <h2 style={{ ...typography.h2, fontSize: 16, margin: 0, flex: 1 }}>Расписание</h2>
                 <Button
