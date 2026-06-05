@@ -446,6 +446,9 @@ export default function AdvertisingCampaigns() {
             </div>
           ) : (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', width: '100%' }}>
+              <p style={{ fontSize: 11, color: colors.textSecondary, margin: `0 0 ${spacing.sm}px 0` }}>
+                Положили в корзину и заказали товаров — по рекламной статистике WB (fullstats) по артикулам РК.
+              </p>
               <div style={{ overflowX: 'auto', width: '100%' }}>
               <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 980 }}>
                 <thead>

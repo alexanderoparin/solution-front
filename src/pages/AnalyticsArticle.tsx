@@ -81,6 +81,45 @@ const FUNNEL_ORDER: FunnelKey[] = ['general', 'advertising', 'pricing']
 // Размеры шрифта как в блоке воронок (12px — подписи/даты, 11px — данные)
 const FONT_PAGE = { fontSize: '12px' as const }
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
+
+/** Ширины колонок «Список РК» на странице артикула (% от таблицы, сумма 100). */
+const ARTICLE_RK_COL_WIDTHS_PCT = {
+  createdAt: 8,
+  name: 11,
+  id: 7,
+  type: 8,
+  status: 8,
+  views: 8,
+  clicks: 8,
+  costs: 8,
+  cpc: 7,
+  ctr: 7,
+  cart: 9,
+  orders: 9,
+} as const
+
+const articleRkThStyle = {
+  padding: '8px 10px',
+  borderBottom: `2px solid ${colors.borderHeader}`,
+  ...typography.body,
+  ...FONT_PAGE_SMALL,
+  fontWeight: 600,
+  color: colors.textPrimary,
+  overflow: 'hidden',
+  wordBreak: 'break-word' as const,
+  whiteSpace: 'normal' as const,
+  boxSizing: 'border-box' as const,
+}
+
+const articleRkTdStyle = {
+  padding: '6px 10px',
+  borderBottom: `1px solid ${colors.border}`,
+  ...typography.body,
+  ...FONT_PAGE_SMALL,
+  overflow: 'hidden',
+  wordBreak: 'break-word' as const,
+  boxSizing: 'border-box' as const,
+}
 /** Место под горизонтальный скроллбар в «В связке», чтобы полоса не перекрывала второй ряд карточек */
 const BUNDLE_LINKED_SCROLLBAR_GUTTER_PX = 16
 /** Высота зоны с двумя рядами карточек «В связке» (шире/выше, чем половина шапки артикула). */
@@ -253,7 +292,10 @@ export default function AnalyticsArticle() {
 
   // Блок «Список РК»: поиск и период для метрик (по умолчанию — последняя неделя)
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
-  const [campaignDateRange, setCampaignDateRange] = useState<[Dayjs, Dayjs]>(() => [dayjs().subtract(6, 'day'), dayjs()])
+  const [campaignDateRange, setCampaignDateRange] = useState<[Dayjs, Dayjs]>(() => {
+    const to = dayjs().subtract(1, 'day')
+    return [to.subtract(13, 'day'), to]
+  })
   const [stocksUpdateLoading, setStocksUpdateLoading] = useState(false)
   const [adCampaignGoalDraft, setAdCampaignGoalDraft] = useState('')
   const [adCampaignGoalSaving, setAdCampaignGoalSaving] = useState(false)
@@ -3314,22 +3356,25 @@ export default function AnalyticsArticle() {
                 />
               </span>
             </div>
+            <p style={{ fontSize: 11, color: colors.textSecondary, margin: '0 0 8px 0' }}>
+              Положили в корзину и заказали товаров — по рекламной статистике WB (fullstats) для этого артикула в каждой РК.
+            </p>
             <div style={{ overflowX: 'auto', width: '100%' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+              <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 1040 }}>
                 <thead>
                   <tr style={{ backgroundColor: colors.bgGray }}>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Дата создания</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Кампания</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>ID</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Тип</th>
-                    <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Статус</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Показы</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Клики</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>CTR</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>CPC</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Затраты</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Корзины</th>
-                    <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>Заказы</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'left', width: `${ARTICLE_RK_COL_WIDTHS_PCT.createdAt}%` }}>Дата создания</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'left', width: `${ARTICLE_RK_COL_WIDTHS_PCT.name}%` }}>Кампания</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'left', width: `${ARTICLE_RK_COL_WIDTHS_PCT.id}%` }}>ID</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'left', width: `${ARTICLE_RK_COL_WIDTHS_PCT.type}%` }}>Тип</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.status}%` }}>Статус</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.views}%` }}>Просмотры</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.clicks}%` }}>Клики</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.costs}%` }}>Затраты</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.cpc}%` }}>CPC</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.ctr}%` }}>CTR</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.cart}%` }}>Положили в корзину</th>
+                    <th style={{ ...articleRkThStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.orders}%` }}>Заказали товаров</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3347,15 +3392,15 @@ export default function AnalyticsArticle() {
                         e.currentTarget.style.backgroundColor = idx % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
                       }}
                     >
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDate(c.createdAt)}</td>
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>
+                      <td style={{ ...articleRkTdStyle, width: `${ARTICLE_RK_COL_WIDTHS_PCT.createdAt}%` }}>{formatCampaignDate(c.createdAt)}</td>
+                      <td style={{ ...articleRkTdStyle, width: `${ARTICLE_RK_COL_WIDTHS_PCT.name}%` }}>
                         <Link to={`/advertising/campaigns/${c.id}`} style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}>{c.name}</Link>
                       </td>
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>
+                      <td style={{ ...articleRkTdStyle, width: `${ARTICLE_RK_COL_WIDTHS_PCT.id}%` }}>
                         <Link to={`/advertising/campaigns/${c.id}`} style={{ color: colors.primary, textDecoration: 'none' }}>{c.id}</Link>
                       </td>
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.type || '-'}</td>
-                      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}` }}>
+                      <td style={{ ...articleRkTdStyle, width: `${ARTICLE_RK_COL_WIDTHS_PCT.type}%` }}>{c.type || '-'}</td>
+                      <td style={{ ...articleRkTdStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.status}%` }}>
                         <span
                           style={{
                             display: 'inline-block',
@@ -3371,13 +3416,13 @@ export default function AnalyticsArticle() {
                           {statusLabel(c)}
                         </span>
                       </td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.views)}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.clicks)}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.ctr != null ? formatPct(c.ctr) : '-'}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.cpc != null ? formatCur(c.cpc) : '-'}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{c.costs != null ? formatCur(c.costs) : '-'}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.cart)}</td>
-                      <td style={{ textAlign: 'right', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.orders)}</td>
+                      <td style={{ ...articleRkTdStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.views}%` }}>{formatNum(c.views)}</td>
+                      <td style={{ ...articleRkTdStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.clicks}%` }}>{formatNum(c.clicks)}</td>
+                      <td style={{ ...articleRkTdStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.costs}%` }}>{c.costs != null ? formatCur(c.costs) : '-'}</td>
+                      <td style={{ ...articleRkTdStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.cpc}%` }}>{c.cpc != null ? formatCur(c.cpc) : '-'}</td>
+                      <td style={{ ...articleRkTdStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.ctr}%` }}>{c.ctr != null ? formatPct(c.ctr) : '-'}</td>
+                      <td style={{ ...articleRkTdStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.cart}%` }}>{formatNum(c.cart)}</td>
+                      <td style={{ ...articleRkTdStyle, textAlign: 'center', width: `${ARTICLE_RK_COL_WIDTHS_PCT.orders}%` }}>{formatNum(c.orders)}</td>
                     </tr>
                   ))}
                 </tbody>
