@@ -325,12 +325,13 @@ export default function AnalyticsArticle() {
       return
     }
 
-    void loadArticle(Number(nmId), campaignDateRange)
+    void loadArticle(Number(nmId), dateRange, campaignDateRange)
     void loadNotes(Number(nmId))
   }, [
     nmId,
     selectedSellerId,
     cabinetReloadTrigger,
+    dateRange,
     campaignDateRange,
     workContextReady,
     workContextListEmpty,
@@ -339,14 +340,29 @@ export default function AnalyticsArticle() {
     workContext.workContextOptions.length,
   ])
 
-  const loadArticle = async (id: number, campaignPeriod: [Dayjs, Dayjs] | null) => {
+  const loadArticle = async (
+    id: number,
+    dailyPeriod: [Dayjs, Dayjs],
+    campaignPeriod: [Dayjs, Dayjs] | null,
+  ) => {
     try {
       setLoading(true)
       setError(null)
       const sellerId = getSelectedSellerId()
+      const dailyDataDateFrom = dailyPeriod[0].format('YYYY-MM-DD')
+      const dailyDataDateTo = dailyPeriod[1].format('YYYY-MM-DD')
       const campaignDateFrom = campaignPeriod ? campaignPeriod[0].format('YYYY-MM-DD') : undefined
       const campaignDateTo = campaignPeriod ? campaignPeriod[1].format('YYYY-MM-DD') : undefined
-      const data = await analyticsApi.getArticle(id, [], sellerId, getSelectedCabinetId(), campaignDateFrom, campaignDateTo)
+      const data = await analyticsApi.getArticle(
+        id,
+        [],
+        sellerId,
+        getSelectedCabinetId(),
+        campaignDateFrom,
+        campaignDateTo,
+        dailyDataDateFrom,
+        dailyDataDateTo,
+      )
       setArticle(data)
       setAdCampaignGoalDraft(data.adCampaignGoal ?? '')
     } catch (err: any) {
@@ -613,7 +629,7 @@ export default function AnalyticsArticle() {
   const getMetricValueForDate = (metricKey: string, date: string): number | null => {
     if (!article) return null
     
-    const dailyData = article.dailyData.find(d => d.date === date)
+    const dailyData = article.dailyData.find((d) => d.date.slice(0, 10) === date)
     if (!dailyData) return null
     
     // Метрики воронки из dailyData
@@ -2982,7 +2998,7 @@ export default function AnalyticsArticle() {
                           try {
                             await userApi.triggerCabinetStocksUpdate(cabinetId)
                             message.success('Обновление остатков запущено. Данные обновятся в течение нескольких минут.')
-                            await loadArticle(Number(nmId), campaignDateRange)
+                            await loadArticle(Number(nmId), dateRange, campaignDateRange)
                           } catch (err: any) {
                             const msg = err.response?.data?.message ?? 'Не удалось запустить обновление остатков'
                             message.error(msg)
