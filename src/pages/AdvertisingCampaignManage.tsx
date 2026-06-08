@@ -14,6 +14,8 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
 import CampaignWeekCalendar, { type SlotCreateRange } from '../components/campaignManage/CampaignWeekCalendar'
 import CampaignSlotModal, { type SlotModalDraft } from '../components/campaignManage/CampaignSlotModal'
+import CampaignBudgetChart from '../components/campaignManage/CampaignBudgetChart'
+import dayjs from 'dayjs'
 
 const COMBO_PHOTO_SIZE = 80
 
@@ -65,11 +67,57 @@ export default function AdvertisingCampaignManage() {
     enabled: Number.isFinite(advertId) && selectedCabinetId != null,
   })
 
+  const balanceSourcesKey = ['campaign-balance-sources', advertId, selectedCabinetId] as const
+
   const { data: balanceSources } = useQuery({
-    queryKey: ['campaign-balance-sources', advertId, selectedCabinetId],
+    queryKey: balanceSourcesKey,
     queryFn: () =>
       campaignManageApi.getBalanceSources(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
     enabled: Number.isFinite(advertId) && selectedCabinetId != null,
+    staleTime: 30 * 60 * 1000,
+  })
+
+  const budgetChartKey = ['campaign-budget-chart', advertId, selectedCabinetId] as const
+
+  const { data: budgetChart, isLoading: budgetChartLoading } = useQuery({
+    queryKey: budgetChartKey,
+    queryFn: () =>
+      campaignManageApi.getBudgetChart(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
+    enabled: Number.isFinite(advertId) && selectedCabinetId != null,
+    staleTime: 3 * 60 * 1000,
+  })
+
+  const refreshBalanceMutation = useMutation({
+    mutationFn: () =>
+      campaignManageApi.refreshBalanceSources(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
+    onSuccess: (result) => {
+      if (result.sources) {
+        queryClient.setQueryData(balanceSourcesKey, result.sources)
+      }
+      if (result.refreshed) {
+        message.success('Баланс обновлён')
+      } else if (result.message) {
+        message.warning(result.message)
+      }
+    },
+    onError: (err: unknown) => {
+      const ax = err as {
+        response?: {
+          status?: number
+          data?: { message?: string; nextAvailableInSeconds?: number; sources?: { sources: unknown[]; fetchedAt?: string; stale?: boolean } }
+        }
+      }
+      if (ax.response?.status === 429) {
+        const body = ax.response.data
+        const sec = body?.nextAvailableInSeconds
+        message.warning(body?.message ?? (sec ? `Повторите через ${sec} с` : 'Лимит WB'))
+        if (body?.sources) {
+          queryClient.setQueryData(balanceSourcesKey, body.sources)
+        }
+        return
+      }
+      message.error('Не удалось обновить баланс')
+    },
   })
 
   const { data: controlCapabilities } = useQuery({
@@ -109,7 +157,10 @@ export default function AdvertisingCampaignManage() {
     repeatMode: 'DAILY',
   })
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: manageKey })
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: manageKey })
+    queryClient.invalidateQueries({ queryKey: budgetChartKey })
+  }
 
   const saveAutoMutation = useMutation({
     mutationFn: (body: CampaignAutoBudgetRequest) =>
@@ -304,7 +355,21 @@ export default function AdvertisingCampaignManage() {
             </div>
 
             <div style={cardStyle}>
-              <h2 style={{ ...typography.h2, fontSize: 16, marginTop: 0 }}>Автопополнение бюджета</h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <h2 style={{ ...typography.h2, fontSize: 16, margin: 0, flex: 1 }}>Автопополнение бюджета</h2>
+                <Button
+                  size="small"
+                  loading={refreshBalanceMutation.isPending}
+                  onClick={() => refreshBalanceMutation.mutate()}
+                >
+                  Обновить баланс
+                </Button>
+              </div>
+              {balanceSources?.fetchedAt && (
+                <p style={{ fontSize: 12, color: colors.textSecondary, margin: '0 0 12px' }}>
+                  {balanceSources.stale ? 'Данные из кэша' : 'Обновлено'}: {dayjs(balanceSources.fetchedAt).format('DD.MM.YYYY HH:mm')}
+                </p>
+              )}
               <Checkbox
                 checked={autoEnabled}
                 disabled={formDisabled}
@@ -406,8 +471,8 @@ export default function AdvertisingCampaignManage() {
             </div>
 
             <div style={cardStyle}>
-              <h2 style={{ ...typography.h2, fontSize: 16, marginTop: 0 }}>График бюджета</h2>
-              <p style={{ color: colors.textSecondary, margin: 0 }}>В разработке</p>
+              <h2 style={{ ...typography.h2, fontSize: 16, marginTop: 0, marginBottom: 12 }}>График бюджета</h2>
+              <CampaignBudgetChart data={budgetChart} loading={budgetChartLoading} />
             </div>
 
             <div style={cardStyle}>

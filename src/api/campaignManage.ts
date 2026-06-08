@@ -4,7 +4,9 @@ import type {
   CampaignChangeLogEntry,
   CampaignManageData,
   CampaignScheduleSlot,
-  BalanceSourceOption,
+  BalanceSourcesResponse,
+  BalanceRefreshResponse,
+  CampaignBudgetChartData,
   CampaignSlotRepeatMode,
 } from '../types/analytics'
 import type { CampaignControlEnqueueResponse } from './analytics'
@@ -60,9 +62,36 @@ export const campaignManageApi = {
     advertId: number,
     sellerId?: number,
     cabinetId?: number,
-  ): Promise<{ sources: BalanceSourceOption[] }> => {
-    const response = await apiClient.get<{ sources: BalanceSourceOption[] }>(
+  ): Promise<BalanceSourcesResponse> => {
+    const response = await apiClient.get<BalanceSourcesResponse>(
       `/advertising/campaigns/${advertId}/manage/balance-sources${buildParams(sellerId, cabinetId)}`,
+    )
+    return response.data
+  },
+
+  refreshBalanceSources: async (
+    advertId: number,
+    sellerId?: number,
+    cabinetId?: number,
+  ): Promise<BalanceRefreshResponse> => {
+    const response = await apiClient.post<BalanceRefreshResponse>(
+      `/advertising/campaigns/${advertId}/manage/balance-sources/refresh${buildParams(sellerId, cabinetId)}`,
+    )
+    return response.data
+  },
+
+  getBudgetChart: async (
+    advertId: number,
+    sellerId?: number,
+    cabinetId?: number,
+    hours = 48,
+    stepHours = 2,
+  ): Promise<CampaignBudgetChartData> => {
+    const params = new URLSearchParams(buildParams(sellerId, cabinetId).replace('?', ''))
+    params.set('hours', String(hours))
+    params.set('stepHours', String(stepHours))
+    const response = await apiClient.get<CampaignBudgetChartData>(
+      `/advertising/campaigns/${advertId}/manage/budget-chart?${params.toString()}`,
     )
     return response.data
   },

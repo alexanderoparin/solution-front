@@ -356,4 +356,28 @@ export interface BalanceSourceOption {
   availableRub: number | null
 }
 
+export interface BalanceSourcesResponse {
+  sources: BalanceSourceOption[]
+  fetchedAt?: string | null
+  stale?: boolean
+}
+
+export interface BalanceRefreshResponse {
+  sources: BalanceSourcesResponse
+  refreshed?: boolean
+  stale?: boolean
+  fetchedAt?: string | null
+  nextAvailableInSeconds?: number | null
+  message?: string | null
+}
+
+export interface CampaignBudgetChartData {
+  periodFrom: string
+  periodTo: string
+  stepHours: number
+  budgetPoints: { at: string; budgetRub: number | null }[]
+  intervals: { from: string; to: string; active: boolean }[]
+  markers: { at: string; type: 'START' | 'STOP' | 'TOP_UP'; amount?: number | null }[]
+}
+
 export type CampaignSlotRepeatMode = 'DAILY' | 'WEEKENDS' | 'WEEKDAYS'
