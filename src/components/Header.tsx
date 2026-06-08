@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useMemo } from 'react'
 import { Button, Space, Dropdown, Select } from 'antd'
 import { UserOutlined, BarChartOutlined, RiseOutlined, DownOutlined } from '@ant-design/icons'
-import { useAuthStore } from '../store/authStore'
+import SiteLogo from './SiteLogo'
 
 interface CabinetSelectProps {
   cabinets: { id: number; name: string }[]
@@ -38,21 +38,6 @@ interface HeaderProps {
   headerRightExtra?: React.ReactNode
 }
 
-/** Инициалы для логотипа: из названия кабинета или "ЛК" по умолчанию */
-function getLogoInitials(cabinetName: string | undefined): string {
-  if (!cabinetName || !cabinetName.trim()) return 'ЛК'
-  const words = cabinetName.trim().split(/\s+/).filter(Boolean)
-  if (words.length >= 2) {
-    const a = words[0][0] ?? ''
-    const b = words[1][0] ?? ''
-    return (a + b).toUpperCase()
-  }
-  if (words[0].length >= 2) {
-    return words[0].slice(0, 2).toUpperCase()
-  }
-  return (words[0][0] ?? 'ЛК').toUpperCase()
-}
-
 function cabinetNameFromWorkContextLabel(label: string): string {
   const i = label.lastIndexOf(' (')
   return i >= 0 ? label.slice(0, i) : label
@@ -66,7 +51,6 @@ export default function Header({
 }: HeaderProps = {}) {
   const navigate = useNavigate()
   const location = useLocation()
-  const role = useAuthStore((state) => state.role)
 
   const selectedCabinetName = useMemo(() => {
     if (workContextCabinetSelect?.options.length) {
@@ -88,11 +72,6 @@ export default function Header({
     cabinetSelectProps?.selectedCabinetId,
     cabinetSelectProps?.cabinets,
   ])
-
-  const logoInitials = useMemo(() => {
-    if (location.pathname === '/profile' && role === 'ADMIN') return 'П'
-    return getLogoInitials(selectedCabinetName)
-  }, [location.pathname, role, selectedCabinetName])
 
   const isAnalyticsActive =
     location.pathname === '/analytics' ||
@@ -133,24 +112,7 @@ export default function Header({
       }}
     >
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
-        {/* Логотип */}
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 8,
-            backgroundColor: '#7C3AED',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '14px',
-            fontWeight: 700,
-            flexShrink: 0,
-          }}
-        >
-          {logoInitials}
-        </div>
+        <SiteLogo size={40} borderRadius={8} />
 
         {/* Аналитика */}
         <Dropdown

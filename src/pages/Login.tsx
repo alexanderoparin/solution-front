@@ -7,6 +7,7 @@ import { authApi } from '../api/auth'
 import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
 import { useAuthStore } from '../store/authStore'
 import ChangePasswordModal from '../components/ChangePasswordModal'
+import SiteLogo from '../components/SiteLogo'
 import type { LoginRequest } from '../types/api'
 import { LEGAL_OPERATOR } from '../constants/legalOperator'
 
@@ -81,26 +82,7 @@ export default function Login() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 32 }}>
-          <Link
-            to="/"
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 18,
-              flexShrink: 0,
-              textDecoration: 'none',
-            }}
-            title="На главную"
-          >
-            S
-          </Link>
+          <SiteLogo to="/" borderRadius={10} />
           <div style={{ textAlign: 'center' }}>
             <Title level={2} style={{ marginBottom: 4, color: '#1E293B', margin: 0 }}>
               {LEGAL_OPERATOR.siteBrandName}

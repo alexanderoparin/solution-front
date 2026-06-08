@@ -3,9 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import { Button, Card, Spin } from 'antd'
 import { subscriptionApi } from '../api/subscription'
 import { LEGAL_OPERATOR } from '../constants/legalOperator'
+import SiteLogo from '../components/SiteLogo'
 
 const accent = '#7C3AED'
-const accentHover = '#6D28D9'
 const textPrimary = '#1E293B'
 const textSecondary = '#64748B'
 const border = '#E2E8F0'
@@ -63,22 +63,7 @@ export default function Landing() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              background: `linear-gradient(135deg, ${accent} 0%, ${accentHover} 100%)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 18,
-            }}
-          >
-            S
-          </div>
+          <SiteLogo size={40} borderRadius={12} />
           <span style={{ fontSize: 19, fontWeight: 600, color: textPrimary, letterSpacing: '-0.02em' }}>{LEGAL_OPERATOR.siteBrandName}</span>
         </div>
         <Button
