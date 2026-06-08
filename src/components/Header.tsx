@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useMemo } from 'react'
 import { Button, Space, Dropdown, Select } from 'antd'
 import { UserOutlined, BarChartOutlined, RiseOutlined, DownOutlined } from '@ant-design/icons'
@@ -43,13 +43,20 @@ function cabinetNameFromWorkContextLabel(label: string): string {
   return i >= 0 ? label.slice(0, i) : label
 }
 
+function NavMenuLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <Link to={to} style={{ color: 'inherit', textDecoration: 'none' }}>
+      {children}
+    </Link>
+  )
+}
+
 export default function Header({
   cabinetSelectProps,
   sellerSelectProps,
   workContextCabinetSelect,
   headerRightExtra,
 }: HeaderProps = {}) {
-  const navigate = useNavigate()
   const location = useLocation()
 
   const selectedCabinetName = useMemo(() => {
@@ -118,8 +125,8 @@ export default function Header({
         <Dropdown
           menu={{
             items: [
-              { key: 'products', label: 'Товары', onClick: () => navigate('/analytics/products') },
-              { key: 'summary', label: 'Сводная', onClick: () => navigate('/analytics') },
+              { key: 'products', label: <NavMenuLink to="/analytics/products">Товары</NavMenuLink> },
+              { key: 'summary', label: <NavMenuLink to="/analytics">Сводная</NavMenuLink> },
             ],
           }}
           trigger={['click']}
@@ -144,13 +151,11 @@ export default function Header({
             items: [
               {
                 key: 'campaigns',
-                label: 'Рекламные компании',
-                onClick: () => navigate('/advertising/campaigns'),
+                label: <NavMenuLink to="/advertising/campaigns">Рекламные компании</NavMenuLink>,
               },
               {
                 key: 'bidder',
-                label: 'Управление РК',
-                onClick: () => navigate('/advertising/bidder'),
+                label: <NavMenuLink to="/advertising/bidder">Управление РК</NavMenuLink>,
               },
             ],
           }}
@@ -248,18 +253,21 @@ export default function Header({
             </span>
           )
         )}
-        <Button
-          type="text"
-          icon={<UserOutlined />}
-          onClick={() => navigate('/profile')}
+        <Link
+          to="/profile"
+          className="ant-btn ant-btn-text ant-btn-color-default ant-btn-variant-text"
           style={{
             ...buttonStyle,
             color: location.pathname === '/profile' ? '#7C3AED' : '#1E293B',
             fontWeight: location.pathname === '/profile' ? 600 : 400,
+            textDecoration: 'none',
           }}
         >
-          Профиль
-        </Button>
+          <span className="ant-btn-icon">
+            <UserOutlined />
+          </span>
+          <span>Профиль</span>
+        </Link>
       </Space>
     </div>
   )
