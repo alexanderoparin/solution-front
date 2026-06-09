@@ -175,6 +175,21 @@ export const campaignManageApi = {
     return response.data
   },
 
+  /**
+   * Сохраняет текст «Цель на рекламную кампанию».
+   */
+  updateCampaignGoal: async (
+    advertId: number,
+    goal: string,
+    sellerId?: number,
+    cabinetId?: number,
+  ): Promise<void> => {
+    await apiClient.put(
+      `/advertising/campaigns/${advertId}/manage/campaign-goal${buildParams(sellerId, cabinetId)}`,
+      { goal },
+    )
+  },
+
   getChangeLog: async (
     advertId: number,
     page: number,

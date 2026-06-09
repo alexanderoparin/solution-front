@@ -7,6 +7,7 @@ import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
 import { useQuery, useQueries, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
+import { campaignManageApi } from '../api/campaignManage'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import { userApi } from '../api/user'
 import type {
@@ -326,6 +327,44 @@ export default function AdvertisingCampaignDetail() {
   const [loadingSizes, setLoadingSizes] = useState<Record<string, boolean>>({})
   const [stocksUpdateLoading, setStocksUpdateLoading] = useState(false)
   const queryClient = useQueryClient()
+
+  const [campaignGoalDraft, setCampaignGoalDraft] = useState('')
+  const [campaignGoalSaving, setCampaignGoalSaving] = useState(false)
+
+  useEffect(() => {
+    setCampaignGoalDraft(campaign?.campaignGoal ?? '')
+  }, [campaign?.campaignGoal])
+
+  const persistCampaignGoal = async () => {
+    if (cabinetIdForRequest == null || Number.isNaN(campaignId)) return
+    const saved = campaign?.campaignGoal ?? ''
+    if (campaignGoalDraft === saved) return
+    try {
+      setCampaignGoalSaving(true)
+      await campaignManageApi.updateCampaignGoal(
+        campaignId,
+        campaignGoalDraft,
+        sellerIdForRequest,
+        cabinetIdForRequest,
+      )
+      queryClient.setQueryData(
+        [
+          'campaign-detail',
+          campaignId,
+          cabinetIdForRequest,
+          sellerIdForRequest,
+          dateRange[0].format('YYYY-MM-DD'),
+          dateRange[1].format('YYYY-MM-DD'),
+        ],
+        (prev: typeof campaign) => (prev ? { ...prev, campaignGoal: campaignGoalDraft } : prev),
+      )
+    } catch (err: unknown) {
+      const ax = err as { response?: { data?: { message?: string } } }
+      message.error(ax.response?.data?.message ?? 'Не удалось сохранить цель на рекламную кампанию')
+    } finally {
+      setCampaignGoalSaving(false)
+    }
+  }
 
   useEffect(() => {
     if (firstNmId != null && selectedStockNmId == null) setSelectedStockNmId(firstNmId)
@@ -1070,9 +1109,58 @@ export default function AdvertisingCampaignDetail() {
                 </Link>
               </div>
 
-              {/* Перечень товаров комбо: в строку, фото + название и артикул в две строки по высоте фото */}
+              {/* Цель на РК слева, артикулы комбо в одну строку справа */}
               <div style={{ overflowX: 'auto', paddingBottom: spacing.sm }}>
-                <div style={{ display: 'flex', gap: spacing.lg, minWidth: 'min-content' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: spacing.lg,
+                    alignItems: 'flex-start',
+                    minWidth: 'min-content',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 240,
+                      flexShrink: 0,
+                      padding: spacing.sm,
+                      borderRadius: borderRadius.md,
+                      backgroundColor: colors.bgGrayLight,
+                      border: `1px solid ${colors.border}`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: colors.textSecondary,
+                        marginBottom: 4,
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      Цель на рекламную кампанию:
+                    </div>
+                    <Input.TextArea
+                      value={campaignGoalDraft}
+                      onChange={(e) => setCampaignGoalDraft(e.target.value)}
+                      onBlur={() => void persistCampaignGoal()}
+                      disabled={cabinetIdForRequest == null}
+                      placeholder="Кратко опишите цель по этой рекламной кампании"
+                      autoSize={{ minRows: 2, maxRows: 4 }}
+                      maxLength={10000}
+                      styles={{
+                        textarea: {
+                          fontSize: 11,
+                          lineHeight: 1.45,
+                          minHeight: 52,
+                          resize: 'none',
+                        },
+                      }}
+                    />
+                    {campaignGoalSaving && (
+                      <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Сохранение…</div>
+                    )}
+                  </div>
                   {(campaign.articles ?? []).map((art) => (
                     <ComboProductItem key={art.nmId} article={art} photoSize={COMBO_PHOTO_SIZE} />
                   ))}

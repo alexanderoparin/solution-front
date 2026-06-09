@@ -180,6 +180,7 @@ export interface CampaignDetail {
   articlesCount: number
   articles: ArticleSummary[]
   createdAt: string
+  campaignGoal?: string | null
   /** Разбивка рекламы по площадкам WB за период (если запрошено с датами). */
   advertisingByPlatform?: CampaignAdvertisingPlatformDay[] | null
 }
