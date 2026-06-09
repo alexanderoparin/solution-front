@@ -297,8 +297,8 @@ export default function AnalyticsArticle() {
     return [to.subtract(13, 'day'), to]
   })
   const [stocksUpdateLoading, setStocksUpdateLoading] = useState(false)
-  const [adCampaignGoalDraft, setAdCampaignGoalDraft] = useState('')
-  const [adCampaignGoalSaving, setAdCampaignGoalSaving] = useState(false)
+  const [articleGoalDraft, setArticleGoalDraft] = useState('')
+  const [articleGoalSaving, setArticleGoalSaving] = useState(false)
 
   /** Пока список work context грузится или выбранный кабинет ещё не проставлен — не дергаем API (иначе бэкенд берёт «дефолтный» кабинет и 404 по nmId). */
   const workContextListEmpty =
@@ -364,7 +364,7 @@ export default function AnalyticsArticle() {
         dailyDataDateTo,
       )
       setArticle(data)
-      setAdCampaignGoalDraft(data.adCampaignGoal ?? '')
+      setArticleGoalDraft(data.articleGoal ?? '')
     } catch (err: any) {
       setError(err.response?.data?.message || 'Ошибка при загрузке данных')
     } finally {
@@ -386,29 +386,29 @@ export default function AnalyticsArticle() {
   }
 
   // Функции для работы с заметками
-  const persistAdCampaignGoal = async () => {
+  const persistArticleGoal = async () => {
     if (!nmId) return
     const cabinetId = getSelectedCabinetId()
     if (cabinetId == null) return
-    const saved = article?.adCampaignGoal ?? ''
-    if (adCampaignGoalDraft === saved) return
+    const saved = article?.articleGoal ?? ''
+    if (articleGoalDraft === saved) return
     try {
-      setAdCampaignGoalSaving(true)
-      await analyticsApi.updateAdCampaignGoal(
+      setArticleGoalSaving(true)
+      await analyticsApi.updateArticleGoal(
         Number(nmId),
-        adCampaignGoalDraft,
+        articleGoalDraft,
         getSelectedSellerId(),
         cabinetId
       )
-      setArticle((prev) => (prev ? { ...prev, adCampaignGoal: adCampaignGoalDraft } : null))
+      setArticle((prev) => (prev ? { ...prev, articleGoal: articleGoalDraft } : null))
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined
-      message.error(msg ?? 'Не удалось сохранить цель РК')
+      message.error(msg ?? 'Не удалось сохранить цель на артикул')
     } finally {
-      setAdCampaignGoalSaving(false)
+      setArticleGoalSaving(false)
     }
   }
 
@@ -1052,17 +1052,17 @@ export default function AnalyticsArticle() {
                   marginBottom: 4,
                 }}
               >
-                Цель рекламной кампании:
+                Цель на артикул:
               </div>
               <Input.TextArea
-                value={adCampaignGoalDraft}
-                onChange={(e) => setAdCampaignGoalDraft(e.target.value)}
-                onBlur={() => void persistAdCampaignGoal()}
+                value={articleGoalDraft}
+                onChange={(e) => setArticleGoalDraft(e.target.value)}
+                onBlur={() => void persistArticleGoal()}
                 disabled={getSelectedCabinetId() == null}
                 placeholder={
                   getSelectedCabinetId() == null
                     ? 'Выберите кабинет, чтобы задать цель'
-                    : 'Кратко опишите цель РК по этому артикулу'
+                    : 'Кратко опишите цель по этому артикулу'
                 }
                 autoSize={{ minRows: 2, maxRows: 8 }}
                 maxLength={10000}
@@ -1073,7 +1073,7 @@ export default function AnalyticsArticle() {
                   },
                 }}
               />
-              {adCampaignGoalSaving && (
+              {articleGoalSaving && (
                 <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Сохранение…</div>
               )}
             </div>

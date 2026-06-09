@@ -286,7 +286,7 @@ export interface ArticleResponse {
   /** Дата-время последнего запуска обновления остатков по кабинету (для кнопки «Обновить остатки») */
   lastStocksUpdateTriggeredAt?: string | null
   /** Цель рекламной кампании по артикулу в выбранном кабинете */
-  adCampaignGoal?: string | null
+  articleGoal?: string | null
 }
 
 /** Превью карточки для шапки артикула: 246×328, иначе tm. */

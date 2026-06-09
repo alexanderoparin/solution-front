@@ -379,9 +379,9 @@ export const analyticsApi = {
   },
 
   /**
-   * Сохраняет текст «Цель рекламной кампании» для артикула в кабинете.
+   * Сохраняет текст «Цель на артикул» для артикула в кабинете.
    */
-  updateAdCampaignGoal: async (
+  updateArticleGoal: async (
     nmId: number,
     goal: string,
     sellerId?: number,
@@ -392,7 +392,7 @@ export const analyticsApi = {
     if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
     const query = searchParams.toString()
     const params = query ? `?${query}` : ''
-    await apiClient.put(`/analytics/article/${nmId}/ad-campaign-goal${params}`, { goal })
+    await apiClient.put(`/analytics/article/${nmId}/article-goal${params}`, { goal })
   },
 
   /**
