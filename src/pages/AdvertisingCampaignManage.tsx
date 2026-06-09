@@ -396,7 +396,7 @@ export default function AdvertisingCampaignManage() {
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: colors.textSecondary }}>Порог, ₽</div>
+                  <div style={{ fontSize: 12, color: colors.textSecondary }}>Пополнить если ниже, ₽</div>
                   <InputNumber style={{ width: '100%' }} min={0} disabled={formDisabled} value={thresholdRub} onChange={setThresholdRub} />
                 </div>
                 <div>
