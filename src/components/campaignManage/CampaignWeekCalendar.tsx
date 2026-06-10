@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useRef, useState, type CSSProperties } from 'react'
 import { CloseOutlined } from '@ant-design/icons'
 import { message } from 'antd'
 import type { CampaignScheduleSlot } from '../../types/analytics'
@@ -12,18 +12,14 @@ import {
 import { findOverlappingSlot } from '../../utils/campaignSlotOverlap'
 import { colors, borderRadius, spacing } from '../../styles/analytics'
 
-const HOUR_HEIGHT = 48
+const HOUR_HEIGHT = 24
 const HALF_HEIGHT = HOUR_HEIGHT / 2
 const HOURS = 24
 const GRID_HEIGHT = HOURS * HOUR_HEIGHT
-/** Видимая высота календаря (~8 ч); полные сутки прокручиваются внутри. */
-const CALENDAR_VIEWPORT_HEIGHT = 400
 const TIME_COLUMN_WIDTH = 36
 const DAY_MIN_WIDTH = 56
 const CALENDAR_MIN_WIDTH = TIME_COLUMN_WIDTH + DAY_MIN_WIDTH * 7
 const DAY_HEADER_HEIGHT = 26
-/** При открытии — прокрутка к 08:00. */
-const INITIAL_SCROLL_TOP = 8 * HOUR_HEIGHT
 
 export interface SlotCreateRange {
   dayOfWeek: number
@@ -60,9 +56,9 @@ function slotStyle(top: number, height: number): CSSProperties {
     backgroundColor: 'rgba(124, 58, 237, 0.35)',
     border: `1px solid ${colors.primary}`,
     borderRadius: borderRadius.sm,
-    fontSize: 9,
-    padding: '1px 2px',
-    lineHeight: 1.2,
+    fontSize: 11,
+    padding: '2px 3px',
+    lineHeight: 1.25,
     overflow: 'hidden',
     cursor: 'pointer',
     boxSizing: 'border-box',
@@ -87,17 +83,10 @@ export default function CampaignWeekCalendar({
   onEditSlot,
   onDeleteSlot,
 }: CampaignWeekCalendarProps) {
-  const scrollRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
   /** Актуальное состояние drag для window-слушателей (без stale closure). */
   const dragRef = useRef<DragState | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
-
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    el.scrollTop = INITIAL_SCROLL_TOP
-  }, [])
 
   const finishDrag = useCallback(
     (state: DragState) => {
@@ -231,11 +220,9 @@ export default function CampaignWeekCalendar({
         </div>
       </div>
       <div
-        ref={scrollRef}
         style={{
-          maxHeight: CALENDAR_VIEWPORT_HEIGHT,
-          overflowY: 'auto',
-          overflowX: 'auto',
+          height: GRID_HEIGHT,
+          overflow: 'hidden',
           border: `1px solid ${colors.borderLight}`,
           borderTop: 'none',
           borderRadius: `0 0 ${borderRadius.sm} ${borderRadius.sm}`,
@@ -320,11 +307,11 @@ export default function CampaignWeekCalendar({
                                 position: 'absolute',
                                 top: 0,
                                 right: 0,
-                                width: 18,
-                                height: 18,
+                                width: 14,
+                                height: 14,
                                 padding: 0,
                                 border: 'none',
-                                borderRadius: '0 3px 0 3px',
+                                borderRadius: '0 2px 0 2px',
                                 background: 'rgba(255, 255, 255, 0.9)',
                                 color: colors.textSecondary,
                                 cursor: 'pointer',
@@ -339,7 +326,7 @@ export default function CampaignWeekCalendar({
                                 onDeleteSlot(slot.id)
                               }}
                             >
-                              <CloseOutlined style={{ fontSize: 10 }} />
+                              <CloseOutlined style={{ fontSize: 8 }} />
                             </button>
                           )}
                           <div

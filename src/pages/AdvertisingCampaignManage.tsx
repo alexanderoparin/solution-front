@@ -19,6 +19,7 @@ import CampaignBudgetChart from '../components/campaignManage/CampaignBudgetChar
 import dayjs from 'dayjs'
 
 const COMBO_PHOTO_SIZE = 80
+const CHANGE_LOG_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
 
 function formatControlError(err: unknown): string {
   const ax = err as { response?: { data?: { message?: string; error?: string } } }
@@ -79,6 +80,35 @@ export default function AdvertisingCampaignManage() {
   })
 
   const budgetChartKey = ['campaign-budget-chart', advertId, selectedCabinetId] as const
+
+  const [changeLogPage, setChangeLogPage] = useState(0)
+  const [changeLogPageSize, setChangeLogPageSize] = useState<number>(CHANGE_LOG_PAGE_SIZE_OPTIONS[0])
+
+  useEffect(() => {
+    setChangeLogPage(0)
+  }, [advertId, selectedCabinetId, selectedSellerId])
+
+  const changeLogKey = [
+    'campaign-change-log',
+    advertId,
+    selectedSellerId,
+    selectedCabinetId,
+    changeLogPage,
+    changeLogPageSize,
+  ] as const
+
+  const { data: changeLogData, isLoading: changeLogLoading } = useQuery({
+    queryKey: changeLogKey,
+    queryFn: () =>
+      campaignManageApi.getChangeLog(
+        advertId,
+        changeLogPage,
+        changeLogPageSize,
+        selectedSellerId ?? undefined,
+        selectedCabinetId ?? undefined,
+      ),
+    enabled: Number.isFinite(advertId) && selectedCabinetId != null,
+  })
 
   const { data: budgetChart, isLoading: budgetChartLoading } = useQuery({
     queryKey: budgetChartKey,
@@ -161,6 +191,7 @@ export default function AdvertisingCampaignManage() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: manageKey })
     queryClient.invalidateQueries({ queryKey: budgetChartKey })
+    queryClient.invalidateQueries({ queryKey: ['campaign-change-log', advertId] })
   }
 
   const saveAutoMutation = useMutation({
@@ -507,10 +538,23 @@ export default function AdvertisingCampaignManage() {
               <h2 style={{ ...typography.h2, fontSize: 16, marginTop: 0 }}>История изменений</h2>
               <Table
                 size="small"
+                loading={changeLogLoading}
                 rowKey={(r, i) => `${r.createdAt}-${i}`}
                 columns={historyColumns}
-                dataSource={manage.recentChangeLog}
-                pagination={false}
+                dataSource={changeLogData?.content ?? []}
+                pagination={{
+                  current: changeLogPage + 1,
+                  pageSize: changeLogPageSize,
+                  total: changeLogData?.totalElements ?? 0,
+                  showSizeChanger: true,
+                  pageSizeOptions: [...CHANGE_LOG_PAGE_SIZE_OPTIONS],
+                  hideOnSinglePage: (changeLogData?.totalElements ?? 0) <= changeLogPageSize,
+                  onChange: (page) => setChangeLogPage(page - 1),
+                  onShowSizeChange: (_page, size) => {
+                    setChangeLogPageSize(size)
+                    setChangeLogPage(0)
+                  },
+                }}
               />
             </div>
           </>

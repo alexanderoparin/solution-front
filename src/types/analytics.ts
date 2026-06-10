@@ -348,7 +348,6 @@ export interface CampaignManageData {
   operationalStatus: 'RUNNING' | 'STOPPED'
   autoBudget: CampaignAutoBudgetSettings
   slots: CampaignScheduleSlot[]
-  recentChangeLog: CampaignChangeLogEntry[]
 }
 
 export interface BalanceSourceOption {
