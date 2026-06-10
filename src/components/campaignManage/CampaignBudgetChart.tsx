@@ -40,6 +40,16 @@ function formatAxisLabel(iso: string): string {
   return dayjs(iso).format('DD.MM HH:mm')
 }
 
+function formatRub(value: number): string {
+  return `${Math.round(value).toLocaleString('ru-RU')} ₽`
+}
+
+/** Верхняя граница оси Y: +15% запас, без float-артефактов. */
+function computeYMax(budgets: number[], topUps: number[]): number {
+  const rawMax = Math.max(100, ...budgets, ...topUps, 0)
+  return Math.ceil(rawMax * 1.15)
+}
+
 function findBudgetAt(points: ChartRow[], at: string): number {
   const ts = dayjs(at).valueOf()
   let budget = 0
@@ -82,7 +92,7 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
 
     const allBudgets = rows.map((r) => r.budgetRub ?? 0)
     const allTopUps = data.markers.filter((m) => m.type === 'TOP_UP').map((m) => m.amount ?? 0)
-    const yMax = Math.max(100, ...allBudgets, ...allTopUps) * 1.15
+    const yMax = computeYMax(allBudgets, allTopUps)
 
     const tsValues = rows.map((r) => r.ts)
     const xDomain: [number, number] =
@@ -142,7 +152,8 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
             interval="preserveStartEnd"
           />
           <YAxis
-            tickFormatter={(v) => `${v} ₽`}
+            tickFormatter={formatRub}
+            allowDecimals={false}
             tick={{ fontSize: 11, fill: colors.textSecondary }}
             width={72}
             domain={[0, yMax]}
@@ -150,8 +161,8 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
           <Tooltip
             labelFormatter={(ts) => dayjs(ts as number).format('DD.MM.YYYY HH:mm')}
             formatter={(value: number, name: string) => {
-              if (name === 'topUpAmount') return [`${value} ₽`, 'Пополнено']
-              if (name === 'budgetRub') return [`${value} ₽`, 'Бюджет']
+              if (name === 'topUpAmount') return [formatRub(value), 'Пополнено']
+              if (name === 'budgetRub') return [formatRub(value), 'Бюджет']
               return [value, name]
             }}
           />
