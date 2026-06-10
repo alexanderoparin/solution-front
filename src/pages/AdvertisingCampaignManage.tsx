@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Spin, Checkbox, InputNumber, Select, Button, message, Table, Alert } from 'antd'
+import { Spin, Checkbox, InputNumber, Select, Button, message, Table, Alert, Modal } from 'antd'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { campaignManageApi, type CampaignAutoBudgetRequest, type CampaignScheduleSlotRequest } from '../api/campaignManage'
 import { analyticsApi } from '../api/analytics'
@@ -13,6 +13,7 @@ import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
 import CampaignWeekCalendar, { type SlotCreateRange } from '../components/campaignManage/CampaignWeekCalendar'
+import { validateSlotNoOverlap } from '../utils/campaignSlotOverlap'
 import CampaignSlotModal, { type SlotModalDraft } from '../components/campaignManage/CampaignSlotModal'
 import CampaignBudgetChart from '../components/campaignManage/CampaignBudgetChart'
 import dayjs from 'dayjs'
@@ -207,6 +208,20 @@ export default function AdvertisingCampaignManage() {
     onError: (e) => message.error(formatControlError(e)),
   })
 
+  const confirmDeleteSlot = useCallback(
+    (slotId: number) => {
+      Modal.confirm({
+        title: 'Удалить слот?',
+        content: 'Слот будет удалён из расписания.',
+        okText: 'Удалить',
+        okType: 'danger',
+        cancelText: 'Отмена',
+        onOk: () => deleteSlotMutation.mutateAsync(slotId),
+      })
+    },
+    [deleteSlotMutation],
+  )
+
   const startMutation = useMutation({
     mutationFn: () => campaignManageApi.start(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
     onSuccess: (r) => {
@@ -257,6 +272,19 @@ export default function AdvertisingCampaignManage() {
   }, [])
 
   const saveSlotDraft = (draft: SlotModalDraft) => {
+    const overlapError = validateSlotNoOverlap(
+      manage?.slots ?? [],
+      draft.dayOfWeek,
+      draft.startTime,
+      draft.endTime,
+      draft.repeat,
+      draft.repeatMode,
+      editingSlotId ?? undefined,
+    )
+    if (overlapError) {
+      message.warning(overlapError)
+      return
+    }
     if (editingSlotId != null) {
       updateSlotMutation.mutate({
         slotId: editingSlotId,
@@ -466,7 +494,7 @@ export default function AdvertisingCampaignManage() {
                 onCreateRange={openCreateFromRange}
                 onUpdateSlot={(slotId, body) => updateSlotMutation.mutate({ slotId, body })}
                 onEditSlot={openEditSlot}
-                onDeleteSlot={(slotId) => deleteSlotMutation.mutate(slotId)}
+                onDeleteSlot={confirmDeleteSlot}
               />
             </div>
 

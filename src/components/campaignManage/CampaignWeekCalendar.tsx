@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { CloseOutlined } from '@ant-design/icons'
+import { message } from 'antd'
 import type { CampaignScheduleSlot } from '../../types/analytics'
 import {
   DAY_LABELS,
@@ -7,6 +9,7 @@ import {
   parseTimeToMinutes,
   snapMinutes,
 } from '../../utils/campaignSlotTime'
+import { findOverlappingSlot } from '../../utils/campaignSlotOverlap'
 import { colors, borderRadius, spacing } from '../../styles/analytics'
 
 const HOUR_HEIGHT = 48
@@ -102,24 +105,45 @@ export default function CampaignWeekCalendar({
       const minEnd = Math.max(state.startMinutes, state.currentMinutes) + SLOT_STEP_MINUTES
       if (state.mode === 'create') {
         if (minEnd - minStart >= SLOT_STEP_MINUTES) {
-          onCreateRange({
-            dayOfWeek: state.day,
-            startTime: formatMinutesToTime(minStart),
-            endTime: formatMinutesToTime(minEnd),
-          })
+          const startTime = formatMinutesToTime(minStart)
+          const endTime = formatMinutesToTime(minEnd)
+          const conflict = findOverlappingSlot(slots, state.day, startTime, endTime)
+          if (conflict) {
+            const dayLabel = DAY_LABELS[state.day - 1] ?? String(state.day)
+            message.warning(
+              `Слот пересекается с другим (${conflict.startTime}–${conflict.endTime}, ${dayLabel})`,
+            )
+            return
+          }
+          onCreateRange({ dayOfWeek: state.day, startTime, endTime })
         }
       } else if (state.slotId != null) {
         const slot = slots.find((s) => s.id === state.slotId)
         if (!slot) return
         const snapped = snapMinutes(state.currentMinutes)
+        let startTime = slot.startTime
+        let endTime = slot.endTime
         if (state.mode === 'resize-top') {
           const endMin = parseTimeToMinutes(slot.endTime)
           const newStart = Math.min(snapped, endMin - SLOT_STEP_MINUTES)
-          onUpdateSlot(state.slotId, { startTime: formatMinutesToTime(newStart) })
+          startTime = formatMinutesToTime(newStart)
         } else {
           const startMin = parseTimeToMinutes(slot.startTime)
           const newEnd = Math.max(snapped, startMin + SLOT_STEP_MINUTES)
-          onUpdateSlot(state.slotId, { endTime: formatMinutesToTime(newEnd) })
+          endTime = formatMinutesToTime(newEnd)
+        }
+        const conflict = findOverlappingSlot(slots, slot.dayOfWeek, startTime, endTime, slot.id)
+        if (conflict) {
+          const dayLabel = DAY_LABELS[slot.dayOfWeek - 1] ?? String(slot.dayOfWeek)
+          message.warning(
+            `Слот пересекается с другим (${conflict.startTime}–${conflict.endTime}, ${dayLabel})`,
+          )
+          return
+        }
+        if (state.mode === 'resize-top') {
+          onUpdateSlot(state.slotId, { startTime })
+        } else {
+          onUpdateSlot(state.slotId, { endTime })
         }
       }
     },
@@ -284,9 +308,40 @@ export default function CampaignWeekCalendar({
                           }}
                           onContextMenu={(e) => {
                             e.preventDefault()
-                            if (window.confirm('Удалить слот?')) onDeleteSlot(slot.id)
+                            onDeleteSlot(slot.id)
                           }}
                         >
+                          {!disabled && (
+                            <button
+                              type="button"
+                              aria-label="Удалить слот"
+                              title="Удалить слот"
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                right: 0,
+                                width: 18,
+                                height: 18,
+                                padding: 0,
+                                border: 'none',
+                                borderRadius: '0 3px 0 3px',
+                                background: 'rgba(255, 255, 255, 0.9)',
+                                color: colors.textSecondary,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 4,
+                              }}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDeleteSlot(slot.id)
+                              }}
+                            >
+                              <CloseOutlined style={{ fontSize: 10 }} />
+                            </button>
+                          )}
                           <div
                             style={{ height: 6, cursor: 'ns-resize', margin: '-2px -4px 0' }}
                             onMouseDown={(e) => {
@@ -331,7 +386,7 @@ export default function CampaignWeekCalendar({
       <p style={{ fontSize: 11, color: colors.textSecondary, marginTop: spacing.sm }}>
         {disabled
           ? 'Управление расписанием недоступно (ограничение API WB).'
-          : 'Кликните или перетащите по пустой ячейке, чтобы создать слот (шаг 30 мин). Клик по слоту — редактирование. Правый клик по слоту — удалить. Тяните верх/низ слота для изменения времени.'}
+          : 'Кликните или перетащите по пустой ячейке, чтобы создать слот (шаг 30 мин). Слоты в один день не должны пересекаться. Клик по слоту — редактирование. Крестик или правый клик — удалить.'}
       </p>
     </div>
   )
