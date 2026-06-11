@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { Button, Space, Dropdown, Select } from 'antd'
 import { UserOutlined, BarChartOutlined, RiseOutlined, DownOutlined } from '@ant-design/icons'
 import SiteLogo from './SiteLogo'
+import CampaignManageSubscriptionBadge from './campaignManageSubscription/CampaignManageSubscriptionBadge'
 
 interface CabinetSelectProps {
   cabinets: { id: number; name: string }[]
@@ -253,6 +254,7 @@ export default function Header({
             </span>
           )
         )}
+        <CampaignManageSubscriptionBadge />
         <Link
           to="/profile"
           className="ant-btn ant-btn-text ant-btn-color-default ant-btn-variant-text"

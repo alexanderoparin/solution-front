@@ -28,8 +28,12 @@ const USER_SORT_FIELD_TO_BACKEND: Record<UserSortField, string> = {
   lastDataUpdateRequestedAt: 'LAST_DATA_UPDATE_REQUESTED_AT',
 }
 
-/** React Query: ключ и время жизни свежего кеша статуса доступа (префетч после логина / при старте SPA). */
-export const ACCESS_STATUS_QUERY_KEY = ['accessStatus'] as const
+/** React Query: ключ статуса доступа (опционально sellerId для manager/admin). */
+export const accessStatusQueryKey = (sellerId?: number) =>
+  sellerId != null ? (['accessStatus', sellerId] as const) : (['accessStatus'] as const)
+
+/** @deprecated используйте accessStatusQueryKey() */
+export const ACCESS_STATUS_QUERY_KEY = accessStatusQueryKey()
 
 export const ACCESS_STATUS_STALE_MS = 60_000
 
@@ -49,9 +53,11 @@ export const userApi = {
     return response.data
   },
 
-  /** Доступ к функционалу и статус подписки (для редиректа на «Оформите подписку») */
-  getAccessStatus: async (): Promise<AccessStatusResponse> => {
+  /** Доступ к функционалу и статус подписки */
+  getAccessStatus: async (sellerId?: number): Promise<AccessStatusResponse> => {
+    const params = sellerId != null ? { sellerId } : undefined
     const response = await apiClient.get<AccessStatusResponse>('/user/access', {
+      params,
       timeout: 45_000,
     })
     return response.data

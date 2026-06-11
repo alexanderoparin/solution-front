@@ -12,6 +12,8 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
+import { useCampaignManagePaywall } from '../hooks/useCampaignManagePaywall'
+import CampaignManagePaywallShield from '../components/campaignManageSubscription/CampaignManagePaywallShield'
 import CampaignWeekCalendar, { type SlotCreateRange } from '../components/campaignManage/CampaignWeekCalendar'
 import { validateSlotNoOverlap } from '../utils/campaignSlotOverlap'
 import CampaignSlotModal, { type SlotModalDraft } from '../components/campaignManage/CampaignSlotModal'
@@ -271,8 +273,11 @@ export default function AdvertisingCampaignManage() {
     onError: (e) => message.error(formatControlError(e)),
   })
 
+  const { hasCampaignManageAccess } = useCampaignManagePaywall(selectedSellerId)
+  const subscriptionBlocked = !hasCampaignManageAccess
+
   const controlBlocked = controlCapabilities != null && !controlCapabilities.canControl
-  const formDisabled = autoLocked || controlBlocked
+  const formDisabled = autoLocked || controlBlocked || subscriptionBlocked
 
   const openCreateFromRange = useCallback((range: SlotCreateRange) => {
     setEditingSlotId(null)
@@ -413,6 +418,7 @@ export default function AdvertisingCampaignManage() {
               </div>
             </div>
 
+            <CampaignManagePaywallShield active={subscriptionBlocked}>
             <div style={cardStyle}>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <h2 style={{ ...typography.h2, fontSize: 16, margin: 0, flex: 1 }}>Автопополнение бюджета</h2>
@@ -488,7 +494,9 @@ export default function AdvertisingCampaignManage() {
                 )}
               </div>
             </div>
+            </CampaignManagePaywallShield>
 
+            <CampaignManagePaywallShield active={subscriptionBlocked}>
             <div style={cardStyle}>
               {controlBlocked && controlCapabilities?.message && (
                 <Alert
@@ -503,7 +511,7 @@ export default function AdvertisingCampaignManage() {
                 <h2 style={{ ...typography.h2, fontSize: 16, margin: 0, flex: 1 }}>Расписание</h2>
                 <Button
                   type="primary"
-                  disabled={controlBlocked}
+                  disabled={controlBlocked || subscriptionBlocked}
                   loading={startMutation.isPending}
                   onClick={() => startMutation.mutate()}
                 >
@@ -511,7 +519,7 @@ export default function AdvertisingCampaignManage() {
                 </Button>
                 <Button
                   danger
-                  disabled={controlBlocked}
+                  disabled={controlBlocked || subscriptionBlocked}
                   loading={pauseMutation.isPending}
                   onClick={() => pauseMutation.mutate()}
                 >
@@ -521,13 +529,14 @@ export default function AdvertisingCampaignManage() {
               </div>
               <CampaignWeekCalendar
                 slots={manage.slots}
-                disabled={controlBlocked}
+                disabled={controlBlocked || subscriptionBlocked}
                 onCreateRange={openCreateFromRange}
                 onUpdateSlot={(slotId, body) => updateSlotMutation.mutate({ slotId, body })}
                 onEditSlot={openEditSlot}
                 onDeleteSlot={confirmDeleteSlot}
               />
             </div>
+            </CampaignManagePaywallShield>
 
             <div style={cardStyle}>
               <h2 style={{ ...typography.h2, fontSize: 16, marginTop: 0, marginBottom: 12 }}>График бюджета</h2>

@@ -13,6 +13,7 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
+import { useCampaignManagePaywall } from '../hooks/useCampaignManagePaywall'
 
 dayjs.locale('ru')
 
@@ -114,6 +115,7 @@ export default function BidderCampaigns() {
 
   const workContext = useWorkContextForManagerAdmin(isManagerOrAdmin)
   const selectedSellerId = isManagerOrAdmin ? workContext.selectedSellerId : undefined
+  const { guardAction, guardClick } = useCampaignManagePaywall(selectedSellerId)
 
   const { data: myCabinets = [], isLoading: cabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
@@ -399,7 +401,7 @@ export default function BidderCampaigns() {
               type="button"
               disabled={actionsDisabled}
               title={controlBlocked ? controlCapabilities?.message ?? undefined : undefined}
-              onClick={() => pauseMutation.mutate(c.id)}
+              onClick={() => guardAction(() => pauseMutation.mutate(c.id))}
               style={actionButtonStyle(colors.warning, actionsDisabled)}
             >
               II Пауза
@@ -409,7 +411,7 @@ export default function BidderCampaigns() {
               type="button"
               disabled={actionsDisabled}
               title={controlBlocked ? controlCapabilities?.message ?? undefined : undefined}
-              onClick={() => startMutation.mutate(c.id)}
+              onClick={() => guardAction(() => startMutation.mutate(c.id))}
               style={actionButtonStyle(colors.primary, actionsDisabled)}
             >
               ▷ Запуск
@@ -622,12 +624,20 @@ export default function BidderCampaigns() {
                             {formatCampaignDateTime(c.updatedAt)}
                           </td>
                           <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT_PAGE_SMALL }}>
-                            <Link to={`/advertising/campaigns/${c.id}/manage`} style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}>
+                            <Link
+                              to={`/advertising/campaigns/${c.id}/manage`}
+                              onClick={guardClick}
+                              style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}
+                            >
                               {c.name}
                             </Link>
                           </td>
                           <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT_PAGE_SMALL, color: colors.textSecondary }}>
-                            <Link to={`/advertising/campaigns/${c.id}/manage`} style={{ color: colors.textSecondary, textDecoration: 'none' }}>
+                            <Link
+                              to={`/advertising/campaigns/${c.id}/manage`}
+                              onClick={guardClick}
+                              style={{ color: colors.textSecondary, textDecoration: 'none' }}
+                            >
                               {c.id}
                             </Link>
                           </td>

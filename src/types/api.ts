@@ -161,6 +161,9 @@ export interface PlanDto {
   maxCabinets: number | null
   sortOrder?: number
   isActive?: boolean
+  code?: string | null
+  productCode?: string | null
+  periodType?: 'DAYS' | 'CALENDAR_MONTH' | string | null
 }
 
 export interface CreatePlanRequest {
@@ -287,6 +290,17 @@ export interface WbApiEventCabinetStatsDto {
   }>
 }
 
+/** Статус подписки на «Управление РК». */
+export interface CampaignManageAccessDto {
+  enabled: boolean
+  hasAccess: boolean
+  status: 'NONE' | 'ACTIVE' | 'EXPIRED' | string
+  expiresAt: string | null
+  daysRemaining: number | null
+  daysExpiredAgo: number | null
+  canActivateFree: boolean
+}
+
 /** Ответ GET /user/access: доступ к функционалу и статус подписки */
 export interface AccessStatusResponse {
   hasAccess: boolean
@@ -295,11 +309,19 @@ export interface AccessStatusResponse {
   billingEnabled: boolean
   subscriptionStatus: string | null
   subscriptionExpiresAt: string | null
+  campaignManage?: CampaignManageAccessDto | null
 }
 
 /** Ответ GET /subscription/status */
 export interface SubscriptionStatusResponse {
   billingEnabled: boolean
+  campaignManagementEnabled?: boolean
+}
+
+/** Ответ POST /subscription/activate */
+export interface ActivatePlanResponse {
+  subscriptionId: number
+  expiresAt: string
 }
 
 /** Элемент списка платежей GET /user/payments */

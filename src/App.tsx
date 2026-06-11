@@ -26,6 +26,7 @@ import Oferta from './pages/Oferta'
 import UserAgreement from './pages/UserAgreement'
 import Footer from './components/Footer'
 import AccessStatusPrefetch from './components/AccessStatusPrefetch'
+import CampaignManageSubscriptionModals from './components/campaignManageSubscription/CampaignManageSubscriptionModals'
 import { useAuthStore } from './store/authStore'
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
   return (
     <BrowserRouter>
       <AccessStatusPrefetch />
+      {token ? <CampaignManageSubscriptionModals /> : null}
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div>
           <Routes>
