@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  Alert,
   Card,
   Table,
   Button,
@@ -22,6 +23,7 @@ import { PlusOutlined, EditOutlined, CreditCardOutlined } from '@ant-design/icon
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '../api/admin'
 import { userApi } from '../api/user'
+import { CAMPAIGN_MANAGE_PRODUCT } from '../api/subscription'
 import type { PlanDto, SubscriptionDto, PaymentDto, UserListItem } from '../types/api'
 import { getPaymentStatusLabel, getPaymentStatusColor, getSubscriptionStatusLabel } from '../utils/paymentStatus'
 import { useAuthStore } from '../store/authStore'
@@ -29,6 +31,27 @@ import { userRoleLabel } from '../constants/userRoleLabels'
 import dayjs from 'dayjs'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
+
+function formatPlanPeriod(plan: PlanDto): string {
+  if (plan.periodType === 'CALENDAR_MONTH') return '1 месяц'
+  const d = plan.periodDays
+  if (d === 1) return '1 день'
+  if (d >= 2 && d <= 4) return `${d} дня`
+  return `${d} дней`
+}
+
+function formatProductLabel(productCode?: string | null): string {
+  if (productCode === CAMPAIGN_MANAGE_PRODUCT) return 'Управление РК'
+  if (productCode === 'LEGACY') return 'Устаревший'
+  return productCode ?? '—'
+}
+
+function sortPlans(list: PlanDto[]): PlanDto[] {
+  return [...list].sort((a, b) => {
+    const order = (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+    return order !== 0 ? order : a.id - b.id
+  })
+}
 
 export default function AdminPlansAndSubscriptions() {
   const navigate = useNavigate()
@@ -40,6 +63,7 @@ export default function AdminPlansAndSubscriptions() {
   const [planModalOpen, setPlanModalOpen] = useState(false)
   const [extendModalOpen, setExtendModalOpen] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
+  const [showLegacyPlans, setShowLegacyPlans] = useState(false)
 
   if (role !== 'ADMIN') {
     navigate('/profile', { replace: true })
@@ -50,6 +74,21 @@ export default function AdminPlansAndSubscriptions() {
     queryKey: ['adminPlans'],
     queryFn: () => adminApi.getPlans(),
   })
+
+  const campaignManagePlans = useMemo(
+    () => sortPlans(plans.filter((p) => p.productCode === CAMPAIGN_MANAGE_PRODUCT)),
+    [plans],
+  )
+
+  const visiblePlans = useMemo(() => {
+    if (showLegacyPlans) return sortPlans(plans)
+    return campaignManagePlans
+  }, [plans, showLegacyPlans, campaignManagePlans])
+
+  const activeCampaignPlans = useMemo(
+    () => campaignManagePlans.filter((p) => p.isActive !== false),
+    [campaignManagePlans],
+  )
 
   const { data: usersPage } = useQuery({
     queryKey: ['managedUsers', 0, 500],
@@ -77,7 +116,8 @@ export default function AdminPlansAndSubscriptions() {
       planForm.resetFields()
       queryClient.invalidateQueries({ queryKey: ['adminPlans'] })
     },
-    onError: (e: any) => message.error(e.response?.data?.message || 'Ошибка создания плана'),
+    onError: (e: { response?: { data?: { message?: string } } }) =>
+      message.error(e.response?.data?.message || 'Ошибка создания плана'),
   })
 
   const updatePlanMutation = useMutation({
@@ -90,7 +130,8 @@ export default function AdminPlansAndSubscriptions() {
       planForm.resetFields()
       queryClient.invalidateQueries({ queryKey: ['adminPlans'] })
     },
-    onError: (e: any) => message.error(e.response?.data?.message || 'Ошибка обновления плана'),
+    onError: (e: { response?: { data?: { message?: string } } }) =>
+      message.error(e.response?.data?.message || 'Ошибка обновления плана'),
   })
 
   const extendMutation = useMutation({
@@ -103,8 +144,21 @@ export default function AdminPlansAndSubscriptions() {
         queryClient.invalidateQueries({ queryKey: ['adminSubscriptions', selectedUserId] })
       }
     },
-    onError: (e: any) => message.error(e.response?.data?.message || 'Ошибка продления подписки'),
+    onError: (e: { response?: { data?: { message?: string } } }) =>
+      message.error(e.response?.data?.message || 'Ошибка продления подписки'),
   })
+
+  const openCreatePlan = () => {
+    setEditingPlan(null)
+    planForm.resetFields()
+    planForm.setFieldsValue({
+      productCode: CAMPAIGN_MANAGE_PRODUCT,
+      periodType: 'DAYS',
+      sortOrder: (campaignManagePlans.length + 1) * 10,
+      isActive: true,
+    })
+    setPlanModalOpen(true)
+  }
 
   const openEditPlan = (plan: PlanDto) => {
     setEditingPlan(plan)
@@ -113,9 +167,11 @@ export default function AdminPlansAndSubscriptions() {
       description: plan.description ?? '',
       priceRub: plan.priceRub,
       periodDays: plan.periodDays,
-      maxCabinets: plan.maxCabinets ?? undefined,
       sortOrder: plan.sortOrder ?? 0,
       isActive: plan.isActive ?? true,
+      code: plan.code ?? '',
+      productCode: plan.productCode ?? CAMPAIGN_MANAGE_PRODUCT,
+      periodType: plan.periodType ?? 'DAYS',
     })
     setPlanModalOpen(true)
   }
@@ -127,9 +183,11 @@ export default function AdminPlansAndSubscriptions() {
         description: values.description || undefined,
         priceRub: values.priceRub,
         periodDays: values.periodDays,
-        maxCabinets: values.maxCabinets,
         sortOrder: values.sortOrder,
         isActive: values.isActive,
+        code: values.code?.trim() || undefined,
+        productCode: values.productCode,
+        periodType: values.periodType,
       }
       if (editingPlan) {
         updatePlanMutation.mutate({ id: editingPlan.id, data: payload })
@@ -143,34 +201,60 @@ export default function AdminPlansAndSubscriptions() {
     if (selectedUserId == null) return
     extendForm.validateFields().then((values) => {
       const expiresAt = values.expiresAt ? dayjs(values.expiresAt).format('YYYY-MM-DDTHH:mm:ss') : undefined
-      const now = dayjs()
-      const currentSub = subscriptions?.find(
-        (s) => (s.status === 'active' || s.status === 'trial') && dayjs(s.expiresAt).isAfter(now)
-      ) ?? null
-      const planId = currentSub?.planId ?? plans[0]?.id
-      if (!planId) {
-        message.error('Нет доступных планов для назначения подписки')
+      if (!values.planId) {
+        message.error('Выберите план')
         return
       }
       extendMutation.mutate({
         userId: selectedUserId,
-        planId,
+        planId: values.planId,
         expiresAt,
       })
     })
   }
 
   const planColumns = [
-    { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
-    { title: 'Название', dataIndex: 'name', key: 'name' },
-    { title: 'Цена, ₽', dataIndex: 'priceRub', key: 'priceRub', render: (v: number) => v?.toFixed(2) },
-    { title: 'Дней', dataIndex: 'periodDays', key: 'periodDays', width: 80 },
-    { title: 'Макс. кабинетов', dataIndex: 'maxCabinets', key: 'maxCabinets', width: 120 },
+    { title: 'ID', dataIndex: 'id', key: 'id', width: 56 },
+    { title: 'Название', dataIndex: 'name', key: 'name', width: 120 },
+    {
+      title: 'Код',
+      dataIndex: 'code',
+      key: 'code',
+      width: 130,
+      render: (v: string | null) => v ?? '—',
+    },
+    {
+      title: 'Продукт',
+      dataIndex: 'productCode',
+      key: 'productCode',
+      width: 130,
+      render: (v: string | null) => formatProductLabel(v),
+    },
+    {
+      title: 'Цена, ₽',
+      dataIndex: 'priceRub',
+      key: 'priceRub',
+      width: 100,
+      render: (v: number) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(v),
+    },
+    {
+      title: 'Период',
+      key: 'period',
+      width: 100,
+      render: (_: unknown, record: PlanDto) => formatPlanPeriod(record),
+    },
+    {
+      title: 'Порядок',
+      dataIndex: 'sortOrder',
+      key: 'sortOrder',
+      width: 72,
+      render: (v: number | undefined) => v ?? 0,
+    },
     {
       title: 'Активен',
       dataIndex: 'isActive',
       key: 'isActive',
-      width: 90,
+      width: 88,
       render: (v: boolean) => (v ? <Tag color="green">Да</Tag> : <Tag>Нет</Tag>),
     },
     {
@@ -253,109 +337,140 @@ export default function AdminPlansAndSubscriptions() {
         }}
       >
         <div style={{ width: '100%', maxWidth: 1200 }}>
-          <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 24 }}>
-            Администрирование. Планы и подписки
+          <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 8 }}>
+            Управление РК — планы и подписки
           </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 24 }}>
+            Тарифы раздела «Управление РК». Остальной функционал сервиса бесплатен.
+          </Typography.Paragraph>
 
           <Tabs
-          items={[
-            {
-              key: 'plans',
-              label: 'Планы',
-              children: (
-                <Card>
-                  <div style={{ marginBottom: 16 }}>
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={() => {
-                        setEditingPlan(null)
-                        planForm.resetFields()
-                        setPlanModalOpen(true)
+            items={[
+              {
+                key: 'plans',
+                label: 'Планы',
+                children: (
+                  <Card>
+                    <Alert
+                      type="info"
+                      showIcon
+                      style={{ marginBottom: 16 }}
+                      message="Активные планы отображаются пользователям в модалке подписки на Управление РК."
+                    />
+                    <div
+                      style={{
+                        marginBottom: 16,
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 12,
+                        alignItems: 'center',
                       }}
                     >
-                      Добавить план
-                    </Button>
-                  </div>
-                  <Table
-                    rowKey="id"
-                    loading={plansLoading}
-                    columns={planColumns}
-                    dataSource={plans}
-                    pagination={false}
-                    size="small"
-                  />
-                </Card>
-              ),
-            },
-            {
-              key: 'subscriptions',
-              label: 'Подписки по пользователям',
-              children: (
-                <Card>
-                  <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                    <div>
-                      <Typography.Text strong style={{ marginRight: 8 }}>
-                        Пользователь:
-                      </Typography.Text>
-                      <Select
-                        placeholder="Выберите пользователя"
-                        style={{ width: 320 }}
-                        value={selectedUserId ?? undefined}
-                        onChange={setSelectedUserId}
-                        optionFilterProp="label"
-                        options={users.map((u: UserListItem) => ({
-                          value: u.id,
-                          label: `${u.email} (${userRoleLabel(u.role)})`,
-                        }))}
+                      <Button type="primary" icon={<PlusOutlined />} onClick={openCreatePlan}>
+                        Добавить план
+                      </Button>
+                      <Switch
+                        checked={showLegacyPlans}
+                        onChange={setShowLegacyPlans}
+                        checkedChildren="Устаревшие"
+                        unCheckedChildren="Устаревшие"
                       />
+                      <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                        {showLegacyPlans
+                          ? 'Показаны все планы, включая LEGACY'
+                          : `Только Управление РК (${campaignManagePlans.length})`}
+                      </Typography.Text>
                     </div>
-                    {selectedUserId != null && (
-                      <>
-                        <div>
-                          <Button
-                            type="primary"
-                            icon={<CreditCardOutlined />}
-                            onClick={() => {
-                              extendForm.setFieldsValue({ userId: selectedUserId, expiresAt: null })
-                              setExtendModalOpen(true)
-                            }}
-                          >
-                            Продлить / назначить подписку
-                          </Button>
-                        </div>
-                        <Typography.Title level={5}>Подписки</Typography.Title>
-                        {subsLoading ? (
-                          <Spin />
-                        ) : (
-                          <Table
-                            rowKey="id"
-                            columns={subColumns}
-                            dataSource={subscriptions}
-                            pagination={false}
-                            size="small"
-                          />
-                        )}
-                        <Typography.Title level={5}>Платежи</Typography.Title>
-                        {paymentsLoading ? (
-                          <Spin />
-                        ) : (
-                          <Table
-                            rowKey="id"
-                            columns={paymentColumns}
-                            dataSource={payments}
-                            pagination={false}
-                            size="small"
-                          />
-                        )}
-                      </>
-                    )}
-                  </Space>
-                </Card>
-              ),
-            },
-          ]}
-        />
+                    <Table
+                      rowKey="id"
+                      loading={plansLoading}
+                      columns={planColumns}
+                      dataSource={visiblePlans}
+                      pagination={false}
+                      size="small"
+                      scroll={{ x: 900 }}
+                    />
+                  </Card>
+                ),
+              },
+              {
+                key: 'subscriptions',
+                label: 'Подписки по пользователям',
+                children: (
+                  <Card>
+                    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                      <div>
+                        <Typography.Text strong style={{ marginRight: 8 }}>
+                          Пользователь:
+                        </Typography.Text>
+                        <Select
+                          placeholder="Выберите пользователя"
+                          style={{ width: 320 }}
+                          value={selectedUserId ?? undefined}
+                          onChange={setSelectedUserId}
+                          optionFilterProp="label"
+                          options={users.map((u: UserListItem) => ({
+                            value: u.id,
+                            label: `${u.email} (${userRoleLabel(u.role)})`,
+                          }))}
+                        />
+                      </div>
+                      {selectedUserId != null && (
+                        <>
+                          <div>
+                            <Button
+                              type="primary"
+                              icon={<CreditCardOutlined />}
+                              onClick={() => {
+                                const now = dayjs()
+                                const currentSub =
+                                  subscriptions?.find(
+                                    (s) =>
+                                      (s.status === 'active' || s.status === 'trial')
+                                      && dayjs(s.expiresAt).isAfter(now),
+                                  ) ?? null
+                                extendForm.setFieldsValue({
+                                  planId: currentSub?.planId ?? activeCampaignPlans[0]?.id,
+                                  expiresAt: null,
+                                })
+                                setExtendModalOpen(true)
+                              }}
+                            >
+                              Продлить / назначить подписку
+                            </Button>
+                          </div>
+                          <Typography.Title level={5}>Подписки</Typography.Title>
+                          {subsLoading ? (
+                            <Spin />
+                          ) : (
+                            <Table
+                              rowKey="id"
+                              columns={subColumns}
+                              dataSource={subscriptions}
+                              pagination={false}
+                              size="small"
+                            />
+                          )}
+                          <Typography.Title level={5}>Платежи</Typography.Title>
+                          {paymentsLoading ? (
+                            <Spin />
+                          ) : (
+                            <Table
+                              rowKey="id"
+                              columns={paymentColumns}
+                              dataSource={payments}
+                              pagination={false}
+                              size="small"
+                            />
+                          )}
+                        </>
+                      )}
+                    </Space>
+                  </Card>
+                ),
+              },
+            ]}
+          />
         </div>
       </div>
 
@@ -368,7 +483,7 @@ export default function AdminPlansAndSubscriptions() {
         }}
         onOk={handlePlanSubmit}
         confirmLoading={createPlanMutation.isPending || updatePlanMutation.isPending}
-        width={480}
+        width={520}
       >
         <Form form={planForm} layout="vertical">
           <Form.Item name="name" label="Название" rules={[{ required: true }]}>
@@ -377,14 +492,30 @@ export default function AdminPlansAndSubscriptions() {
           <Form.Item name="description" label="Описание">
             <Input.TextArea rows={2} />
           </Form.Item>
+          <Form.Item name="code" label="Код (уникальный)">
+            <Input placeholder="campaign_week" disabled={editingPlan?.productCode === CAMPAIGN_MANAGE_PRODUCT && !!editingPlan?.code} />
+          </Form.Item>
+          <Form.Item name="productCode" label="Продукт" rules={[{ required: true }]}>
+            <Select
+              options={[
+                { value: CAMPAIGN_MANAGE_PRODUCT, label: 'Управление РК' },
+                { value: 'LEGACY', label: 'Устаревший' },
+              ]}
+            />
+          </Form.Item>
           <Form.Item name="priceRub" label="Цена, ₽" rules={[{ required: true }]}>
             <InputNumber min={0} step={1} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="periodDays" label="Период, дней" rules={[{ required: true }]}>
-            <InputNumber min={1} style={{ width: '100%' }} />
+          <Form.Item name="periodType" label="Тип периода" rules={[{ required: true }]}>
+            <Select
+              options={[
+                { value: 'DAYS', label: 'Дни (period_days)' },
+                { value: 'CALENDAR_MONTH', label: 'Календарный месяц (+1 мес.)' },
+              ]}
+            />
           </Form.Item>
-          <Form.Item name="maxCabinets" label="Макс. кабинетов">
-            <InputNumber min={0} style={{ width: '100%' }} placeholder="Не ограничено" />
+          <Form.Item name="periodDays" label="Период, дней (для отображения)" rules={[{ required: true }]}>
+            <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="sortOrder" label="Порядок сортировки">
             <InputNumber min={0} style={{ width: '100%' }} />
@@ -405,9 +536,10 @@ export default function AdminPlansAndSubscriptions() {
         <Form form={extendForm} layout="vertical">
           {(() => {
             const now = dayjs()
-            const currentSub = subscriptions?.find(
-              (s) => (s.status === 'active' || s.status === 'trial') && dayjs(s.expiresAt).isAfter(now)
-            ) ?? null
+            const currentSub =
+              subscriptions?.find(
+                (s) => (s.status === 'active' || s.status === 'trial') && dayjs(s.expiresAt).isAfter(now),
+              ) ?? null
             const currentExpiresAt = currentSub?.expiresAt
             return (
               <Form.Item label="Текущая дата окончания">
@@ -417,7 +549,19 @@ export default function AdminPlansAndSubscriptions() {
               </Form.Item>
             )
           })()}
-          <Form.Item name="expiresAt" label="Новая дата окончания" rules={[{ required: true, message: 'Укажите новую дату окончания' }]}>
+          <Form.Item name="planId" label="План" rules={[{ required: true, message: 'Выберите план' }]}>
+            <Select
+              options={activeCampaignPlans.map((p) => ({
+                value: p.id,
+                label: `${p.name} (${formatPlanPeriod(p)}, ${p.priceRub} ₽)`,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="expiresAt"
+            label="Новая дата окончания"
+            rules={[{ required: true, message: 'Укажите новую дату окончания' }]}
+          >
             <DatePicker showTime style={{ width: '100%' }} />
           </Form.Item>
         </Form>

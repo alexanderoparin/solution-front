@@ -562,7 +562,7 @@ export default function Profile() {
                       size="large"
                       style={profileAdminActionGridButtonStyle}
                     >
-                      Планы и подписки
+                      Управление РК — планы
                     </Button>
                     <Button
                       block

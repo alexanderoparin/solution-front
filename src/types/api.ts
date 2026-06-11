@@ -174,6 +174,9 @@ export interface CreatePlanRequest {
   maxCabinets?: number
   sortOrder?: number
   isActive?: boolean
+  code?: string
+  productCode?: string
+  periodType?: 'DAYS' | 'CALENDAR_MONTH' | string
 }
 
 export interface UpdatePlanRequest {
@@ -184,6 +187,9 @@ export interface UpdatePlanRequest {
   maxCabinets?: number
   sortOrder?: number
   isActive?: boolean
+  code?: string
+  productCode?: string
+  periodType?: 'DAYS' | 'CALENDAR_MONTH' | string
 }
 
 export interface SubscriptionDto {
