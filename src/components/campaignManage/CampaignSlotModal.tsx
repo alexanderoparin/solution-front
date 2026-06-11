@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Modal, InputNumber, Select, Checkbox } from 'antd'
 import type { CampaignSlotRepeatMode } from '../../types/analytics'
-import { DAY_LABELS, listTimeOptions } from '../../utils/campaignSlotTime'
+import { DAY_LABELS, listEndTimeOptions, listStartTimeOptions } from '../../utils/campaignSlotTime'
 
 export interface SlotModalDraft {
   dayOfWeek: number
@@ -36,13 +36,14 @@ export default function CampaignSlotModal({
   saving,
 }: CampaignSlotModalProps) {
   const [draft, setDraft] = useState<SlotModalDraft>(initial)
-  const timeOptions = listTimeOptions()
+  const startTimeOptions = listStartTimeOptions()
+  const allEndTimeOptions = listEndTimeOptions()
 
   useEffect(() => {
     if (open) setDraft(initial)
   }, [open, initial])
 
-  const endOptions = timeOptions.filter((t) => t > draft.startTime)
+  const endOptions = allEndTimeOptions.filter((t) => t > draft.startTime)
 
   return (
     <Modal
@@ -73,7 +74,7 @@ export default function CampaignSlotModal({
               style={{ width: '100%' }}
               value={draft.startTime}
               onChange={(v) => setDraft((d) => ({ ...d, startTime: v, endTime: d.endTime <= v ? '' : d.endTime }))}
-              options={timeOptions.map((t) => ({ value: t, label: t }))}
+              options={startTimeOptions.map((t) => ({ value: t, label: t }))}
               showSearch
               optionFilterProp="label"
             />
@@ -84,7 +85,7 @@ export default function CampaignSlotModal({
               style={{ width: '100%' }}
               value={draft.endTime}
               onChange={(v) => setDraft((d) => ({ ...d, endTime: v }))}
-              options={(endOptions.length ? endOptions : timeOptions).map((t) => ({ value: t, label: t }))}
+              options={(endOptions.length ? endOptions : allEndTimeOptions).map((t) => ({ value: t, label: t }))}
               showSearch
               optionFilterProp="label"
             />
