@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { Button, Card, Spin, Table, Typography, message, Tag, Tooltip } from 'antd'
+import { useQuery } from '@tanstack/react-query'
+import { Button, Card, Spin, Table, Typography, Tag, Tooltip } from 'antd'
+import { PAYMENT_UNAVAILABLE_PATH } from '../constants/subscriptionRoutes'
 import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
 import { subscriptionApi } from '../api/subscription'
 import type { PaymentDto } from '../types/api'
@@ -41,20 +42,6 @@ export default function Subscription() {
   const { data: plans = [] } = useQuery({
     queryKey: ['subscriptionPlans'],
     queryFn: () => subscriptionApi.getPlans(),
-  })
-
-  const initiateMutation = useMutation({
-    mutationFn: (planId: number) => subscriptionApi.initiatePayment(planId),
-    onSuccess: (data) => {
-      if (data.paymentUrl) {
-        window.location.href = data.paymentUrl
-      } else {
-        message.error('Не получен адрес оплаты')
-      }
-    },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'Ошибка инициации оплаты')
-    },
   })
 
   const formatPrice = (amount: number, currency: string) =>
@@ -257,7 +244,7 @@ export default function Subscription() {
                         e.currentTarget.style.boxShadow = tariffCardStyle.boxShadow
                         e.currentTarget.style.borderColor = border
                       }}
-                      onClick={() => !initiateMutation.isPending && initiateMutation.mutate(plan.id)}
+                      onClick={() => navigate(PAYMENT_UNAVAILABLE_PATH)}
                     >
                       <div style={{ fontSize: 16, fontWeight: 600, color: textPrimary, marginBottom: 6 }}>{plan.name}</div>
                       {plan.description && (

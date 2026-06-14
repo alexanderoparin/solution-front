@@ -341,12 +341,6 @@ export interface PaymentDto {
   createdAt: string
 }
 
-/** Ответ POST /subscription/initiate */
-export interface InitiatePaymentResponse {
-  paymentUrl: string
-  paymentId: number
-}
-
 export interface CreateCabinetRequest {
   /** Обязательно, если не передан apiKey. */
   name?: string

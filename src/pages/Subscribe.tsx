@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { Alert, Button, Card, Spin, Typography, message } from 'antd'
+import { useQuery } from '@tanstack/react-query'
+import { Alert, Button, Card, Spin, Typography } from 'antd'
+import { PAYMENT_UNAVAILABLE_PATH } from '../constants/subscriptionRoutes'
 import { CreditCardOutlined, MailOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { subscriptionApi } from '../api/subscription'
@@ -25,20 +26,6 @@ export default function Subscribe() {
 
   const showConfirmEmailHint =
     profile && !profile.isAgencyClient && profile.emailConfirmed === false
-
-  const initiateMutation = useMutation({
-    mutationFn: (planId: number) => subscriptionApi.initiatePayment(planId),
-    onSuccess: (data) => {
-      if (data.paymentUrl) {
-        window.location.href = data.paymentUrl
-      } else {
-        message.error('Не получен адрес оплаты')
-      }
-    },
-    onError: (err: any) => {
-      message.error(err.response?.data?.message || 'Ошибка инициации оплаты')
-    },
-  })
 
   const formatPrice = (rub: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'decimal', minimumFractionDigits: 0 }).format(rub) + ' ₽'
@@ -113,8 +100,7 @@ export default function Subscribe() {
                   <Button
                     type="primary"
                     icon={<CreditCardOutlined />}
-                    loading={initiateMutation.isPending}
-                    onClick={() => initiateMutation.mutate(plan.id)}
+                    onClick={() => navigate(PAYMENT_UNAVAILABLE_PATH)}
                     style={{ background: accent, borderColor: accent }}
                   >
                     Оплатить

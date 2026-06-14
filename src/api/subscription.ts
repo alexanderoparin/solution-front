@@ -2,7 +2,6 @@ import apiClient from './client'
 import type {
   ActivatePlanResponse,
   PlanDto,
-  InitiatePaymentResponse,
   SubscriptionStatusResponse,
 } from '../types/api'
 
@@ -28,12 +27,6 @@ export const subscriptionApi = {
   /** Активация бесплатного плана */
   activatePlan: async (planId: number): Promise<ActivatePlanResponse> => {
     const response = await apiClient.post<ActivatePlanResponse>('/subscription/activate', { planId })
-    return response.data
-  },
-
-  /** Инициация оплаты плана; возвращает URL для редиректа в Робокассу */
-  initiatePayment: async (planId: number): Promise<InitiatePaymentResponse> => {
-    const response = await apiClient.post<InitiatePaymentResponse>('/subscription/initiate', { planId })
     return response.data
   },
 }
