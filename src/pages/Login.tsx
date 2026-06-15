@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Form, Input, Button, Card, Typography, message } from 'antd'
@@ -6,7 +6,6 @@ import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { authApi } from '../api/auth'
 import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
 import { useAuthStore } from '../store/authStore'
-import ChangePasswordModal from '../components/ChangePasswordModal'
 import SiteLogo from '../components/SiteLogo'
 import type { LoginRequest } from '../types/api'
 import { LEGAL_OPERATOR } from '../constants/legalOperator'
@@ -17,7 +16,6 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
-  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const setAuth = useAuthStore((state) => state.setAuth)
 
   useEffect(() => {
@@ -36,11 +34,6 @@ export default function Login() {
     mutationFn: (data: LoginRequest) => authApi.login(data),
     onSuccess: async (data) => {
       setAuth(data.token, data.email, data.userId, data.role)
-
-      if (data.isTemporaryPassword) {
-        setShowChangePasswordModal(true)
-        return
-      }
 
       message.success('Вход выполнен успешно')
       try {
@@ -152,29 +145,6 @@ export default function Login() {
           </div>
         </div>
       </Card>
-
-      <ChangePasswordModal
-        open={showChangePasswordModal}
-        onSuccess={async () => {
-          setShowChangePasswordModal(false)
-          message.success('Пароль успешно изменен')
-          try {
-            await queryClient.prefetchQuery({
-              queryKey: ACCESS_STATUS_QUERY_KEY,
-              queryFn: () => userApi.getAccessStatus(),
-              staleTime: ACCESS_STATUS_STALE_MS,
-            })
-          } catch {
-            /* см. Login onSuccess */
-          }
-          navigate(getInitialRoute())
-        }}
-        onCancel={() => {
-          setShowChangePasswordModal(false)
-          useAuthStore.getState().clearAuth()
-        }}
-      />
     </div>
   )
 }
-

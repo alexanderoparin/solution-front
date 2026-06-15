@@ -100,7 +100,6 @@ export default function Subscription() {
   }
 
   const hasAccess = access.hasAccess
-  const agencyClient = access.agencyClient
   const billingEnabled = access.billingEnabled ?? true
   const subscriptionStatus = access.subscriptionStatus ?? null
   const isTrial = subscriptionStatus === 'trial'
@@ -186,9 +185,7 @@ export default function Subscription() {
             }}
           >
             <Typography.Text strong>Текущий статус: </Typography.Text>
-            {agencyClient ? (
-              <Tag color="blue">Клиент агентства</Tag>
-            ) : hasAccess && expiresAt ? (
+            {hasAccess && expiresAt ? (
               <>
                 {isTrial ? (
                   <Tag color="blue">Пробный период</Tag>

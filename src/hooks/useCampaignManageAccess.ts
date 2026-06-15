@@ -30,7 +30,8 @@ export function useCampaignManageAccess(overrideSellerId?: number) {
   const campaignManage = access?.campaignManage
 
   const showBadge = useMemo(() => {
-    if (role === 'ADMIN') return false
+    // Подписку на Управление РК оформляет селлер; менеджер/работник наследуют доступ.
+    if (role !== 'SELLER') return false
     return campaignManage?.enabled === true
   }, [role, campaignManage?.enabled])
 

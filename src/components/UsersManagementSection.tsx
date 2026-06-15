@@ -58,8 +58,6 @@ dayjs.locale('ru')
 
 const { Text } = Typography
 
-const formatAgencyClient = (value?: boolean | null): string => (value ? 'Да' : 'Нет')
-
 const formatOwnerEmail = (email?: string | null): string => {
   const trimmed = email?.trim()
   return trimmed ? trimmed : '—'
@@ -204,17 +202,17 @@ export default function UsersManagementSection({
 
   const getCreatableRole = (): UserRole => {
     if (role === 'ADMIN') return 'MANAGER'
-    if (role === 'MANAGER') return 'SELLER'
     if (role === 'SELLER') return 'WORKER'
     return 'WORKER'
   }
 
   const getCreatableRoles = (): UserRole[] => {
     if (role === 'ADMIN') return ['MANAGER', 'SELLER']
-    if (role === 'MANAGER') return ['SELLER']
     if (role === 'SELLER') return ['WORKER']
     return []
   }
+
+  const canCreateUsers = getCreatableRoles().length > 0
 
   const { data, isLoading } = useQuery({
     queryKey: ['managedUsers', page, pageSize, searchEmail, effectiveOnlySellers, sortBy, sortDir],
@@ -295,31 +293,6 @@ export default function UsersManagementSection({
           cabinetSortBy === CABINET_SORT_FIELDS.SELLER_EMAIL
             ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
             : null,
-      },
-      {
-        title: 'Клиент агентства',
-        key: CABINET_SORT_FIELDS.SELLER_AGENCY_CLIENT,
-        width: 130,
-        align: 'center',
-        sorter: true,
-        sortOrder:
-          cabinetSortBy === CABINET_SORT_FIELDS.SELLER_AGENCY_CLIENT
-            ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
-            : null,
-        render: (_: unknown, row: ManagedCabinetRowDto) => formatAgencyClient(row.sellerAgencyClient),
-      },
-      {
-        title: 'Владелец селлера',
-        key: CABINET_SORT_FIELDS.SELLER_OWNER_EMAIL,
-        width: 224,
-        ellipsis: true,
-        align: 'left',
-        sorter: true,
-        sortOrder:
-          cabinetSortBy === CABINET_SORT_FIELDS.SELLER_OWNER_EMAIL
-            ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
-            : null,
-        render: (_: unknown, row: ManagedCabinetRowDto) => formatOwnerEmail(row.sellerOwnerEmail),
       },
       {
         title: 'Основное обновление',
@@ -444,13 +417,8 @@ export default function UsersManagementSection({
     },
   })
 
-  const handleCreate = (values: CreateUserRequest & { isAgencyManager?: boolean }) => {
-    const { isAgencyManager, ...rest } = values
-    const payload: CreateUserRequest = { ...rest }
-    if (role === 'ADMIN' && values.role === 'MANAGER') {
-      payload.isAgencyManager = isAgencyManager !== false
-    }
-    createMutation.mutate(payload)
+  const handleCreate = (values: CreateUserRequest) => {
+    createMutation.mutate(values)
   }
 
   const handleEdit = (user: UserListItem) => {
@@ -510,18 +478,7 @@ export default function UsersManagementSection({
         : null,
     },
     {
-      title: 'Клиент агентства',
-      key: USER_SORT_FIELDS.IS_AGENCY_CLIENT,
-      width: 130,
-      align: 'center' as const,
-      sorter: true,
-      sortOrder: sortBy === USER_SORT_FIELDS.IS_AGENCY_CLIENT
-        ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
-        : null,
-      render: (_: unknown, record: UserListItem) => formatAgencyClient(record.isAgencyClient),
-    },
-    {
-      title: 'Владелец селлера',
+      title: 'Селлер',
       key: USER_SORT_FIELDS.OWNER_EMAIL,
       width: 224,
       ellipsis: true,
@@ -536,9 +493,9 @@ export default function UsersManagementSection({
       title: 'Статус',
       key: 'isActive',
       render: (_: any, record: UserListItem) => (
-        record.isTemporaryPassword
-          ? <Tag color="orange">Временный пароль</Tag>
-          : <Tag color="green">Активен</Tag>
+        <Tag color={record.isActive ? 'green' : 'red'}>
+          {record.isActive ? 'Активен' : 'Неактивен'}
+        </Tag>
       ),
       sorter: true,
       sortOrder: sortBy === USER_SORT_FIELDS.IS_ACTIVE
@@ -725,17 +682,19 @@ export default function UsersManagementSection({
             </Checkbox>
           )}
         </Space>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            createForm.setFieldsValue({ role: getCreatableRole(), isAgencyManager: true })
-            setIsCreateModalOpen(true)
-          }}
-          style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
-        >
-          Создать пользователя
-        </Button>
+        {canCreateUsers && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              createForm.setFieldsValue({ role: getCreatableRole() })
+              setIsCreateModalOpen(true)
+            }}
+            style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
+          >
+            Создать пользователя
+          </Button>
+        )}
       </div>
       {showCabinetsTable && managedCabinetsError && (
         <div style={{ marginBottom: 16 }}>
@@ -918,20 +877,20 @@ export default function UsersManagementSection({
           </Form.Item>
           <Form.Item
             name="password"
-            label="Временный пароль"
+            label="Пароль"
             rules={[
               { required: true, message: 'Введите пароль' },
               { min: 6, message: 'Пароль должен содержать минимум 6 символов' },
             ]}
           >
             <Input.Password
-              placeholder="Временный пароль"
+              placeholder="Пароль"
               readOnly={createPasswordReadOnly}
               onFocus={() => setCreatePasswordReadOnly(false)}
               onBlur={() => setCreatePasswordReadOnly(true)}
               autoComplete="new-password"
-              name="create-user-temp-password"
-              id="create-user-temp-password"
+              name="create-user-password"
+              id="create-user-password"
               data-lpignore="true"
               data-form-type="other"
             />
@@ -949,20 +908,6 @@ export default function UsersManagementSection({
                 </Select.Option>
               ))}
             </Select>
-          </Form.Item>
-          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.role !== cur.role}>
-            {() =>
-              role === 'ADMIN' && createForm.getFieldValue('role') === 'MANAGER' ? (
-                <Form.Item
-                  name="isAgencyManager"
-                  valuePropName="checked"
-                  initialValue
-                  style={{ marginBottom: 0 }}
-                >
-                  <Checkbox>Менеджер агентства</Checkbox>
-                </Form.Item>
-              ) : null
-            }
           </Form.Item>
           <Form.Item style={{ marginBottom: 0, marginTop: '24px' }}>
             <Space>

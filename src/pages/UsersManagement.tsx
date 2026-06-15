@@ -5,7 +5,6 @@ import {
   Modal,
   Form,
   Input,
-  Checkbox,
   Select,
   Switch,
   Space,
@@ -42,7 +41,6 @@ export default function UsersManagement() {
   // Определяем, какую роль можно создавать (по умолчанию)
   const getCreatableRole = (): UserRole => {
     if (role === 'ADMIN') return 'MANAGER'
-    if (role === 'MANAGER') return 'SELLER'
     if (role === 'SELLER') return 'WORKER'
     return 'WORKER'
   }
@@ -50,10 +48,11 @@ export default function UsersManagement() {
   // Определяем, какие роли можно создавать
   const getCreatableRoles = (): UserRole[] => {
     if (role === 'ADMIN') return ['MANAGER', 'SELLER']
-    if (role === 'MANAGER') return ['SELLER']
     if (role === 'SELLER') return ['WORKER']
     return []
   }
+
+  const canCreateUsers = getCreatableRoles().length > 0
 
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
@@ -108,13 +107,8 @@ export default function UsersManagement() {
     },
   })
 
-  const handleCreate = (values: CreateUserRequest & { isAgencyManager?: boolean }) => {
-    const { isAgencyManager, ...rest } = values
-    const payload: CreateUserRequest = { ...rest }
-    if (role === 'ADMIN' && values.role === 'MANAGER') {
-      payload.isAgencyManager = isAgencyManager !== false
-    }
-    createMutation.mutate(payload)
+  const handleCreate = (values: CreateUserRequest) => {
+    createMutation.mutate(values)
   }
 
   const handleEdit = (user: UserListItem) => {
@@ -152,12 +146,7 @@ export default function UsersManagement() {
       ),
     },
     {
-      title: 'Клиент агентства',
-      key: 'isAgencyClient',
-      render: (_: unknown, record: UserListItem) => (record.isAgencyClient ? 'Да' : 'Нет'),
-    },
-    {
-      title: 'Владелец селлера',
+      title: 'Селлер',
       key: 'ownerEmail',
       render: (_: unknown, record: UserListItem) => {
         const trimmed = record.ownerEmail?.trim()
@@ -168,14 +157,9 @@ export default function UsersManagement() {
       title: 'Статус',
       key: 'status',
       render: (_: any, record: UserListItem) => (
-        <Space>
-          <Tag color={record.isActive ? 'green' : 'red'}>
-            {record.isActive ? 'Активен' : 'Неактивен'}
-          </Tag>
-          {record.isTemporaryPassword && (
-            <Tag color="orange">Временный пароль</Tag>
-          )}
-        </Space>
+        <Tag color={record.isActive ? 'green' : 'red'}>
+          {record.isActive ? 'Активен' : 'Неактивен'}
+        </Tag>
       ),
     },
     {
@@ -231,20 +215,22 @@ export default function UsersManagement() {
             marginBottom: '24px',
           }}
         >
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              createForm.setFieldsValue({ role: getCreatableRole(), isAgencyManager: true })
-              setIsCreateModalOpen(true)
-            }}
-            style={{
-              backgroundColor: '#7C3AED',
-              borderColor: '#7C3AED',
-            }}
-          >
-            Создать пользователя
-          </Button>
+          {canCreateUsers && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                createForm.setFieldsValue({ role: getCreatableRole() })
+                setIsCreateModalOpen(true)
+              }}
+              style={{
+                backgroundColor: '#7C3AED',
+                borderColor: '#7C3AED',
+              }}
+            >
+              Создать пользователя
+            </Button>
+          )}
         </div>
 
         <Table
@@ -314,13 +300,13 @@ export default function UsersManagement() {
 
             <Form.Item
               name="password"
-              label="Временный пароль"
+              label="Пароль"
               rules={[
                 { required: true, message: 'Введите пароль' },
                 { min: 6, message: 'Пароль должен содержать минимум 6 символов' },
               ]}
             >
-              <Input.Password placeholder="Временный пароль" />
+              <Input.Password placeholder="Пароль" />
             </Form.Item>
 
             <Form.Item
@@ -336,21 +322,6 @@ export default function UsersManagement() {
                   </Select.Option>
                 ))}
               </Select>
-            </Form.Item>
-
-            <Form.Item noStyle shouldUpdate={(prev, cur) => prev.role !== cur.role}>
-              {() =>
-                role === 'ADMIN' && createForm.getFieldValue('role') === 'MANAGER' ? (
-                  <Form.Item
-                    name="isAgencyManager"
-                    valuePropName="checked"
-                    initialValue
-                    style={{ marginBottom: 0 }}
-                  >
-                    <Checkbox>Менеджер агентства</Checkbox>
-                  </Form.Item>
-                ) : null
-              }
             </Form.Item>
 
             <Form.Item style={{ marginBottom: 0, marginTop: '24px' }}>

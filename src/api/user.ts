@@ -12,6 +12,8 @@ import {
   WorkContextCabinetDto,
   AccessStatusResponse,
   PaymentDto,
+  SellerManagerAccessDto,
+  GrantManagerAccessRequest,
 } from '../types/api'
 import type { CabinetTokenType } from '../types/api'
 import type { SortDirection, UserSortField } from '../constants/userSorting'
@@ -21,7 +23,6 @@ const USER_SORT_FIELD_TO_BACKEND: Record<UserSortField, string> = {
   email: 'EMAIL',
   role: 'ROLE',
   isActive: 'IS_ACTIVE',
-  isAgencyClient: 'IS_AGENCY_CLIENT',
   ownerEmail: 'OWNER_EMAIL',
   createdAt: 'CREATED_AT',
   lastDataUpdateAt: 'LAST_DATA_UPDATE_AT',
@@ -41,8 +42,6 @@ const CABINET_SORT_FIELD_TO_BACKEND: Record<CabinetSortField, string> = {
   cabinetId: 'CABINET_ID',
   cabinetName: 'CABINET_NAME',
   sellerEmail: 'SELLER_EMAIL',
-  sellerAgencyClient: 'SELLER_AGENCY_CLIENT',
-  sellerOwnerEmail: 'SELLER_OWNER_EMAIL',
   lastDataUpdateAt: 'LAST_DATA_UPDATE_AT',
   lastStocksUpdateAt: 'LAST_STOCKS_UPDATE_AT',
 }
@@ -74,6 +73,21 @@ export const userApi = {
    */
   sendEmailConfirmation: async (): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>('/user/send-email-confirmation')
+    return response.data
+  },
+
+  listManagerAccess: async (): Promise<SellerManagerAccessDto[]> => {
+    const response = await apiClient.get<SellerManagerAccessDto[]>('/user/manager-access')
+    return response.data
+  },
+
+  grantManagerAccess: async (data: GrantManagerAccessRequest): Promise<SellerManagerAccessDto> => {
+    const response = await apiClient.post<SellerManagerAccessDto>('/user/manager-access', data)
+    return response.data
+  },
+
+  revokeManagerAccess: async (managerId: number): Promise<MessageResponse> => {
+    const response = await apiClient.delete<MessageResponse>(`/user/manager-access/${managerId}`)
     return response.data
   },
 

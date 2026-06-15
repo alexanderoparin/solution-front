@@ -12,8 +12,8 @@ interface AccessGuardProps {
 }
 
 /**
- * Для авторизованных пользователей проверяет доступ (подписка / клиент агентства / подтверждение почты).
- * Без подтверждённой почты (кроме клиентов агентства) — экран с переходом в профиль.
+ * Для авторизованных пользователей проверяет доступ (подписка / подтверждение почты).
+ * Без подтверждённой почты — экран с переходом в профиль.
  * Нет доступа по подписке — редирект на /subscribe.
  */
 export default function AccessGuard({ children }: AccessGuardProps) {
@@ -71,7 +71,7 @@ export default function AccessGuard({ children }: AccessGuardProps) {
     )
   }
 
-  if (!access.agencyClient && !access.emailConfirmed) {
+  if (!access.emailConfirmed) {
     return (
       <>
         <Header />
@@ -107,7 +107,7 @@ export default function AccessGuard({ children }: AccessGuardProps) {
     )
   }
 
-  if (!access.hasAccess && !access.agencyClient) {
+  if (!access.hasAccess) {
     return <Navigate to="/subscribe" replace />
   }
 

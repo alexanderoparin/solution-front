@@ -8,7 +8,6 @@ export interface AuthResponse {
   email: string
   role: string
   userId: number
-  isTemporaryPassword?: boolean
 }
 
 export interface ChangePasswordRequest {
@@ -34,10 +33,8 @@ export interface UserProfileResponse {
   email: string
   role: string
   isActive: boolean
-  /** Почта подтверждена (только для сторонних селлеров) */
+  /** Почта подтверждена */
   emailConfirmed?: boolean
-  /** Селлер является клиентом агентства */
-  isAgencyClient?: boolean
   /** Дата последней отправки письма для подтверждения почты (ISO), повтор не чаще 1 раза в 24 ч */
   lastEmailConfirmationSentAt?: string | null
   apiKey?: ApiKeyInfo
@@ -63,10 +60,8 @@ export interface UserListItem {
   email: string
   role: UserRole
   isActive: boolean
-  isTemporaryPassword: boolean
   createdAt: string
   ownerEmail: string | null
-  isAgencyClient?: boolean
   lastDataUpdateAt: string | null
   lastDataUpdateRequestedAt: string | null
 }
@@ -83,13 +78,21 @@ export interface CreateUserRequest {
   email: string
   password: string
   role: UserRole
-  /** Только при создании MANAGER админом: false — сторонний менеджер. */
-  isAgencyManager?: boolean
 }
 
 export interface UpdateUserRequest {
   email: string
   isActive?: boolean
+}
+
+export interface SellerManagerAccessDto {
+  managerId: number
+  managerEmail: string
+  grantedAt: string
+}
+
+export interface GrantManagerAccessRequest {
+  managerEmail: string
 }
 
 export interface CabinetApiKeyInfo {
@@ -137,8 +140,6 @@ export interface CabinetDto {
 export interface ManagedCabinetRowDto {
   sellerId: number
   sellerEmail: string
-  sellerAgencyClient?: boolean
-  sellerOwnerEmail?: string | null
   cabinet: CabinetDto
 }
 
@@ -311,7 +312,6 @@ export interface CampaignManageAccessDto {
 /** Ответ GET /user/access: доступ к функционалу и статус подписки */
 export interface AccessStatusResponse {
   hasAccess: boolean
-  agencyClient: boolean
   emailConfirmed: boolean
   billingEnabled: boolean
   subscriptionStatus: string | null

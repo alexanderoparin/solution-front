@@ -25,7 +25,7 @@ export default function Subscribe() {
   })
 
   const showConfirmEmailHint =
-    profile && !profile.isAgencyClient && profile.emailConfirmed === false
+    profile?.role === 'SELLER' && profile.emailConfirmed === false
 
   const formatPrice = (rub: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'decimal', minimumFractionDigits: 0 }).format(rub) + ' ₽'

@@ -2,7 +2,6 @@ export const USER_SORT_FIELDS = {
   EMAIL: 'email',
   ROLE: 'role',
   IS_ACTIVE: 'isActive',
-  IS_AGENCY_CLIENT: 'isAgencyClient',
   OWNER_EMAIL: 'ownerEmail',
   CREATED_AT: 'createdAt',
   LAST_DATA_UPDATE_AT: 'lastDataUpdateAt',

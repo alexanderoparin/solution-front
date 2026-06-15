@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal, Checkbox, Segmented, Select } from 'antd'
-import { UserOutlined, KeyOutlined, LockOutlined, EditOutlined, CheckCircleOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined, CreditCardOutlined } from '@ant-design/icons'
+import { Card, Form, Input, Button, message, Spin, Tag, Space, Typography, Divider, Row, Col, Tooltip, Modal, Checkbox, Segmented, Select, Popconfirm, Table } from 'antd'
+import { UserOutlined, KeyOutlined, LockOutlined, EditOutlined, CheckCircleOutlined, ExclamationCircleOutlined, LogoutOutlined, SyncOutlined, PlusOutlined, AppstoreOutlined, DeleteOutlined, CreditCardOutlined, TeamOutlined } from '@ant-design/icons'
 import { buildScopeStatusTooltip, ScopeStatusIcon } from '../utils/scopeStatusUi'
 import { userApi } from '../api/user'
 import { authApi } from '../api/auth'
@@ -14,7 +14,9 @@ import type {
   CabinetTokenType,
   CreateCabinetRequest,
   UserRole,
+  SellerManagerAccessDto,
 } from '../types/api'
+import { getRequestFailureDescription } from '../utils/requestError'
 import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -37,6 +39,7 @@ export default function Profile() {
   const clearAuth = useAuthStore((state) => state.clearAuth)
   const [passwordForm] = Form.useForm()
   const [cabinetCreateForm] = Form.useForm<{ name?: string; apiKey?: string }>()
+  const [managerAccessForm] = Form.useForm<{ managerEmail: string }>()
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [editingCabinetId, setEditingCabinetId] = useState<number | null>(null)
   const [editingCabinetName, setEditingCabinetName] = useState('')
@@ -91,6 +94,35 @@ export default function Profile() {
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
     enabled: profile?.role === 'SELLER' || profile?.role === 'WORKER',
+  })
+
+  const { data: managerAccessList = [], isLoading: managerAccessLoading } = useQuery<SellerManagerAccessDto[]>({
+    queryKey: ['managerAccess'],
+    queryFn: () => userApi.listManagerAccess(),
+    enabled: profile?.role === 'SELLER' && profile.emailConfirmed === true,
+  })
+
+  const grantManagerAccessMutation = useMutation({
+    mutationFn: (managerEmail: string) => userApi.grantManagerAccess({ managerEmail }),
+    onSuccess: () => {
+      managerAccessForm.resetFields()
+      queryClient.invalidateQueries({ queryKey: ['managerAccess'] })
+      message.success('Доступ менеджеру выдан')
+    },
+    onError: (err: unknown) => {
+      message.error(getRequestFailureDescription(err))
+    },
+  })
+
+  const revokeManagerAccessMutation = useMutation({
+    mutationFn: (managerId: number) => userApi.revokeManagerAccess(managerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['managerAccess'] })
+      message.success('Доступ отозван')
+    },
+    onError: (err: unknown) => {
+      message.error(getRequestFailureDescription(err))
+    },
   })
 
   const changePasswordMutation = useMutation({
@@ -440,7 +472,7 @@ export default function Profile() {
                       <div>
                         <Text strong>{profile.email}</Text>
                       </div>
-                      {!profile.isAgencyClient && profile.role !== 'ADMIN' && (
+                      {profile.role !== 'ADMIN' && profile.role !== 'MANAGER' && (
                         <div style={{ marginTop: 6 }}>
                           {profile.emailConfirmed ? (
                             <span style={{ fontSize: 13, color: '#52c41a', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -512,17 +544,6 @@ export default function Profile() {
                     </div>
                   </div>
                 </Col>
-
-                {profile.role === 'SELLER' && profile.isAgencyClient && (
-                  <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 100 }} className="profile-info-col">
-                    <div>
-                      <Text type="secondary">Тип:</Text>
-                      <div style={{ marginTop: '4px' }}>
-                        <Tag color="cyan">Клиент агентства</Tag>
-                      </div>
-                    </div>
-                  </Col>
-                )}
 
                 <Col xs={24} sm={24} style={{ flex: '1 1 0%', minWidth: 80 }} className="profile-info-col">
                   <div>
@@ -600,7 +621,7 @@ export default function Profile() {
                     </Button>
                   </div>
                 )}
-                {profile.role === 'SELLER' && !profile.isAgencyClient && (
+                {profile.role === 'SELLER' && (
                   <Space size={12} wrap style={{ justifyContent: 'flex-end', display: 'flex', flexWrap: 'wrap' }}>
                     <Button icon={<CreditCardOutlined />} onClick={() => navigate('/subscription')} size="large">
                       Подписка
@@ -1082,6 +1103,106 @@ export default function Profile() {
                       </div>
                     ))}
                   </div>
+                )}
+              </>
+            )}
+          </Card>
+        )}
+
+        {profile.role === 'SELLER' && (
+          <Card
+            title={
+              <Space>
+                <TeamOutlined />
+                <span>Доступ менеджерам</span>
+              </Space>
+            }
+            style={{ marginBottom: '24px' }}
+          >
+            {!profile.emailConfirmed ? (
+              <Text type="secondary">
+                Подтвердите почту, чтобы выдавать доступ менеджерам к вашему аккаунту и кабинетам.
+              </Text>
+            ) : (
+              <>
+                <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+                  Укажите email менеджера — он получит доступ ко всем вашим кабинетам. Доступ можно отозвать в любой момент.
+                </Text>
+                <Form
+                  form={managerAccessForm}
+                  layout="inline"
+                  onFinish={(values) => grantManagerAccessMutation.mutate(values.managerEmail.trim())}
+                  style={{ marginBottom: 20, flexWrap: 'wrap', gap: 8 }}
+                >
+                  <Form.Item
+                    name="managerEmail"
+                    rules={[
+                      { required: true, message: 'Введите email менеджера' },
+                      { type: 'email', message: 'Некорректный email' },
+                    ]}
+                    style={{ flex: '1 1 240px', marginBottom: 8 }}
+                  >
+                    <Input placeholder="email менеджера" autoComplete="off" />
+                  </Form.Item>
+                  <Form.Item style={{ marginBottom: 8 }}>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      icon={<PlusOutlined />}
+                      loading={grantManagerAccessMutation.isPending}
+                      style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
+                    >
+                      Выдать доступ
+                    </Button>
+                  </Form.Item>
+                </Form>
+                {managerAccessLoading ? (
+                  <Spin />
+                ) : managerAccessList.length === 0 ? (
+                  <Text type="secondary">Нет менеджеров с доступом</Text>
+                ) : (
+                  <Table<SellerManagerAccessDto>
+                    size="small"
+                    pagination={false}
+                    rowKey="managerId"
+                    dataSource={managerAccessList}
+                    columns={[
+                      {
+                        title: 'Email менеджера',
+                        dataIndex: 'managerEmail',
+                        key: 'managerEmail',
+                      },
+                      {
+                        title: 'Доступ с',
+                        dataIndex: 'grantedAt',
+                        key: 'grantedAt',
+                        render: (value: string) => dayjs(value).format('D MMM YYYY, HH:mm'),
+                      },
+                      {
+                        title: '',
+                        key: 'actions',
+                        width: 120,
+                        render: (_: unknown, record: SellerManagerAccessDto) => (
+                          <Popconfirm
+                            title="Отозвать доступ?"
+                            description={`Менеджер ${record.managerEmail} потеряет доступ к вашим кабинетам.`}
+                            okText="Отозвать"
+                            cancelText="Отмена"
+                            okButtonProps={{ danger: true }}
+                            onConfirm={() => revokeManagerAccessMutation.mutate(record.managerId)}
+                          >
+                            <Button
+                              danger
+                              size="small"
+                              loading={revokeManagerAccessMutation.isPending}
+                            >
+                              Отозвать
+                            </Button>
+                          </Popconfirm>
+                        ),
+                      },
+                    ]}
+                  />
                 )}
               </>
             )}
