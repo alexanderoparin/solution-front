@@ -63,6 +63,27 @@ const formatOwnerEmail = (email?: string | null): string => {
   return trimmed ? trimmed : '—'
 }
 
+const renderEmailListCell = (emails?: string[] | null): React.ReactNode => {
+  const list = emails ?? []
+  if (list.length === 0) {
+    return '—'
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {list.map((email) => (
+        <span key={email}>{email}</span>
+      ))}
+    </div>
+  )
+}
+
+const renderManagerEmailsCell = (record: UserListItem): React.ReactNode => {
+  if (record.role !== 'SELLER') {
+    return '—'
+  }
+  return renderEmailListCell(record.managerEmails)
+}
+
 const DEFAULT_USER_SORT_BY = USER_SORT_FIELDS.LAST_DATA_UPDATE_AT
 const DEFAULT_USER_SORT_DIR = SORT_DIRECTIONS.ASC
 const DEFAULT_CABINET_SORT_BY = CABINET_SORT_FIELDS.LAST_DATA_UPDATE_AT
@@ -295,6 +316,14 @@ export default function UsersManagementSection({
             : null,
       },
       {
+        title: 'Менеджеры',
+        key: 'managerEmails',
+        width: 224,
+        ellipsis: false,
+        align: 'left',
+        render: (_: unknown, row: ManagedCabinetRowDto) => renderEmailListCell(row.managerEmails),
+      },
+      {
         title: 'Основное обновление',
         key: CABINET_SORT_FIELDS.LAST_DATA_UPDATE_AT,
         width: 156,
@@ -466,6 +495,14 @@ export default function UsersManagementSection({
         : null,
     },
     {
+      title: 'Менеджеры',
+      key: 'managerEmails',
+      width: 224,
+      ellipsis: false,
+      align: 'left' as const,
+      render: (_: unknown, record: UserListItem) => renderManagerEmailsCell(record),
+    },
+    {
       title: 'Роль',
       dataIndex: 'role',
       key: 'role',
@@ -477,18 +514,22 @@ export default function UsersManagementSection({
         ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
         : null,
     },
-    {
-      title: 'Селлер',
-      key: USER_SORT_FIELDS.OWNER_EMAIL,
-      width: 224,
-      ellipsis: true,
-      align: 'left' as const,
-      sorter: true,
-      sortOrder: sortBy === USER_SORT_FIELDS.OWNER_EMAIL
-        ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
-        : null,
-      render: (_: unknown, record: UserListItem) => formatOwnerEmail(record.ownerEmail),
-    },
+    ...(!effectiveOnlySellers
+      ? [
+          {
+            title: 'Селлер',
+            key: USER_SORT_FIELDS.OWNER_EMAIL,
+            width: 224,
+            ellipsis: true,
+            align: 'left' as const,
+            sorter: true,
+            sortOrder: sortBy === USER_SORT_FIELDS.OWNER_EMAIL
+              ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
+              : null,
+            render: (_: unknown, record: UserListItem) => formatOwnerEmail(record.ownerEmail),
+          },
+        ]
+      : []),
     {
       title: 'Статус',
       key: 'isActive',

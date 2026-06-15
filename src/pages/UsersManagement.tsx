@@ -138,6 +138,22 @@ export default function UsersManagement() {
       sorter: (a: UserListItem, b: UserListItem) => a.email.localeCompare(b.email),
     },
     {
+      title: 'Менеджеры',
+      key: 'managerEmails',
+      render: (_: unknown, record: UserListItem) => {
+        if (record.role !== 'SELLER') return '—'
+        const emails = record.managerEmails ?? []
+        if (emails.length === 0) return '—'
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {emails.map((email) => (
+              <span key={email}>{email}</span>
+            ))}
+          </div>
+        )
+      },
+    },
+    {
       title: 'Роль',
       dataIndex: 'role',
       key: 'role',
@@ -149,6 +165,7 @@ export default function UsersManagement() {
       title: 'Селлер',
       key: 'ownerEmail',
       render: (_: unknown, record: UserListItem) => {
+        if (record.role !== 'WORKER') return '—'
         const trimmed = record.ownerEmail?.trim()
         return trimmed ? trimmed : '—'
       },

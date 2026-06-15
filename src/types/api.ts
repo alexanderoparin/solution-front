@@ -62,6 +62,8 @@ export interface UserListItem {
   isActive: boolean
   createdAt: string
   ownerEmail: string | null
+  /** Email менеджеров с активным доступом (для SELLER) */
+  managerEmails?: string[] | null
   lastDataUpdateAt: string | null
   lastDataUpdateRequestedAt: string | null
 }
@@ -140,6 +142,7 @@ export interface CabinetDto {
 export interface ManagedCabinetRowDto {
   sellerId: number
   sellerEmail: string
+  managerEmails?: string[]
   cabinet: CabinetDto
 }
 
