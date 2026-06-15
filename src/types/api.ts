@@ -150,6 +150,7 @@ export interface WorkContextCabinetDto {
   sellerEmail: string
   lastDataUpdateAt: string | null
   lastDataUpdateRequestedAt: string | null
+  tokenType?: CabinetTokenType | null
 }
 
 export interface PlanDto {
@@ -236,7 +237,7 @@ export type WbApiEventType =
   | 'PROMOTION_NORMQUERY_STATS_BATCH'
   | 'PROMOTION_CAMPAIGN_START'
   | 'PROMOTION_CAMPAIGN_PAUSE'
-  | 'FEEDBACKS_SYNC_CABINET'
+  | 'ANALYTICS_ITEM_RATING_CABINET'
   | 'PROMOTION_CALENDAR_SYNC_CABINET'
   | 'WAREHOUSES_SYNC_CABINET'
   | 'STOCKS_BY_NMID'

@@ -8,6 +8,7 @@ import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-quer
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import type { ArticleSummary, Period } from '../types/analytics'
+import type { CabinetTokenType } from '../types/api'
 import { colors, typography, spacing, borderRadius, transitions, shadows, PRODUCT_PHOTO_WIDTH, PRODUCT_PHOTO_HEIGHT } from '../styles/analytics'
 import {
   analyticsSharedKeys,
@@ -33,6 +34,11 @@ const PAGE_SIZE = 10
 const FILTER_LIST_PAGE_SIZE = 500
 
 const WB_CATALOG_URL = (nmId: number) => `https://www.wildberries.ru/catalog/${nmId}/detail.aspx`
+
+/** Item-rating WB доступен только для персонального/сервисного токена, не для базового. */
+function cabinetSupportsItemRating(tokenType?: CabinetTokenType | null): boolean {
+  return (tokenType ?? 'BASIC') !== 'BASIC'
+}
 
 /** Период «последние 7 дней» для списка товаров */
 function getLast7DaysPeriod(): Period {
@@ -498,6 +504,16 @@ export default function AnalyticsProducts() {
     return dates
   }, [])
 
+  const showRatingColumn = useMemo(() => {
+    if (selectedCabinetId == null) return false
+    if (isManagerOrAdmin) {
+      const row = workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)
+      return cabinetSupportsItemRating(row?.tokenType)
+    }
+    const cab = myCabinets.find((c) => c.id === selectedCabinetId)
+    return cabinetSupportsItemRating(cab?.apiKey?.tokenType)
+  }, [selectedCabinetId, isManagerOrAdmin, workContext.workContextOptions, myCabinets])
+
   return (
     <>
       <style>{`
@@ -872,6 +888,7 @@ export default function AnalyticsProducts() {
                 last7DaysPeriod={last7DaysPeriod}
                 selectedCabinetId={selectedCabinetId}
                 selectedSellerId={selectedSellerId}
+                showRatingColumn={showRatingColumn}
                 containerRef={containerRef}
                 onScroll={() => scrollHandler(true)}
                 onReorderRows={handleReorderRows}
@@ -887,11 +904,25 @@ export default function AnalyticsProducts() {
 
 const thBase = { borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary, padding: '8px 10px' as const }
 
-/** Правая граница ячейки (col 0 — ручка перетаскивания, 1 — фото … 5 — размеры, 6.. — дни) */
-function getCellBorderRight(colIndex: number, dateColsCount: number): string {
-  const sizesColIndex = 6
-  const lastDateIndex = 7 + dateColsCount - 1
-  if (colIndex === sizesColIndex || colIndex === lastDateIndex) return `2px solid ${colors.border}`
+/** Индекс колонки после «Приоритет» с учётом скрытия рейтинга для базового токена. */
+function productsDataColIndex(
+  showRating: boolean,
+  slot: 'stock' | 'sizes' | 'date' | 'dynamics',
+  dateColsCount: number,
+  dateIndex = 0,
+): number {
+  const stockCol = showRating ? 5 : 4
+  if (slot === 'stock') return stockCol
+  if (slot === 'sizes') return stockCol + 1
+  if (slot === 'date') return stockCol + 2 + dateIndex
+  return stockCol + 2 + dateColsCount
+}
+
+/** Правая граница ячейки с учётом скрытия колонки рейтинга. */
+function getCellBorderRightForTable(showRating: boolean, colIndex: number, dateColsCount: number): string {
+  const sizesIdx = productsDataColIndex(showRating, 'sizes', dateColsCount)
+  const lastDateIdx = productsDataColIndex(showRating, 'date', dateColsCount, dateColsCount - 1)
+  if (colIndex === sizesIdx || colIndex === lastDateIdx) return `2px solid ${colors.border}`
   return `1px solid ${colors.border}`
 }
 
@@ -914,6 +945,7 @@ interface ProductsTableProps {
   last7DaysPeriod: Period
   selectedCabinetId: number | null
   selectedSellerId: number | undefined
+  showRatingColumn: boolean
   containerRef: RefObject<HTMLDivElement>
   onScroll: () => void
   onReorderRows: (fromIndex: number, toIndex: number) => void
@@ -925,6 +957,7 @@ function ProductsTable({
   last7DaysPeriod,
   selectedCabinetId,
   selectedSellerId,
+  showRatingColumn,
   containerRef,
   onScroll,
   onReorderRows,
@@ -1066,16 +1099,18 @@ function ProductsTable({
             <tr style={{ backgroundColor: colors.bgGray }}>
               <th
                 title="Перетащите строку за ручку слева"
-                style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRight(0, last7Dates.length), padding: '8px 2px', width: COL_WIDTHS.drag, maxWidth: COL_WIDTHS.drag, boxSizing: 'border-box' }}
+                style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, 0, last7Dates.length), padding: '8px 2px', width: COL_WIDTHS.drag, maxWidth: COL_WIDTHS.drag, boxSizing: 'border-box' }}
               >
                 <HolderOutlined style={{ color: colors.textMuted, fontSize: 14 }} />
               </th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(1, last7Dates.length), padding: '8px 4px', width: COL_WIDTHS.photo, maxWidth: COL_WIDTHS.photo, boxSizing: 'border-box' }}>Фото</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box' }}>Название и детали</th>
-              <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRight(3, last7Dates.length), width: COL_WIDTHS.priority, maxWidth: COL_WIDTHS.priority, boxSizing: 'border-box' }}>Приоритет</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(4, last7Dates.length) }}>Рейтинг</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(5, last7Dates.length) }}>Остаток</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRight(6, last7Dates.length) }}>Размеры</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, 1, last7Dates.length), padding: '8px 4px', width: COL_WIDTHS.photo, maxWidth: COL_WIDTHS.photo, boxSizing: 'border-box' }}>Фото</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, 2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box' }}>Название и детали</th>
+              <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, 3, last7Dates.length), width: COL_WIDTHS.priority, maxWidth: COL_WIDTHS.priority, boxSizing: 'border-box' }}>Приоритет</th>
+              {showRatingColumn && (
+                <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, 4, last7Dates.length) }}>Рейтинг</th>
+              )}
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length) }}>Остаток</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length) }}>Размеры</th>
               {last7Dates.map((d, i) => (
                 <th
                   key={d}
@@ -1084,7 +1119,7 @@ function ProductsTable({
                     textAlign: 'center',
                     padding: '8px 6px',
                     verticalAlign: 'bottom',
-                    borderRight: getCellBorderRight(7 + i, last7Dates.length),
+                    borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'date', last7Dates.length, i), last7Dates.length),
                   }}
                 >
                   <span style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', transform: 'rotate(-180deg)', display: 'inline-block', whiteSpace: 'nowrap' }}>
@@ -1092,7 +1127,7 @@ function ProductsTable({
                   </span>
                 </th>
               ))}
-              <th style={{ ...thBase, textAlign: 'center', color: colors.primary, borderRight: getCellBorderRight(7 + last7Dates.length, last7Dates.length) }}>Динамика</th>
+              <th style={{ ...thBase, textAlign: 'center', color: colors.primary, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'dynamics', last7Dates.length), last7Dates.length) }}>Динамика</th>
             </tr>
           </thead>
         </table>
@@ -1126,6 +1161,7 @@ function ProductsTable({
                 last7DaysPeriod={last7DaysPeriod}
                 selectedCabinetId={selectedCabinetId}
                 selectedSellerId={selectedSellerId}
+                showRatingColumn={showRatingColumn}
                 rowIndex={idx}
                 onDragHandleStart={handleRowDragStart}
                 onDragHandleEnd={handleRowDragEnd}
@@ -1148,6 +1184,7 @@ interface ProductRowProps {
   last7DaysPeriod: Period
   selectedCabinetId: number | null
   selectedSellerId: number | undefined
+  showRatingColumn: boolean
   rowIndex: number
   onDragHandleStart: (rowIndex: number, e: React.DragEvent) => void
   onDragHandleEnd: () => void
@@ -1163,6 +1200,7 @@ function ProductRow({
   last7DaysPeriod,
   selectedCabinetId,
   selectedSellerId,
+  showRatingColumn,
   rowIndex,
   onDragHandleStart,
   onDragHandleEnd,
@@ -1212,7 +1250,6 @@ function ProductRow({
     return names.map((n, i) => (types[i] ? `${n} (${types[i]})` : n)).join('\n')
   }, [articleDetail?.wbPromotionNames, articleDetail?.wbPromotionTypes])
   const rating = articleDetail?.article?.rating ?? article?.rating ?? null
-  const reviewsCount = articleDetail?.article?.reviewsCount ?? article?.reviewsCount ?? null
   const stocksTotal = useMemo(
     () => (articleDetail?.stocks ?? []).reduce((s, st) => s + (st.amount ?? 0), 0),
     [articleDetail?.stocks]
@@ -1294,7 +1331,7 @@ function ProductRow({
         style={{
           padding: '4px 2px',
           borderBottom: `1px solid ${colors.border}`,
-          borderRight: getCellBorderRight(0, last7Dates.length),
+          borderRight: getCellBorderRightForTable(showRatingColumn, 0, last7Dates.length),
           verticalAlign: 'middle',
           textAlign: 'center',
           width: COL_WIDTHS.drag,
@@ -1311,7 +1348,7 @@ function ProductRow({
         style={{
           padding: '6px 0',
           borderBottom: `1px solid ${colors.border}`,
-          borderRight: getCellBorderRight(1, last7Dates.length),
+          borderRight: getCellBorderRightForTable(showRatingColumn, 1, last7Dates.length),
           verticalAlign: 'top',
           width: COL_WIDTHS.photo,
           maxWidth: COL_WIDTHS.photo,
@@ -1368,7 +1405,7 @@ function ProductRow({
           </a>
         </div>
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         <Link
           to={articlePath}
           onClick={stopProp}
@@ -1410,7 +1447,7 @@ function ProductRow({
           </span>
         )}
       </td>
-      <td style={{ padding: '6px 6px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(3, last7Dates.length), textAlign: 'center', verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 6px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 3, last7Dates.length), textAlign: 'center', verticalAlign: 'top' }}>
         <Checkbox
           checked={isPriority}
           disabled={prioritySaving || selectedCabinetId == null}
@@ -1421,27 +1458,22 @@ function ProductRow({
           }}
         />
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(4, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
-        {isLoading && rating == null && reviewsCount == null ? (
-          <Spin size="small" />
-        ) : (
-          <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+      {showRatingColumn && (
+        <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 4, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+          {isLoading && rating == null ? (
+            <Spin size="small" />
+          ) : (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <StarFilled style={{ color: '#FBBF24', fontSize: 12 }} />
               <span>{rating != null ? Number(rating).toFixed(1) : '-'}</span>
             </span>
-            {reviewsCount != null && reviewsCount > 0 && (
-              <span style={{ color: colors.textSecondary, fontSize: '0.85em' }}>
-                {reviewsCount} {reviewsCount % 10 === 1 && reviewsCount % 100 !== 11 ? 'отзыв' : reviewsCount % 10 >= 2 && reviewsCount % 10 <= 4 && (reviewsCount % 100 < 10 || reviewsCount % 100 >= 20) ? 'отзыва' : 'отзывов'}
-              </span>
-            )}
-          </span>
-        )}
-      </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(5, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+          )}
+        </td>
+      )}
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         {isLoading ? '-' : stocksTotal.toLocaleString('ru-RU')}
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(6, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         {!firstStockWarehouse ? '-' : sizesLabel}
       </td>
       {last7Dates.map((d, i) => (
@@ -1451,7 +1483,7 @@ function ProductRow({
             textAlign: 'center',
             padding: '6px',
             borderBottom: `1px solid ${colors.border}`,
-            borderRight: getCellBorderRight(7 + i, last7Dates.length),
+            borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'date', last7Dates.length, i), last7Dates.length),
             ...typography.body,
             ...FONT_PAGE_SMALL,
             verticalAlign: 'top',
@@ -1460,7 +1492,7 @@ function ProductRow({
           {isLoading ? '-' : (dailyByDate.get(d) ?? 0).toLocaleString('ru-RU')}
         </td>
       ))}
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRight(7 + last7Dates.length, last7Dates.length), verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'dynamics', last7Dates.length), last7Dates.length), verticalAlign: 'top' }}>
         {isLoading ? (
           <Spin size="small" />
         ) : (

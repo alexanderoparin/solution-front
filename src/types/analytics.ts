@@ -23,10 +23,8 @@ export interface ArticleSummary {
   /** Приоритетная карточка для первоочередной обработки событий по nmID */
   isPriority?: boolean | null
   vendorCode?: string | null // Артикул продавца
-  /** Средний рейтинг по отзывам WB (1–5). */
+  /** Рейтинг по отзывам WB (feedbackRating), 1–5. */
   rating?: number | null
-  /** Количество отзывов по товару. */
-  reviewsCount?: number | null
 }
 
 export interface AggregatedMetrics {
@@ -91,7 +89,6 @@ export interface ArticleDetail {
   /** Превью 246×328; в шапке артикула используем вместо tm, если задано */
   photoC246x328?: string | null
   rating: number | null
-  reviewsCount: number | null
   productUrl: string
   createdAt: string | null
   updatedAt: string | null
