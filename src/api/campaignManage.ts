@@ -85,7 +85,7 @@ export const campaignManageApi = {
     sellerId?: number,
     cabinetId?: number,
     hours = 48,
-    stepHours = 2,
+    stepHours = 1,
   ): Promise<CampaignBudgetChartData> => {
     const params = new URLSearchParams(buildParams(sellerId, cabinetId).replace('?', ''))
     params.set('hours', String(hours))
