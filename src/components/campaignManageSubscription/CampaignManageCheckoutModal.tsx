@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { Modal, Input, Button, message } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
-import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { PAYMENT_UNAVAILABLE_PATH } from '../../constants/subscriptionRoutes'
 import type { PlanDto } from '../../types/api'
 import { subscriptionApi } from '../../api/subscription'
 import { accessStatusQueryKey } from '../../api/user'
@@ -39,7 +37,6 @@ export default function CampaignManageCheckoutModal({
   onBack,
   onClose,
 }: CampaignManageCheckoutModalProps) {
-  const navigate = useNavigate()
   const email = useAuthStore((s) => s.email)
   const queryClient = useQueryClient()
   const { campaignManage, sellerId } = useCampaignManageAccess()
@@ -60,9 +57,20 @@ export default function CampaignManageCheckoutModal({
     },
   })
 
+  const payMutation = useMutation({
+    mutationFn: (planId: number) => subscriptionApi.initiatePayment(planId),
+    onSuccess: (data) => {
+      window.location.href = data.paymentUrl
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      message.error(msg || 'Не удалось перейти к оплате')
+    },
+  })
+
   if (!plan) return null
 
-  const busy = activateMutation.isPending
+  const busy = activateMutation.isPending || payMutation.isPending
   const validUntil = previewExpiresAt(plan, campaignManage?.expiresAt)
 
   return (
@@ -123,8 +131,7 @@ export default function CampaignManageCheckoutModal({
           if (isFree) {
             activateMutation.mutate(plan.id)
           } else {
-            onClose()
-            navigate(PAYMENT_UNAVAILABLE_PATH)
+            payMutation.mutate(plan.id)
           }
         }}
         style={{ backgroundColor: accent, borderColor: accent, height: 48 }}

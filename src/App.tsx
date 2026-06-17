@@ -18,6 +18,8 @@ import AdminWbEvents from './pages/AdminWbEvents'
 import Subscribe from './pages/Subscribe'
 import Subscription from './pages/Subscription'
 import PaymentUnavailable from './pages/PaymentUnavailable'
+import SubscriptionSuccess from './pages/SubscriptionSuccess'
+import SubscriptionFail from './pages/SubscriptionFail'
 import AccessGuard from './components/AccessGuard'
 import Privacy from './pages/Privacy'
 import Refund from './pages/Refund'
@@ -107,11 +109,11 @@ function App() {
         />
         <Route
           path="/subscription/success"
-          element={token ? <Navigate to="/subscription/payment-unavailable" replace /> : <Navigate to="/login" replace />}
+          element={token ? <SubscriptionSuccess /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/subscription/fail"
-          element={token ? <Navigate to="/subscription/payment-unavailable" replace /> : <Navigate to="/login" replace />}
+          element={token ? <SubscriptionFail /> : <Navigate to="/login" replace />}
         />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/refund" element={<Refund />} />

@@ -23,7 +23,6 @@ import { PlusOutlined, EditOutlined, CreditCardOutlined } from '@ant-design/icon
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '../api/admin'
 import { userApi } from '../api/user'
-import { CAMPAIGN_MANAGE_PRODUCT } from '../api/subscription'
 import type { PlanDto, SubscriptionDto, PaymentDto, UserListItem } from '../types/api'
 import { getPaymentStatusLabel, getPaymentStatusColor, getSubscriptionStatusLabel } from '../utils/paymentStatus'
 import { useAuthStore } from '../store/authStore'
@@ -38,12 +37,6 @@ function formatPlanPeriod(plan: PlanDto): string {
   if (d === 1) return '1 день'
   if (d >= 2 && d <= 4) return `${d} дня`
   return `${d} дней`
-}
-
-function formatProductLabel(productCode?: string | null): string {
-  if (productCode === CAMPAIGN_MANAGE_PRODUCT) return 'Управление РК'
-  if (productCode === 'LEGACY') return 'Устаревший'
-  return productCode ?? '—'
 }
 
 function sortPlans(list: PlanDto[]): PlanDto[] {
@@ -63,7 +56,6 @@ export default function AdminPlansAndSubscriptions() {
   const [planModalOpen, setPlanModalOpen] = useState(false)
   const [extendModalOpen, setExtendModalOpen] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
-  const [showLegacyPlans, setShowLegacyPlans] = useState(false)
 
   if (role !== 'ADMIN') {
     navigate('/profile', { replace: true })
@@ -75,19 +67,11 @@ export default function AdminPlansAndSubscriptions() {
     queryFn: () => adminApi.getPlans(),
   })
 
-  const campaignManagePlans = useMemo(
-    () => sortPlans(plans.filter((p) => p.productCode === CAMPAIGN_MANAGE_PRODUCT)),
-    [plans],
-  )
+  const sortedPlans = useMemo(() => sortPlans(plans), [plans])
 
-  const visiblePlans = useMemo(() => {
-    if (showLegacyPlans) return sortPlans(plans)
-    return campaignManagePlans
-  }, [plans, showLegacyPlans, campaignManagePlans])
-
-  const activeCampaignPlans = useMemo(
-    () => campaignManagePlans.filter((p) => p.isActive !== false),
-    [campaignManagePlans],
+  const activePlans = useMemo(
+    () => sortedPlans.filter((p) => p.isActive !== false),
+    [sortedPlans],
   )
 
   const { data: usersPage } = useQuery({
@@ -152,9 +136,8 @@ export default function AdminPlansAndSubscriptions() {
     setEditingPlan(null)
     planForm.resetFields()
     planForm.setFieldsValue({
-      productCode: CAMPAIGN_MANAGE_PRODUCT,
       periodType: 'DAYS',
-      sortOrder: (campaignManagePlans.length + 1) * 10,
+      sortOrder: (sortedPlans.length + 1) * 10,
       isActive: true,
     })
     setPlanModalOpen(true)
@@ -170,7 +153,6 @@ export default function AdminPlansAndSubscriptions() {
       sortOrder: plan.sortOrder ?? 0,
       isActive: plan.isActive ?? true,
       code: plan.code ?? '',
-      productCode: plan.productCode ?? CAMPAIGN_MANAGE_PRODUCT,
       periodType: plan.periodType ?? 'DAYS',
     })
     setPlanModalOpen(true)
@@ -186,7 +168,6 @@ export default function AdminPlansAndSubscriptions() {
         sortOrder: values.sortOrder,
         isActive: values.isActive,
         code: values.code?.trim() || undefined,
-        productCode: values.productCode,
         periodType: values.periodType,
       }
       if (editingPlan) {
@@ -222,13 +203,6 @@ export default function AdminPlansAndSubscriptions() {
       key: 'code',
       width: 130,
       render: (v: string | null) => v ?? '—',
-    },
-    {
-      title: 'Продукт',
-      dataIndex: 'productCode',
-      key: 'productCode',
-      width: 130,
-      render: (v: string | null) => formatProductLabel(v),
     },
     {
       title: 'Цена, ₽',
@@ -369,23 +343,12 @@ export default function AdminPlansAndSubscriptions() {
                       <Button type="primary" icon={<PlusOutlined />} onClick={openCreatePlan}>
                         Добавить план
                       </Button>
-                      <Switch
-                        checked={showLegacyPlans}
-                        onChange={setShowLegacyPlans}
-                        checkedChildren="Устаревшие"
-                        unCheckedChildren="Устаревшие"
-                      />
-                      <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-                        {showLegacyPlans
-                          ? 'Показаны все планы, включая LEGACY'
-                          : `Только Управление РК (${campaignManagePlans.length})`}
-                      </Typography.Text>
                     </div>
                     <Table
                       rowKey="id"
                       loading={plansLoading}
                       columns={planColumns}
-                      dataSource={visiblePlans}
+                      dataSource={sortedPlans}
                       pagination={false}
                       size="small"
                       scroll={{ x: 900 }}
@@ -430,7 +393,7 @@ export default function AdminPlansAndSubscriptions() {
                                       && dayjs(s.expiresAt).isAfter(now),
                                   ) ?? null
                                 extendForm.setFieldsValue({
-                                  planId: currentSub?.planId ?? activeCampaignPlans[0]?.id,
+                                  planId: currentSub?.planId ?? activePlans[0]?.id,
                                   expiresAt: null,
                                 })
                                 setExtendModalOpen(true)
@@ -493,15 +456,7 @@ export default function AdminPlansAndSubscriptions() {
             <Input.TextArea rows={2} />
           </Form.Item>
           <Form.Item name="code" label="Код (уникальный)">
-            <Input placeholder="campaign_week" disabled={editingPlan?.productCode === CAMPAIGN_MANAGE_PRODUCT && !!editingPlan?.code} />
-          </Form.Item>
-          <Form.Item name="productCode" label="Продукт" rules={[{ required: true }]}>
-            <Select
-              options={[
-                { value: CAMPAIGN_MANAGE_PRODUCT, label: 'Управление РК' },
-                { value: 'LEGACY', label: 'Устаревший' },
-              ]}
-            />
+            <Input placeholder="campaign_week" disabled={!!editingPlan?.code} />
           </Form.Item>
           <Form.Item name="priceRub" label="Цена, ₽" rules={[{ required: true }]}>
             <InputNumber min={0} step={1} style={{ width: '100%' }} />
@@ -551,7 +506,7 @@ export default function AdminPlansAndSubscriptions() {
           })()}
           <Form.Item name="planId" label="План" rules={[{ required: true, message: 'Выберите план' }]}>
             <Select
-              options={activeCampaignPlans.map((p) => ({
+              options={activePlans.map((p) => ({
                 value: p.id,
                 label: `${p.name} (${formatPlanPeriod(p)}, ${p.priceRub} ₽)`,
               }))}

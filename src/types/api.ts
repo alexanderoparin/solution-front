@@ -167,7 +167,6 @@ export interface PlanDto {
   sortOrder?: number
   isActive?: boolean
   code?: string | null
-  productCode?: string | null
   periodType?: 'DAYS' | 'CALENDAR_MONTH' | string | null
 }
 
@@ -180,7 +179,6 @@ export interface CreatePlanRequest {
   sortOrder?: number
   isActive?: boolean
   code?: string
-  productCode?: string
   periodType?: 'DAYS' | 'CALENDAR_MONTH' | string
 }
 
@@ -193,7 +191,6 @@ export interface UpdatePlanRequest {
   sortOrder?: number
   isActive?: boolean
   code?: string
-  productCode?: string
   periodType?: 'DAYS' | 'CALENDAR_MONTH' | string
 }
 
@@ -334,12 +331,27 @@ export interface ActivatePlanResponse {
   expiresAt: string
 }
 
+/** Ответ POST /subscription/initiate-payment */
+export interface InitiatePaymentResponse {
+  paymentId: number
+  paymentUrl: string
+}
+
+/** Ответ GET /subscription/payment/{id}/status */
+export interface PaymentStatusResponse {
+  paymentId: number
+  status: string
+  expiresAt?: string | null
+}
+
 /** Элемент списка платежей GET /user/payments */
 export interface PaymentDto {
   id: number
   amount: number
   currency: string
   description: string | null
+  /** Название тарифа на момент оплаты */
+  planName?: string | null
   status: string
   paidAt: string | null
   createdAt: string

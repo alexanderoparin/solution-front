@@ -12,12 +12,15 @@ export default function SubscriptionFail() {
         <Result
           status="error"
           title="Оплата не прошла"
-          subTitle="Попробуйте снова или выберите другой способ оплаты."
-          extra={
-            <Button type="primary" onClick={() => navigate('/profile')}>
+          subTitle="Попробуйте снова или выберите другой способ оплаты (карта или СБП)."
+          extra={[
+            <Button key="profile" type="primary" onClick={() => navigate('/profile')}>
               В профиль
-            </Button>
-          }
+            </Button>,
+            <Button key="retry" onClick={() => navigate('/advertising/campaign-manage')}>
+              К управлению РК
+            </Button>,
+          ]}
         />
       </div>
     </>
