@@ -35,7 +35,7 @@ export interface UserProfileResponse {
   isActive: boolean
   /** Почта подтверждена */
   emailConfirmed?: boolean
-  /** Дата последней отправки письма для подтверждения почты (ISO), повтор не чаще 1 раза в 24 ч */
+  /** Дата последней отправки письма для подтверждения почты (ISO), повтор не чаще 1 раза в 12 ч */
   lastEmailConfirmationSentAt?: string | null
   apiKey?: ApiKeyInfo
 }
@@ -358,12 +358,10 @@ export interface PaymentDto {
 }
 
 export interface CreateCabinetRequest {
-  /** Обязательно, если не передан apiKey. */
+  /** Необязательно: если не указано — берётся из WB seller-info. */
   name?: string
-  /** Если задан без name — название берётся из WB seller-info. */
-  apiKey?: string
-  /** Тип токена WB API. По умолчанию BASIC. */
-  tokenType?: CabinetTokenType
+  apiKey: string
+  tokenType: CabinetTokenType
 }
 
 /** Ответ API с ошибкой (часто 4xx/429). */

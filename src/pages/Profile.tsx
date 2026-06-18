@@ -33,12 +33,27 @@ const { Text } = Typography
 /** Единый размер кнопок в сетке действий профиля (ADMIN). */
 const profileAdminActionGridButtonStyle = { fontSize: 14, minHeight: 48 } as const
 
+/** Проверка JWT-токена WB и категорий доступа к методам API. */
+const WB_TOKEN_CHECK_URL =
+  'https://dev.wildberries.ru/jwt?utm_source=dev-portal&utm_campaign=api-information&utm_content=cta-link'
+
+const wbTokenCheckLink = (
+  <a
+    href={WB_TOKEN_CHECK_URL}
+    target="_blank"
+    rel="noopener noreferrer"
+    style={{ color: '#7C3AED', fontSize: 12 }}
+  >
+    Проверить токен и доступ к категориям методов API
+  </a>
+)
+
 export default function Profile() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const clearAuth = useAuthStore((state) => state.clearAuth)
   const [passwordForm] = Form.useForm()
-  const [cabinetCreateForm] = Form.useForm<{ name?: string; apiKey?: string }>()
+  const [cabinetCreateForm] = Form.useForm<{ name?: string; apiKey: string; tokenType?: CabinetTokenType }>()
   const [managerAccessForm] = Form.useForm<{ managerEmail: string }>()
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [editingCabinetId, setEditingCabinetId] = useState<number | null>(null)
@@ -156,11 +171,12 @@ export default function Profile() {
   }
 
   const createCabinetMutation = useMutation({
-    mutationFn: (values: { name?: string; apiKey?: string }) => {
-      const body: CreateCabinetRequest = {}
-      const k = values.apiKey?.trim()
+    mutationFn: (values: { name?: string; apiKey: string; tokenType: CabinetTokenType }) => {
+      const body: CreateCabinetRequest = {
+        tokenType: values.tokenType,
+        apiKey: values.apiKey.trim(),
+      }
       const n = values.name?.trim()
-      if (k) body.apiKey = k
       if (n) body.name = n
       return cabinetsApi.create(body)
     },
@@ -209,7 +225,7 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: ['userProfile'] })
     },
     onError: (err: any) => {
-      message.error(err.response?.data?.message || 'Ошибка проверки ключа')
+      message.error(err.response?.data?.message || 'Ошибка проверки токена')
       queryClient.invalidateQueries({ queryKey: ['cabinets'] })
       queryClient.invalidateQueries({ queryKey: ['userProfile'] })
     },
@@ -489,7 +505,7 @@ export default function Profile() {
                                   : 0
                                 const sentAtIso = profile.lastEmailConfirmationSentAt ?? null
                                 const now = Date.now()
-                                const cooldownMs = 24 * 60 * 60 * 1000
+                                const cooldownMs = 12 * 60 * 60 * 1000
                                 const canSendAgain = now - sentAt >= cooldownMs
                                 const nextAvailableMs = sentAt ? sentAt + cooldownMs - now : 0
                                 const sendButton = (
@@ -713,8 +729,7 @@ export default function Profile() {
                     ]}
                   >
                     <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-                      Название обязательно, если не вводите API ключ WB. Если ключ указан без названия — имя кабинета
-                      подставится из ответа WB.
+                      Укажите API-токен WB и его тип. Если не ввести название кабинета, оно подставится из ответа WB.
                     </Text>
                     <Form
                       form={cabinetCreateForm}
@@ -722,26 +737,29 @@ export default function Profile() {
                       autoComplete="off"
                       onFinish={(values) => createCabinetMutation.mutate(values)}
                     >
-                      <Form.Item name="apiKey" label="WB API ключ">
-                        <Input.Password placeholder="Необязательно" autoComplete="off" />
+                      <Form.Item
+                        name="apiKey"
+                        label="WB API-токен"
+                        extra={wbTokenCheckLink}
+                        rules={[{ required: true, whitespace: true, message: 'Введите API-токен WB' }]}
+                      >
+                        <Input.Password placeholder="Введите токен" autoComplete="off" />
                       </Form.Item>
                       <Form.Item
-                        name="name"
-                        label="Название кабинета"
-                        dependencies={['apiKey']}
-                        rules={[
-                          ({ getFieldValue }) => ({
-                            validator(_, value) {
-                              const key = (getFieldValue('apiKey') as string | undefined)?.trim()
-                              if (!key && !(value as string | undefined)?.trim()) {
-                                return Promise.reject(new Error('Введите название кабинета или API ключ WB'))
-                              }
-                              return Promise.resolve()
-                            },
-                          }),
-                        ]}
+                        name="tokenType"
+                        label="Тип токена WB"
+                        rules={[{ required: true, message: 'Выберите тип токена' }]}
                       >
-                        <Input placeholder="Обязательно без ключа WB" />
+                        <Select
+                          placeholder="Выберите тип токена"
+                          options={[
+                            { value: 'BASIC', label: 'Базовый' },
+                            { value: 'PERSONAL', label: 'Персональный' },
+                          ]}
+                        />
+                      </Form.Item>
+                      <Form.Item name="name" label="Название кабинета">
+                        <Input placeholder="Необязательно — подставится из WB" />
                       </Form.Item>
                     </Form>
                   </Modal>
@@ -834,14 +852,15 @@ export default function Profile() {
                           )}
                         </div>
 
-                        {/* Под кабинетом — инфо по ключу как раньше */}
+                        {/* Под кабинетом — инфо по токену */}
                         {profile.role === 'SELLER' && showApiKeyFormForCabinetId === cab.id ? (
                           <>
                             <Divider style={{ margin: '12px 0' }} />
+                            <Space direction="vertical" size={8} style={{ width: '100%' }}>
                             <Space align="start">
                               <Input.Password
                                 prefix={<KeyOutlined />}
-                                placeholder="Введите новый WB API ключ"
+                                placeholder="Введите новый WB API-токен"
                                 value={cabinetNewKeyValue}
                                 onChange={(e) => setCabinetNewKeyValue(e.target.value)}
                                 style={{ width: 320 }}
@@ -888,6 +907,8 @@ export default function Profile() {
                                 Сохранить
                               </Button>
                             </Space>
+                            <Text type="secondary" style={{ fontSize: 12 }}>{wbTokenCheckLink}</Text>
+                            </Space>
                           </>
                         ) : (
                           <>
@@ -900,7 +921,7 @@ export default function Profile() {
                               <Col xs={24} sm={12} lg={6}>
                                 <Space direction="vertical" size="middle" style={{ width: '100%' }} align="center">
                                   <div style={{ textAlign: 'center', width: '100%' }}>
-                                    <Text type="secondary">API Ключ:</Text>
+                                    <Text type="secondary">API-токен:</Text>
                                     <div style={{ marginTop: '4px', display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
                                       {cab.apiKey?.apiKey ? (
                                         profile.role === 'WORKER' ? (
@@ -956,7 +977,7 @@ export default function Profile() {
                                       }}
                                       style={{ width: '100%' }}
                                     >
-                                      Редактировать ключ
+                                      Редактировать токен
                                     </Button>
                                   )}
                                 </Space>
@@ -993,7 +1014,7 @@ export default function Profile() {
                                               disabled={cabinetCooldown > 0}
                                               style={{ width: '100%' }}
                                             >
-                                              Проверить ключ
+                                              Проверить токен
                                             </Button>
                                           </span>
                                         </Tooltip>

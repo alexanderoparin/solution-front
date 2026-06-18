@@ -69,7 +69,7 @@ export const userApi = {
   },
 
   /**
-   * Отправить письмо для подтверждения email (не чаще 1 раза в 24 ч).
+   * Отправить письмо для подтверждения email (не чаще 1 раза в 12 ч).
    */
   sendEmailConfirmation: async (): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>('/user/send-email-confirmation')

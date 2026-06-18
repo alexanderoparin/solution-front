@@ -24,7 +24,7 @@ export default function Register() {
       try {
         const auth = await authApi.login({ email: variables.email, password: variables.password })
         setAuth(auth.token, auth.email, auth.userId, auth.role)
-        userApi.sendEmailConfirmation().catch(() => { /* письмо не чаще 1 раза в 24 ч или ошибка отправки */ })
+        userApi.sendEmailConfirmation().catch(() => { /* письмо не чаще 1 раза в 12 ч или ошибка отправки */ })
         message.success('Регистрация успешна')
         try {
           await queryClient.prefetchQuery({
