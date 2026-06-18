@@ -53,7 +53,7 @@ export default function Profile() {
   const queryClient = useQueryClient()
   const clearAuth = useAuthStore((state) => state.clearAuth)
   const [passwordForm] = Form.useForm()
-  const [cabinetCreateForm] = Form.useForm<{ name?: string; apiKey: string; tokenType?: CabinetTokenType }>()
+  const [cabinetCreateForm] = Form.useForm<{ name?: string; apiKey: string; tokenType: CabinetTokenType }>()
   const [managerAccessForm] = Form.useForm<{ managerEmail: string }>()
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [editingCabinetId, setEditingCabinetId] = useState<number | null>(null)
@@ -735,7 +735,9 @@ export default function Profile() {
                       form={cabinetCreateForm}
                       layout="vertical"
                       autoComplete="off"
-                      onFinish={(values) => createCabinetMutation.mutate(values)}
+                      onFinish={({ apiKey, tokenType, name }) => {
+                        createCabinetMutation.mutate({ apiKey, tokenType, name })
+                      }}
                     >
                       <Form.Item
                         name="apiKey"
