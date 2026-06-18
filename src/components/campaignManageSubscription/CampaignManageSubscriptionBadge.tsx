@@ -1,15 +1,8 @@
 import { useCampaignManageAccess } from '../../hooks/useCampaignManageAccess'
 import { useCampaignManageSubscriptionUi } from '../../store/campaignManageSubscriptionUi'
+import { campaignManageDaysLabel } from '../../utils/campaignManageSubscription'
 
 const accent = '#7C3AED'
-
-function daysLabel(n: number): string {
-  const mod10 = n % 10
-  const mod100 = n % 100
-  if (mod10 === 1 && mod100 !== 11) return `${n} день`
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return `${n} дня`
-  return `${n} дней`
-}
 
 export default function CampaignManageSubscriptionBadge() {
   const { showBadge, campaignManage } = useCampaignManageAccess()
@@ -26,12 +19,12 @@ export default function CampaignManageSubscriptionBadge() {
   if (campaignManage.status === 'ACTIVE') {
     line1 = 'Управление РК подключено'
     const days = campaignManage.daysRemaining ?? 0
-    line2 = days > 0 ? `Осталось ${daysLabel(days)}` : 'Осталось менее дня'
+    line2 = days > 0 ? `Осталось ${campaignManageDaysLabel(days)}` : 'Осталось менее дня'
     line2Clickable = true
   } else if (campaignManage.status === 'EXPIRED') {
     const ago = campaignManage.daysExpiredAgo ?? 0
     line2 = ago > 0
-      ? `Управление РК закончилось ${daysLabel(ago)} назад`
+      ? `Управление РК закончилось ${campaignManageDaysLabel(ago)} назад`
       : 'Управление РК закончилось сегодня'
   }
 
