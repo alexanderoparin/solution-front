@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { Modal, Button, Spin } from 'antd'
+import { Modal, Button, Spin, Alert } from 'antd'
+import { MailOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import type { PlanDto } from '../../types/api'
 import { subscriptionApi } from '../../api/subscription'
 import { useCampaignManageAccess } from '../../hooks/useCampaignManageAccess'
+import { getRequestFailureDescription } from '../../utils/requestError'
 import CampaignManageCheckoutModal from './CampaignManageCheckoutModal'
 
 const accent = '#7C3AED'
@@ -22,16 +25,25 @@ function formatPriceLabel(plan: PlanDto): string {
 }
 
 export default function CampaignManagePlansModal({ open, onClose }: CampaignManagePlansModalProps) {
+  const navigate = useNavigate()
   const [checkoutPlan, setCheckoutPlan] = useState<PlanDto | null>(null)
-  const { campaignManage } = useCampaignManageAccess()
+  const { campaignManage, access, isLoading: accessLoading } = useCampaignManageAccess()
 
-  const { data: plans = [], isLoading } = useQuery({
+  const emailConfirmed = access?.emailConfirmed === true
+  const needsEmailConfirmation = access != null && !emailConfirmed
+
+  const { data: plans = [], isLoading: plansLoading, isError, error } = useQuery({
     queryKey: ['campaignManagePlans'],
     queryFn: () => subscriptionApi.getCampaignManagePlans(),
-    enabled: open,
+    enabled: open && emailConfirmed,
   })
 
   const checkoutOpen = checkoutPlan != null
+
+  const goToProfile = () => {
+    onClose()
+    navigate('/profile')
+  }
 
   return (
     <>
@@ -59,10 +71,31 @@ export default function CampaignManagePlansModal({ open, onClose }: CampaignMana
           доступны бесплатно.
         </div>
 
-        {isLoading ? (
+        {needsEmailConfirmation ? (
+          <Alert
+            type="warning"
+            showIcon
+            icon={<MailOutlined />}
+            message="Подтвердите email"
+            description="Чтобы подключить Управление РК, подтвердите почту. Откройте профиль и запросите письмо со ссылкой для подтверждения."
+            action={
+              <Button type="primary" size="small" onClick={goToProfile} style={{ backgroundColor: accent, borderColor: accent }}>
+                Перейти в профиль
+              </Button>
+            }
+            style={{ marginBottom: 8 }}
+          />
+        ) : accessLoading || plansLoading ? (
           <div style={{ textAlign: 'center', padding: 40 }}>
             <Spin />
           </div>
+        ) : isError ? (
+          <Alert
+            type="error"
+            showIcon
+            message="Не удалось загрузить тарифы"
+            description={getRequestFailureDescription(error)}
+          />
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
             {plans.map((plan) => {
