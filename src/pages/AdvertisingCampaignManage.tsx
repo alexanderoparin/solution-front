@@ -355,8 +355,19 @@ export default function AdvertisingCampaignManage() {
         }
       : undefined
 
-  const running = manage?.operationalStatus === 'RUNNING'
-  const statusBg = running ? colors.success : colors.textMuted
+  const operationalStatus = manage?.operationalStatus ?? 'STOPPED'
+  const statusLabel =
+    operationalStatus === 'RUNNING'
+      ? '▷ Работает'
+      : operationalStatus === 'SCHEDULED'
+        ? '◷ Ожидает слот'
+        : 'II Остановлена'
+  const statusBg =
+    operationalStatus === 'RUNNING'
+      ? colors.success
+      : operationalStatus === 'SCHEDULED'
+        ? colors.primary
+        : colors.textMuted
 
   const historyColumns = [
     {
@@ -401,7 +412,7 @@ export default function AdvertisingCampaignManage() {
                     fontWeight: 500,
                   }}
                 >
-                  {running ? '▷ Работает' : 'II Остановлена'}
+                  {statusLabel}
                 </span>
                 <span style={{ color: colors.textSecondary }}>ID {manage.id}</span>
                 <span style={{ color: colors.textSecondary }}>{manage.articlesCount} шт.</span>
@@ -527,6 +538,24 @@ export default function AdvertisingCampaignManage() {
                 </Button>
                 <Button onClick={() => refetch()}>Обновить</Button>
               </div>
+              {operationalStatus === 'SCHEDULED' && (
+                <Alert
+                  type="info"
+                  showIcon
+                  style={{ marginBottom: 12 }}
+                  message="Расписание включено"
+                  description="РК на паузе до ближайшего слота на календаре. Запуск и остановка по расписанию выполняются автоматически."
+                />
+              )}
+              {operationalStatus === 'STOPPED' && (manage.slots?.length ?? 0) > 0 && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  style={{ marginBottom: 12 }}
+                  message="Автозапуск выключен"
+                  description="Нажмите «Запустить», чтобы РК снова крутилась по слотам на календаре."
+                />
+              )}
               <CampaignWeekCalendar
                 slots={manage.slots}
                 disabled={controlBlocked || subscriptionBlocked}
