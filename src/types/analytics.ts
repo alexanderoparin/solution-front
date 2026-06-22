@@ -342,7 +342,9 @@ export interface CampaignManageData {
   statusName: string | null
   articlesCount: number
   articles: ArticleSummary[]
-  operationalStatus: 'RUNNING' | 'SCHEDULED' | 'STOPPED'
+  operationalStatus: 'RUNNING' | 'STOPPED'
+  /** Автозапуск по слотам на календаре включён. */
+  scheduleEnabled: boolean
   autoBudget: CampaignAutoBudgetSettings
   slots: CampaignScheduleSlot[]
 }

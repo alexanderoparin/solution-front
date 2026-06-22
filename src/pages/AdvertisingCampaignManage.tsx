@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Spin, Checkbox, InputNumber, Select, Button, message, Table, Alert, Modal } from 'antd'
+import { Spin, Checkbox, InputNumber, Select, Button, message, Table, Alert, Modal, Switch, Space } from 'antd'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { campaignManageApi, type CampaignAutoBudgetRequest, type CampaignScheduleSlotRequest } from '../api/campaignManage'
 import { analyticsApi } from '../api/analytics'
@@ -355,19 +355,9 @@ export default function AdvertisingCampaignManage() {
         }
       : undefined
 
-  const operationalStatus = manage?.operationalStatus ?? 'STOPPED'
-  const statusLabel =
-    operationalStatus === 'RUNNING'
-      ? '▷ Работает'
-      : operationalStatus === 'SCHEDULED'
-        ? '◷ Ожидает слот'
-        : 'II Остановлена'
-  const statusBg =
-    operationalStatus === 'RUNNING'
-      ? colors.success
-      : operationalStatus === 'SCHEDULED'
-        ? colors.primary
-        : colors.textMuted
+  const running = manage?.operationalStatus === 'RUNNING'
+  const statusBg = running ? colors.success : colors.textMuted
+  const scheduleTogglePending = startMutation.isPending || pauseMutation.isPending
 
   const historyColumns = [
     {
@@ -412,7 +402,7 @@ export default function AdvertisingCampaignManage() {
                     fontWeight: 500,
                   }}
                 >
-                  {statusLabel}
+                  {running ? '▷ Работает' : 'II Остановлена'}
                 </span>
                 <span style={{ color: colors.textSecondary }}>ID {manage.id}</span>
                 <span style={{ color: colors.textSecondary }}>{manage.articlesCount} шт.</span>
@@ -518,44 +508,27 @@ export default function AdvertisingCampaignManage() {
                   description={controlCapabilities.message}
                 />
               )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <h2 style={{ ...typography.h2, fontSize: 16, margin: 0, flex: 1 }}>Расписание</h2>
-                <Button
-                  type="primary"
-                  disabled={controlBlocked || subscriptionBlocked}
-                  loading={startMutation.isPending}
-                  onClick={() => startMutation.mutate()}
-                >
-                  ▷ Запустить
-                </Button>
-                <Button
-                  danger
-                  disabled={controlBlocked || subscriptionBlocked}
-                  loading={pauseMutation.isPending}
-                  onClick={() => pauseMutation.mutate()}
-                >
-                  II Остановить
-                </Button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <Space align="center" size={12} style={{ flex: 1 }}>
+                  <h2 style={{ ...typography.h2, fontSize: 16, margin: 0 }}>Расписание</h2>
+                  <Switch
+                    checked={manage.scheduleEnabled ?? false}
+                    disabled={controlBlocked || subscriptionBlocked || scheduleTogglePending}
+                    loading={scheduleTogglePending}
+                    onChange={(checked) => {
+                      if (checked) {
+                        startMutation.mutate()
+                      } else {
+                        pauseMutation.mutate()
+                      }
+                    }}
+                  />
+                  <span style={{ fontSize: 13, color: colors.textSecondary }}>
+                    {(manage.scheduleEnabled ?? false) ? 'Вкл' : 'Выкл'}
+                  </span>
+                </Space>
                 <Button onClick={() => refetch()}>Обновить</Button>
               </div>
-              {operationalStatus === 'SCHEDULED' && (
-                <Alert
-                  type="info"
-                  showIcon
-                  style={{ marginBottom: 12 }}
-                  message="Расписание включено"
-                  description="РК на паузе до ближайшего слота на календаре. Запуск и остановка по расписанию выполняются автоматически."
-                />
-              )}
-              {operationalStatus === 'STOPPED' && (manage.slots?.length ?? 0) > 0 && (
-                <Alert
-                  type="warning"
-                  showIcon
-                  style={{ marginBottom: 12 }}
-                  message="Автозапуск выключен"
-                  description="Нажмите «Запустить», чтобы РК снова крутилась по слотам на календаре."
-                />
-              )}
               <CampaignWeekCalendar
                 slots={manage.slots}
                 disabled={controlBlocked || subscriptionBlocked}
