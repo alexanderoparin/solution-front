@@ -7,6 +7,7 @@ import {
   Input,
   Select,
   Switch,
+  Checkbox,
   Space,
   message,
   Tag,
@@ -116,6 +117,7 @@ export default function UsersManagement() {
     editForm.setFieldsValue({
       email: user.email,
       isActive: user.isActive,
+      agencyManaged: user.agencyManaged ?? false,
     })
     setIsEditModalOpen(true)
   }
@@ -341,6 +343,23 @@ export default function UsersManagement() {
               </Select>
             </Form.Item>
 
+            {role === 'ADMIN' && (
+              <Form.Item noStyle shouldUpdate={(prev, cur) => prev.role !== cur.role}>
+                {({ getFieldValue }) =>
+                  getFieldValue('role') === 'SELLER' ? (
+                    <Form.Item
+                      name="agencyManaged"
+                      valuePropName="checked"
+                      initialValue
+                      label="Клиент агентства"
+                    >
+                      <Checkbox>Управление РК без подписки</Checkbox>
+                    </Form.Item>
+                  ) : null
+                }
+              </Form.Item>
+            )}
+
             <Form.Item style={{ marginBottom: 0, marginTop: '24px' }}>
               <Space>
                 <Button
@@ -396,6 +415,16 @@ export default function UsersManagement() {
             >
               <Switch />
             </Form.Item>
+
+            {role === 'ADMIN' && editingUser?.role === 'SELLER' && (
+              <Form.Item
+                name="agencyManaged"
+                valuePropName="checked"
+                label="Клиент агентства"
+              >
+                <Checkbox>Управление РК без подписки</Checkbox>
+              </Form.Item>
+            )}
 
             <Form.Item style={{ marginBottom: 0, marginTop: '24px' }}>
               <Space>

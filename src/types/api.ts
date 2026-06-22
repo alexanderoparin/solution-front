@@ -64,6 +64,8 @@ export interface UserListItem {
   ownerEmail: string | null
   /** Email менеджеров с активным доступом (для SELLER) */
   managerEmails?: string[] | null
+  /** Клиент агентства: Управление РК без подписки (только для SELLER) */
+  agencyManaged?: boolean | null
   lastDataUpdateAt: string | null
   lastDataUpdateRequestedAt: string | null
 }
@@ -80,11 +82,15 @@ export interface CreateUserRequest {
   email: string
   password: string
   role: UserRole
+  /** Клиент агентства (только для SELLER, задаёт ADMIN при создании) */
+  agencyManaged?: boolean
 }
 
 export interface UpdateUserRequest {
   email: string
   isActive?: boolean
+  /** Клиент агентства (только для SELLER, меняет ADMIN) */
+  agencyManaged?: boolean
 }
 
 export interface SellerManagerAccessDto {
@@ -142,6 +148,8 @@ export interface CabinetDto {
 export interface ManagedCabinetRowDto {
   sellerId: number
   sellerEmail: string
+  /** Клиент агентства (флаг на селлере; одинаков для всех его кабинетов). */
+  agencyManaged?: boolean
   managerEmails?: string[]
   cabinet: CabinetDto
 }
@@ -302,7 +310,7 @@ export interface WbApiEventCabinetStatsDto {
 export interface CampaignManageAccessDto {
   enabled: boolean
   hasAccess: boolean
-  status: 'NONE' | 'ACTIVE' | 'EXPIRED' | string
+  status: 'NONE' | 'ACTIVE' | 'EXPIRED' | 'AGENCY' | string
   expiresAt: string | null
   daysRemaining: number | null
   daysExpiredAgo: number | null

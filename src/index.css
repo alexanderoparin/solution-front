@@ -32,6 +32,27 @@ body {
   border-radius: 8px !important;
 }
 
+/* Чекбокс «Клиент агентства» в таблице пользователей */
+.agency-managed-checkbox.ant-checkbox-wrapper .ant-checkbox .ant-checkbox-inner {
+  border-color: var(--color-primary);
+  border-width: 2px;
+}
+
+.agency-managed-checkbox.ant-checkbox-wrapper:hover .ant-checkbox .ant-checkbox-inner,
+.agency-managed-checkbox.ant-checkbox-wrapper .ant-checkbox:hover .ant-checkbox-inner {
+  border-color: #6D28D9;
+}
+
+.agency-managed-checkbox.ant-checkbox-wrapper .ant-checkbox-checked .ant-checkbox-inner,
+.agency-managed-checkbox.ant-checkbox-wrapper .ant-checkbox-checked:hover .ant-checkbox-inner {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.agency-managed-checkbox.ant-checkbox-wrapper .ant-checkbox-checked::after {
+  border-color: var(--color-primary);
+}
+
 /* Скрытие полосы прокрутки с сохранением возможности скролла */
 .hide-scrollbar {
   scrollbar-width: none;

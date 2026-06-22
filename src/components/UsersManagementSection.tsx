@@ -84,10 +84,10 @@ const renderManagerEmailsCell = (record: UserListItem): React.ReactNode => {
   return renderEmailListCell(record.managerEmails)
 }
 
-const DEFAULT_USER_SORT_BY = USER_SORT_FIELDS.LAST_DATA_UPDATE_AT
+const DEFAULT_USER_SORT_BY = USER_SORT_FIELDS.EMAIL
 const DEFAULT_USER_SORT_DIR = SORT_DIRECTIONS.ASC
-const DEFAULT_CABINET_SORT_BY = CABINET_SORT_FIELDS.LAST_DATA_UPDATE_AT
-const DEFAULT_CABINET_SORT_DIR = SORT_DIRECTIONS.ASC
+const DEFAULT_CABINET_SORT_BY = CABINET_SORT_FIELDS.CABINET_ID
+const DEFAULT_CABINET_SORT_DIR = SORT_DIRECTIONS.DESC
 
 const isUserSortField = (field: string): field is UserSortField =>
   (Object.values(USER_SORT_FIELDS) as string[]).includes(field)
@@ -199,10 +199,10 @@ export default function UsersManagementSection({
   const [cabinetPageSize, setCabinetPageSize] = useState(20)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [sortBy, setSortBy] = useState<UserSortField>(USER_SORT_FIELDS.LAST_DATA_UPDATE_AT)
+  const [sortBy, setSortBy] = useState<UserSortField>(USER_SORT_FIELDS.EMAIL)
   const [sortDir, setSortDir] = useState<SortDirection>(SORT_DIRECTIONS.ASC)
-  const [cabinetSortBy, setCabinetSortBy] = useState<CabinetSortField>(CABINET_SORT_FIELDS.LAST_DATA_UPDATE_AT)
-  const [cabinetSortDir, setCabinetSortDir] = useState<SortDirection>(SORT_DIRECTIONS.ASC)
+  const [cabinetSortBy, setCabinetSortBy] = useState<CabinetSortField>(CABINET_SORT_FIELDS.CABINET_ID)
+  const [cabinetSortDir, setCabinetSortDir] = useState<SortDirection>(SORT_DIRECTIONS.DESC)
   const [createForm] = Form.useForm()
   const [editForm] = Form.useForm()
   const queryClient = useQueryClient()
@@ -275,6 +275,28 @@ export default function UsersManagementSection({
     enabled: isAdminOrManager && managementView === USER_MANAGEMENT_VIEW.CABINETS,
   })
 
+  const toggleAgencyManagedMutation = useMutation({
+    mutationFn: ({
+      userId,
+      email,
+      agencyManaged,
+    }: {
+      userId: number
+      email: string
+      agencyManaged: boolean
+    }) => userApi.updateUser(userId, { email, agencyManaged }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['managedUsers'] })
+      void queryClient.invalidateQueries({ queryKey: ['managedCabinets'] })
+    },
+    onError: (error: unknown) => {
+      message.error({
+        content: getExplicitUserMutationError(error, 'Не удалось изменить статус клиента агентства'),
+        duration: 6,
+      })
+    },
+  })
+
   const cabinetTableColumns: ColumnsType<ManagedCabinetRowDto> = useMemo(
     () => [
       {
@@ -315,6 +337,33 @@ export default function UsersManagementSection({
             ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
             : null,
       },
+      ...(role === 'ADMIN'
+        ? [
+            {
+              title: 'Клиент агентства',
+              key: 'agencyManaged',
+              width: 140,
+              align: 'center' as const,
+              render: (_: unknown, row: ManagedCabinetRowDto) => (
+                <Checkbox
+                  className="agency-managed-checkbox"
+                  checked={row.agencyManaged ?? false}
+                  disabled={
+                    toggleAgencyManagedMutation.isPending
+                    && toggleAgencyManagedMutation.variables?.userId === row.sellerId
+                  }
+                  onChange={(e) => {
+                    toggleAgencyManagedMutation.mutate({
+                      userId: row.sellerId,
+                      email: row.sellerEmail,
+                      agencyManaged: e.target.checked,
+                    })
+                  }}
+                />
+              ),
+            },
+          ]
+        : []),
       {
         title: 'Менеджеры',
         key: 'managerEmails',
@@ -362,7 +411,7 @@ export default function UsersManagementSection({
         render: (_: unknown, row: ManagedCabinetRowDto) => <CabinetTableScopesColumn row={row} />,
       },
     ],
-    [cabinetSortBy, cabinetSortDir],
+    [cabinetSortBy, cabinetSortDir, role, toggleAgencyManagedMutation],
   )
 
   const cabinetTableComponents = useMemo(
@@ -455,6 +504,7 @@ export default function UsersManagementSection({
     editForm.setFieldsValue({
       email: user.email,
       isActive: user.isActive,
+      agencyManaged: user.agencyManaged ?? false,
     })
     setIsEditModalOpen(true)
   }
@@ -514,6 +564,34 @@ export default function UsersManagementSection({
         ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
         : null,
     },
+    ...(role === 'ADMIN'
+      ? [
+          {
+            title: 'Клиент агентства',
+            key: 'agencyManaged',
+            width: 140,
+            align: 'center' as const,
+            render: (_: unknown, record: UserListItem) =>
+              record.role === 'SELLER' ? (
+                <Checkbox
+                  className="agency-managed-checkbox"
+                  checked={record.agencyManaged ?? false}
+                  disabled={
+                    toggleAgencyManagedMutation.isPending
+                    && toggleAgencyManagedMutation.variables?.userId === record.id
+                  }
+                  onChange={(e) => {
+                    toggleAgencyManagedMutation.mutate({
+                      userId: record.id,
+                      email: record.email,
+                      agencyManaged: e.target.checked,
+                    })
+                  }}
+                />
+              ) : null,
+          },
+        ]
+      : []),
     ...(!effectiveOnlySellers
       ? [
           {
@@ -553,20 +631,6 @@ export default function UsersManagementSection({
         ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
         : null,
     },
-    ...((role === 'ADMIN' || role === 'MANAGER')
-      ? [
-          {
-            title: 'Дата обновления',
-            dataIndex: 'lastDataUpdateAt',
-            key: 'lastDataUpdateAt',
-            render: (date: string | null) => (date ? dayjs(date).format('DD.MM.YYYY HH:mm') : '—'),
-            sorter: true,
-            sortOrder: sortBy === USER_SORT_FIELDS.LAST_DATA_UPDATE_AT
-              ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
-              : null,
-          },
-        ]
-      : []),
     {
       title: 'Действия',
       key: 'actions',
@@ -950,6 +1014,22 @@ export default function UsersManagementSection({
               ))}
             </Select>
           </Form.Item>
+          {role === 'ADMIN' && (
+            <Form.Item noStyle shouldUpdate={(prev, cur) => prev.role !== cur.role}>
+              {({ getFieldValue }) =>
+                getFieldValue('role') === 'SELLER' ? (
+                  <Form.Item
+                    name="agencyManaged"
+                    valuePropName="checked"
+                    initialValue
+                    label="Клиент агентства"
+                  >
+                    <Checkbox>Управление РК без подписки</Checkbox>
+                  </Form.Item>
+                ) : null
+              }
+            </Form.Item>
+          )}
           <Form.Item style={{ marginBottom: 0, marginTop: '24px' }}>
             <Space>
               <Button
@@ -990,6 +1070,15 @@ export default function UsersManagementSection({
           <Form.Item name="isActive" label="Активен" valuePropName="checked">
             <Switch />
           </Form.Item>
+          {role === 'ADMIN' && editingUser?.role === 'SELLER' && (
+            <Form.Item
+              name="agencyManaged"
+              valuePropName="checked"
+              label="Клиент агентства"
+            >
+              <Checkbox>Управление РК без подписки</Checkbox>
+            </Form.Item>
+          )}
           <Form.Item style={{ marginBottom: 0, marginTop: '24px' }}>
             <Space>
               <Button

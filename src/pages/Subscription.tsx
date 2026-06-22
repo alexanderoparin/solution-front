@@ -148,6 +148,17 @@ export default function Subscription() {
 
     const cmExpiresAt = campaignManage.expiresAt ? dayjs(campaignManage.expiresAt) : null
 
+    if (campaignManage.status === 'AGENCY') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Tag color="purple">Клиент агентства</Tag>
+          <Typography.Text type="secondary">
+            Управление РК доступно без подписки — кабинет ведётся агентством.
+          </Typography.Text>
+        </div>
+      )
+    }
+
     if (campaignManage.status === 'ACTIVE' && cmExpiresAt) {
       const days = campaignManage.daysRemaining ?? 0
       return (
