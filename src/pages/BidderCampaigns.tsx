@@ -1,11 +1,12 @@
 import { useState, useMemo, useCallback, useEffect, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
-import { Spin, Input, Select, DatePicker, message, Alert } from 'antd'
+import { Spin, Input, Select, DatePicker, message, Alert, Switch } from 'antd'
 import { SearchOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
+import { campaignManageApi } from '../api/campaignManage'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import type { Campaign } from '../types/analytics'
 import { colors, typography, spacing, borderRadius, transitions, shadows } from '../styles/analytics'
@@ -14,6 +15,9 @@ import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
 import { useCampaignManagePaywall } from '../hooks/useCampaignManagePaywall'
+import { bidderStatusColor, bidderStatusIcon, bidderStatusLabel, parseBidderStatus } from '../utils/bidderStatus'
+
+type BidderStatusFilter = 'all' | 'running' | 'waiting' | 'off'
 
 dayjs.locale('ru')
 
@@ -48,9 +52,8 @@ const COL_WIDTHS_PCT = {
   status: 18,
 } as const
 
-/** Фиксированные ширины и единый вид блока статуса (как плашка «Работает»). */
-const STATUS_BADGE_WIDTH = 118
-const STATUS_ACTION_WIDTH = 86
+/** Фиксированные ширины и единый вид блока статуса. */
+const STATUS_BADGE_WIDTH = 128
 const STATUS_CHIP_HEIGHT = 24
 
 const statusChipStyle = (width: number): CSSProperties => ({
@@ -103,7 +106,7 @@ export default function BidderCampaigns() {
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('createdAt')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'paused'>('all')
+  const [filterStatus, setFilterStatus] = useState<BidderStatusFilter>('all')
   const [filterType, setFilterType] = useState<string | null>(null)
   const [pollUntil, setPollUntil] = useState<number | null>(null)
   const [loadingAdvertId, setLoadingAdvertId] = useState<number | null>(null)
@@ -185,7 +188,7 @@ export default function BidderCampaigns() {
 
   const startMutation = useMutation({
     mutationFn: (advertId: number) =>
-      analyticsApi.startCampaign(
+      campaignManageApi.start(
         advertId,
         isManagerOrAdmin ? selectedSellerId ?? undefined : undefined,
         selectedCabinetId ?? undefined
@@ -194,12 +197,11 @@ export default function BidderCampaigns() {
     onSettled: () => setLoadingAdvertId(null),
     onSuccess: (data) => {
       if (data.enqueued) {
-        message.success(data.message ?? 'Запуск поставлен в очередь')
+        message.success(data.message ?? 'Расписание включено')
         setPollUntil(Date.now() + 30_000)
         void queryClient.invalidateQueries({ queryKey })
-        void refetchCapabilities()
       } else {
-        message.info(data.message ?? 'Запуск уже в очереди')
+        message.info(data.message ?? 'Действие уже в очереди')
       }
     },
     onError: (err) => {
@@ -210,7 +212,7 @@ export default function BidderCampaigns() {
 
   const pauseMutation = useMutation({
     mutationFn: (advertId: number) =>
-      analyticsApi.pauseCampaign(
+      campaignManageApi.pause(
         advertId,
         isManagerOrAdmin ? selectedSellerId ?? undefined : undefined,
         selectedCabinetId ?? undefined
@@ -219,12 +221,11 @@ export default function BidderCampaigns() {
     onSettled: () => setLoadingAdvertId(null),
     onSuccess: (data) => {
       if (data.enqueued) {
-        message.success(data.message ?? 'Пауза поставлена в очередь')
+        message.success(data.message ?? 'Расписание выключено')
         setPollUntil(Date.now() + 30_000)
         void queryClient.invalidateQueries({ queryKey })
-        void refetchCapabilities()
       } else {
-        message.info(data.message ?? 'Пауза уже в очереди')
+        message.info(data.message ?? 'Действие уже в очереди')
       }
     },
     onError: (err) => {
@@ -288,8 +289,9 @@ export default function BidderCampaigns() {
 
   const filteredCampaigns = useMemo(() => {
     let list = campaigns
-    if (filterStatus === 'active') list = list.filter((c) => c.status === 9)
-    else if (filterStatus === 'paused') list = list.filter((c) => c.status !== 9)
+    if (filterStatus === 'running') list = list.filter((c) => parseBidderStatus(c.bidderStatus) === 'RUNNING')
+    else if (filterStatus === 'waiting') list = list.filter((c) => parseBidderStatus(c.bidderStatus) === 'WAITING')
+    else if (filterStatus === 'off') list = list.filter((c) => parseBidderStatus(c.bidderStatus) === 'OFF')
     if (filterType != null) list = list.filter((c) => c.type === filterType)
     if (searchLower) {
       list = list.filter(
@@ -327,8 +329,8 @@ export default function BidderCampaigns() {
           bVal = b.articlesCount ?? 0
           break
         case 'status':
-          aVal = a.status ?? -1
-          bVal = b.status ?? -1
+          aVal = a.bidderStatus ?? ''
+          bVal = b.bidderStatus ?? ''
           break
         default:
           return 0
@@ -351,9 +353,10 @@ export default function BidderCampaigns() {
     dateStr ? dayjs(dateStr).format('DD.MM.YYYY HH:mm') : '-'
   const formatNum = (v: number | null | undefined) => (v == null ? '-' : v.toLocaleString('ru-RU'))
 
-  const isActive = (c: Campaign) => c.status === 9
-  const canStart = (c: Campaign) => c.status === 4 || c.status === 11
-  const canPause = (c: Campaign) => c.status === 9
+  const isScheduleEnabled = (c: Campaign) => {
+    const status = parseBidderStatus(c.bidderStatus)
+    return status != null && status !== 'OFF'
+  }
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -372,56 +375,41 @@ export default function BidderCampaigns() {
     )
 
   const renderStatusCell = (c: Campaign) => {
-    const active = isActive(c)
     const rowLoading = loadingAdvertId === c.id
     const actionBusy = rowLoading && (pauseMutation.isPending || startMutation.isPending)
-    const actionsDisabled = controlBlocked || actionBusy
+    const actionsDisabled = actionBusy
 
     const badgeStyle: CSSProperties = {
       ...statusChipStyle(STATUS_BADGE_WIDTH),
-      backgroundColor: active ? '#16a34a' : '#94a3b8',
+      backgroundColor: bidderStatusColor(c.bidderStatus),
       color: '#fff',
     }
 
-    const actionButtonStyle = (bg: string, disabled: boolean): CSSProperties => ({
-      ...statusChipStyle(STATUS_ACTION_WIDTH),
-      backgroundColor: bg,
-      color: '#fff',
-      border: 'none',
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      opacity: disabled ? 0.65 : 1,
-    })
+    const scheduleOn = isScheduleEnabled(c)
 
     return (
       <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
-          <span style={badgeStyle}>{active ? '▷ Работает' : 'II Остановлена'}</span>
-          {canPause(c) ? (
-            <button
-              type="button"
-              disabled={actionsDisabled}
-              title={controlBlocked ? controlCapabilities?.message ?? undefined : undefined}
-              onClick={() => guardAction(() => pauseMutation.mutate(c.id))}
-              style={actionButtonStyle(colors.warning, actionsDisabled)}
-            >
-              II Пауза
-            </button>
-          ) : canStart(c) ? (
-            <button
-              type="button"
-              disabled={actionsDisabled}
-              title={controlBlocked ? controlCapabilities?.message ?? undefined : undefined}
-              onClick={() => guardAction(() => startMutation.mutate(c.id))}
-              style={actionButtonStyle(colors.primary, actionsDisabled)}
-            >
-              ▷ Запуск
-            </button>
-          ) : (
-            <span
-              style={{ ...statusChipStyle(STATUS_ACTION_WIDTH), visibility: 'hidden' }}
-              aria-hidden
-            />
-          )}
+          <span style={badgeStyle}>
+            {bidderStatusIcon(c.bidderStatus)}
+            {bidderStatusLabel(c.bidderStatus)}
+          </span>
+          <Switch
+            size="small"
+            checked={scheduleOn}
+            loading={rowLoading && actionBusy}
+            disabled={actionsDisabled}
+            title={scheduleOn ? 'Выключить расписание' : 'Включить расписание'}
+            onChange={(checked) =>
+              guardAction(() => {
+                if (checked) {
+                  startMutation.mutate(c.id)
+                } else {
+                  pauseMutation.mutate(c.id)
+                }
+              })
+            }
+          />
         </div>
       </div>
     )
@@ -495,8 +483,9 @@ export default function BidderCampaigns() {
                 onChange={setFilterStatus}
                 options={[
                   { value: 'all', label: 'Все' },
-                  { value: 'active', label: 'Работает' },
-                  { value: 'paused', label: 'Остановлена' },
+                  { value: 'running', label: 'Работает' },
+                  { value: 'waiting', label: 'Ожидает слот' },
+                  { value: 'off', label: 'Выкл' },
                 ]}
                 style={{ minWidth: 160, borderRadius: borderRadius.sm }}
               />

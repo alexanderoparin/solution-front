@@ -1,3 +1,7 @@
+import type { BidderStatus } from '../utils/bidderStatus'
+
+export type { BidderStatus } from '../utils/bidderStatus'
+
 export interface Period {
   id: number
   name: string
@@ -145,6 +149,8 @@ export interface Campaign {
   costs?: number | null
   cart?: number | null
   orders?: number | null
+  /** Статус автоматики биддера. */
+  bidderStatus?: BidderStatus | string | null
 }
 
 /** Срез рекламы кампании по дню и appType из WB fullstats (сайт / Android / iOS). */
@@ -342,7 +348,9 @@ export interface CampaignManageData {
   statusName: string | null
   articlesCount: number
   articles: ArticleSummary[]
-  operationalStatus: 'RUNNING' | 'STOPPED'
+  operationalStatus?: 'RUNNING' | 'STOPPED'
+  /** Статус автоматики биддера. */
+  bidderStatus: BidderStatus | string | null
   /** Автозапуск по слотам на календаре включён. */
   scheduleEnabled: boolean
   autoBudget: CampaignAutoBudgetSettings

@@ -18,6 +18,7 @@ import CampaignWeekCalendar, { type SlotCreateRange } from '../components/campai
 import { validateSlotNoOverlap } from '../utils/campaignSlotOverlap'
 import CampaignSlotModal, { type SlotModalDraft } from '../components/campaignManage/CampaignSlotModal'
 import CampaignBudgetChart from '../components/campaignManage/CampaignBudgetChart'
+import { bidderStatusColor, bidderStatusIcon, bidderStatusLabel } from '../utils/bidderStatus'
 import dayjs from 'dayjs'
 
 const COMBO_PHOTO_SIZE = 80
@@ -355,8 +356,8 @@ export default function AdvertisingCampaignManage() {
         }
       : undefined
 
-  const running = manage?.operationalStatus === 'RUNNING'
-  const statusBg = running ? colors.success : colors.textMuted
+  const statusBg = bidderStatusColor(manage?.bidderStatus)
+  const statusText = `${bidderStatusIcon(manage?.bidderStatus)}${bidderStatusLabel(manage?.bidderStatus)}`
   const scheduleTogglePending = startMutation.isPending || pauseMutation.isPending
 
   const historyColumns = [
@@ -402,7 +403,7 @@ export default function AdvertisingCampaignManage() {
                     fontWeight: 500,
                   }}
                 >
-                  {running ? '▷ Работает' : 'II Остановлена'}
+                  {statusText}
                 </span>
                 <span style={{ color: colors.textSecondary }}>ID {manage.id}</span>
                 <span style={{ color: colors.textSecondary }}>{manage.articlesCount} шт.</span>
