@@ -186,6 +186,25 @@ export default function BidderCampaigns() {
     [campaignsRaw]
   )
 
+  const patchCampaignScheduleInCache = useCallback(
+    (advertId: number, enabled: boolean) => {
+      queryClient.setQueryData<Campaign[]>(queryKey, (old) =>
+        old?.map((c) => {
+          if (c.id !== advertId) return c
+          if (!enabled) {
+            return { ...c, bidderStatus: 'OFF' }
+          }
+          const status = parseBidderStatus(c.bidderStatus)
+          if (status === 'OFF' || status === null) {
+            return { ...c, bidderStatus: 'WAITING' }
+          }
+          return c
+        }),
+      )
+    },
+    [queryClient, queryKey],
+  )
+
   const startMutation = useMutation({
     mutationFn: (advertId: number) =>
       campaignManageApi.start(
@@ -193,18 +212,25 @@ export default function BidderCampaigns() {
         isManagerOrAdmin ? selectedSellerId ?? undefined : undefined,
         selectedCabinetId ?? undefined
       ),
-    onMutate: (advertId) => setLoadingAdvertId(advertId),
+    onMutate: async (advertId) => {
+      setLoadingAdvertId(advertId)
+      await queryClient.cancelQueries({ queryKey })
+      const previous = queryClient.getQueryData<Campaign[]>(queryKey)
+      patchCampaignScheduleInCache(advertId, true)
+      return { previous }
+    },
     onSettled: () => setLoadingAdvertId(null),
     onSuccess: (data) => {
+      message.success(data.message ?? 'Расписание включено')
       if (data.enqueued) {
-        message.success(data.message ?? 'Расписание включено')
         setPollUntil(Date.now() + 30_000)
-        void queryClient.invalidateQueries({ queryKey })
-      } else {
-        message.info(data.message ?? 'Действие уже в очереди')
       }
+      void queryClient.invalidateQueries({ queryKey })
     },
-    onError: (err) => {
+    onError: (err, _advertId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous)
+      }
       message.error(formatControlError(err))
       void refetchCapabilities()
     },
@@ -217,18 +243,25 @@ export default function BidderCampaigns() {
         isManagerOrAdmin ? selectedSellerId ?? undefined : undefined,
         selectedCabinetId ?? undefined
       ),
-    onMutate: (advertId) => setLoadingAdvertId(advertId),
+    onMutate: async (advertId) => {
+      setLoadingAdvertId(advertId)
+      await queryClient.cancelQueries({ queryKey })
+      const previous = queryClient.getQueryData<Campaign[]>(queryKey)
+      patchCampaignScheduleInCache(advertId, false)
+      return { previous }
+    },
     onSettled: () => setLoadingAdvertId(null),
     onSuccess: (data) => {
+      message.success(data.message ?? 'Расписание выключено')
       if (data.enqueued) {
-        message.success(data.message ?? 'Расписание выключено')
         setPollUntil(Date.now() + 30_000)
-        void queryClient.invalidateQueries({ queryKey })
-      } else {
-        message.info(data.message ?? 'Действие уже в очереди')
       }
+      void queryClient.invalidateQueries({ queryKey })
     },
-    onError: (err) => {
+    onError: (err, _advertId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous)
+      }
       message.error(formatControlError(err))
       void refetchCapabilities()
     },
