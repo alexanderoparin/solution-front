@@ -2,7 +2,6 @@ import { useMemo } from 'react'
 import {
   ComposedChart,
   Line,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -15,11 +14,19 @@ import dayjs from 'dayjs'
 import type { CampaignBudgetChartData } from '../../types/analytics'
 import { colors } from '../../styles/analytics'
 
+/** Лаймовый — линия бюджета и маркер запуска РК. */
 const BUDGET_LINE = '#B4D705'
+/** Фон активного слота (как в легенде и на графике). */
 const ACTIVE_BG = 'rgba(180, 215, 5, 0.15)'
-const INACTIVE_BG = '#E2E8F0'
-const TOP_UP_COLOR = '#7C3AED'
+/** Фон неактивного слота. */
+const INACTIVE_BG = colors.border
+/** Пополнения — фирменный фиолетовый. */
+const TOP_UP_COLOR = colors.primary
+/** Маркер паузы РК. */
 const STOP_COLOR = '#64748B'
+
+/** Половина ширины фиолетового столбца пополнения на оси времени, мс. */
+const TOP_UP_BAR_HALF_WIDTH_MS = 18 * 60 * 1000
 
 const CHART_HEIGHT = 280
 
@@ -30,24 +37,48 @@ interface CampaignBudgetChartProps {
 
 interface ChartRow {
   at: string
-  label: string
   budgetRub: number | null
-  topUpAmount: number | null
   ts: number
 }
 
-function formatAxisLabel(iso: string): string {
-  return dayjs(iso).format('DD.MM HH:mm')
+interface TopUpMarker {
+  at: string
+  ts: number
+  amount: number
+  budgetBefore: number
+  budgetAfter: number
 }
 
 function formatRub(value: number): string {
   return `${Math.round(value).toLocaleString('ru-RU')} ₽`
 }
 
-/** Верхняя граница оси Y: +15% запас, без float-артефактов. */
-function computeYMax(budgets: number[], topUps: number[]): number {
-  const rawMax = Math.max(100, ...budgets, ...topUps, 0)
+function computeYMax(budgets: number[], topUpBands: TopUpMarker[]): number {
+  const topUpTops = topUpBands.map((t) => t.budgetAfter)
+  const rawMax = Math.max(100, ...budgets, ...topUpTops, 0)
   return Math.ceil(rawMax * 1.15)
+}
+
+function resolveTopUpBand(points: ChartRow[], topUp: { ts: number; amount: number }): {
+  budgetBefore: number
+  budgetAfter: number
+} {
+  let budgetBefore = 0
+  let budgetAfter = 0
+  for (const p of points) {
+    if (p.budgetRub == null) continue
+    if (p.ts < topUp.ts) {
+      budgetBefore = p.budgetRub
+    }
+    if (p.ts >= topUp.ts) {
+      budgetAfter = p.budgetRub
+      break
+    }
+  }
+  if (budgetAfter <= budgetBefore) {
+    budgetAfter = budgetBefore + topUp.amount
+  }
+  return { budgetBefore, budgetAfter }
 }
 
 function findBudgetAt(points: ChartRow[], at: string): number {
@@ -61,42 +92,78 @@ function findBudgetAt(points: ChartRow[], at: string): number {
   return budget
 }
 
-export default function CampaignBudgetChart({ data, loading }: CampaignBudgetChartProps) {
-  const { rows, xDomain, yMax, startMarkers, stopMarkers } = useMemo(() => {
-    if (!data) {
-      return { rows: [] as ChartRow[], xDomain: [0, 1] as [number, number], yMax: 100, startMarkers: [], stopMarkers: [] }
-    }
+function buildBudgetRows(data: CampaignBudgetChartData): ChartRow[] {
+  const sorted = toChartRows(data)
+  if (sorted.length <= 2) return sorted
 
-    const rows: ChartRow[] = data.budgetPoints.map((p) => {
-      const ts = dayjs(p.at).valueOf()
+  const simplified: ChartRow[] = [sorted[0]]
+  for (let i = 1; i < sorted.length; i++) {
+    const current = sorted[i]
+    const previous = simplified[simplified.length - 1]
+    if (current.budgetRub !== previous.budgetRub) {
+      simplified.push(current)
+    }
+  }
+  const lastInput = sorted[sorted.length - 1]
+  const lastKept = simplified[simplified.length - 1]
+  if (lastKept.ts !== lastInput.ts) {
+    simplified.push(lastInput)
+  }
+  return simplified
+}
+
+function toChartRows(data: CampaignBudgetChartData): ChartRow[] {
+  return data.budgetPoints
+    .map((p) => ({
+      at: p.at,
+      budgetRub: p.budgetRub,
+      ts: dayjs(p.at).valueOf(),
+    }))
+    .sort((a, b) => a.ts - b.ts)
+}
+
+function buildTopUpMarkers(data: CampaignBudgetChartData, rows: ChartRow[]): TopUpMarker[] {
+  return data.markers
+    .filter((m) => m.type === 'TOP_UP' && m.amount != null && m.amount > 0)
+    .map((m) => {
+      const ts = dayjs(m.at).valueOf()
+      const amount = m.amount!
+      const { budgetBefore, budgetAfter } = resolveTopUpBand(rows, { ts, amount })
       return {
-        at: p.at,
-        label: formatAxisLabel(p.at),
-        budgetRub: p.budgetRub,
-        topUpAmount: null as number | null,
+        at: m.at,
         ts,
+        amount,
+        budgetBefore,
+        budgetAfter,
       }
     })
+    .sort((a, b) => a.ts - b.ts)
+}
 
-    for (const m of data.markers) {
-      if (m.type !== 'TOP_UP' || m.amount == null || rows.length === 0) continue
-      const markerTs = dayjs(m.at).valueOf()
-      let nearest = rows[0]
-      for (const row of rows) {
-        if (Math.abs(row.ts - markerTs) < Math.abs(nearest.ts - markerTs)) {
-          nearest = row
-        }
+export default function CampaignBudgetChart({ data, loading }: CampaignBudgetChartProps) {
+  const { rows, topUps, xDomain, yMax, startMarkers, stopMarkers } = useMemo(() => {
+    if (!data) {
+      return {
+        rows: [] as ChartRow[],
+        topUps: [] as TopUpMarker[],
+        xDomain: [0, 1] as [number, number],
+        yMax: 100,
+        startMarkers: [],
+        stopMarkers: [],
       }
-      nearest.topUpAmount = m.amount
     }
 
-    const allBudgets = rows.map((r) => r.budgetRub ?? 0)
-    const allTopUps = data.markers.filter((m) => m.type === 'TOP_UP').map((m) => m.amount ?? 0)
-    const yMax = computeYMax(allBudgets, allTopUps)
+    const allRows = toChartRows(data)
+    const rows = buildBudgetRows(data)
+    const topUps = buildTopUpMarkers(data, allRows)
 
-    const tsValues = rows.map((r) => r.ts)
-    const xDomain: [number, number] =
-      tsValues.length >= 2 ? [tsValues[0], tsValues[tsValues.length - 1]] : [dayjs().subtract(48, 'hour').valueOf(), dayjs().valueOf()]
+    const allBudgets = rows.map((r) => r.budgetRub ?? 0)
+    const yMax = computeYMax(allBudgets, topUps)
+
+    const xDomain: [number, number] = [
+      dayjs(data.periodFrom).valueOf(),
+      dayjs(data.periodTo).valueOf(),
+    ]
 
     const startMarkers = data.markers
       .filter((m) => m.type === 'START')
@@ -105,7 +172,7 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
       .filter((m) => m.type === 'STOP')
       .map((m) => ({ at: m.at, ts: dayjs(m.at).valueOf(), y: findBudgetAt(rows, m.at) }))
 
-    return { rows, xDomain, yMax, startMarkers, stopMarkers }
+    return { rows, topUps, xDomain, yMax, startMarkers, stopMarkers }
   }, [data])
 
   if (loading) {
@@ -134,12 +201,28 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
         <ComposedChart data={rows} margin={{ top: 12, right: 12, left: 4, bottom: 4 }}>
           {data.intervals.map((interval, idx) => (
             <ReferenceArea
-              key={`${interval.from}-${idx}`}
+              key={`interval-${interval.from}-${idx}`}
               x1={dayjs(interval.from).valueOf()}
               x2={dayjs(interval.to).valueOf()}
+              y1={0}
+              y2={yMax}
               fill={interval.active ? ACTIVE_BG : INACTIVE_BG}
               fillOpacity={1}
               ifOverflow="extendDomain"
+            />
+          ))}
+          {topUps.map((topUp, idx) => (
+            <ReferenceArea
+              key={`topup-${topUp.at}-${idx}`}
+              x1={topUp.ts - TOP_UP_BAR_HALF_WIDTH_MS}
+              x2={topUp.ts + TOP_UP_BAR_HALF_WIDTH_MS}
+              y1={topUp.budgetBefore}
+              y2={topUp.budgetAfter}
+              fill={TOP_UP_COLOR}
+              fillOpacity={0.92}
+              stroke={TOP_UP_COLOR}
+              strokeWidth={1}
+              ifOverflow="visible"
             />
           ))}
           <CartesianGrid strokeDasharray="3 3" stroke={colors.borderLight} />
@@ -161,19 +244,52 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
           <Tooltip
             labelFormatter={(ts) => dayjs(ts as number).format('DD.MM.YYYY HH:mm')}
             formatter={(value: number, name: string) => {
-              if (name === 'topUpAmount') return [formatRub(value), 'Пополнено']
               if (name === 'budgetRub') return [formatRub(value), 'Бюджет']
               return [value, name]
             }}
+            content={({ active, payload, label }) => {
+              if (!active || label == null) return null
+              const ts = Number(label)
+              const budgetRow = payload?.find((p) => p.dataKey === 'budgetRub')
+              const budgetVal = budgetRow?.value as number | undefined
+              const nearTopUp = topUps.find((t) => Math.abs(t.ts - ts) <= TOP_UP_BAR_HALF_WIDTH_MS)
+              return (
+                <div
+                  style={{
+                    background: colors.bgWhite,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 6,
+                    padding: '8px 10px',
+                    fontSize: 12,
+                  }}
+                >
+                  <div style={{ marginBottom: 4, color: colors.textSecondary }}>
+                    {dayjs(ts).format('DD.MM.YYYY HH:mm')}
+                  </div>
+                  {budgetVal != null && (
+                    <div style={{ color: BUDGET_LINE, fontWeight: 600 }}>Бюджет: {formatRub(budgetVal)}</div>
+                  )}
+                  {nearTopUp && (
+                    <div style={{ color: TOP_UP_COLOR, fontWeight: 600, marginTop: 4 }}>
+                      Пополнено: +{formatRub(nearTopUp.amount)} ({formatRub(nearTopUp.budgetBefore)} →{' '}
+                      {formatRub(nearTopUp.budgetAfter)})
+                    </div>
+                  )}
+                </div>
+              )
+            }}
           />
-          <Bar dataKey="topUpAmount" fill={TOP_UP_COLOR} barSize={14} radius={[2, 2, 0, 0]} />
           <Line
-            type="monotone"
+            type="linear"
             dataKey="budgetRub"
             stroke={BUDGET_LINE}
             strokeWidth={2}
-            dot={{ r: 3, fill: '#fff', stroke: BUDGET_LINE, strokeWidth: 2 }}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            dot={rows.length <= 24 ? { r: 2.5, fill: colors.bgWhite, stroke: BUDGET_LINE, strokeWidth: 2 } : false}
+            activeDot={{ r: 4, fill: colors.bgWhite, stroke: BUDGET_LINE, strokeWidth: 2 }}
             connectNulls
+            isAnimationActive={false}
           />
           {startMarkers.map((m, i) => (
             <ReferenceDot
@@ -208,7 +324,7 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
         </ComposedChart>
       </ResponsiveContainer>
       <p style={{ fontSize: 12, color: colors.textMuted, marginTop: 8, marginBottom: 0 }}>
-        Период {data.stepHours} ч · {dayjs(data.periodFrom).format('DD.MM HH:mm')} — {dayjs(data.periodTo).format('DD.MM HH:mm')}
+        По событиям из журнала · {dayjs(data.periodFrom).format('DD.MM HH:mm')} — {dayjs(data.periodTo).format('DD.MM HH:mm')}
       </p>
     </div>
   )
@@ -233,7 +349,18 @@ function LegendItem({
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
       {line && <span style={{ width: 18, height: 3, backgroundColor: color, borderRadius: 2 }} />}
       {bar && <span style={{ width: 10, height: 14, backgroundColor: color, borderRadius: 2 }} />}
-      {box && <span style={{ width: 14, height: 10, backgroundColor: color, borderRadius: 2, border: `1px solid ${colors.borderLight}` }} />}
+      {box && (
+        <span
+          style={{
+            width: 14,
+            height: 10,
+            backgroundColor: color,
+            borderRadius: 2,
+            border: `1px solid ${colors.borderLight}`,
+            flexShrink: 0,
+          }}
+        />
+      )}
       {symbol && <span style={{ color, fontWeight: 700, fontSize: 13 }}>{symbol}</span>}
       {label}
     </span>
