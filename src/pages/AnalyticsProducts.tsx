@@ -25,6 +25,7 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
+import { hasMeaningfulArticleRating, formatArticleRating } from '../utils/articleRating'
 
 dayjs.locale('ru')
 
@@ -1460,14 +1461,14 @@ function ProductRow({
       </td>
       {showRatingColumn && (
         <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 4, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
-          {isLoading && rating == null ? (
+          {isLoading && !hasMeaningfulArticleRating(rating) ? (
             <Spin size="small" />
-          ) : (
+          ) : hasMeaningfulArticleRating(rating) ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <StarFilled style={{ color: '#FBBF24', fontSize: 12 }} />
-              <span>{rating != null ? Number(rating).toFixed(1) : '-'}</span>
+              <span>{formatArticleRating(rating)}</span>
             </span>
-          )}
+          ) : null}
         </td>
       )}
       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
