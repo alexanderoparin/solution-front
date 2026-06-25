@@ -56,6 +56,10 @@ export interface SummaryRequest {
   onlyWithPhoto?: boolean
   /** Если true — только приоритетные артикулы. */
   onlyPriority?: boolean
+  /** Поле сортировки списка артикулов (по умолчанию wbCreatedAt). */
+  sortBy?: 'wbCreatedAt'
+  /** Направление сортировки: asc или desc. */
+  sortDir?: 'asc' | 'desc'
 }
 
 export const analyticsApi = {

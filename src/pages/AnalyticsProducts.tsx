@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Spin, Input, Button, Popover, Checkbox, message } from 'antd'
-import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled, HolderOutlined } from '@ant-design/icons'
+import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled, HolderOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
@@ -31,6 +31,7 @@ dayjs.locale('ru')
 
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
 const PAGE_SIZE = 10
+type ProductsSortField = 'wbCreatedAt'
 /** Размер одной загрузки списка артикулов для выбора в фильтре; достаточно большой, чтобы при снятии одной галочки с «все» получать «все кроме одного». */
 const FILTER_LIST_PAGE_SIZE = 500
 
@@ -143,6 +144,8 @@ export default function AnalyticsProducts() {
   const [onlyWithPhoto, setOnlyWithPhoto] = useState(true)
   const [onlyPriority, setOnlyPriority] = useState(false)
   const [bulkPriorityLoading, setBulkPriorityLoading] = useState(false)
+  const [sortField, setSortField] = useState<ProductsSortField>('wbCreatedAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const containerRef = useRef<HTMLDivElement>(null)
   const filterListArticlesRef = useRef<ArticleSummary[]>([])
   /** Пропустить одну запись в storage, если только что восстановили выбор из общего ключа (чтобы не перезаписать 155 на []) */
@@ -218,6 +221,8 @@ export default function AnalyticsProducts() {
       searchTrimmed,
       onlyWithPhoto,
       onlyPriority,
+      sortField,
+      sortOrder,
       allDeselected ? 'none' : (selectedNmIds.length > 0 ? [...selectedNmIds].sort((a, b) => a - b) : null),
     ],
     queryFn: ({ pageParam }) =>
@@ -230,6 +235,8 @@ export default function AnalyticsProducts() {
         search: searchTrimmed || undefined,
         onlyWithPhoto: onlyWithPhoto || undefined,
         onlyPriority: onlyPriority || undefined,
+        sortBy: sortField,
+        sortDir: sortOrder,
         ...(allDeselected ? { filterToNone: true } : selectedNmIds.length > 0 ? { includedNmIds: selectedNmIds } : {}),
       }),
     getNextPageParam: (lastPage, allPages) => {
@@ -251,6 +258,8 @@ export default function AnalyticsProducts() {
       searchTrimmed,
       onlyWithPhoto,
       onlyPriority,
+      sortField,
+      sortOrder,
     ],
     queryFn: () =>
       analyticsApi.getSummary({
@@ -262,6 +271,8 @@ export default function AnalyticsProducts() {
         search: searchTrimmed || undefined,
         onlyWithPhoto: onlyWithPhoto || undefined,
         onlyPriority: onlyPriority || undefined,
+        sortBy: sortField,
+        sortDir: sortOrder,
       }),
     enabled: selectedCabinetId != null,
   })
@@ -353,6 +364,15 @@ export default function AnalyticsProducts() {
     },
     [articles, selectedCabinetId]
   )
+
+  const handleSort = useCallback((field: ProductsSortField) => {
+    if (sortField === field) {
+      setSortOrder((order) => (order === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortOrder('desc')
+    }
+  }, [sortField])
 
   const cabinetSelectProps =
     !isManagerOrAdmin && cabinets.length > 0
@@ -890,6 +910,9 @@ export default function AnalyticsProducts() {
                 selectedCabinetId={selectedCabinetId}
                 selectedSellerId={selectedSellerId}
                 showRatingColumn={showRatingColumn}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={handleSort}
                 containerRef={containerRef}
                 onScroll={() => scrollHandler(true)}
                 onReorderRows={handleReorderRows}
@@ -912,11 +935,22 @@ function productsDataColIndex(
   dateColsCount: number,
   dateIndex = 0,
 ): number {
-  const stockCol = showRating ? 5 : 4
+  const stockCol = showRating ? 6 : 5
   if (slot === 'stock') return stockCol
   if (slot === 'sizes') return stockCol + 1
   if (slot === 'date') return stockCol + 2 + dateIndex
   return stockCol + 2 + dateColsCount
+}
+
+function WbCreatedAtCell({ value }: { value: string | null | undefined }) {
+  if (!value) return <>—</>
+  const date = dayjs(value)
+  return (
+    <div>
+      <div>{date.format('DD.MM.YY')}</div>
+      <div style={{ color: colors.textSecondary, fontSize: 10, lineHeight: 1.2, marginTop: 1 }}>{date.format('HH:mm')}</div>
+    </div>
+  )
 }
 
 /** Правая граница ячейки с учётом скрытия колонки рейтинга. */
@@ -933,6 +967,7 @@ const COL_WIDTHS = {
   photo: PRODUCT_PHOTO_WIDTH, /* колонка по ширине фото */
   name: 200, /* название и детали */
   priority: 72,
+  wbCreatedAt: 76,
   rating: 88,
   stock: 72,
   sizes: 100,
@@ -947,6 +982,9 @@ interface ProductsTableProps {
   selectedCabinetId: number | null
   selectedSellerId: number | undefined
   showRatingColumn: boolean
+  sortField: ProductsSortField
+  sortOrder: 'asc' | 'desc'
+  onSort: (field: ProductsSortField) => void
   containerRef: RefObject<HTMLDivElement>
   onScroll: () => void
   onReorderRows: (fromIndex: number, toIndex: number) => void
@@ -959,6 +997,9 @@ function ProductsTable({
   selectedCabinetId,
   selectedSellerId,
   showRatingColumn,
+  sortField,
+  sortOrder,
+  onSort,
   containerRef,
   onScroll,
   onReorderRows,
@@ -968,6 +1009,20 @@ function ProductsTable({
   const [dragOverRowIndex, setDragOverRowIndex] = useState<number | null>(null)
   const onScrollRef = useRef(onScroll)
   onScrollRef.current = onScroll
+
+  const SortIcon = ({ field }: { field: ProductsSortField }) =>
+    sortField !== field ? null : sortOrder === 'asc' ? (
+      <CaretUpOutlined style={{ marginLeft: 4, fontSize: 10 }} />
+    ) : (
+      <CaretDownOutlined style={{ marginLeft: 4, fontSize: 10 }} />
+    )
+
+  const sortableThStyle = {
+    ...thBase,
+    cursor: 'pointer' as const,
+    userSelect: 'none' as const,
+    whiteSpace: 'nowrap' as const,
+  }
 
   useEffect(() => {
     const el = containerRef.current
@@ -1079,6 +1134,14 @@ function ProductsTable({
           max-width: ${COL_WIDTHS.priority}px !important;
           box-sizing: border-box !important;
         }
+        .products-table-wrapper table.products-table colgroup col:nth-child(5),
+        .products-table-wrapper table.products-table thead th:nth-child(5),
+        .products-table-wrapper table.products-table tbody td:nth-child(5) {
+          width: ${COL_WIDTHS.wbCreatedAt}px !important;
+          min-width: ${COL_WIDTHS.wbCreatedAt}px !important;
+          max-width: ${COL_WIDTHS.wbCreatedAt}px !important;
+          box-sizing: border-box !important;
+        }
       `}</style>
       {/* Шапка таблицы — отступ справа под ширину скроллбара тела (измеряется под текущую ОС/браузер) */}
       <div style={{ flexShrink: 0, borderBottom: `2px solid ${colors.border}`, paddingRight: scrollbarWidth }}>
@@ -1088,6 +1151,7 @@ function ProductsTable({
             <col style={{ width: COL_WIDTHS.photo }} />
             <col style={{ width: COL_WIDTHS.name }} />
             <col style={{ width: COL_WIDTHS.priority }} />
+            <col style={{ width: COL_WIDTHS.wbCreatedAt }} />
             <col />
             <col />
             <col />
@@ -1107,8 +1171,24 @@ function ProductsTable({
               <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, 1, last7Dates.length), padding: '8px 4px', width: COL_WIDTHS.photo, maxWidth: COL_WIDTHS.photo, boxSizing: 'border-box' }}>Фото</th>
               <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, 2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box' }}>Название и детали</th>
               <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, 3, last7Dates.length), width: COL_WIDTHS.priority, maxWidth: COL_WIDTHS.priority, boxSizing: 'border-box' }}>Приоритет</th>
+              <th
+                style={{
+                  ...sortableThStyle,
+                  textAlign: 'left',
+                  borderRight: getCellBorderRightForTable(showRatingColumn, 4, last7Dates.length),
+                  width: COL_WIDTHS.wbCreatedAt,
+                  maxWidth: COL_WIDTHS.wbCreatedAt,
+                  boxSizing: 'border-box',
+                }}
+                onClick={() => onSort('wbCreatedAt')}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  Создан
+                  <SortIcon field="wbCreatedAt" />
+                </span>
+              </th>
               {showRatingColumn && (
-                <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, 4, last7Dates.length) }}>Рейтинг</th>
+                <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length) }}>Рейтинг</th>
               )}
               <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length) }}>Остаток</th>
               <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length) }}>Размеры</th>
@@ -1145,6 +1225,7 @@ function ProductsTable({
             <col style={{ width: COL_WIDTHS.photo }} />
             <col style={{ width: COL_WIDTHS.name }} />
             <col style={{ width: COL_WIDTHS.priority }} />
+            <col style={{ width: COL_WIDTHS.wbCreatedAt }} />
             <col />
             <col />
             <col />
@@ -1459,8 +1540,23 @@ function ProductRow({
           }}
         />
       </td>
+      <td
+        style={{
+          padding: '6px 8px',
+          borderBottom: `1px solid ${colors.border}`,
+          borderRight: getCellBorderRightForTable(showRatingColumn, 4, last7Dates.length),
+          width: COL_WIDTHS.wbCreatedAt,
+          maxWidth: COL_WIDTHS.wbCreatedAt,
+          boxSizing: 'border-box',
+          ...typography.body,
+          ...FONT_PAGE_SMALL,
+          verticalAlign: 'top',
+        }}
+      >
+        <WbCreatedAtCell value={article.wbCreatedAt} />
+      </td>
       {showRatingColumn && (
-        <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 4, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+        <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
           {isLoading && !hasMeaningfulArticleRating(rating) ? (
             <Spin size="small" />
           ) : hasMeaningfulArticleRating(rating) ? (

@@ -29,6 +29,8 @@ export interface ArticleSummary {
   vendorCode?: string | null // Артикул продавца
   /** Рейтинг по отзывам WB (feedbackRating), 1–5. */
   rating?: number | null
+  /** Дата и время появления карточки на Wildberries. */
+  wbCreatedAt?: string | null
 }
 
 export interface AggregatedMetrics {
