@@ -84,12 +84,16 @@ export const campaignManageApi = {
     advertId: number,
     sellerId?: number,
     cabinetId?: number,
-    hours = 48,
-    stepHours = 1,
+    period?: { from: string; to: string },
   ): Promise<CampaignBudgetChartData> => {
     const params = new URLSearchParams(buildParams(sellerId, cabinetId).replace('?', ''))
-    params.set('hours', String(hours))
-    params.set('stepHours', String(stepHours))
+    if (period != null) {
+      params.set('from', period.from)
+      params.set('to', period.to)
+    } else {
+      params.set('hours', '48')
+    }
+    params.set('stepHours', '0')
     const response = await apiClient.get<CampaignBudgetChartData>(
       `/advertising/campaigns/${advertId}/manage/budget-chart?${params.toString()}`,
     )

@@ -18,8 +18,13 @@ import CampaignWeekCalendar, { type SlotCreateRange } from '../components/campai
 import { validateSlotNoOverlap } from '../utils/campaignSlotOverlap'
 import CampaignSlotModal, { type SlotModalDraft } from '../components/campaignManage/CampaignSlotModal'
 import CampaignBudgetChart from '../components/campaignManage/CampaignBudgetChart'
+import CampaignBudgetChartPeriodPicker from '../components/campaignManage/CampaignBudgetChartPeriodPicker'
 import { bidderStatusColor, bidderStatusIcon, bidderStatusLabel } from '../utils/bidderStatus'
-import dayjs from 'dayjs'
+import {
+  defaultBudgetChartPeriod,
+  formatBudgetChartPeriodParam,
+} from '../utils/budgetChartPeriod'
+import dayjs, { type Dayjs } from 'dayjs'
 
 const COMBO_PHOTO_SIZE = 80
 const CHANGE_LOG_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
@@ -82,7 +87,19 @@ export default function AdvertisingCampaignManage() {
     staleTime: 30 * 60 * 1000,
   })
 
-  const budgetChartKey = ['campaign-budget-chart', advertId, selectedCabinetId] as const
+  const [chartPeriod, setChartPeriod] = useState<[Dayjs, Dayjs]>(() => defaultBudgetChartPeriod())
+
+  useEffect(() => {
+    setChartPeriod(defaultBudgetChartPeriod())
+  }, [advertId, selectedCabinetId, selectedSellerId])
+
+  const budgetChartKey = [
+    'campaign-budget-chart',
+    advertId,
+    selectedCabinetId,
+    chartPeriod[0].valueOf(),
+    chartPeriod[1].valueOf(),
+  ] as const
 
   const [changeLogPage, setChangeLogPage] = useState(0)
   const [changeLogPageSize, setChangeLogPageSize] = useState<number>(CHANGE_LOG_PAGE_SIZE_OPTIONS[0])
@@ -116,7 +133,10 @@ export default function AdvertisingCampaignManage() {
   const { data: budgetChart, isLoading: budgetChartLoading } = useQuery({
     queryKey: budgetChartKey,
     queryFn: () =>
-      campaignManageApi.getBudgetChart(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
+      campaignManageApi.getBudgetChart(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined, {
+        from: formatBudgetChartPeriodParam(chartPeriod[0]),
+        to: formatBudgetChartPeriodParam(chartPeriod[1]),
+      }),
     enabled: Number.isFinite(advertId) && selectedCabinetId != null,
     staleTime: 3 * 60 * 1000,
   })
@@ -542,7 +562,23 @@ export default function AdvertisingCampaignManage() {
             </CampaignManagePaywallShield>
 
             <div style={cardStyle}>
-              <h2 style={{ ...typography.h2, fontSize: 16, marginTop: 0, marginBottom: 12 }}>График бюджета</h2>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: spacing.sm,
+                  marginBottom: 12,
+                }}
+              >
+                <h2 style={{ ...typography.h2, fontSize: 16, margin: 0 }}>График бюджета</h2>
+                <CampaignBudgetChartPeriodPicker
+                  value={chartPeriod}
+                  onChange={setChartPeriod}
+                  disabled={budgetChartLoading}
+                />
+              </div>
               <CampaignBudgetChart data={budgetChart} loading={budgetChartLoading} />
             </div>
 
