@@ -442,7 +442,7 @@ export default function AdvertisingCampaignManage() {
 
             <CampaignManagePaywallShield active={subscriptionBlocked}>
             <div style={cardStyle}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginBottom: 12 }}>
                 <h2 style={{ ...typography.h2, fontSize: 16, margin: 0, flex: 1 }}>Автопополнение бюджета</h2>
                 <Button
                   size="small"
@@ -464,7 +464,8 @@ export default function AdvertisingCampaignManage() {
               >
                 Пополнять бюджет автоматически
               </Checkbox>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginTop: 12 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 12, marginTop: 12 }}>
+                <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, minWidth: 0 }}>
                 <div>
                   <div style={{ fontSize: 12, color: colors.textSecondary }}>Сумма пополнения, ₽</div>
                   <InputNumber style={{ width: '100%' }} min={500} step={50} disabled={formDisabled} value={topUpAmount} onChange={setTopUpAmount} />
@@ -490,14 +491,14 @@ export default function AdvertisingCampaignManage() {
                   <div style={{ fontSize: 12, color: colors.textSecondary }}>Макс. пополнений в день</div>
                   <InputNumber style={{ width: '100%' }} min={1} disabled={formDisabled} value={maxTopUps} onChange={setMaxTopUps} />
                 </div>
-              </div>
-              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                </div>
                 {autoLocked ? (
-                  <Button onClick={() => unlockAutoMutation.mutate()} disabled={controlBlocked}>
+                  <Button size="small" onClick={() => unlockAutoMutation.mutate()} disabled={controlBlocked}>
                     Редактировать
                   </Button>
                 ) : (
                   <Button
+                    size="small"
                     type="primary"
                     loading={saveAutoMutation.isPending}
                     disabled={controlBlocked}
