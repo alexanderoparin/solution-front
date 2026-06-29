@@ -8,7 +8,17 @@ export const analyticsSharedKeys = {
   onlyWithPhoto: (cabinetId: number) => `analytics_shared_only_with_photo_${cabinetId}`,
   onlyPriority: (cabinetId: number) => `analytics_shared_only_priority_${cabinetId}`,
   filterToNone: (cabinetId: number) => `analytics_shared_filter_to_none_${cabinetId}`,
+  productsSort: (cabinetId: number) => `analytics_shared_products_sort_${cabinetId}`,
 } as const
+
+export type ProductsSortField = 'wbCreatedAt'
+
+export interface ProductsSortPreference {
+  field: ProductsSortField
+  order: 'asc' | 'desc'
+}
+
+const DEFAULT_PRODUCTS_SORT: ProductsSortPreference = { field: 'wbCreatedAt', order: 'desc' }
 
 function readBool(raw: string | null, defaultValue: boolean): boolean {
   if (raw == null || raw === '') return defaultValue
@@ -80,6 +90,30 @@ export function readSharedFilterToNone(cabinetId: number | null): boolean {
 
 export function writeSharedFilterToNone(cabinetId: number | null, value: boolean): void {
   writeBool(cabinetId, analyticsSharedKeys.filterToNone, value)
+}
+
+export function readSharedProductsSort(cabinetId: number | null): ProductsSortPreference {
+  if (cabinetId == null) return DEFAULT_PRODUCTS_SORT
+  try {
+    const raw = localStorage.getItem(analyticsSharedKeys.productsSort(cabinetId))
+    if (!raw) return DEFAULT_PRODUCTS_SORT
+    const parsed = JSON.parse(raw) as Partial<ProductsSortPreference>
+    if (parsed.field === 'wbCreatedAt' && (parsed.order === 'asc' || parsed.order === 'desc')) {
+      return { field: 'wbCreatedAt', order: parsed.order }
+    }
+    return DEFAULT_PRODUCTS_SORT
+  } catch {
+    return DEFAULT_PRODUCTS_SORT
+  }
+}
+
+export function writeSharedProductsSort(cabinetId: number | null, sort: ProductsSortPreference): void {
+  if (cabinetId == null) return
+  try {
+    localStorage.setItem(analyticsSharedKeys.productsSort(cabinetId), JSON.stringify(sort))
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Ключ для списка исключённых nmId в Сводной: у админа/менеджера — по sellerId, у продавца/работника — по кабинету. */

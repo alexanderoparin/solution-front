@@ -15,11 +15,14 @@ import {
   readSharedFilterToNone,
   readSharedOnlyPriority,
   readSharedOnlyWithPhoto,
+  readSharedProductsSort,
   readSharedSearch,
   writeSharedFilterToNone,
   writeSharedOnlyPriority,
   writeSharedOnlyWithPhoto,
+  writeSharedProductsSort,
   writeSharedSearch,
+  type ProductsSortField,
 } from '../utils/analyticsSharedFilterStorage'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
@@ -31,7 +34,6 @@ dayjs.locale('ru')
 
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
 const PAGE_SIZE = 10
-type ProductsSortField = 'wbCreatedAt'
 /** Размер одной загрузки списка артикулов для выбора в фильтре; достаточно большой, чтобы при снятии одной галочки с «все» получать «все кроме одного». */
 const FILTER_LIST_PAGE_SIZE = 500
 
@@ -367,12 +369,21 @@ export default function AnalyticsProducts() {
 
   const handleSort = useCallback((field: ProductsSortField) => {
     if (sortField === field) {
-      setSortOrder((order) => (order === 'asc' ? 'desc' : 'asc'))
+      setSortOrder((order) => {
+        const next = order === 'asc' ? 'desc' : 'asc'
+        if (selectedCabinetId != null) {
+          writeSharedProductsSort(selectedCabinetId, { field, order: next })
+        }
+        return next
+      })
     } else {
       setSortField(field)
       setSortOrder('desc')
+      if (selectedCabinetId != null) {
+        writeSharedProductsSort(selectedCabinetId, { field, order: 'desc' })
+      }
     }
-  }, [sortField])
+  }, [sortField, selectedCabinetId])
 
   const cabinetSelectProps =
     !isManagerOrAdmin && cabinets.length > 0
@@ -391,6 +402,9 @@ export default function AnalyticsProducts() {
     setSearchQuery(readSharedSearch(selectedCabinetId))
     setOnlyWithPhoto(readSharedOnlyWithPhoto(selectedCabinetId))
     setOnlyPriority(readSharedOnlyPriority(selectedCabinetId))
+    const storedSort = readSharedProductsSort(selectedCabinetId)
+    setSortField(storedSort.field)
+    setSortOrder(storedSort.order)
     const ftn = readSharedFilterToNone(selectedCabinetId)
     setAllDeselected(ftn)
     const stored = getStoredSelectedNmIds(selectedCabinetId)
