@@ -15,6 +15,7 @@ const COLUMNS: { key: NormQueryClusterSortField; label: string; align: 'left' | 
   { key: 'atbs', label: 'Корзина', align: 'right' },
   { key: 'orders', label: 'Заказы, шт', align: 'right' },
   { key: 'spend', label: 'Затраты, ₽', align: 'right' },
+  { key: 'cpo', label: 'CPO, ₽', align: 'right' },
   { key: 'cpc', label: 'CPC, ₽', align: 'right' },
 ]
 
@@ -111,6 +112,7 @@ export default function CampaignNormQueryClustersTable({
       <td style={td}>{formatNumber(row.atbs)}</td>
       <td style={td}>{formatNumber(row.orders)}</td>
       <td style={td}>{row.spend != null ? formatCurrency(row.spend) : '-'}</td>
+      <td style={td}>{formatDecimal(row.cpo ?? 0, 2)}</td>
       <td style={td}>{row.cpc != null ? formatDecimal(row.cpc, 2) : '-'}</td>
     </tr>
   )
@@ -137,7 +139,7 @@ export default function CampaignNormQueryClustersTable({
           style={{ maxHeight: 520, overflow: 'auto', border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.sm }}
           onScroll={onScroll}
         >
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
             <thead>
               <tr>
                 {COLUMNS.map((col) => (
@@ -161,7 +163,7 @@ export default function CampaignNormQueryClustersTable({
               {rows.map((row) => renderRow(row, row.normQuery))}
               {!isLoading && rows.length === 0 && (totals?.clicks ?? 0) === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ ...td, textAlign: 'center', color: colors.textSecondary, padding: spacing.xl }}>
+                  <td colSpan={8} style={{ ...td, textAlign: 'center', color: colors.textSecondary, padding: spacing.xl }}>
                     Нет данных за выбранный период
                   </td>
                 </tr>

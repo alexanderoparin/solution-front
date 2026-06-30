@@ -610,7 +610,7 @@ export default function AdvertisingCampaignDetail() {
         message.warning('Нет данных для выгрузки')
         return
       }
-      const headers = ['Кластер', 'Средняя позиция', 'Клики', 'Корзины', 'Заказы, шт', 'Затраты, ₽', 'CPC, ₽']
+      const headers = ['Кластер', 'Средняя позиция', 'Клики', 'Корзины', 'Заказы, шт', 'Затраты, ₽', 'CPO, ₽', 'CPC, ₽']
       const sheetRows: (string | number)[][] = [headers]
       if (totals) {
         sheetRows.push([
@@ -620,6 +620,7 @@ export default function AdvertisingCampaignDetail() {
           totals.atbs ?? '',
           totals.orders ?? '',
           totals.spend != null ? formatCurrency(totals.spend) : '',
+          formatDecimal(totals.cpo ?? 0, 2),
           totals.cpc != null ? formatDecimal(totals.cpc, 2) : '',
         ])
       }
@@ -631,6 +632,7 @@ export default function AdvertisingCampaignDetail() {
           row.atbs ?? '',
           row.orders ?? '',
           row.spend != null ? formatCurrency(row.spend) : '',
+          formatDecimal(row.cpo ?? 0, 2),
           row.cpc != null ? formatDecimal(row.cpc, 2) : '',
         ])
       }

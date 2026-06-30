@@ -198,6 +198,7 @@ export interface NormQueryClusterRow {
   orders: number | null
   spend: number | null
   cpc: number | null
+  cpo: number | null
 }
 
 export type NormQueryClusterSortField =
@@ -207,6 +208,7 @@ export type NormQueryClusterSortField =
   | 'atbs'
   | 'orders'
   | 'spend'
+  | 'cpo'
   | 'cpc'
 
 export type NormQueryClusterSortDirection = 'asc' | 'desc'
