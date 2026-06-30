@@ -584,7 +584,7 @@ export default function AdvertisingCampaignManage() {
             </div>
 
             <div style={cardStyle}>
-              <h2 style={{ ...typography.h2, fontSize: 16, marginTop: 0 }}>История изменений</h2>
+              <h2 style={{ ...typography.h2, fontSize: 16, margin: 0, marginBottom: 12 }}>История изменений</h2>
               <Table
                 size="small"
                 loading={changeLogLoading}
