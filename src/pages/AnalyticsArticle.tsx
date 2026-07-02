@@ -25,7 +25,7 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
-import { useFunnelTableVerticalSelection } from '../hooks/useFunnelTableVerticalSelection'
+import { useFunnelTableVerticalSelection, sumFunnelBaseMetricsForDates } from '../hooks/useFunnelTableVerticalSelection'
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
 import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
@@ -701,6 +701,15 @@ export default function AnalyticsArticle() {
     [article],
   )
 
+  const getFunnelBaseMetricsForDates = useCallback(
+    (dates: string[]) =>
+      sumFunnelBaseMetricsForDates(dates, (date) => {
+        if (!article) return null
+        return article.dailyData.find((d) => d.date.slice(0, 10) === date) ?? null
+      }),
+    [article],
+  )
+
   const getFunnelStatColumnTitle = useCallback((metricKey: string) => {
     for (const fk of FUNNEL_ORDER) {
       const found = FUNNELS[fk].metrics.find((x) => x.key === metricKey)
@@ -724,6 +733,7 @@ export default function AnalyticsArticle() {
   } = useFunnelTableVerticalSelection({
     rangeDatesDesc,
     getNumericValue: getFunnelNumericForStats,
+    getBaseMetricsForDates: getFunnelBaseMetricsForDates,
     getColumnTitle: getFunnelStatColumnTitle,
     formatValue,
     formatPercent,
