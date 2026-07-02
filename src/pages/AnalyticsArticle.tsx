@@ -278,7 +278,7 @@ export default function AnalyticsArticle() {
   const [uploadingNoteFiles, setUploadingNoteFiles] = useState(false)
   const [imagePreview, setImagePreview] = useState<{ url: string; fileName: string } | null>(null)
   /** false = натуральный размер (прокрутка); true = уместить в окно */
-  const [imagePreviewFitWindow, setImagePreviewFitWindow] = useState(false)
+  const [imagePreviewFitWindow, setImagePreviewFitWindow] = useState(true)
 
   // Периоды для сравнения (по умолчанию - две недели, разбитые по неделям)
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>([
@@ -618,7 +618,7 @@ export default function AnalyticsArticle() {
       const blob = await analyticsApi.getFileBlob(Number(nmId), noteId, fileId, sellerId, getSelectedCabinetId())
       // Создаем blob URL для просмотра
       const url = window.URL.createObjectURL(blob)
-      setImagePreviewFitWindow(false)
+      setImagePreviewFitWindow(true)
       setImagePreview({ url, fileName })
     } catch (err: any) {
       message.error(err.response?.data?.message || 'Ошибка при загрузке изображения')
@@ -3692,7 +3692,7 @@ export default function AnalyticsArticle() {
           if (imagePreview?.url) {
             window.URL.revokeObjectURL(imagePreview.url)
           }
-          setImagePreviewFitWindow(false)
+          setImagePreviewFitWindow(true)
           setImagePreview(null)
         }}
         footer={
@@ -3745,7 +3745,7 @@ export default function AnalyticsArticle() {
                 if (imagePreview?.url) {
                   window.URL.revokeObjectURL(imagePreview.url)
                 }
-                setImagePreviewFitWindow(false)
+                setImagePreviewFitWindow(true)
                 setImagePreview(null)
               }}
             />

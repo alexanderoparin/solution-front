@@ -2023,7 +2023,7 @@ function CampaignNotesBlock({
   const [noteFileItems, setNoteFileItems] = useState<CampaignNoteFileEntry[]>([])
   const [saving, setSaving] = useState(false)
   const [imagePreview, setImagePreview] = useState<{ url: string; fileName: string } | null>(null)
-  const [imagePreviewFitWindow, setImagePreviewFitWindow] = useState(false)
+  const [imagePreviewFitWindow, setImagePreviewFitWindow] = useState(true)
 
   const userId = useAuthStore((state) => state.userId)
 
@@ -2153,7 +2153,7 @@ function CampaignNotesBlock({
     try {
       const blob = await analyticsApi.getCampaignNoteFileBlob(campaignId, noteId, fileId, sellerId, cabinetId)
       const url = window.URL.createObjectURL(blob)
-      setImagePreviewFitWindow(false)
+      setImagePreviewFitWindow(true)
       setImagePreview({ url, fileName })
     } catch (err: unknown) {
       message.error(((err as { response?: { data?: { message?: string } } })?.response?.data?.message) ?? 'Ошибка при загрузке изображения')
@@ -2330,7 +2330,7 @@ function CampaignNotesBlock({
       open={!!imagePreview}
       onCancel={() => {
         if (imagePreview?.url) window.URL.revokeObjectURL(imagePreview.url)
-        setImagePreviewFitWindow(false)
+        setImagePreviewFitWindow(true)
         setImagePreview(null)
       }}
       footer={
@@ -2381,7 +2381,7 @@ function CampaignNotesBlock({
             onError={() => {
               message.error('Ошибка при загрузке изображения')
               if (imagePreview?.url) window.URL.revokeObjectURL(imagePreview.url)
-              setImagePreviewFitWindow(false)
+              setImagePreviewFitWindow(true)
               setImagePreview(null)
             }}
           />
