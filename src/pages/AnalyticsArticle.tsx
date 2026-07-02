@@ -30,6 +30,7 @@ import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
 import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
 import { linkifyNoteText } from '../utils/linkifyNoteText'
+import { NoteImagePreviewModal } from '../components/NoteImagePreviewModal'
 
 type NoteFileEntry = { uid: string; file: File }
 
@@ -277,8 +278,6 @@ export default function AnalyticsArticle() {
   const [noteFileItems, setNoteFileItems] = useState<NoteFileEntry[]>([])
   const [uploadingNoteFiles, setUploadingNoteFiles] = useState(false)
   const [imagePreview, setImagePreview] = useState<{ url: string; fileName: string } | null>(null)
-  /** false = натуральный размер (прокрутка); true = уместить в окно */
-  const [imagePreviewFitWindow, setImagePreviewFitWindow] = useState(true)
 
   // Периоды для сравнения (по умолчанию - две недели, разбитые по неделям)
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>([
@@ -618,7 +617,6 @@ export default function AnalyticsArticle() {
       const blob = await analyticsApi.getFileBlob(Number(nmId), noteId, fileId, sellerId, getSelectedCabinetId())
       // Создаем blob URL для просмотра
       const url = window.URL.createObjectURL(blob)
-      setImagePreviewFitWindow(true)
       setImagePreview({ url, fileName })
     } catch (err: any) {
       message.error(err.response?.data?.message || 'Ошибка при загрузке изображения')
@@ -3684,74 +3682,7 @@ export default function AnalyticsArticle() {
         </div>
       </Modal>
 
-      {/* Модальное окно для просмотра изображения */}
-      <Modal
-        title={imagePreview?.fileName || 'Просмотр изображения'}
-        open={!!imagePreview}
-        onCancel={() => {
-          if (imagePreview?.url) {
-            window.URL.revokeObjectURL(imagePreview.url)
-          }
-          setImagePreviewFitWindow(true)
-          setImagePreview(null)
-        }}
-        footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button onClick={() => setImagePreviewFitWindow((v) => !v)}>
-              {imagePreviewFitWindow ? 'Полный размер' : 'Подогнать в окно'}
-            </Button>
-          </div>
-        }
-        centered
-        width="calc(100vw - 16px)"
-        styles={{
-          content: { maxWidth: 'calc(100vw - 16px)', width: 'calc(100vw - 16px)' },
-          body: { paddingTop: 8 },
-        }}
-      >
-        {imagePreview && (
-          <div
-            style={{
-              overflow: imagePreviewFitWindow ? 'hidden' : 'auto',
-              maxHeight: 'min(85vh, 900px)',
-              textAlign: 'center',
-            }}
-          >
-            <img
-              src={imagePreview.url}
-              alt={imagePreview.fileName}
-              style={
-                imagePreviewFitWindow
-                  ? {
-                      maxWidth: '100%',
-                      maxHeight: 'min(75vh, 820px)',
-                      objectFit: 'contain',
-                      borderRadius: borderRadius.sm,
-                      display: 'inline-block',
-                      verticalAlign: 'top',
-                    }
-                  : {
-                      width: 'auto',
-                      height: 'auto',
-                      maxWidth: 'none',
-                      maxHeight: 'none',
-                      borderRadius: borderRadius.sm,
-                      display: 'inline-block',
-                      verticalAlign: 'top',
-                    }
-              }
-              onError={() => {
-                message.error('Ошибка при загрузке изображения')
-                if (imagePreview?.url) {
-                  window.URL.revokeObjectURL(imagePreview.url)
-                }
-                setImagePreviewFitWindow(true)
-                setImagePreview(null)
-              }}
-            />
-          </div>
-        )}
-      </Modal>
+      <NoteImagePreviewModal preview={imagePreview} onClose={() => setImagePreview(null)} />
     </>
   )
 }
