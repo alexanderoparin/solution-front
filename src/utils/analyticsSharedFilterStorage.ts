@@ -7,6 +7,7 @@ export const analyticsSharedKeys = {
   search: (cabinetId: number) => `analytics_shared_search_${cabinetId}`,
   onlyWithPhoto: (cabinetId: number) => `analytics_shared_only_with_photo_${cabinetId}`,
   onlyPriority: (cabinetId: number) => `analytics_shared_only_priority_${cabinetId}`,
+  onlyInAdvertising: (cabinetId: number) => `analytics_shared_only_in_advertising_${cabinetId}`,
   filterToNone: (cabinetId: number) => `analytics_shared_filter_to_none_${cabinetId}`,
   productsSort: (cabinetId: number) => `analytics_shared_products_sort_${cabinetId}`,
 } as const
@@ -77,6 +78,19 @@ export function readSharedOnlyPriority(cabinetId: number | null): boolean {
 
 export function writeSharedOnlyPriority(cabinetId: number | null, value: boolean): void {
   writeBool(cabinetId, analyticsSharedKeys.onlyPriority, value)
+}
+
+export function readSharedOnlyInAdvertising(cabinetId: number | null): boolean {
+  if (cabinetId == null) return false
+  try {
+    return readBool(localStorage.getItem(analyticsSharedKeys.onlyInAdvertising(cabinetId)), false)
+  } catch {
+    return false
+  }
+}
+
+export function writeSharedOnlyInAdvertising(cabinetId: number | null, value: boolean): void {
+  writeBool(cabinetId, analyticsSharedKeys.onlyInAdvertising, value)
 }
 
 export function readSharedFilterToNone(cabinetId: number | null): boolean {

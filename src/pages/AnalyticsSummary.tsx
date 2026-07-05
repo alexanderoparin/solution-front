@@ -15,10 +15,12 @@ import {
   excludedNmIdsStorageKey,
   readSharedFilterToNone,
   readSharedOnlyPriority,
+  readSharedOnlyInAdvertising,
   readSharedOnlyWithPhoto,
   readSharedSearch,
   writeSharedFilterToNone,
   writeSharedOnlyPriority,
+  writeSharedOnlyInAdvertising,
   writeSharedOnlyWithPhoto,
   writeSharedSearch,
 } from '../utils/analyticsSharedFilterStorage'
@@ -347,6 +349,7 @@ export default function AnalyticsSummary() {
   const [articleSearchText, setArticleSearchText] = useState<string>('')
   const [onlyWithPhoto, setOnlyWithPhoto] = useState(true)
   const [onlyPriority, setOnlyPriority] = useState(false)
+  const [onlyInAdvertising, setOnlyInAdvertising] = useState(false)
   const [originalArticles, setOriginalArticles] = useState<ArticleSummary[]>([])
 
   // 1) Список артикулов — отдельный лёгкий эндпоинт (только справочная информация для фильтра)
@@ -359,6 +362,7 @@ export default function AnalyticsSummary() {
         selectedCabinetId ?? undefined,
         onlyWithPhoto,
         onlyPriority,
+        onlyInAdvertising,
       )
       setOriginalArticles(list ?? [])
     } catch (err) {
@@ -367,7 +371,7 @@ export default function AnalyticsSummary() {
     } finally {
       setArticleCatalogLoading(false)
     }
-  }, [selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, isManagerOrAdmin])
+  }, [selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, onlyInAdvertising, isManagerOrAdmin])
 
   // 2) Сводная только по выбранным артикулам (после того как список и фильтр готовы)
   const loadSummary = useCallback(async () => {
@@ -386,6 +390,7 @@ export default function AnalyticsSummary() {
         cabinetId: selectedCabinetId ?? undefined,
         onlyWithPhoto: onlyWithPhoto || undefined,
         onlyPriority: onlyPriority || undefined,
+        onlyInAdvertising: onlyInAdvertising || undefined,
       })
       setSummary(data)
       setMetricGroups(new Map())
@@ -396,7 +401,7 @@ export default function AnalyticsSummary() {
     } finally {
       setLoading(false)
     }
-  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, isManagerOrAdmin])
+  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, onlyInAdvertising, isManagerOrAdmin])
 
   const queryClient = useQueryClient()
   const selectedSeller = useMemo(
@@ -473,6 +478,7 @@ export default function AnalyticsSummary() {
     setArticleSearchText(readSharedSearch(selectedCabinetId))
     setOnlyWithPhoto(readSharedOnlyWithPhoto(selectedCabinetId))
     setOnlyPriority(readSharedOnlyPriority(selectedCabinetId))
+    setOnlyInAdvertising(readSharedOnlyInAdvertising(selectedCabinetId))
   }, [selectedCabinetId])
 
   useEffect(() => {
@@ -489,6 +495,11 @@ export default function AnalyticsSummary() {
     if (selectedCabinetId == null) return
     writeSharedOnlyPriority(selectedCabinetId, onlyPriority)
   }, [selectedCabinetId, onlyPriority])
+
+  useEffect(() => {
+    if (selectedCabinetId == null) return
+    writeSharedOnlyInAdvertising(selectedCabinetId, onlyInAdvertising)
+  }, [selectedCabinetId, onlyInAdvertising])
 
   // Смена селлера (админ/менеджер) или кабинета/фильтра (продавец/работник): фильтр из localStorage + список артикулов
   useEffect(() => {
@@ -516,7 +527,7 @@ export default function AnalyticsSummary() {
     }
     // SELLER / WORKER: sellerId в API не передаём — только кабинет и фильтр фото
     void loadArticles()
-  }, [isManagerOrAdmin, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, loadArticles])
+  }, [isManagerOrAdmin, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, onlyInAdvertising, loadArticles])
 
   // Сводная — после завершения загрузки справочника артикулов (в т.ч. пустого каталога)
   useEffect(() => {
@@ -598,6 +609,7 @@ export default function AnalyticsSummary() {
           cabinetId: selectedCabinetId ?? undefined,
           onlyWithPhoto: onlyWithPhoto || undefined,
           onlyPriority: onlyPriority || undefined,
+          onlyInAdvertising: onlyInAdvertising || undefined,
         })
       )
       setMetricGroups(prev => new Map(prev).set(metricName, data))
@@ -969,6 +981,11 @@ export default function AnalyticsSummary() {
             <Checkbox checked={onlyPriority} onChange={(e) => setOnlyPriority(e.target.checked)}>
               Только приоритетные
             </Checkbox>
+            <Tooltip title="Только артикулы, привязанные к незавершённым рекламным кампаниям кабинета">
+              <Checkbox checked={onlyInAdvertising} onChange={(e) => setOnlyInAdvertising(e.target.checked)}>
+                Только в рекламе
+              </Checkbox>
+            </Tooltip>
             </div>
           </div>
           <div style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 400, color: colors.textPrimary }}>

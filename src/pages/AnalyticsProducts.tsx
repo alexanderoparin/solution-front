@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Spin, Input, Button, Popover, Checkbox, message } from 'antd'
+import { Spin, Input, Button, Popover, Checkbox, message, Tooltip } from 'antd'
 import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled, HolderOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -14,11 +14,13 @@ import {
   analyticsSharedKeys,
   readSharedFilterToNone,
   readSharedOnlyPriority,
+  readSharedOnlyInAdvertising,
   readSharedOnlyWithPhoto,
   readSharedProductsSort,
   readSharedSearch,
   writeSharedFilterToNone,
   writeSharedOnlyPriority,
+  writeSharedOnlyInAdvertising,
   writeSharedOnlyWithPhoto,
   writeSharedProductsSort,
   writeSharedSearch,
@@ -145,6 +147,7 @@ export default function AnalyticsProducts() {
   const [tagsExpanded, setTagsExpanded] = useState(false)
   const [onlyWithPhoto, setOnlyWithPhoto] = useState(true)
   const [onlyPriority, setOnlyPriority] = useState(false)
+  const [onlyInAdvertising, setOnlyInAdvertising] = useState(false)
   const [bulkPriorityLoading, setBulkPriorityLoading] = useState(false)
   const [sortField, setSortField] = useState<ProductsSortField>('wbCreatedAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -223,6 +226,7 @@ export default function AnalyticsProducts() {
       searchTrimmed,
       onlyWithPhoto,
       onlyPriority,
+      onlyInAdvertising,
       sortField,
       sortOrder,
       allDeselected ? 'none' : (selectedNmIds.length > 0 ? [...selectedNmIds].sort((a, b) => a - b) : null),
@@ -237,6 +241,7 @@ export default function AnalyticsProducts() {
         search: searchTrimmed || undefined,
         onlyWithPhoto: onlyWithPhoto || undefined,
         onlyPriority: onlyPriority || undefined,
+        onlyInAdvertising: onlyInAdvertising || undefined,
         sortBy: sortField,
         sortDir: sortOrder,
         ...(allDeselected ? { filterToNone: true } : selectedNmIds.length > 0 ? { includedNmIds: selectedNmIds } : {}),
@@ -260,6 +265,7 @@ export default function AnalyticsProducts() {
       searchTrimmed,
       onlyWithPhoto,
       onlyPriority,
+      onlyInAdvertising,
       sortField,
       sortOrder,
     ],
@@ -273,6 +279,7 @@ export default function AnalyticsProducts() {
         search: searchTrimmed || undefined,
         onlyWithPhoto: onlyWithPhoto || undefined,
         onlyPriority: onlyPriority || undefined,
+        onlyInAdvertising: onlyInAdvertising || undefined,
         sortBy: sortField,
         sortDir: sortOrder,
       }),
@@ -402,6 +409,7 @@ export default function AnalyticsProducts() {
     setSearchQuery(readSharedSearch(selectedCabinetId))
     setOnlyWithPhoto(readSharedOnlyWithPhoto(selectedCabinetId))
     setOnlyPriority(readSharedOnlyPriority(selectedCabinetId))
+    setOnlyInAdvertising(readSharedOnlyInAdvertising(selectedCabinetId))
     const storedSort = readSharedProductsSort(selectedCabinetId)
     setSortField(storedSort.field)
     setSortOrder(storedSort.order)
@@ -426,6 +434,11 @@ export default function AnalyticsProducts() {
     if (selectedCabinetId == null) return
     writeSharedOnlyPriority(selectedCabinetId, onlyPriority)
   }, [selectedCabinetId, onlyPriority])
+
+  useEffect(() => {
+    if (selectedCabinetId == null) return
+    writeSharedOnlyInAdvertising(selectedCabinetId, onlyInAdvertising)
+  }, [selectedCabinetId, onlyInAdvertising])
 
   useEffect(() => {
     writeSharedFilterToNone(selectedCabinetId, allDeselected)
@@ -815,6 +828,14 @@ export default function AnalyticsProducts() {
             >
               Только приоритетные
             </Checkbox>
+            <Tooltip title="Только артикулы, привязанные к незавершённым рекламным кампаниям кабинета">
+              <Checkbox
+                checked={onlyInAdvertising}
+                onChange={(e) => setOnlyInAdvertising(e.target.checked)}
+              >
+                Только в рекламе
+              </Checkbox>
+            </Tooltip>
             </div>
           </div>
 

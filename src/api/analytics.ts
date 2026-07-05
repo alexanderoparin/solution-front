@@ -56,6 +56,8 @@ export interface SummaryRequest {
   onlyWithPhoto?: boolean
   /** Если true — только приоритетные артикулы. */
   onlyPriority?: boolean
+  /** Если true — только артикулы в незавершённых РК кабинета. */
+  onlyInAdvertising?: boolean
   /** Поле сортировки списка артикулов (по умолчанию wbCreatedAt). */
   sortBy?: 'wbCreatedAt'
   /** Направление сортировки: asc или desc. */
@@ -70,13 +72,15 @@ export const analyticsApi = {
     sellerId?: number,
     cabinetId?: number,
     onlyWithPhoto?: boolean,
-    onlyPriority?: boolean
+    onlyPriority?: boolean,
+    onlyInAdvertising?: boolean
   ): Promise<ArticleSummary[]> => {
     const params = new URLSearchParams()
     if (sellerId != null) params.set('sellerId', String(sellerId))
     if (cabinetId != null) params.set('cabinetId', String(cabinetId))
     if (onlyWithPhoto === true) params.set('onlyWithPhoto', 'true')
     if (onlyPriority === true) params.set('onlyPriority', 'true')
+    if (onlyInAdvertising === true) params.set('onlyInAdvertising', 'true')
     const query = params.toString()
     const response = await apiClient.get<ArticleSummary[]>(
       `/analytics/articles${query ? `?${query}` : ''}`
