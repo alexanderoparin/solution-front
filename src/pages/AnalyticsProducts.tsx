@@ -735,6 +735,31 @@ export default function AnalyticsProducts() {
                               onChange={(e) => toggleFilterNmId(a.nmId, e.target.checked)}
                               style={{ marginRight: 12 }}
                             />
+                            {a.photoTm ? (
+                              <img
+                                src={a.photoTm}
+                                alt=""
+                                style={{
+                                  width: 40,
+                                  height: 40,
+                                  objectFit: 'cover',
+                                  borderRadius: borderRadius.sm,
+                                  marginRight: 12,
+                                  flexShrink: 0,
+                                }}
+                              />
+                            ) : (
+                              <div
+                                style={{
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: borderRadius.sm,
+                                  marginRight: 12,
+                                  flexShrink: 0,
+                                  backgroundColor: colors.bgGray,
+                                }}
+                              />
+                            )}
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontWeight: 600, color: colors.textPrimary }}>
                                 {a.nmId}
