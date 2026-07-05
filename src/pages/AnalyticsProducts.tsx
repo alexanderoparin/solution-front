@@ -303,13 +303,23 @@ export default function AnalyticsProducts() {
   }, [allDeselected, selectedNmIds, filterListTotal, filterListNmIdSet])
 
   /** Теги под фильтром: при полной загрузке каталога показываем только nmId из текущего списка (как в бейдже) */
+  const catalogFullyLoaded =
+    filterListTotal > 0 && filterListArticles.length >= filterListTotal
+
   const selectedNmIdsForTags = useMemo(() => {
     if (selectedNmIds.length === 0) return []
-    const catalogFullyLoaded = filterListTotal > 0 && filterListArticles.length >= filterListTotal
     const sorted = [...selectedNmIds].sort((a, b) => a - b)
     if (!catalogFullyLoaded) return sorted
     return sorted.filter((id) => filterListNmIdSet.has(id))
-  }, [selectedNmIds, filterListTotal, filterListArticles.length, filterListNmIdSet])
+  }, [selectedNmIds, catalogFullyLoaded, filterListNmIdSet])
+
+  /** Убираем из явного выбора артикулы, не попадающие в текущий каталог (после смены фильтров). */
+  useEffect(() => {
+    if (allDeselected || selectedNmIds.length === 0 || !catalogFullyLoaded) return
+    const pruned = selectedNmIds.filter((id) => filterListNmIdSet.has(id))
+    if (pruned.length === selectedNmIds.length) return
+    setSelectedNmIds(pruned)
+  }, [allDeselected, selectedNmIds, catalogFullyLoaded, filterListNmIdSet])
 
   const summaryErrorMessage =
     summaryError && (summaryErr as any)?.response?.data?.error ||
@@ -638,9 +648,6 @@ export default function AnalyticsProducts() {
                           a.title?.toLowerCase().includes(q)
                       )
                     : filterListArticles
-                  const selectedNotInList = selectedNmIds.filter(
-                    (id) => !filterListArticles.some((a) => a.nmId === id)
-                  )
                   return (
                     <div style={{ width: 400, maxHeight: 'min(520px, calc(100vh - 160px))', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                       <Input
@@ -693,45 +700,6 @@ export default function AnalyticsProducts() {
                           Снять приоритет у выбранных
                         </Button>
                       </div>
-                      {selectedNotInList.length > 0 && (
-                        <div style={{ marginBottom: 8, flexShrink: 0 }}>
-                          <div style={{ fontSize: 11, color: colors.textSecondary, marginBottom: 4 }}>Выбраны (вне списка):</div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                            {selectedNotInList.map((nmId) => (
-                              <span
-                                key={nmId}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 4,
-                                  padding: '2px 8px',
-                                  borderRadius: borderRadius.sm,
-                                  backgroundColor: '#E0F2FE',
-                                  color: '#0369A1',
-                                  fontSize: 12,
-                                }}
-                              >
-                                {nmId}
-                                <button
-                                  type="button"
-                                  onClick={() => toggleFilterNmId(nmId, false)}
-                                  style={{
-                                    border: 'none',
-                                    background: 'none',
-                                    padding: 0,
-                                    cursor: 'pointer',
-                                    color: 'inherit',
-                                    display: 'flex',
-                                  }}
-                                  aria-label="Снять выбор"
-                                >
-                                  <CloseOutlined style={{ fontSize: 10 }} />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
                         {filterListFiltered.map((a) => (
                           <div

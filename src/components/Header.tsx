@@ -152,7 +152,7 @@ export default function Header({
             items: [
               {
                 key: 'campaigns',
-                label: <NavMenuLink to="/advertising/campaigns">Рекламные компании</NavMenuLink>,
+                label: <NavMenuLink to="/advertising/campaigns">Рекламные кампании</NavMenuLink>,
               },
               {
                 key: 'bidder',

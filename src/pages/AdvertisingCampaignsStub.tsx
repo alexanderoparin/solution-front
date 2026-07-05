@@ -11,7 +11,7 @@ export default function AdvertisingCampaignsStub() {
           Скоро
         </div>
         <div style={{ fontSize: '14px', color: '#94A3B8', marginTop: '8px' }}>
-          Раздел «Рекламные компании» в разработке
+          Раздел «Рекламные кампании» в разработке
         </div>
       </div>
     </>

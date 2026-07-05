@@ -1720,7 +1720,7 @@ export default function AdvertisingCampaignDetail() {
                 return (
                 <div style={{ flex: '0 1 75%', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   <h2 style={{ ...typography.h2, margin: '0 0 12px 0', fontSize: 16, color: colors.textPrimary, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    Сравнение периодов (суммарно по Рекламной Компании)
+                    Сравнение периодов (суммарно по рекламной кампании)
                     {comparePeriodsDataLoading && <Spin size="small" />}
                   </h2>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg, alignContent: 'start' }}>

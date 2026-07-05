@@ -8,7 +8,7 @@ interface BreadcrumbItem {
 /**
  * Хлебные крошки под хеддером. Иерархия без корня.
  * Маршруты: /analytics → Аналитика → Сводная; /analytics/products → Аналитика → Товары;
- * /analytics/article/:nmId → Аналитика → Товары → {nmId}; /advertising/campaigns → Реклама → Рекламные компании;
+ * /analytics/article/:nmId → Аналитика → Товары → {nmId}; /advertising/campaigns → Реклама → Рекламные кампании;
  * /profile → Профиль.
  */
 export default function Breadcrumbs() {
@@ -33,7 +33,7 @@ export default function Breadcrumbs() {
   } else if (pathname === '/advertising/bidder') {
     items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Управление РК' })
   } else if (pathname === '/advertising/campaigns') {
-    items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Рекламные компании' })
+    items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Рекламные кампании' })
   } else if (pathname.match(/^\/advertising\/campaigns\/\d+\/manage$/) && params.id) {
     items.push(
       { label: 'Реклама', path: '/advertising/campaigns' },
@@ -43,7 +43,7 @@ export default function Breadcrumbs() {
   } else if (pathname.match(/^\/advertising\/campaigns\/\d+$/) && params.id) {
     items.push(
       { label: 'Реклама', path: '/advertising/campaigns' },
-      { label: 'Рекламные компании', path: '/advertising/campaigns' },
+      { label: 'Рекламные кампании', path: '/advertising/campaigns' },
       { label: params.id }
     )
   } else if (pathname === '/admin/plans') {
