@@ -629,7 +629,7 @@ export default function AnalyticsProducts() {
                     (id) => !filterListArticles.some((a) => a.nmId === id)
                   )
                   return (
-                    <div style={{ width: 400, maxHeight: 400, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ width: 400, maxHeight: 'min(520px, calc(100vh - 160px))', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                       <Input
                         placeholder="Поиск по арт. продавца или WB"
                         prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
@@ -719,7 +719,7 @@ export default function AnalyticsProducts() {
                           </div>
                         </div>
                       )}
-                      <div style={{ flex: 1, overflowY: 'auto', maxHeight: 320 }}>
+                      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
                         {filterListFiltered.map((a) => (
                           <div
                             key={a.nmId}

@@ -835,7 +835,7 @@ export default function AnalyticsSummary() {
             {originalArticles.length > 0 ? (
               <Popover
                 content={
-                  <div style={{ width: '400px', maxHeight: '400px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ width: '400px', maxHeight: 'min(520px, calc(100vh - 160px))', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                     <Input
                       placeholder="Поиск по артикулу или названию"
                       prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
@@ -864,7 +864,7 @@ export default function AnalyticsSummary() {
                       Снять все
                     </Button>
                   </div>
-                  <div style={{ flex: 1, overflowY: 'auto', maxHeight: '300px' }}>
+                  <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
                     {originalArticles
                       .filter((article) => {
                         const searchLower = articleSearchText.toLowerCase()
