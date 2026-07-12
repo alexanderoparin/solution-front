@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Spin, Checkbox, InputNumber, Select, Button, message, Table, Alert, Modal, Switch, Space } from 'antd'
+import { EditOutlined, PlusOutlined, ReloadOutlined, SaveOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { campaignManageApi, type CampaignAutoBudgetRequest, type CampaignScheduleSlotRequest } from '../api/campaignManage'
 import { analyticsApi } from '../api/analytics'
@@ -30,6 +31,14 @@ const COMBO_PHOTO_SIZE = 80
 const CHANGE_LOG_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
 /** Минимальная сумма пополнения бюджета РК на Wildberries, ₽. */
 const MIN_AUTO_TOP_UP_AMOUNT_RUB = 1000
+
+const manageActionButtonStyle = {
+  height: 36,
+  borderRadius: borderRadius.md,
+  fontWeight: 600,
+  fontSize: 12,
+  paddingInline: 10,
+} as const
 
 function formatControlError(err: unknown): string {
   const ax = err as { response?: { data?: { message?: string; error?: string } } }
@@ -534,27 +543,58 @@ export default function AdvertisingCampaignManage() {
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     alignItems: 'stretch',
-                    width: 200,
+                    width: 220,
+                    padding: spacing.sm,
+                    borderRadius: borderRadius.md,
+                    backgroundColor: colors.bgGray,
+                    border: `1px solid ${colors.borderLight}`,
                   }}
                 >
                   <Button
-                    size="small"
+                    icon={<ReloadOutlined />}
                     loading={refreshBalanceMutation.isPending}
                     onClick={() => refreshBalanceMutation.mutate()}
+                    style={{
+                      ...manageActionButtonStyle,
+                      backgroundColor: colors.bgWhite,
+                      borderColor: colors.border,
+                      color: colors.textPrimary,
+                    }}
                   >
                     Обновить баланс
                   </Button>
-                  <Button size="small" onClick={openManualTopUp} disabled={controlBlocked || subscriptionBlocked}>
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={openManualTopUp}
+                    disabled={controlBlocked || subscriptionBlocked}
+                    style={{
+                      ...manageActionButtonStyle,
+                      backgroundColor: colors.primary,
+                      borderColor: colors.primary,
+                      boxShadow: '0 4px 14px rgba(124, 58, 237, 0.28)',
+                    }}
+                  >
                     Единоразовое пополнение
                   </Button>
                   {autoLocked ? (
-                    <Button size="small" onClick={() => unlockAutoMutation.mutate()} disabled={controlBlocked}>
+                    <Button
+                      icon={<EditOutlined />}
+                      onClick={() => unlockAutoMutation.mutate()}
+                      disabled={controlBlocked}
+                      style={{
+                        ...manageActionButtonStyle,
+                        backgroundColor: colors.advertisingBg,
+                        borderColor: colors.success,
+                        color: colors.textPrimary,
+                      }}
+                    >
                       Редактировать
                     </Button>
                   ) : (
                     <Button
-                      size="small"
                       type="primary"
+                      icon={<SaveOutlined />}
                       loading={saveAutoMutation.isPending}
                       disabled={controlBlocked}
                       onClick={() =>
@@ -566,6 +606,12 @@ export default function AdvertisingCampaignManage() {
                           maxTopUpsPerDay: maxTopUps,
                         })
                       }
+                      style={{
+                        ...manageActionButtonStyle,
+                        backgroundColor: colors.success,
+                        borderColor: colors.success,
+                        boxShadow: '0 4px 14px rgba(16, 185, 129, 0.24)',
+                      }}
                     >
                       Сохранить
                     </Button>
