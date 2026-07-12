@@ -241,6 +241,24 @@ export default function AdvertisingCampaignManage() {
     onError: (e) => message.error(formatControlError(e)),
   })
 
+  const toggleAutoBudgetMutation = useMutation({
+    mutationFn: (enabled: boolean) =>
+      campaignManageApi.setAutoBudgetEnabled(
+        advertId,
+        enabled,
+        selectedSellerId ?? undefined,
+        selectedCabinetId ?? undefined,
+      ),
+    onSuccess: (_data, enabled) => {
+      message.success(enabled ? 'Автопополнение включено' : 'Автопополнение выключено')
+      invalidate()
+    },
+    onError: (e, enabled) => {
+      setAutoEnabled(!enabled)
+      message.error(formatControlError(e))
+    },
+  })
+
   const unlockAutoMutation = useMutation({
     mutationFn: () =>
       campaignManageApi.unlockAutoBudget(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
@@ -342,7 +360,8 @@ export default function AdvertisingCampaignManage() {
   const subscriptionBlocked = !hasCampaignManageAccess
 
   const controlBlocked = controlCapabilities != null && !controlCapabilities.canControl
-  const formDisabled = autoLocked || controlBlocked || subscriptionBlocked
+  const autoBudgetFieldsDisabled = autoLocked || controlBlocked || subscriptionBlocked
+  const autoBudgetToggleDisabled = controlBlocked || subscriptionBlocked
 
   const openCreateFromRange = useCallback((range: SlotCreateRange) => {
     setEditingSlotId(null)
@@ -496,8 +515,12 @@ export default function AdvertisingCampaignManage() {
                   )}
                   <Checkbox
                     checked={autoEnabled}
-                    disabled={formDisabled}
-                    onChange={(e) => setAutoEnabled(e.target.checked)}
+                    disabled={autoBudgetToggleDisabled || toggleAutoBudgetMutation.isPending}
+                    onChange={(e) => {
+                      const enabled = e.target.checked
+                      setAutoEnabled(enabled)
+                      toggleAutoBudgetMutation.mutate(enabled)
+                    }}
                   >
                     Пополнять бюджет автоматически
                   </Checkbox>
@@ -508,7 +531,7 @@ export default function AdvertisingCampaignManage() {
                         style={{ width: '100%' }}
                         min={MIN_AUTO_TOP_UP_AMOUNT_RUB}
                         step={100}
-                        disabled={formDisabled}
+                        disabled={autoBudgetFieldsDisabled}
                         value={topUpAmount}
                         onChange={setTopUpAmount}
                       />
@@ -517,7 +540,7 @@ export default function AdvertisingCampaignManage() {
                       <div style={{ fontSize: 12, color: colors.textSecondary }}>Источник</div>
                       <Select
                         style={{ width: '100%' }}
-                        disabled={formDisabled}
+                        disabled={autoBudgetFieldsDisabled}
                         value={sourceType}
                         onChange={setSourceType}
                         options={(balanceSources?.sources ?? []).map((s) => ({
@@ -528,11 +551,11 @@ export default function AdvertisingCampaignManage() {
                     </div>
                     <div>
                       <div style={{ fontSize: 12, color: colors.textSecondary }}>Пополнить если ниже, ₽</div>
-                      <InputNumber style={{ width: '100%' }} min={0} disabled={formDisabled} value={thresholdRub} onChange={setThresholdRub} />
+                      <InputNumber style={{ width: '100%' }} min={0} disabled={autoBudgetFieldsDisabled} value={thresholdRub} onChange={setThresholdRub} />
                     </div>
                     <div>
                       <div style={{ fontSize: 12, color: colors.textSecondary }}>Макс. пополнений в день</div>
-                      <InputNumber style={{ width: '100%' }} min={1} disabled={formDisabled} value={maxTopUps} onChange={setMaxTopUps} />
+                      <InputNumber style={{ width: '100%' }} min={1} disabled={autoBudgetFieldsDisabled} value={maxTopUps} onChange={setMaxTopUps} />
                     </div>
                   </div>
                 </div>

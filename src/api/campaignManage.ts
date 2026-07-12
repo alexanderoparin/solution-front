@@ -124,6 +124,19 @@ export const campaignManageApi = {
     return response.data
   },
 
+  setAutoBudgetEnabled: async (
+    advertId: number,
+    enabled: boolean,
+    sellerId?: number,
+    cabinetId?: number,
+  ): Promise<CampaignAutoBudgetSettings> => {
+    const response = await apiClient.put<CampaignAutoBudgetSettings>(
+      `/advertising/campaigns/${advertId}/manage/auto-budget/enabled${buildParams(sellerId, cabinetId)}`,
+      { enabled },
+    )
+    return response.data
+  },
+
   unlockAutoBudget: async (
     advertId: number,
     sellerId?: number,
