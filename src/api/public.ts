@@ -4,6 +4,7 @@ import type { MessageResponse } from '../types/api'
 export interface LandingContactRequestPayload {
   name: string
   telegram: string
+  additionalInfo?: string
   agreeToPrivacy: boolean
 }
 
