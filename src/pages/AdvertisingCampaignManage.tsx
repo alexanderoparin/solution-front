@@ -28,6 +28,8 @@ import dayjs, { type Dayjs } from 'dayjs'
 
 const COMBO_PHOTO_SIZE = 80
 const CHANGE_LOG_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
+/** Минимальная сумма пополнения бюджета РК на Wildberries, ₽. */
+const MIN_AUTO_TOP_UP_AMOUNT_RUB = 1000
 
 function formatControlError(err: unknown): string {
   const ax = err as { response?: { data?: { message?: string; error?: string } } }
@@ -480,7 +482,14 @@ export default function AdvertisingCampaignManage() {
                 <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, minWidth: 0 }}>
                 <div>
                   <div style={{ fontSize: 12, color: colors.textSecondary }}>Сумма пополнения, ₽</div>
-                  <InputNumber style={{ width: '100%' }} min={500} step={50} disabled={formDisabled} value={topUpAmount} onChange={setTopUpAmount} />
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    min={MIN_AUTO_TOP_UP_AMOUNT_RUB}
+                    step={100}
+                    disabled={formDisabled}
+                    value={topUpAmount}
+                    onChange={setTopUpAmount}
+                  />
                 </div>
                 <div>
                   <div style={{ fontSize: 12, color: colors.textSecondary }}>Источник</div>
