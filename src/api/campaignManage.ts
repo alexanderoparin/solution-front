@@ -151,9 +151,18 @@ export const campaignManageApi = {
     return response.data
   },
 
-  deleteSlot: async (advertId: number, slotId: number, sellerId?: number, cabinetId?: number): Promise<void> => {
+  deleteSlot: async (
+    advertId: number,
+    slotId: number,
+    options?: { deleteAll?: boolean; sellerId?: number; cabinetId?: number },
+  ): Promise<void> => {
+    const params = new URLSearchParams(buildParams(options?.sellerId, options?.cabinetId).replace('?', ''))
+    if (options?.deleteAll) {
+      params.set('deleteAll', 'true')
+    }
+    const query = params.toString()
     await apiClient.delete(
-      `/advertising/campaigns/${advertId}/manage/slots/${slotId}${buildParams(sellerId, cabinetId)}`,
+      `/advertising/campaigns/${advertId}/manage/slots/${slotId}${query ? `?${query}` : ''}`,
     )
   },
 

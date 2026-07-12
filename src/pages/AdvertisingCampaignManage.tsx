@@ -253,10 +253,14 @@ export default function AdvertisingCampaignManage() {
   })
 
   const deleteSlotMutation = useMutation({
-    mutationFn: (slotId: number) =>
-      campaignManageApi.deleteSlot(advertId, slotId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
-    onSuccess: () => {
-      message.success('Слот удалён')
+    mutationFn: ({ slotId, deleteAll }: { slotId: number; deleteAll?: boolean }) =>
+      campaignManageApi.deleteSlot(advertId, slotId, {
+        deleteAll,
+        sellerId: selectedSellerId ?? undefined,
+        cabinetId: selectedCabinetId ?? undefined,
+      }),
+    onSuccess: (_data, variables) => {
+      message.success(variables.deleteAll ? 'Расписание удалено' : 'Слот удалён')
       invalidate()
     },
     onError: (e) => message.error(formatControlError(e)),
@@ -264,13 +268,21 @@ export default function AdvertisingCampaignManage() {
 
   const confirmDeleteSlot = useCallback(
     (slotId: number) => {
+      const deleteAllRef = { current: false }
       Modal.confirm({
         title: 'Удалить слот?',
-        content: 'Слот будет удалён из расписания.',
+        content: (
+          <div>
+            <p style={{ margin: '0 0 12px' }}>Слот будет удалён из расписания.</p>
+            <Checkbox onChange={(event) => { deleteAllRef.current = event.target.checked }}>
+              <span style={{ color: colors.error }}>удалить все</span>
+            </Checkbox>
+          </div>
+        ),
         okText: 'Удалить',
         okType: 'danger',
         cancelText: 'Отмена',
-        onOk: () => deleteSlotMutation.mutateAsync(slotId),
+        onOk: () => deleteSlotMutation.mutateAsync({ slotId, deleteAll: deleteAllRef.current }),
       })
     },
     [deleteSlotMutation],
