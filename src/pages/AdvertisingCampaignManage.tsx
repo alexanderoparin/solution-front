@@ -477,7 +477,7 @@ export default function AdvertisingCampaignManage() {
 
             <CampaignManagePaywallShield active={subscriptionBlocked}>
             <div style={cardStyle}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h2 style={{ ...typography.h2, fontSize: 16, margin: '0 0 12px' }}>Автопополнение бюджета</h2>
                   {balanceSources?.fetchedAt && (
@@ -527,7 +527,16 @@ export default function AdvertisingCampaignManage() {
                     </div>
                   </div>
                 </div>
-                <Space direction="vertical" style={{ flexShrink: 0 }}>
+                <div
+                  style={{
+                    flexShrink: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    alignItems: 'stretch',
+                    width: 200,
+                  }}
+                >
                   <Button
                     size="small"
                     loading={refreshBalanceMutation.isPending}
@@ -561,7 +570,7 @@ export default function AdvertisingCampaignManage() {
                       Сохранить
                     </Button>
                   )}
-                </Space>
+                </div>
               </div>
             </div>
             </CampaignManagePaywallShield>
