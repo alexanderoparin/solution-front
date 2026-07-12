@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { LEGAL_OPERATOR } from '../constants/legalOperator'
+import SiteLogo from './SiteLogo'
 
 const ACCENT = '#7C3AED'
 const ACCENT_HOVER = '#6D28D9'
@@ -45,8 +46,11 @@ export default function Footer() {
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#1E293B' }}>
-            © {new Date().getFullYear()} {LEGAL_OPERATOR.siteBrandName}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: '#1E293B' }}>
+              © {new Date().getFullYear()} {LEGAL_OPERATOR.siteBrandName}
+            </span>
+            <SiteLogo size={28} borderRadius={8} />
           </div>
           <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.5 }}>{LEGAL_OPERATOR.name}</div>
           <div style={{ fontSize: 13, color: '#64748B' }}>ИНН: {LEGAL_OPERATOR.inn}</div>

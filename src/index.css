@@ -3,7 +3,7 @@
   --color-background: #FFFFFF;
   --color-text-primary: #1E293B;
   --color-text-secondary: #64748B;
-  --color-border: #F1F5F9;
+  --color-border: #CBD5E1;
 }
 
 * {
@@ -30,6 +30,23 @@ body {
 .header-select-field.ant-select .ant-select-selector {
   border: 1px solid var(--color-primary) !important;
   border-radius: 8px !important;
+}
+
+/* Чекбоксы: заметная рамка в обычном состоянии (не только при наведении) */
+.ant-checkbox .ant-checkbox-inner {
+  border-color: #94A3B8;
+  border-width: 1.5px;
+}
+
+.ant-checkbox-wrapper:hover .ant-checkbox .ant-checkbox-inner,
+.ant-checkbox:hover .ant-checkbox-inner {
+  border-color: var(--color-primary);
+}
+
+.ant-checkbox-checked .ant-checkbox-inner,
+.ant-checkbox-checked:hover .ant-checkbox-inner {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 /* Чекбокс «Клиент агентства» в таблице пользователей */

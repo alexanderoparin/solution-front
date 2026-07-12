@@ -1,4 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Form, Input, Button, Card, Typography, message, Checkbox, Tooltip } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
@@ -7,16 +8,29 @@ import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api
 import { useAuthStore } from '../store/authStore'
 import type { RegisterRequest } from '../types/api'
 import SiteLogo from '../components/SiteLogo'
+import { activateBidderTrialPlanIfAvailable } from '../utils/activateBidderTrialPlan'
+import {
+  consumeBidderTrialRegisterIntent,
+  isBidderTrialRegisterSearch,
+  markBidderTrialRegisterIntent,
+} from '../utils/registerBidderTrial'
 
 const { Title, Text } = Typography
 
 export default function Register() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const [form] = Form.useForm()
   const setAuth = useAuthStore((state) => state.setAuth)
   const agreeToOffer = Form.useWatch('agreeToOffer', form)
   const consentTooltip = 'Необходимо согласие с условиями оферты и политикой конфиденциальности'
+
+  useEffect(() => {
+    if (isBidderTrialRegisterSearch(searchParams.toString())) {
+      markBidderTrialRegisterIntent()
+    }
+  }, [searchParams])
 
   const registerMutation = useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
@@ -34,6 +48,14 @@ export default function Register() {
           })
         } catch {
           /* см. Login */
+        }
+        if (consumeBidderTrialRegisterIntent()) {
+          try {
+            await activateBidderTrialPlanIfAvailable()
+            message.success('Подключён пробный доступ к автозапуску рекламы на 3 дня')
+          } catch {
+            message.info('Аккаунт создан. Пробный доступ к автозапуску можно подключить в профиле после подтверждения email.')
+          }
         }
         navigate('/profile')
       } catch {
@@ -144,32 +166,37 @@ export default function Register() {
             <Checkbox>Я согласен(-на) на получение информационных и маркетинговых сообщений.</Checkbox>
           </Form.Item>
           <Form.Item>
-            {!agreeToOffer ? (
-              <Tooltip title={consentTooltip}>
-                <span style={{ display: 'inline-block', width: '100%' }}>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={registerMutation.isPending}
-                    block
-                    disabled
-                    style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', height: 44, width: '100%' }}
-                  >
-                    Зарегистрироваться
-                  </Button>
-                </span>
-              </Tooltip>
-            ) : (
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={registerMutation.isPending}
-                block
-                style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', height: 44 }}
-              >
-                Зарегистрироваться
-              </Button>
-            )}
+            <style>{`
+              .register-submit-btn.ant-btn-primary:disabled {
+                opacity: 1 !important;
+                color: #6D28D9 !important;
+                background: #EDE9FE !important;
+                border-color: #C4B5FD !important;
+                cursor: not-allowed;
+                box-shadow: none;
+              }
+            `}</style>
+            <Tooltip title={!agreeToOffer ? consentTooltip : null}>
+              <span style={{ display: 'inline-block', width: '100%' }}>
+                <Button
+                  className="register-submit-btn"
+                  type="primary"
+                  htmlType="submit"
+                  loading={registerMutation.isPending}
+                  block
+                  disabled={!agreeToOffer}
+                  style={{
+                    height: 44,
+                    width: '100%',
+                    ...(agreeToOffer
+                      ? { backgroundColor: '#7C3AED', borderColor: '#7C3AED' }
+                      : {}),
+                  }}
+                >
+                  Зарегистрироваться
+                </Button>
+              </span>
+            </Tooltip>
           </Form.Item>
         </Form>
 

@@ -138,7 +138,7 @@ export default function Login() {
         <div style={{ textAlign: 'center', marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div>
             <Text type="secondary" style={{ marginRight: 4 }}>Нет аккаунта?</Text>
-            <Link to="/register" style={{ color: '#7C3AED', fontWeight: 500 }}>Зарегистрироваться</Link>
+            <Link to="/register" style={{ color: '#6D28D9', fontWeight: 600 }}>Зарегистрироваться</Link>
           </div>
           <div>
             <Link to="/forgot-password" style={{ color: '#64748B', fontSize: 13 }}>Забыли пароль?</Link>

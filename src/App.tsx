@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
@@ -30,20 +30,19 @@ import AccessStatusPrefetch from './components/AccessStatusPrefetch'
 import CampaignManageSubscriptionModals from './components/campaignManageSubscription/CampaignManageSubscriptionModals'
 import { useAuthStore } from './store/authStore'
 
-function App() {
+function AppRoutes() {
   const token = useAuthStore((state) => state.token)
+  const location = useLocation()
+  const showAppFooter = location.pathname !== '/'
 
   const getInitialRoute = () => {
     return '/analytics/products'
   }
 
   return (
-    <BrowserRouter>
-      <AccessStatusPrefetch />
-      {token ? <CampaignManageSubscriptionModals /> : null}
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <div>
-          <Routes>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div>
+        <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -120,10 +119,21 @@ function App() {
         <Route path="/oferta" element={<Oferta />} />
         <Route path="/user-agreement" element={<UserAgreement />} />
         <Route path="/users" element={token ? <Navigate to="/profile" replace /> : <Navigate to="/login" replace />} />
-          </Routes>
-        </div>
-        <Footer />
+        </Routes>
       </div>
+      {showAppFooter ? <Footer /> : null}
+    </div>
+  )
+}
+
+function App() {
+  const token = useAuthStore((state) => state.token)
+
+  return (
+    <BrowserRouter>
+      <AccessStatusPrefetch />
+      {token ? <CampaignManageSubscriptionModals /> : null}
+      <AppRoutes />
     </BrowserRouter>
   )
 }

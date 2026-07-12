@@ -50,7 +50,7 @@ createRoot(document.getElementById('root')!).render(
             colorPrimary: '#7C3AED',
             colorText: '#1E293B',
             colorTextSecondary: '#64748B',
-            colorBorder: '#F1F5F9',
+            colorBorder: '#CBD5E1',
             borderRadius: 6,
           },
         }}
