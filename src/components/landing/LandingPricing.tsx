@@ -1,12 +1,15 @@
 import type { CSSProperties } from 'react'
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card } from 'antd'
 import { CheckOutlined } from '@ant-design/icons'
 import { LANDING_ANCHORS, landingPricing, landingPricingNote } from '../../content/landingContent'
 import { landingColors, landingRadii } from '../../styles/landing'
-import LandingLeadRequestModal, { type LandingLeadRequestType } from './LandingLeadRequestModal'
+import type { LandingLeadRequestType } from './LandingLeadRequestModal'
 import { LandingSectionTitle, landingContainerStyle, landingSectionStyle } from './landingShared'
+
+interface LandingPricingProps {
+  onOpenLeadForm: (type: LandingLeadRequestType) => void
+}
 
 type PricingPlanId = (typeof landingPricing)[number]['id']
 
@@ -57,12 +60,8 @@ function isGreenPricingButton(planId: PricingPlanId): boolean {
   return planId === 'agency' || planId === 'audit'
 }
 
-export default function LandingPricing() {
+export default function LandingPricing({ onOpenLeadForm }: LandingPricingProps) {
   const navigate = useNavigate()
-  const [leadModalType, setLeadModalType] = useState<LandingLeadRequestType | null>(null)
-
-  const openLeadForm = (type: LandingLeadRequestType) => setLeadModalType(type)
-  const closeLeadForm = () => setLeadModalType(null)
 
   return (
     <>
@@ -140,7 +139,7 @@ export default function LandingPricing() {
                     block
                     size="large"
                     className="landing-pricing-btn--green"
-                    onClick={() => openLeadForm('audit')}
+                    onClick={() => onOpenLeadForm('audit')}
                     style={pricingButtonStyle(plan.id)}
                   >
                     {plan.cta.label}
@@ -150,7 +149,7 @@ export default function LandingPricing() {
                     block
                     size="large"
                     className="landing-pricing-btn--green"
-                    onClick={() => openLeadForm('consultation')}
+                    onClick={() => onOpenLeadForm('consultation')}
                     style={pricingButtonStyle(plan.id)}
                   >
                     {plan.cta.label}
@@ -173,7 +172,6 @@ export default function LandingPricing() {
           <p className="landing-pricing-note">{landingPricingNote}</p>
         </div>
       </section>
-      <LandingLeadRequestModal type={leadModalType} onClose={closeLeadForm} />
     </>
   )
 }

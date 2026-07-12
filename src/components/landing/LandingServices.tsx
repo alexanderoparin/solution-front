@@ -7,9 +7,9 @@ import {
   CheckOutlined,
   RocketOutlined,
 } from '@ant-design/icons'
-import { LEGAL_OPERATOR } from '../../constants/legalOperator'
 import { LANDING_ANCHORS, landingServices } from '../../content/landingContent'
 import { landingColors, landingRadii } from '../../styles/landing'
+import type { LandingLeadRequestType } from './LandingLeadRequestModal'
 import { LandingSectionTitle, landingContainerStyle, landingSectionStyle } from './landingShared'
 
 const serviceIcons = {
@@ -70,11 +70,12 @@ function serviceActionStyle(variant: ServiceActionVariant, fullWidth?: boolean):
   }
 }
 
-export default function LandingServices() {
-  const navigate = useNavigate()
+interface LandingServicesProps {
+  onOpenLeadForm: (type: LandingLeadRequestType) => void
+}
 
-  const buildConsultHref = (serviceTitle: string) =>
-    `mailto:${LEGAL_OPERATOR.email}?subject=${encodeURIComponent(`Заказ услуги: ${serviceTitle}`)}`
+export default function LandingServices({ onOpenLeadForm }: LandingServicesProps) {
+  const navigate = useNavigate()
 
   return (
     <>
@@ -212,13 +213,13 @@ export default function LandingServices() {
                     const className = serviceActionClassName(action.variant)
                     const style = serviceActionStyle(action.variant, 'fullWidth' in action ? action.fullWidth : false)
 
-                    if ('mailto' in action && action.mailto) {
+                    if ('consultationForm' in action && action.consultationForm) {
                       return (
                         <Button
                           key={action.label}
-                          href={buildConsultHref(service.title)}
                           className={className}
                           style={style}
+                          onClick={() => onOpenLeadForm('consultation')}
                         >
                           {action.label}
                         </Button>

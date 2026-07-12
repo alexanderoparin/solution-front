@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import LandingHeader from '../components/landing/LandingHeader'
 import LandingHero from '../components/landing/LandingHero'
+import LandingLeadRequestModal, { type LandingLeadRequestType } from '../components/landing/LandingLeadRequestModal'
 import LandingMission from '../components/landing/LandingMission'
 import LandingServices from '../components/landing/LandingServices'
 import LandingFeatures from '../components/landing/LandingFeatures'
@@ -10,6 +12,11 @@ import LandingFooter from '../components/landing/LandingFooter'
 import { landingColors } from '../styles/landing'
 
 export default function Landing() {
+  const [leadModalType, setLeadModalType] = useState<LandingLeadRequestType | null>(null)
+
+  const openLeadForm = (type: LandingLeadRequestType) => setLeadModalType(type)
+  const closeLeadForm = () => setLeadModalType(null)
+
   return (
     <div
       className="landing-page"
@@ -28,16 +35,17 @@ export default function Landing() {
       `}</style>
       <LandingHeader />
       <main>
-        <LandingHero />
+        <LandingHero onOpenLeadForm={openLeadForm} />
         <LandingMission />
-        <LandingServices />
+        <LandingServices onOpenLeadForm={openLeadForm} />
         <LandingFeatures />
-        <LandingPricing />
+        <LandingPricing onOpenLeadForm={openLeadForm} />
         <LandingTrust />
         <LandingFaq />
         <LandingBlogSection />
       </main>
       <LandingFooter />
+      <LandingLeadRequestModal type={leadModalType} onClose={closeLeadForm} />
     </div>
   )
 }

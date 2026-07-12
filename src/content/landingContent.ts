@@ -72,7 +72,7 @@ export const landingServices = [
     ],
     image: null,
     detailLink: { label: 'Подробнее', href: `#${LANDING_ANCHORS.contacts}` },
-    actions: [{ label: 'Заказать услугу', mailto: true, variant: 'solid-green', fullWidth: true }],
+    actions: [{ label: 'Заказать услугу', consultationForm: true, variant: 'solid-green', fullWidth: true }],
   },
 ] as const
 

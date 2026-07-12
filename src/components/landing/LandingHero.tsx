@@ -1,14 +1,17 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from 'antd'
 import { CheckCircleOutlined } from '@ant-design/icons'
-import { LEGAL_OPERATOR } from '../../constants/legalOperator'
 import { landingHero } from '../../content/landingContent'
 import { landingAssets, landingColors, landingRadii } from '../../styles/landing'
 import { landingContainerStyle } from './landingShared'
+import type { LandingLeadRequestType } from './LandingLeadRequestModal'
 
-export default function LandingHero() {
+interface LandingHeroProps {
+  onOpenLeadForm: (type: LandingLeadRequestType) => void
+}
+
+export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
   const navigate = useNavigate()
-  const consultHref = `mailto:${LEGAL_OPERATOR.email}?subject=${encodeURIComponent('Консультация Click-I')}`
 
   return (
     <>
@@ -136,7 +139,7 @@ export default function LandingHero() {
                 </Button>
                 <Button
                   size="large"
-                  href={consultHref}
+                  onClick={() => onOpenLeadForm('consultation')}
                   style={{
                     borderRadius: landingRadii.md,
                     height: 48,
