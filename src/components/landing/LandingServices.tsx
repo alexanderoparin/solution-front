@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons'
 import { LANDING_ANCHORS, landingServices } from '../../content/landingContent'
 import { landingColors, landingRadii } from '../../styles/landing'
-import type { LandingLeadRequestType } from './LandingLeadRequestModal'
+import type { LandingLeadRequest } from '../../types/landingLead'
 import { LandingSectionTitle, landingContainerStyle, landingSectionStyle } from './landingShared'
 
 const serviceIcons = {
@@ -71,7 +71,7 @@ function serviceActionStyle(variant: ServiceActionVariant, fullWidth?: boolean):
 }
 
 interface LandingServicesProps {
-  onOpenLeadForm: (type: LandingLeadRequestType) => void
+  onOpenLeadForm: (request: LandingLeadRequest) => void
 }
 
 export default function LandingServices({ onOpenLeadForm }: LandingServicesProps) {
@@ -219,7 +219,7 @@ export default function LandingServices({ onOpenLeadForm }: LandingServicesProps
                           key={action.label}
                           className={className}
                           style={style}
-                          onClick={() => onOpenLeadForm('consultation')}
+                          onClick={() => onOpenLeadForm({ type: 'consultation', source: 'services-agency' })}
                         >
                           {action.label}
                         </Button>

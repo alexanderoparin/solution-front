@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import LandingHeader from '../components/landing/LandingHeader'
 import LandingHero from '../components/landing/LandingHero'
-import LandingLeadRequestModal, { type LandingLeadRequestType } from '../components/landing/LandingLeadRequestModal'
+import LandingLeadRequestModal from '../components/landing/LandingLeadRequestModal'
+import type { LandingLeadRequest } from '../types/landingLead'
 import LandingMission from '../components/landing/LandingMission'
 import LandingServices from '../components/landing/LandingServices'
 import LandingFeatures from '../components/landing/LandingFeatures'
@@ -12,10 +13,10 @@ import LandingFooter from '../components/landing/LandingFooter'
 import { landingColors } from '../styles/landing'
 
 export default function Landing() {
-  const [leadModalType, setLeadModalType] = useState<LandingLeadRequestType | null>(null)
+  const [leadRequest, setLeadRequest] = useState<LandingLeadRequest | null>(null)
 
-  const openLeadForm = (type: LandingLeadRequestType) => setLeadModalType(type)
-  const closeLeadForm = () => setLeadModalType(null)
+  const openLeadForm = (request: LandingLeadRequest) => setLeadRequest(request)
+  const closeLeadForm = () => setLeadRequest(null)
 
   return (
     <div
@@ -45,7 +46,7 @@ export default function Landing() {
         <LandingBlogSection />
       </main>
       <LandingFooter />
-      <LandingLeadRequestModal type={leadModalType} onClose={closeLeadForm} />
+      <LandingLeadRequestModal request={leadRequest} onClose={closeLeadForm} />
     </div>
   )
 }

@@ -4,11 +4,11 @@ import { Button, Card } from 'antd'
 import { CheckOutlined } from '@ant-design/icons'
 import { LANDING_ANCHORS, landingPricing, landingPricingNote } from '../../content/landingContent'
 import { landingColors, landingRadii } from '../../styles/landing'
-import type { LandingLeadRequestType } from './LandingLeadRequestModal'
+import type { LandingLeadRequest } from '../../types/landingLead'
 import { LandingSectionTitle, landingContainerStyle, landingSectionStyle } from './landingShared'
 
 interface LandingPricingProps {
-  onOpenLeadForm: (type: LandingLeadRequestType) => void
+  onOpenLeadForm: (request: LandingLeadRequest) => void
 }
 
 type PricingPlanId = (typeof landingPricing)[number]['id']
@@ -139,7 +139,7 @@ export default function LandingPricing({ onOpenLeadForm }: LandingPricingProps) 
                     block
                     size="large"
                     className="landing-pricing-btn--green"
-                    onClick={() => onOpenLeadForm('audit')}
+                    onClick={() => onOpenLeadForm({ type: 'audit', source: 'pricing-audit' })}
                     style={pricingButtonStyle(plan.id)}
                   >
                     {plan.cta.label}
@@ -149,7 +149,7 @@ export default function LandingPricing({ onOpenLeadForm }: LandingPricingProps) 
                     block
                     size="large"
                     className="landing-pricing-btn--green"
-                    onClick={() => onOpenLeadForm('consultation')}
+                    onClick={() => onOpenLeadForm({ type: 'consultation', source: 'pricing-agency' })}
                     style={pricingButtonStyle(plan.id)}
                   >
                     {plan.cta.label}

@@ -4,10 +4,10 @@ import { CheckCircleOutlined } from '@ant-design/icons'
 import { landingHero } from '../../content/landingContent'
 import { landingAssets, landingColors, landingRadii } from '../../styles/landing'
 import { landingContainerStyle } from './landingShared'
-import type { LandingLeadRequestType } from './LandingLeadRequestModal'
+import type { LandingLeadRequest } from '../../types/landingLead'
 
 interface LandingHeroProps {
-  onOpenLeadForm: (type: LandingLeadRequestType) => void
+  onOpenLeadForm: (request: LandingLeadRequest) => void
 }
 
 export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
@@ -139,7 +139,7 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
                 </Button>
                 <Button
                   size="large"
-                  onClick={() => onOpenLeadForm('consultation')}
+                  onClick={() => onOpenLeadForm({ type: 'consultation', source: 'hero-consultation' })}
                   style={{
                     borderRadius: landingRadii.md,
                     height: 48,

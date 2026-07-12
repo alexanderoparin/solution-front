@@ -1,10 +1,13 @@
 import apiClient from './client'
 import type { MessageResponse } from '../types/api'
 
+import type { LandingLeadRequestSource } from '../types/landingLead'
+
 export interface LandingContactRequestPayload {
   name: string
   telegram: string
   additionalInfo?: string
+  source: LandingLeadRequestSource
   agreeToPrivacy: boolean
 }
 

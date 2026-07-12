@@ -4,13 +4,14 @@ import { useMutation } from '@tanstack/react-query'
 import { Button, Checkbox, Form, Input, Modal, message } from 'antd'
 import { publicApi } from '../../api/public'
 import { landingColors, landingRadii } from '../../styles/landing'
+import type { LandingLeadRequest, LandingLeadRequestType } from '../../types/landingLead'
 
-export type LandingLeadRequestType = 'audit' | 'consultation'
+export type { LandingLeadRequest, LandingLeadRequestType } from '../../types/landingLead'
 
 const TELEGRAM_PREFIX = '@'
 
 interface LandingLeadRequestModalProps {
-  type: LandingLeadRequestType | null
+  request: LandingLeadRequest | null
   onClose: () => void
 }
 
@@ -39,7 +40,7 @@ function isTelegramFilled(value: string | undefined): boolean {
 
 const leadConfig: Record<
   LandingLeadRequestType,
-  { title: string; submit: (payload: LeadFormValues) => ReturnType<typeof publicApi.submitCabinetAuditRequest> }
+  { title: string; submit: (payload: LeadFormValues & { source: LandingLeadRequest['source'] }) => ReturnType<typeof publicApi.submitCabinetAuditRequest> }
 > = {
   audit: {
     title: 'Запись на аудит рекламного кабинета',
@@ -51,12 +52,12 @@ const leadConfig: Record<
   },
 }
 
-export default function LandingLeadRequestModal({ type, onClose }: LandingLeadRequestModalProps) {
+export default function LandingLeadRequestModal({ request, onClose }: LandingLeadRequestModalProps) {
   const [form] = Form.useForm<LeadFormValues>()
-  const config = type ? leadConfig[type] : null
+  const config = request ? leadConfig[request.type] : null
 
   useEffect(() => {
-    if (type) {
+    if (request) {
       form.setFieldsValue({
         name: undefined,
         telegram: TELEGRAM_PREFIX,
@@ -64,11 +65,11 @@ export default function LandingLeadRequestModal({ type, onClose }: LandingLeadRe
         agreeToPrivacy: false,
       })
     }
-  }, [type, form])
+  }, [request, form])
 
   const submitMutation = useMutation({
     mutationFn: (values: LeadFormValues) => {
-      if (!config) {
+      if (!config || !request) {
         return Promise.reject(new Error('Не выбран тип заявки'))
       }
       const additionalInfo = values.additionalInfo?.trim()
@@ -76,6 +77,7 @@ export default function LandingLeadRequestModal({ type, onClose }: LandingLeadRe
         name: values.name.trim(),
         telegram: normalizeTelegramInput(values.telegram),
         additionalInfo: additionalInfo || undefined,
+        source: request.source,
         agreeToPrivacy: values.agreeToPrivacy,
       })
     },
@@ -100,7 +102,7 @@ export default function LandingLeadRequestModal({ type, onClose }: LandingLeadRe
   return (
     <Modal
       title={config?.title ?? ''}
-      open={type != null}
+      open={request != null}
       onCancel={handleClose}
       footer={null}
       destroyOnClose
