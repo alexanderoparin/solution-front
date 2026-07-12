@@ -42,6 +42,17 @@ export interface CampaignScheduleSlotUpdate {
   budgetRub?: number
 }
 
+export interface CampaignManualTopUpRequest {
+  topUpAmount: number
+  sourceType: number
+}
+
+export interface CampaignManualTopUpResponse {
+  topUpAmount: number
+  budgetAfterTopUp: number
+  message: string
+}
+
 export interface ChangeLogPage {
   content: CampaignChangeLogEntry[]
   totalElements: number
@@ -120,6 +131,19 @@ export const campaignManageApi = {
   ): Promise<CampaignAutoBudgetSettings> => {
     const response = await apiClient.post<CampaignAutoBudgetSettings>(
       `/advertising/campaigns/${advertId}/manage/auto-budget/unlock${buildParams(sellerId, cabinetId)}`,
+    )
+    return response.data
+  },
+
+  manualTopUp: async (
+    advertId: number,
+    body: CampaignManualTopUpRequest,
+    sellerId?: number,
+    cabinetId?: number,
+  ): Promise<CampaignManualTopUpResponse> => {
+    const response = await apiClient.post<CampaignManualTopUpResponse>(
+      `/advertising/campaigns/${advertId}/manage/budget/top-up${buildParams(sellerId, cabinetId)}`,
+      body,
     )
     return response.data
   },

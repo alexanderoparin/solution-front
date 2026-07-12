@@ -189,6 +189,9 @@ export default function AdvertisingCampaignManage() {
   const [thresholdRub, setThresholdRub] = useState<number | null>(null)
   const [maxTopUps, setMaxTopUps] = useState<number | null>(null)
   const [autoLocked, setAutoLocked] = useState(false)
+  const [manualTopUpOpen, setManualTopUpOpen] = useState(false)
+  const [manualTopUpAmount, setManualTopUpAmount] = useState<number | null>(MIN_AUTO_TOP_UP_AMOUNT_RUB)
+  const [manualSourceType, setManualSourceType] = useState<number | null>(1)
 
   useEffect(() => {
     if (!manage?.autoBudget) return
@@ -235,6 +238,24 @@ export default function AdvertisingCampaignManage() {
     onSuccess: () => invalidate(),
     onError: (e) => message.error(formatControlError(e)),
   })
+
+  const manualTopUpMutation = useMutation({
+    mutationFn: (body: { topUpAmount: number; sourceType: number }) =>
+      campaignManageApi.manualTopUp(advertId, body, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
+    onSuccess: (result) => {
+      message.success(result.message || 'Бюджет пополнен')
+      setManualTopUpOpen(false)
+      invalidate()
+      queryClient.invalidateQueries({ queryKey: balanceSourcesKey })
+    },
+    onError: (e) => message.error(formatControlError(e)),
+  })
+
+  const openManualTopUp = useCallback(() => {
+    setManualTopUpAmount(topUpAmount ?? MIN_AUTO_TOP_UP_AMOUNT_RUB)
+    setManualSourceType(sourceType ?? balanceSources?.sources?.[0]?.type ?? 1)
+    setManualTopUpOpen(true)
+  }, [topUpAmount, sourceType, balanceSources?.sources])
 
   const createSlotsMutation = useMutation({
     mutationFn: (body: CampaignScheduleSlotRequest) =>
@@ -456,86 +477,91 @@ export default function AdvertisingCampaignManage() {
 
             <CampaignManagePaywallShield active={subscriptionBlocked}>
             <div style={cardStyle}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 8, marginBottom: 12 }}>
-                <h2 style={{ ...typography.h2, fontSize: 16, margin: 0, flex: 1 }}>Автопополнение бюджета</h2>
-                <Button
-                  size="small"
-                  loading={refreshBalanceMutation.isPending}
-                  onClick={() => refreshBalanceMutation.mutate()}
-                >
-                  Обновить баланс
-                </Button>
-              </div>
-              {balanceSources?.fetchedAt && (
-                <p style={{ fontSize: 12, color: colors.textSecondary, margin: '0 0 12px' }}>
-                  {balanceSources.stale ? 'Данные из кэша' : 'Обновлено'}: {dayjs(balanceSources.fetchedAt).format('DD.MM.YYYY HH:mm')}
-                </p>
-              )}
-              <Checkbox
-                checked={autoEnabled}
-                disabled={formDisabled}
-                onChange={(e) => setAutoEnabled(e.target.checked)}
-              >
-                Пополнять бюджет автоматически
-              </Checkbox>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 12, marginTop: 12 }}>
-                <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, minWidth: 0 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: colors.textSecondary }}>Сумма пополнения, ₽</div>
-                  <InputNumber
-                    style={{ width: '100%' }}
-                    min={MIN_AUTO_TOP_UP_AMOUNT_RUB}
-                    step={100}
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h2 style={{ ...typography.h2, fontSize: 16, margin: '0 0 12px' }}>Автопополнение бюджета</h2>
+                  {balanceSources?.fetchedAt && (
+                    <p style={{ fontSize: 12, color: colors.textSecondary, margin: '0 0 12px' }}>
+                      {balanceSources.stale ? 'Данные из кэша' : 'Обновлено'}: {dayjs(balanceSources.fetchedAt).format('DD.MM.YYYY HH:mm')}
+                    </p>
+                  )}
+                  <Checkbox
+                    checked={autoEnabled}
                     disabled={formDisabled}
-                    value={topUpAmount}
-                    onChange={setTopUpAmount}
-                  />
+                    onChange={(e) => setAutoEnabled(e.target.checked)}
+                  >
+                    Пополнять бюджет автоматически
+                  </Checkbox>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginTop: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Сумма пополнения, ₽</div>
+                      <InputNumber
+                        style={{ width: '100%' }}
+                        min={MIN_AUTO_TOP_UP_AMOUNT_RUB}
+                        step={100}
+                        disabled={formDisabled}
+                        value={topUpAmount}
+                        onChange={setTopUpAmount}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Источник</div>
+                      <Select
+                        style={{ width: '100%' }}
+                        disabled={formDisabled}
+                        value={sourceType}
+                        onChange={setSourceType}
+                        options={(balanceSources?.sources ?? []).map((s) => ({
+                          value: s.type,
+                          label: `${s.label}${s.availableRub != null ? ` (${s.availableRub} ₽)` : ''}`,
+                        }))}
+                      />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Пополнить если ниже, ₽</div>
+                      <InputNumber style={{ width: '100%' }} min={0} disabled={formDisabled} value={thresholdRub} onChange={setThresholdRub} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Макс. пополнений в день</div>
+                      <InputNumber style={{ width: '100%' }} min={1} disabled={formDisabled} value={maxTopUps} onChange={setMaxTopUps} />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: 12, color: colors.textSecondary }}>Источник</div>
-                  <Select
-                    style={{ width: '100%' }}
-                    disabled={formDisabled}
-                    value={sourceType}
-                    onChange={setSourceType}
-                    options={(balanceSources?.sources ?? []).map((s) => ({
-                      value: s.type,
-                      label: `${s.label}${s.availableRub != null ? ` (${s.availableRub} ₽)` : ''}`,
-                    }))}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: colors.textSecondary }}>Пополнить если ниже, ₽</div>
-                  <InputNumber style={{ width: '100%' }} min={0} disabled={formDisabled} value={thresholdRub} onChange={setThresholdRub} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: colors.textSecondary }}>Макс. пополнений в день</div>
-                  <InputNumber style={{ width: '100%' }} min={1} disabled={formDisabled} value={maxTopUps} onChange={setMaxTopUps} />
-                </div>
-                </div>
-                {autoLocked ? (
-                  <Button size="small" onClick={() => unlockAutoMutation.mutate()} disabled={controlBlocked}>
-                    Редактировать
-                  </Button>
-                ) : (
+                <Space direction="vertical" style={{ flexShrink: 0 }}>
                   <Button
                     size="small"
-                    type="primary"
-                    loading={saveAutoMutation.isPending}
-                    disabled={controlBlocked}
-                    onClick={() =>
-                      saveAutoMutation.mutate({
-                        enabled: autoEnabled,
-                        topUpAmount,
-                        sourceType,
-                        thresholdRub,
-                        maxTopUpsPerDay: maxTopUps,
-                      })
-                    }
+                    loading={refreshBalanceMutation.isPending}
+                    onClick={() => refreshBalanceMutation.mutate()}
                   >
-                    Сохранить
+                    Обновить баланс
                   </Button>
-                )}
+                  <Button size="small" onClick={openManualTopUp} disabled={controlBlocked || subscriptionBlocked}>
+                    Единоразовое пополнение
+                  </Button>
+                  {autoLocked ? (
+                    <Button size="small" onClick={() => unlockAutoMutation.mutate()} disabled={controlBlocked}>
+                      Редактировать
+                    </Button>
+                  ) : (
+                    <Button
+                      size="small"
+                      type="primary"
+                      loading={saveAutoMutation.isPending}
+                      disabled={controlBlocked}
+                      onClick={() =>
+                        saveAutoMutation.mutate({
+                          enabled: autoEnabled,
+                          topUpAmount,
+                          sourceType,
+                          thresholdRub,
+                          maxTopUpsPerDay: maxTopUps,
+                        })
+                      }
+                    >
+                      Сохранить
+                    </Button>
+                  )}
+                </Space>
               </div>
             </div>
             </CampaignManagePaywallShield>
@@ -639,6 +665,61 @@ export default function AdvertisingCampaignManage() {
         onSave={saveSlotDraft}
         saving={createSlotsMutation.isPending || updateSlotMutation.isPending}
       />
+
+      <Modal
+        title="Единоразовое пополнение"
+        open={manualTopUpOpen}
+        onCancel={() => !manualTopUpMutation.isPending && setManualTopUpOpen(false)}
+        footer={null}
+        destroyOnClose
+        width={420}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 6 }}>Сумма пополнения, ₽</div>
+            <InputNumber
+              style={{ width: '100%' }}
+              min={MIN_AUTO_TOP_UP_AMOUNT_RUB}
+              step={100}
+              value={manualTopUpAmount}
+              onChange={setManualTopUpAmount}
+            />
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 6 }}>Источник</div>
+            <Select
+              style={{ width: '100%' }}
+              value={manualSourceType}
+              onChange={setManualSourceType}
+              options={(balanceSources?.sources ?? []).map((s) => ({
+                value: s.type,
+                label: `${s.label}${s.availableRub != null ? ` (${s.availableRub} ₽)` : ''}`,
+              }))}
+            />
+          </div>
+          <Button
+            type="primary"
+            block
+            loading={manualTopUpMutation.isPending}
+            disabled={
+              manualTopUpAmount == null
+              || manualTopUpAmount < MIN_AUTO_TOP_UP_AMOUNT_RUB
+              || manualSourceType == null
+            }
+            onClick={() => {
+              if (manualTopUpAmount == null || manualSourceType == null) {
+                return
+              }
+              manualTopUpMutation.mutate({
+                topUpAmount: manualTopUpAmount,
+                sourceType: manualSourceType,
+              })
+            }}
+          >
+            Пополнить
+          </Button>
+        </div>
+      </Modal>
     </>
   )
 }
