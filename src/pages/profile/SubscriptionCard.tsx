@@ -32,7 +32,7 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
   const autoRenewLabel = subscription?.autoRenew ? 'Включено' : 'Выключено'
 
   const StatItem = ({ label, value }: { label: string; value: React.ReactNode }) => (
-    <div style={{ minWidth: 180 }}>
+    <div style={{ minWidth: 0 }}>
       <Text type="secondary">{label}</Text>
       <div style={{ marginTop: 4, fontWeight: 600, lineHeight: '20px' }}>{value}</div>
     </div>
@@ -49,8 +49,8 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr)) auto',
-          gap: 20,
+          gridTemplateColumns: 'minmax(220px, 2fr) repeat(4, minmax(160px, 1fr)) 220px',
+          gap: 24,
           alignItems: 'center',
         }}
       >
@@ -92,7 +92,7 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
           type="default"
           icon={<CreditCardOutlined />}
           onClick={() => navigate('/subscription')}
-          style={{ justifySelf: 'end', borderRadius: 10, height: 40, padding: '0 16px', minWidth: 210 }}
+          style={{ justifySelf: 'end', borderRadius: 10, height: 40, padding: '0 16px', minWidth: 200 }}
         >
           Управление подпиской
         </Button>

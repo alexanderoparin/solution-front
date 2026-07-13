@@ -229,7 +229,18 @@ export default function AnalyticsSummary() {
   // По умолчанию — первый кабинет (USER; для админа выбор задаёт work context)
   useEffect(() => {
     if (isAdmin) return
-    if (myCabinets.length > 0 && sellerSelectedCabinetId === null) {
+    if (myCabinets.length === 0) return
+
+    // 1) Если кабинет не выбран — выбираем первый
+    if (sellerSelectedCabinetId === null) {
+      const first = myCabinets[0].id
+      setSellerSelectedCabinetId(first)
+      setStoredCabinetId(first)
+      return
+    }
+
+    // 2) Если в localStorage лежит удалённый/недоступный cabinetId — сбрасываем на первый доступный
+    if (!myCabinets.some((c) => c.id === sellerSelectedCabinetId)) {
       const first = myCabinets[0].id
       setSellerSelectedCabinetId(first)
       setStoredCabinetId(first)
