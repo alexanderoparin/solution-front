@@ -21,6 +21,7 @@ export default function SecurityCard({ profile, onLogoutClick, onDeleteClick }: 
   const [passwordForm] = Form.useForm()
 
   const deletionPending = profile.deletionRequest?.hasPendingRequest === true
+  const isAdmin = profile.role === 'ADMIN'
 
   const changePasswordMutation = useMutation({
     mutationFn: (data: ChangePasswordRequest) => authApi.changePassword(data),
@@ -148,55 +149,57 @@ export default function SecurityCard({ profile, onLogoutClick, onDeleteClick }: 
             </div>
           </Button>
 
-          <div style={{ marginTop: 0 }}>
-            {deletionPending && profile.deletionRequest?.message && (
-              <Alert style={{ marginTop: 8 }} type="info" showIcon message={profile.deletionRequest.message} />
-            )}
-            <Button
-              type="text"
-              block
-              onClick={onDeleteClick}
-              disabled={deletionPending}
-              style={{
-                marginTop: deletionPending && profile.deletionRequest?.message ? 8 : 0,
-                padding: 12,
-                height: 'auto',
-                borderRadius: 12,
-                border: `1px solid ${border}`,
-                textAlign: 'left',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12, width: '100%' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                    background: '#F1F5F9',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#EF4444',
-                    opacity: deletionPending ? 0.6 : 1,
-                  }}>
-                    <DeleteOutlined style={{ fontSize: 18 }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <div style={{ fontWeight: 600, lineHeight: '20px', color: '#111827' }}>Удалить аккаунт</div>
-                    <div style={{ color: '#64748B', fontSize: 12, lineHeight: '16px' }}>
-                      {deletionPending ? 'Заявка уже отправлена' : 'Удаление аккаунта через поддержку'}
+          {!isAdmin && (
+            <div style={{ marginTop: 0 }}>
+              {deletionPending && profile.deletionRequest?.message && (
+                <Alert style={{ marginTop: 8 }} type="info" showIcon message={profile.deletionRequest.message} />
+              )}
+              <Button
+                type="text"
+                block
+                onClick={onDeleteClick}
+                disabled={deletionPending}
+                style={{
+                  marginTop: deletionPending && profile.deletionRequest?.message ? 8 : 0,
+                  padding: 12,
+                  height: 'auto',
+                  borderRadius: 12,
+                  border: `1px solid ${border}`,
+                  textAlign: 'left',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12, width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 12,
+                      background: '#F1F5F9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#EF4444',
+                      opacity: deletionPending ? 0.6 : 1,
+                    }}>
+                      <DeleteOutlined style={{ fontSize: 18 }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ fontWeight: 600, lineHeight: '20px', color: '#111827' }}>Удалить аккаунт</div>
+                      <div style={{ color: '#64748B', fontSize: 12, lineHeight: '16px' }}>
+                        {deletionPending ? 'Заявка уже отправлена' : 'Удаление аккаунта через поддержку'}
+                      </div>
                     </div>
                   </div>
+                  <RightOutlined style={{ color: '#94a3b8', fontSize: 12, marginLeft: 'auto' }} />
                 </div>
-                <RightOutlined style={{ color: '#94a3b8', fontSize: 12, marginLeft: 'auto' }} />
-              </div>
-            </Button>
-            {deletionPending && (
-              <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
-                Заявка на удаление уже отправлена и ожидает обработки.
-              </Text>
-            )}
-          </div>
+              </Button>
+              {deletionPending && (
+                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
+                  Заявка на удаление уже отправлена и ожидает обработки.
+                </Text>
+              )}
+            </div>
+          )}
         </div>
       </Card>
 

@@ -6,6 +6,7 @@ import type {
   CreateCabinetRequest,
   GrantCabinetAccessRequest,
   MessageResponse,
+  UpdateCabinetAccessValidUntilRequest,
   UpdateCabinetRequest,
 } from '../types/api'
 
@@ -60,6 +61,30 @@ export const cabinetsApi = {
 
   revokeGrant: async (cabinetId: number, grantId: number): Promise<MessageResponse> => {
     const response = await apiClient.delete<MessageResponse>(`/cabinets/${cabinetId}/access/grants/${grantId}`)
+    return response.data
+  },
+
+  updateGrantValidUntil: async (
+    cabinetId: number,
+    grantId: number,
+    body: UpdateCabinetAccessValidUntilRequest,
+  ): Promise<MessageResponse> => {
+    const response = await apiClient.patch<MessageResponse>(
+      `/cabinets/${cabinetId}/access/grants/${grantId}`,
+      body,
+    )
+    return response.data
+  },
+
+  updateInvitationValidUntil: async (
+    cabinetId: number,
+    invitationId: number,
+    body: UpdateCabinetAccessValidUntilRequest,
+  ): Promise<MessageResponse> => {
+    const response = await apiClient.patch<MessageResponse>(
+      `/cabinets/${cabinetId}/access/invitations/${invitationId}`,
+      body,
+    )
     return response.data
   },
 

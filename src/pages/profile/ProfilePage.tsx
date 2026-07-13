@@ -178,15 +178,19 @@ export default function ProfilePage() {
                 onDeleteClick={() => setDeletionRequestOpen(true)}
               />
             </Col>
-            <Col xs={24}>
-              <SubscriptionCard subscription={profile.subscription} />
-            </Col>
-            <Col xs={24}>
-              <CabinetsCard
-                addCabinetOpen={addCabinetOpen}
-                onAddCabinetOpenChange={setAddCabinetOpen}
-              />
-            </Col>
+            {!isAdmin && (
+              <Col xs={24}>
+                <SubscriptionCard subscription={profile.subscription} />
+              </Col>
+            )}
+            {!isAdmin && (
+              <Col xs={24}>
+                <CabinetsCard
+                  addCabinetOpen={addCabinetOpen}
+                  onAddCabinetOpenChange={setAddCabinetOpen}
+                />
+              </Col>
+            )}
           </Row>
 
           {isAdmin && (
@@ -240,33 +244,32 @@ export default function ProfilePage() {
               </div>
             </Card>
           )}
-
-          {isAdmin && (
-            <Card
-              title={
-                <Segmented
-                  size="small"
-                  options={[
-                    { label: 'Кабинеты', value: USER_MANAGEMENT_VIEW.CABINETS },
-                    { label: 'Пользователи', value: USER_MANAGEMENT_VIEW.USERS },
-                  ]}
-                  value={usersBlockView}
-                  onChange={(value) => setUsersBlockView(value as UserManagementView)}
-                />
-              }
-              style={{
-                marginBottom: 24,
-                borderRadius: 16,
-                border: `1px solid ${border}`,
-              }}
-            >
-              <UsersManagementSection
-                managementView={usersBlockView}
-                onManagementViewChange={setUsersBlockView}
-              />
-            </Card>
-          )}
         </div>
+
+        {isAdmin && (
+          <Card
+            title={
+              <Segmented
+                size="small"
+                options={[
+                  { label: 'Кабинеты', value: USER_MANAGEMENT_VIEW.CABINETS },
+                  { label: 'Пользователи', value: USER_MANAGEMENT_VIEW.USERS },
+                ]}
+                value={usersBlockView}
+                onChange={(value) => setUsersBlockView(value as UserManagementView)}
+              />
+            }
+            style={{
+              borderRadius: 16,
+              border: `1px solid ${border}`,
+            }}
+          >
+            <UsersManagementSection
+              managementView={usersBlockView}
+              onManagementViewChange={setUsersBlockView}
+            />
+          </Card>
+        )}
       </div>
 
       <EditProfileModal

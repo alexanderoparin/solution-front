@@ -27,6 +27,8 @@ export default function EditProfileModal({
 }: EditProfileModalProps) {
   const [form] = Form.useForm<UpdateProfileRequest>()
 
+  const isAdmin = profile.role === 'ADMIN'
+
   useEffect(() => {
     if (open) {
       form.setFieldsValue({
@@ -38,7 +40,7 @@ export default function EditProfileModal({
 
   return (
     <Modal
-      title="Редактирование профиля"
+      title={isAdmin ? 'Изменить имя' : 'Редактирование профиля'}
       open={open}
       destroyOnClose
       onCancel={onCancel}
@@ -62,6 +64,12 @@ export default function EditProfileModal({
         layout="vertical"
         autoComplete="off"
         onFinish={(values) => {
+          if (isAdmin) {
+            onSubmit({
+              name: values.name?.trim() || undefined,
+            })
+            return
+          }
           onSubmit({
             name: values.name?.trim() || undefined,
             accountTypes: values.accountTypes,
@@ -76,25 +84,27 @@ export default function EditProfileModal({
           <Input placeholder="Как к вам обращаться" autoComplete="off" />
         </Form.Item>
 
-        <Form.Item
-          name="accountTypes"
-          label="Тип аккаунта"
-          rules={[
-            {
-              required: true,
-              type: 'array',
-              min: 1,
-              message: 'Выберите хотя бы один тип аккаунта',
-            },
-          ]}
-        >
-          <Select
-            mode="multiple"
-            placeholder="Выберите типы аккаунта"
-            options={ACCOUNT_TYPE_OPTIONS}
-            optionFilterProp="label"
-          />
-        </Form.Item>
+        {!isAdmin && (
+          <Form.Item
+            name="accountTypes"
+            label="Тип аккаунта"
+            rules={[
+              {
+                required: true,
+                type: 'array',
+                min: 1,
+                message: 'Выберите хотя бы один тип аккаунта',
+              },
+            ]}
+          >
+            <Select
+              mode="multiple"
+              placeholder="Выберите типы аккаунта"
+              options={ACCOUNT_TYPE_OPTIONS}
+              optionFilterProp="label"
+            />
+          </Form.Item>
+        )}
       </Form>
     </Modal>
   )

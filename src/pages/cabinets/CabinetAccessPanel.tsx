@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
@@ -23,6 +23,7 @@ import {
   formatCabinetAccessSections,
 } from '../../constants/cabinetAccessSections'
 import type { CabinetAccessEntryDto, CabinetAccessSection, GrantCabinetAccessRequest } from '../../types/api'
+import { GRANT_ACCOUNT_TYPE_OPTIONS } from '../../constants/grantAccountTypes'
 import { getRequestFailureDescription } from '../../utils/requestError'
 
 dayjs.locale('ru')
@@ -33,6 +34,7 @@ type AccessTab = 'all' | 'active' | 'invitations' | 'revoked'
 
 interface GrantFormValues {
   email: string
+  accountType: GrantCabinetAccessRequest['accountType']
   comment?: string
   sections: CabinetAccessSection[]
   validUntil?: Dayjs | null
@@ -45,6 +47,24 @@ interface CabinetAccessPanelProps {
 function formatDate(value: string | null | undefined): string {
   if (!value) return '—'
   return dayjs(value).format('DD.MM.YYYY HH:mm')
+}
+
+function formatAccessUntil(value: string | null | undefined): string {
+  if (!value) return 'Бессрочно'
+  return dayjs(value).format('DD.MM.YYYY HH:mm')
+}
+
+function canEditAccessUntil(row: CabinetAccessEntryDto): boolean {
+  if (row.kind === 'INVITATION') return true
+  return row.kind === 'GRANT' && row.statusLabel === 'Активен'
+}
+
+function toValidUntilPayload(value: Dayjs | null | undefined): string | null {
+  return value ? value.endOf('day').format('YYYY-MM-DDTHH:mm:ss') : null
+}
+
+function isSameValidUntil(current: string | null | undefined, next: string | null): boolean {
+  return toValidUntilPayload(current ? dayjs(current) : null) === next
 }
 
 function filterByTab(entries: CabinetAccessEntryDto[], tab: AccessTab): CabinetAccessEntryDto[] {
@@ -60,10 +80,37 @@ function filterByTab(entries: CabinetAccessEntryDto[], tab: AccessTab): CabinetA
   }
 }
 
+interface AccessUntilCellProps {
+  row: CabinetAccessEntryDto
+  loading: boolean
+  onChange: (row: CabinetAccessEntryDto, value: Dayjs | null) => void
+}
+
+function AccessUntilCell({ row, loading, onChange }: AccessUntilCellProps) {
+  if (!canEditAccessUntil(row)) {
+    return <span>{formatAccessUntil(row.accessUntil)}</span>
+  }
+
+  return (
+    <DatePicker
+      size="small"
+      style={{ minWidth: 132 }}
+      format="DD.MM.YYYY"
+      placeholder="Бессрочно"
+      allowClear
+      value={row.accessUntil ? dayjs(row.accessUntil) : null}
+      disabled={loading}
+      disabledDate={(current) => current != null && current < dayjs().startOf('day')}
+      onChange={(value) => onChange(row, value)}
+    />
+  )
+}
+
 export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProps) {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<AccessTab>('all')
   const [grantModalOpen, setGrantModalOpen] = useState(false)
+  const [updatingUntilKey, setUpdatingUntilKey] = useState<string | null>(null)
   const [form] = Form.useForm<GrantFormValues>()
 
   const { data: entries = [], isLoading, isFetching } = useQuery({
@@ -111,6 +158,35 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
     },
   })
 
+  const updateValidUntilMutation = useMutation({
+    mutationFn: ({ entry, validUntil }: { entry: CabinetAccessEntryDto; validUntil: string | null }) => {
+      const body = { validUntil }
+      if (entry.kind === 'INVITATION') {
+        return cabinetsApi.updateInvitationValidUntil(cabinetId, entry.id, body)
+      }
+      return cabinetsApi.updateGrantValidUntil(cabinetId, entry.id, body)
+    },
+    onMutate: ({ entry }) => {
+      setUpdatingUntilKey(`${entry.kind}-${entry.id}`)
+    },
+    onSuccess: (data) => {
+      message.success(data.message || 'Срок доступа обновлён')
+      invalidateAccess()
+    },
+    onError: (err: unknown) => {
+      message.error(getRequestFailureDescription(err))
+    },
+    onSettled: () => {
+      setUpdatingUntilKey(null)
+    },
+  })
+
+  const handleAccessUntilChange = useCallback((row: CabinetAccessEntryDto, value: Dayjs | null) => {
+    const validUntil = toValidUntilPayload(value)
+    if (isSameValidUntil(row.accessUntil, validUntil)) return
+    updateValidUntilMutation.mutate({ entry: row, validUntil })
+  }, [updateValidUntilMutation])
+
   const filteredEntries = useMemo(() => filterByTab(entries, activeTab), [entries, activeTab])
 
   const tabCounts = useMemo(
@@ -128,18 +204,21 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
       {
         title: 'Пользователь',
         key: 'user',
-        render: (_: unknown, row: CabinetAccessEntryDto) => (
-          <div>
-            <Text strong>{row.userName ?? row.userEmail}</Text>
-            {row.userName && (
-              <div>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  {row.userEmail}
-                </Text>
-              </div>
-            )}
-          </div>
-        ),
+        render: (_: unknown, row: CabinetAccessEntryDto) => {
+          const hasDistinctName = Boolean(row.userName?.trim()) && row.userName !== row.userEmail
+          return (
+            <div>
+              <Text strong>{row.userName?.trim() || row.userEmail}</Text>
+              {hasDistinctName && (
+                <div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {row.userEmail}
+                  </Text>
+                </div>
+              )}
+            </div>
+          )
+        },
       },
       {
         title: 'Разделы',
@@ -157,12 +236,13 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
         title: 'До',
         dataIndex: 'accessUntil',
         key: 'accessUntil',
-        render: (v: string | null) => formatDate(v),
-      },
-      {
-        title: 'Выдал',
-        dataIndex: 'grantedByLabel',
-        key: 'grantedByLabel',
+        render: (_: string | null, row: CabinetAccessEntryDto) => (
+          <AccessUntilCell
+            row={row}
+            loading={updatingUntilKey === `${row.kind}-${row.id}`}
+            onChange={handleAccessUntilChange}
+          />
+        ),
       },
       {
         title: 'Статус',
@@ -223,7 +303,7 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
         },
       },
     ],
-    [revokeGrantMutation, revokeInvitationMutation],
+    [revokeGrantMutation, revokeInvitationMutation, updatingUntilKey, handleAccessUntilChange],
   )
 
   const tabItems = [
@@ -301,6 +381,7 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
           onFinish={(values) => {
             const body: GrantCabinetAccessRequest = {
               email: values.email.trim(),
+              accountType: values.accountType,
               comment: values.comment?.trim() || undefined,
               sections: values.sections,
               validUntil: values.validUntil ? values.validUntil.endOf('day').format('YYYY-MM-DDTHH:mm:ss') : undefined,
@@ -317,6 +398,13 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
             ]}
           >
             <Input placeholder="user@example.com" />
+          </Form.Item>
+          <Form.Item
+            name="accountType"
+            label="Тип аккаунта"
+            rules={[{ required: true, message: 'Выберите тип аккаунта' }]}
+          >
+            <Select placeholder="Выберите тип аккаунта" options={GRANT_ACCOUNT_TYPE_OPTIONS} />
           </Form.Item>
           <Form.Item name="comment" label="Комментарий">
             <Input.TextArea rows={2} placeholder="Необязательно" />

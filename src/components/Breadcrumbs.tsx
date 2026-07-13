@@ -1,4 +1,6 @@
 import { useLocation, useParams, Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { cabinetsApi } from '../api/cabinets'
 
 interface BreadcrumbItem {
   label: string
@@ -15,6 +17,14 @@ export default function Breadcrumbs() {
   const location = useLocation()
   const params = useParams<{ nmId?: string; id?: string }>()
   const pathname = location.pathname
+  const cabinetId = params.id && pathname.match(/^\/cabinets\/\d+$/) ? Number(params.id) : NaN
+
+  const { data: cabinet } = useQuery({
+    queryKey: ['cabinet', cabinetId],
+    queryFn: () => cabinetsApi.getById(cabinetId),
+    enabled: Number.isFinite(cabinetId) && cabinetId > 0,
+    staleTime: 60_000,
+  })
 
   const items: BreadcrumbItem[] = []
 
@@ -51,7 +61,10 @@ export default function Breadcrumbs() {
   } else if (pathname === '/admin/wb-events') {
     items.push({ label: 'Профиль', path: '/profile' }, { label: 'WB API события' })
   } else if (pathname.match(/^\/cabinets\/\d+$/) && params.id) {
-    items.push({ label: 'Профиль', path: '/profile' }, { label: 'Кабинеты', path: '/profile' }, { label: params.id })
+    const cabinetLabel = cabinet?.name?.trim()
+      ? `${params.id} (${cabinet.name.trim()})`
+      : params.id
+    items.push({ label: 'Профиль', path: '/profile' }, { label: 'Кабинеты', path: '/profile' }, { label: cabinetLabel })
   } else if (pathname === '/subscription') {
     items.push({ label: 'Профиль', path: '/profile' }, { label: 'Подписка' })
   } else {

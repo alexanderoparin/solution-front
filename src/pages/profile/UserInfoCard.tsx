@@ -7,10 +7,9 @@ import {
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import type { UserProfileResponse } from '../../types/api'
+import type { UserProfileResponse, UserRole } from '../../types/api'
 import { ACCOUNT_TYPE_TAG_COLORS, accountTypeLabel } from '../../constants/accountTypeLabels'
 import { userRoleLabel, USER_ROLE_TAG_COLORS } from '../../constants/userRoleLabels'
-import type { UserRole } from '../../types/api'
 
 dayjs.locale('ru')
 
@@ -50,7 +49,14 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
         border: `1px solid ${border}`,
       }}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 420px) 1fr', gap: 24, alignItems: 'end' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(220px, 420px) 1fr',
+          gap: 24,
+          alignItems: 'end',
+        }}
+      >
         <div>
           <Text type="secondary">Имя</Text>
           <Input
@@ -62,9 +68,26 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
         </div>
 
         <div>
-          <Text type="secondary">Роли</Text>
-          <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center' }}>
-            {accountTypes.length === 0 ? (
+          {!isAdmin && <Text type="secondary">Роли</Text>}
+          <div
+            style={{
+              marginTop: isAdmin ? 0 : 8,
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 12,
+              alignItems: 'center',
+              minHeight: isAdmin ? 40 : undefined,
+              justifyContent: isAdmin ? 'flex-end' : undefined,
+            }}
+          >
+            {isAdmin ? (
+              <Tag
+                color={USER_ROLE_TAG_COLORS[profile.role as UserRole] ?? 'red'}
+                style={{ padding: '6px 16px', borderRadius: 12, fontWeight: 600, lineHeight: '20px' }}
+              >
+                {userRoleLabel(profile.role)}
+              </Tag>
+            ) : accountTypes.length === 0 ? (
               <Tag>—</Tag>
             ) : (
               accountTypes.map((type) => (
@@ -81,14 +104,6 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
                   {accountTypeLabel(type)}
                 </Tag>
               ))
-            )}
-            {isAdmin && (
-              <Tag
-                color={USER_ROLE_TAG_COLORS[profile.role as UserRole] ?? 'red'}
-                style={{ padding: '6px 16px', borderRadius: 12, fontWeight: 600, lineHeight: '20px' }}
-              >
-                {userRoleLabel(profile.role)}
-              </Tag>
             )}
           </div>
         </div>

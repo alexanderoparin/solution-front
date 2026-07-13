@@ -225,7 +225,7 @@ export default function UsersManagementSection({
 
   const getCreatableRoles = (): UserRole[] => (role === 'ADMIN' ? ['USER'] : [])
 
-  const canCreateUsers = getCreatableRoles().length > 0
+  const canCreateUsers = getCreatableRoles().length > 0 && !isManagementControlled
 
   const { data, isLoading } = useQuery({
     queryKey: ['managedUsers', page, pageSize, searchEmail, effectiveOnlySellers, sortBy, sortDir],

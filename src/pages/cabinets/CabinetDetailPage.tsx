@@ -6,6 +6,7 @@ import 'dayjs/locale/ru'
 import { cabinetsApi } from '../../api/cabinets'
 import Header from '../../components/Header'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import { useAuthStore } from '../../store/authStore'
 import CabinetAccessPanel from './CabinetAccessPanel'
 import { getRequestFailureDescription } from '../../utils/requestError'
 import { buildScopeStatusTooltip, ScopeStatusIcon } from '../../utils/scopeStatusUi'
@@ -23,6 +24,8 @@ function tokenTypeLabel(tokenType?: 'PERSONAL' | 'BASIC' | null): string {
 export default function CabinetDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const role = useAuthStore((state) => state.role)
+  const isAdmin = role === 'ADMIN'
   const cabinetId = id ? Number(id) : NaN
 
   const {
@@ -76,7 +79,7 @@ export default function CabinetDetailPage() {
             message={httpStatus === 403 ? 'Нет доступа' : 'Ошибка загрузки'}
             description={
               httpStatus === 403
-                ? 'Управление кабинетом доступно только владельцу или администратору.'
+                ? 'Управление кабинетом доступно только владельцу.'
                 : getRequestFailureDescription(error)
             }
             action={
@@ -184,9 +187,11 @@ export default function CabinetDetailPage() {
               </div>
             </Card>
 
-            <Card>
-              <CabinetAccessPanel cabinetId={cabinet.id} />
-            </Card>
+            {isAdmin ? null : (
+              <Card>
+                <CabinetAccessPanel cabinetId={cabinet.id} />
+              </Card>
+            )}
           </div>
         ) : null}
       </div>

@@ -500,6 +500,11 @@ export interface GrantCabinetAccessRequest {
   comment?: string
   sections: CabinetAccessSection[]
   validUntil?: string | null
+  accountType: Extract<AccountType, 'AGENCY' | 'EMPLOYEE'>
+}
+
+export interface UpdateCabinetAccessValidUntilRequest {
+  validUntil?: string | null
 }
 
 export interface CabinetInvitationPreviewDto {
