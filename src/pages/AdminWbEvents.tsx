@@ -34,6 +34,41 @@ const STATUS_LABELS: Record<WbApiEventStatus, string> = {
   CANCELLED: 'Отменено',
 }
 
+function renderStatusLabel(label: string) {
+  const parenIdx = label.indexOf(' (')
+  if (parenIdx >= 0) {
+    return (
+      <>
+        {label.slice(0, parenIdx)}
+        <br />
+        {label.slice(parenIdx + 1)}
+      </>
+    )
+  }
+  const withIdx = label.indexOf(' с ')
+  if (withIdx >= 0) {
+    return (
+      <>
+        {label.slice(0, withIdx)}
+        <br />
+        {label.slice(withIdx + 1)}
+      </>
+    )
+  }
+  return label
+}
+
+function StatusTag({ status }: { status: WbApiEventStatus }) {
+  return (
+    <Tag
+      color={STATUS_COLORS[status]}
+      style={{ whiteSpace: 'normal', textAlign: 'center', lineHeight: 1.2, margin: 0 }}
+    >
+      {renderStatusLabel(STATUS_LABELS[status])}
+    </Tag>
+  )
+}
+
 const TYPE_LABELS: Record<WbApiEventType, string> = {
   CONTENT_CARDS_LIST_PAGE: 'Контент: страница карточек',
   ANALYTICS_SALES_FUNNEL_NMID: 'Аналитика: воронка по nmID',
@@ -80,6 +115,13 @@ const COLUMN_SORT_FIELDS = {
   createdAt: 'CREATED_AT',
   finishedAt: 'FINISHED_AT',
 } as const satisfies Record<string, WbApiEventSortField>
+function formatCabinetLabel(cabinetId: number, cabinetName?: string | null): string {
+  if (cabinetName) {
+    return `${cabinetId} (${cabinetName})`
+  }
+  return String(cabinetId)
+}
+
 const MOBILE_SORT_OPTIONS: { value: WbApiEventSortField; label: string }[] = [
   { value: 'ID', label: 'ID' },
   { value: 'EVENT_TYPE', label: 'Тип события' },
@@ -212,16 +254,23 @@ export default function AdminWbEvents() {
     {
       title: 'Статус',
       dataIndex: 'status',
-      width: 190,
+      width: 105,
       sorter: true,
       sortOrder: sortBy === 'STATUS' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
-      render: (value: WbApiEventStatus) => <Tag color={STATUS_COLORS[value]}>{STATUS_LABELS[value]}</Tag>,
+      render: (value: WbApiEventStatus) => <StatusTag status={value} />,
     },
-    { title: 'Кабинет', dataIndex: 'cabinetId', width: 120, sorter: true, sortOrder: sortBy === 'CABINET_ID' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null },
+    {
+      title: 'Кабинет',
+      dataIndex: 'cabinetId',
+      width: 260,
+      sorter: true,
+      sortOrder: sortBy === 'CABINET_ID' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
+      render: (_: number, row) => formatCabinetLabel(row.cabinetId, row.cabinetName),
+    },
     {
       title: 'Попытки',
       key: 'attempts',
-      width: 120,
+      width: 80,
       sorter: true,
       sortOrder: sortBy === 'ATTEMPT_COUNT' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
       render: (_, row) => `${row.attemptCount}/${row.maxAttempts}`,
@@ -511,10 +560,10 @@ export default function AdminWbEvents() {
                         <Space wrap size={[6, 6]}>
                           <Tag color="blue">#{row.id}</Tag>
                           <Tag color={TYPE_COLORS[row.eventType] ?? 'default'}>{TYPE_LABELS[row.eventType] ?? row.eventType}</Tag>
-                          <Tag color={STATUS_COLORS[row.status]}>{STATUS_LABELS[row.status]}</Tag>
+                          <StatusTag status={row.status} />
                         </Space>
                         <Typography.Text type="secondary">
-                          Кабинет: {row.cabinetId} · Попытки: {row.attemptCount}/{row.maxAttempts}
+                          Кабинет: {formatCabinetLabel(row.cabinetId, row.cabinetName)} · Попытки: {row.attemptCount}/{row.maxAttempts}
                         </Typography.Text>
                         <Typography.Text type="secondary">
                           Создано: {dayjs(row.createdAt).format('DD.MM HH:mm:ss')}
@@ -581,7 +630,7 @@ export default function AdminWbEvents() {
             <Typography.Text><b>Статус:</b> {selectedEvent.status}</Typography.Text>
             <Typography.Text><b>Статус (читаемо):</b> {STATUS_LABELS[selectedEvent.status]}</Typography.Text>
             <Typography.Text><b>Исполнитель:</b> {selectedEvent.executorBeanName}</Typography.Text>
-            <Typography.Text><b>Кабинет:</b> {selectedEvent.cabinetId}</Typography.Text>
+            <Typography.Text><b>Кабинет:</b> {formatCabinetLabel(selectedEvent.cabinetId, selectedEvent.cabinetName)}</Typography.Text>
             <Typography.Text><b>Ключ дедупликации:</b> {selectedEvent.dedupKey}</Typography.Text>
             <Typography.Text><b>Попытки:</b> {selectedEvent.attemptCount}/{selectedEvent.maxAttempts}</Typography.Text>
             <Typography.Text><b>Приоритет:</b> {selectedEvent.priority}</Typography.Text>

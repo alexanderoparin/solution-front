@@ -271,6 +271,7 @@ export interface WbApiEventDto {
   status: WbApiEventStatus
   executorBeanName: string
   cabinetId: number
+  cabinetName: string | null
   dedupKey: string
   attemptCount: number
   maxAttempts: number
