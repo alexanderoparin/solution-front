@@ -60,7 +60,7 @@ export default function CabinetDetailPage() {
       <Breadcrumbs />
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px' }}>
         <div style={{ marginBottom: 24 }}>
-          <Link to="/cabinets" style={{ color: '#7C3AED', fontSize: 14 }}>
+          <Link to="/profile" style={{ color: '#7C3AED', fontSize: 14 }}>
             ← К списку кабинетов
           </Link>
         </div>
@@ -81,7 +81,7 @@ export default function CabinetDetailPage() {
             }
             action={
               httpStatus === 403 ? (
-                <a onClick={() => navigate('/cabinets')} style={{ color: '#7C3AED' }}>
+                <a onClick={() => navigate('/profile')} style={{ color: '#7C3AED' }}>
                   К кабинетам
                 </a>
               ) : undefined

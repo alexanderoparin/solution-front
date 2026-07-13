@@ -1,4 +1,4 @@
-import { Card, Button, Typography } from 'antd'
+import { Card, Button, Typography, Space } from 'antd'
 import { CreditCardOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
@@ -40,7 +40,12 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
 
   return (
     <Card
-      title="Подписка"
+      title={
+        <Space>
+          <CreditCardOutlined />
+          <span>Подписка</span>
+        </Space>
+      }
       style={{
         borderRadius: 16,
         border: `1px solid ${border}`,

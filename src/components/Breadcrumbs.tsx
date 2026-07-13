@@ -50,10 +50,8 @@ export default function Breadcrumbs() {
     items.push({ label: 'Профиль', path: '/profile' }, { label: 'Управление РК — планы' })
   } else if (pathname === '/admin/wb-events') {
     items.push({ label: 'Профиль', path: '/profile' }, { label: 'WB API события' })
-  } else if (pathname === '/cabinets') {
-    items.push({ label: 'Кабинеты' })
   } else if (pathname.match(/^\/cabinets\/\d+$/) && params.id) {
-    items.push({ label: 'Кабинеты', path: '/cabinets' }, { label: params.id })
+    items.push({ label: 'Профиль', path: '/profile' }, { label: 'Кабинеты', path: '/profile' }, { label: params.id })
   } else if (pathname === '/subscription') {
     items.push({ label: 'Профиль', path: '/profile' }, { label: 'Подписка' })
   } else {

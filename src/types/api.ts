@@ -471,6 +471,8 @@ export interface GrantedCabinetRowDto {
   lastValidatedAt: string | null
   apiKeyValid: boolean | null
   lastDataUpdateAt: string | null
+  apiKeyMasked: string | null
+  grantedByName: string | null
   sections: CabinetAccessSection[]
 }
 

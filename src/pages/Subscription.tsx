@@ -111,6 +111,15 @@ export default function Subscription() {
   const isLegacyTrial = subscriptionStatus === 'trial'
   const isLegacyExpired = legacyExpiresAt ? legacyExpiresAt.isBefore(dayjs()) : true
 
+  const statusContentStyle: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 6,
+    flex: 1,
+    minWidth: 240,
+  }
+
   const statusRowStyle: CSSProperties = {
     display: 'flex',
     flexWrap: 'wrap',
@@ -150,7 +159,7 @@ export default function Subscription() {
 
     if (campaignManage.status === 'AGENCY') {
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={statusContentStyle}>
           <Tag color="purple">Клиент агентства</Tag>
           <Typography.Text type="secondary">
             Управление РК доступно без подписки — кабинет ведётся агентством.
@@ -162,7 +171,7 @@ export default function Subscription() {
     if (campaignManage.status === 'ACTIVE' && cmExpiresAt) {
       const days = campaignManage.daysRemaining ?? 0
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={statusContentStyle}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
             <Tag color="green">Подключено</Tag>
             <Typography.Text>
@@ -187,7 +196,7 @@ export default function Subscription() {
     if (campaignManage.status === 'EXPIRED' && cmExpiresAt) {
       const ago = campaignManage.daysExpiredAgo ?? 0
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={statusContentStyle}>
           <Tag color="orange">Подписка истекла</Tag>
           <Typography.Text type="secondary">
             Закончилась {cmExpiresAt.format('DD.MM.YYYY HH:mm')}
@@ -202,7 +211,7 @@ export default function Subscription() {
     }
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={statusContentStyle}>
         <Tag color="default">Не подключено</Tag>
         <Typography.Text type="secondary">
           Аналитика и реклама доступны бесплатно. Раздел «Управление РК» (расписание, автобюджет и др.) требует подписки.
@@ -302,9 +311,9 @@ export default function Subscription() {
                   <Typography.Text strong style={{ minWidth: 200 }}>
                     Аналитика и реклама
                   </Typography.Text>
-                  <div>
+                  <div style={statusContentStyle}>
                     <Tag color="cyan">Бесплатный доступ</Tag>
-                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0, marginTop: 8, maxWidth: 520 }}>
+                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0, maxWidth: 520 }}>
                       Основные разделы сервиса доступны без оплаты.
                     </Typography.Paragraph>
                   </div>
@@ -313,7 +322,7 @@ export default function Subscription() {
                   <Typography.Text strong style={{ minWidth: 200 }}>
                     Управление РК
                   </Typography.Text>
-                  <div style={{ flex: 1, minWidth: 240 }}>{renderCampaignManageStatus()}</div>
+                  {renderCampaignManageStatus()}
                 </div>
               </>
             ) : (

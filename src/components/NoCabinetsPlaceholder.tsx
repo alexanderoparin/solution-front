@@ -24,14 +24,34 @@ const wbTokenCheckLink = (
 
 interface NoCabinetsPlaceholderProps {
   onCreated?: () => void
-  /** empty — полный блок; button — только кнопка «Добавить кабинет». */
-  variant?: 'empty' | 'button'
+  /** empty — полный блок; button — только кнопка; modal-only — только модалка. */
+  variant?: 'empty' | 'button' | 'modal-only'
+  /** false — не рендерить модалку (используйте отдельный modal-only). По умолчанию true. */
+  withModal?: boolean
+  addModalOpen?: boolean
+  onAddModalOpenChange?: (open: boolean) => void
 }
 
-export default function NoCabinetsPlaceholder({ onCreated, variant = 'empty' }: NoCabinetsPlaceholderProps) {
+export default function NoCabinetsPlaceholder({
+  onCreated,
+  variant = 'empty',
+  withModal = true,
+  addModalOpen,
+  onAddModalOpenChange,
+}: NoCabinetsPlaceholderProps) {
   const queryClient = useQueryClient()
-  const [modalOpen, setModalOpen] = useState(false)
+  const [internalModalOpen, setInternalModalOpen] = useState(false)
   const [form] = Form.useForm<{ name?: string; apiKey: string; tokenType: CabinetTokenType }>()
+
+  const modalOpen = addModalOpen ?? internalModalOpen
+
+  const setModalOpen = (open: boolean) => {
+    if (onAddModalOpenChange) {
+      onAddModalOpenChange(open)
+    } else {
+      setInternalModalOpen(open)
+    }
+  }
 
   const createMutation = useMutation({
     mutationFn: cabinetsApi.create,
@@ -76,7 +96,7 @@ export default function NoCabinetsPlaceholder({ onCreated, variant = 'empty' }: 
             Добавить кабинет
           </Button>
         </div>
-      ) : (
+      ) : variant === 'button' ? (
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -85,74 +105,76 @@ export default function NoCabinetsPlaceholder({ onCreated, variant = 'empty' }: 
         >
           Добавить кабинет
         </Button>
-      )}
+      ) : null}
 
-      <Modal
-        title="Новый кабинет"
-        open={modalOpen}
-        destroyOnClose
-        onCancel={() => {
-          setModalOpen(false)
-          form.resetFields()
-        }}
-        footer={[
-          <Button
-            key="cancel"
-            onClick={() => {
-              setModalOpen(false)
-              form.resetFields()
+      {(withModal || variant === 'modal-only') && (
+        <Modal
+          title="Новый кабинет"
+          open={modalOpen}
+          destroyOnClose
+          onCancel={() => {
+            setModalOpen(false)
+            form.resetFields()
+          }}
+          footer={[
+            <Button
+              key="cancel"
+              onClick={() => {
+                setModalOpen(false)
+                form.resetFields()
+              }}
+            >
+              Отмена
+            </Button>,
+            <Button
+              key="submit"
+              type="primary"
+              loading={createMutation.isPending}
+              style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
+              onClick={() => form.submit()}
+            >
+              Создать
+            </Button>,
+          ]}
+        >
+          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+            Укажите API-токен WB и его тип. Если не ввести название кабинета, оно подставится из ответа WB.
+          </Text>
+          <Form
+            form={form}
+            layout="vertical"
+            autoComplete="off"
+            onFinish={({ apiKey, tokenType, name }) => {
+              createMutation.mutate({ apiKey, tokenType, name })
             }}
           >
-            Отмена
-          </Button>,
-          <Button
-            key="submit"
-            type="primary"
-            loading={createMutation.isPending}
-            style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
-            onClick={() => form.submit()}
-          >
-            Создать
-          </Button>,
-        ]}
-      >
-        <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-          Укажите API-токен WB и его тип. Если не ввести название кабинета, оно подставится из ответа WB.
-        </Text>
-        <Form
-          form={form}
-          layout="vertical"
-          autoComplete="off"
-          onFinish={({ apiKey, tokenType, name }) => {
-            createMutation.mutate({ apiKey, tokenType, name })
-          }}
-        >
-          <Form.Item
-            name="apiKey"
-            label="WB API-токен"
-            extra={wbTokenCheckLink}
-            rules={[{ required: true, whitespace: true, message: 'Введите API-токен WB' }]}
-          >
-            <Input.Password placeholder="Введите токен" autoComplete="off" />
-          </Form.Item>
-          <Form.Item
-            name="tokenType"
-            label="Тип токена WB"
-            rules={[{ required: true, message: 'Выберите тип токена' }]}
-          >
-            <Select
-              placeholder="Выберите тип токена"
-              options={[
-                { value: 'BASIC', label: 'Базовый' },
-                { value: 'PERSONAL', label: 'Персональный' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="name" label="Название кабинета">
-            <Input placeholder="Необязательно — подставится из WB" />
-          </Form.Item>
-        </Form>
-      </Modal>
+            <Form.Item
+              name="apiKey"
+              label="WB API-токен"
+              extra={wbTokenCheckLink}
+              rules={[{ required: true, whitespace: true, message: 'Введите API-токен WB' }]}
+            >
+              <Input.Password placeholder="Введите токен" autoComplete="off" />
+            </Form.Item>
+            <Form.Item
+              name="tokenType"
+              label="Тип токена WB"
+              rules={[{ required: true, message: 'Выберите тип токена' }]}
+            >
+              <Select
+                placeholder="Выберите тип токена"
+                options={[
+                  { value: 'BASIC', label: 'Базовый' },
+                  { value: 'PERSONAL', label: 'Персональный' },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item name="name" label="Название кабинета">
+              <Input placeholder="Необязательно — подставится из WB" />
+            </Form.Item>
+          </Form>
+        </Modal>
+      )}
     </>
   )
 }

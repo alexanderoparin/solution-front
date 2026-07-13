@@ -50,14 +50,14 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
         border: `1px solid ${border}`,
       }}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'end' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 420px) 1fr', gap: 24, alignItems: 'end' }}>
         <div>
           <Text type="secondary">Имя</Text>
           <Input
             value={displayName}
             placeholder="—"
             readOnly
-            style={{ borderRadius: 10, height: 40 }}
+            style={{ borderRadius: 10, height: 40, maxWidth: 420 }}
           />
         </div>
 

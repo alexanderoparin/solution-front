@@ -169,7 +169,7 @@ export default function InviteAccept() {
       )}
 
       {authToken && preview.alreadyAccepted && (
-        <Button type="primary" block onClick={() => navigate('/cabinets')} style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', marginTop: 16 }}>
+        <Button type="primary" block onClick={() => navigate('/profile?inviteAccepted=1')} style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', marginTop: 16 }}>
           Перейти к кабинетам
         </Button>
       )}

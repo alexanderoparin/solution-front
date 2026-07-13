@@ -14,20 +14,19 @@ import Header from '../../components/Header'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import UsersManagementSection from '../../components/UsersManagementSection'
 import { userApi } from '../../api/user'
-import { cabinetsApi } from '../../api/cabinets'
-import type { CreateCabinetRequest, CreateDeletionRequestRequest, UpdateProfileRequest, UserProfileResponse } from '../../types/api'
+import type { CreateDeletionRequestRequest, UpdateProfileRequest, UserProfileResponse } from '../../types/api'
 import { getRequestFailureDescription } from '../../utils/requestError'
 import { useAuthStore } from '../../store/authStore'
 import { USER_MANAGEMENT_VIEW, type UserManagementView } from '../../constants/userManagementView'
 import UserInfoCard from './UserInfoCard'
 import SecurityCard from './SecurityCard'
 import SubscriptionCard from './SubscriptionCard'
+import CabinetsCard from './CabinetsCard'
 import EditProfileModal from './modals/EditProfileModal'
 import LogoutConfirmModal from './modals/LogoutConfirmModal'
 import DeletionRequestModal from './modals/DeletionRequestModal'
 import EmailConfirmPromptModal from './modals/EmailConfirmPromptModal'
 import EmailConfirmedModal from './modals/EmailConfirmedModal'
-import AddCabinetModal from './modals/AddCabinetModal'
 
 dayjs.locale('ru')
 
@@ -36,12 +35,6 @@ const { Text } = Typography
 const border = '#E2E8F0'
 
 const profileAdminActionGridButtonStyle = { fontSize: 14, minHeight: 48 } as const
-
-function formatAddCabinetError(err: unknown): string {
-  const ax = err as { response?: { data?: { error?: string; message?: string } } }
-  const data = ax.response?.data
-  return data?.error ?? data?.message ?? 'Ошибка создания кабинета'
-}
 
 export default function ProfilePage() {
   const navigate = useNavigate()
@@ -123,18 +116,6 @@ export default function ProfilePage() {
     },
   })
 
-  const createCabinetMutation = useMutation({
-    mutationFn: (body: CreateCabinetRequest) => cabinetsApi.create(body),
-    onSuccess: () => {
-      setAddCabinetOpen(false)
-      void queryClient.invalidateQueries({ queryKey: ['cabinets'] })
-      message.success('Кабинет создан')
-    },
-    onError: (err: unknown) => {
-      message.error(formatAddCabinetError(err))
-    },
-  })
-
   const handleLogout = () => {
     clearAuth()
     navigate('/login')
@@ -199,6 +180,12 @@ export default function ProfilePage() {
             </Col>
             <Col xs={24}>
               <SubscriptionCard subscription={profile.subscription} />
+            </Col>
+            <Col xs={24}>
+              <CabinetsCard
+                addCabinetOpen={addCabinetOpen}
+                onAddCabinetOpenChange={setAddCabinetOpen}
+              />
             </Col>
           </Row>
 
@@ -319,12 +306,6 @@ export default function ProfilePage() {
         }}
       />
 
-      <AddCabinetModal
-        open={addCabinetOpen}
-        loading={createCabinetMutation.isPending}
-        onCancel={() => setAddCabinetOpen(false)}
-        onSubmit={(values) => createCabinetMutation.mutate(values)}
-      />
     </>
   )
 }

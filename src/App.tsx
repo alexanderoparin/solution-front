@@ -26,7 +26,6 @@ import Privacy from './pages/Privacy'
 import Refund from './pages/Refund'
 import Oferta from './pages/Oferta'
 import UserAgreement from './pages/UserAgreement'
-import CabinetsPage from './pages/cabinets/CabinetsPage'
 import CabinetDetailPage from './pages/cabinets/CabinetDetailPage'
 import InviteAccept from './pages/InviteAccept'
 import Footer from './components/Footer'
@@ -93,7 +92,7 @@ function AppRoutes() {
         />
         <Route
           path="/cabinets"
-          element={token ? <AccessGuard><CabinetsPage /></AccessGuard> : <Navigate to="/login" replace />}
+          element={token ? <Navigate to="/profile" replace /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/cabinets/:id"
