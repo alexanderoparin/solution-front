@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link, useSearchParams } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Form, Input, Button, Card, Typography, message } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
@@ -16,7 +16,10 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
   const setAuth = useAuthStore((state) => state.setAuth)
+
+  const nextPath = searchParams.get('next')
 
   useEffect(() => {
     const stateMessage = (location.state as { message?: string })?.message
@@ -27,6 +30,9 @@ export default function Login() {
   }, [location.state, location.pathname, navigate])
 
   const getInitialRoute = () => {
+    if (nextPath && nextPath.startsWith('/')) {
+      return nextPath
+    }
     return '/profile'
   }
 

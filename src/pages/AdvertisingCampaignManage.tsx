@@ -12,7 +12,7 @@ import { colors, typography, spacing, borderRadius, shadows, transitions } from 
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
-import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
+import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useCampaignManagePaywall } from '../hooks/useCampaignManagePaywall'
 import CampaignManagePaywallShield from '../components/campaignManageSubscription/CampaignManagePaywallShield'
 import CampaignWeekCalendar, { type SlotCreateRange } from '../components/campaignManage/CampaignWeekCalendar'
@@ -60,25 +60,25 @@ export default function AdvertisingCampaignManage() {
   const advertId = Number(id)
   const queryClient = useQueryClient()
   const role = useAuthStore((s) => s.role)
-  const isManagerOrAdmin = role === 'ADMIN' || role === 'MANAGER'
-  const workContext = useWorkContextForManagerAdmin(isManagerOrAdmin)
-  const selectedSellerId = isManagerOrAdmin ? workContext.selectedSellerId : undefined
+  const isAdmin = role === 'ADMIN'
+  const workContext = useWorkContextForAdmin(isAdmin)
+  const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
 
   const { data: myCabinets = [] } = useQuery({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
-    enabled: role === 'SELLER' || role === 'WORKER',
+    enabled: role === 'USER',
   })
 
   const cabinets = useMemo(() => {
-    if (isManagerOrAdmin) {
+    if (isAdmin) {
       return workContext.workContextOptions.map((o) => ({ id: o.cabinetId, name: o.cabinetName }))
     }
     return myCabinets
-  }, [isManagerOrAdmin, workContext.workContextOptions, myCabinets])
+  }, [isAdmin, workContext.workContextOptions, myCabinets])
 
   const [sellerCabinetId, setSellerCabinetId] = useState<number | null>(() => getStoredCabinetId())
-  const selectedCabinetId = isManagerOrAdmin ? workContext.selectedCabinetId : sellerCabinetId
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
 
   const manageKey = ['campaign-manage', advertId, selectedSellerId, selectedCabinetId] as const
 
@@ -428,7 +428,7 @@ export default function AdvertisingCampaignManage() {
   }
 
   const cabinetSelectProps =
-    role === 'SELLER' || role === 'WORKER'
+    role === 'USER'
       ? {
           cabinets,
           selectedCabinetId,
@@ -461,7 +461,7 @@ export default function AdvertisingCampaignManage() {
   return (
     <>
       <Header
-        workContextCabinetSelect={isManagerOrAdmin ? workContext.workContextCabinetSelectProps : undefined}
+        workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
         cabinetSelectProps={cabinetSelectProps}
       />
       <Breadcrumbs />

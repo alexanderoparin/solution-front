@@ -11,9 +11,14 @@ export default function ForgotPassword() {
   const forgotMutation = useMutation({
     mutationFn: (email: string) => authApi.forgotPassword(email),
     onSuccess: () => {
-      message.success('Если аккаунт с таким email существует, на него отправлена ссылка для сброса пароля.')
+      message.success('На указанный email отправлена ссылка для сброса пароля. Проверьте почту.')
     },
     onError: (error: any) => {
+      if (error.response?.status === 404) {
+        const msg = error.response?.data?.error ?? error.response?.data?.message ?? 'Аккаунт с таким email не найден'
+        message.error(msg)
+        return
+      }
       const msg = error.response?.data?.error ?? error.response?.data?.message ?? 'Ошибка отправки'
       message.error(msg)
     },

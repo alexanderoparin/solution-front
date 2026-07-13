@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { message } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
-import { WORK_CONTEXT_CABINETS_QUERY_KEY } from './useWorkContextForManagerAdmin'
+import { WORK_CONTEXT_CABINETS_QUERY_KEY } from './useWorkContextForAdmin'
 import type { CabinetTokenType } from '../types/api'
 
 function invalidateCabinetListCaches(queryClient: ReturnType<typeof useQueryClient>, sellerId: number) {

@@ -20,23 +20,94 @@ export interface MessageResponse {
 }
 
 export interface RegisterRequest {
+  name: string
   email: string
   password: string
   /** Согласие с офертой и политикой конфиденциальности (обязательно). */
   agreeToOffer: boolean
   /** Согласие на информационные и маркетинговые сообщения (необязательно). */
   marketingConsent?: boolean
+  /** Типы аккаунта (минимум один). */
+  accountTypes: AccountType[]
+  /** Токен приглашения (регистрация по invite). */
+  invitationToken?: string
+}
+
+/** Номинальный тип аккаунта (статистика и отображение, не права доступа). */
+export type AccountType = 'SELLER' | 'AGENCY' | 'EMPLOYEE'
+
+/** Причина удаления аккаунта. */
+export type AccountDeletionReason =
+  | 'NOT_USING'
+  | 'OTHER_SERVICE'
+  | 'FUNCTIONALITY'
+  | 'TOO_EXPENSIVE'
+  | 'OTHER'
+
+/** Статус заявки на удаление аккаунта. */
+export type AccountDeletionRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+/** Краткая информация о подписке для профиля. */
+export interface ProfileSubscriptionSummary {
+  planName: string
+  planCode?: string | null
+  statusLabel: string
+  active: boolean
+  expiresAt?: string | null
+  nextBillingAt?: string | null
+  autoRenew: boolean
+  freePlanHint?: string | null
+}
+
+/** Статус заявки на удаление в профиле. */
+export interface AccountDeletionStatus {
+  hasPendingRequest: boolean
+  status?: AccountDeletionRequestStatus | null
+  message?: string | null
+}
+
+/** Заявка на удаление аккаунта (админский список). */
+export interface AccountDeletionRequestAdminDto {
+  id: number
+  userId: number
+  userEmail: string
+  userName: string | null
+  reason: AccountDeletionReason
+  comment: string | null
+  status: AccountDeletionRequestStatus
+  createdAt: string
+}
+
+export interface UpdateProfileRequest {
+  name?: string
+  accountTypes?: AccountType[]
+}
+
+export interface CreateDeletionRequestRequest {
+  reason: AccountDeletionReason
+  comment?: string
 }
 
 export interface UserProfileResponse {
   id: number
+  /** Отображаемое имя пользователя */
+  name?: string | null
   email: string
   role: string
+  /** Типы аккаунта (может быть несколько) */
+  accountTypes?: AccountType[]
   isActive: boolean
   /** Почта подтверждена */
   emailConfirmed?: boolean
   /** Дата последней отправки письма для подтверждения почты (ISO), повтор не чаще 1 раза в 12 ч */
   lastEmailConfirmationSentAt?: string | null
+  /** Дата регистрации */
+  createdAt?: string | null
+  /** Сводка по тарифу */
+  subscription?: ProfileSubscriptionSummary | null
+  /** Заявка на удаление аккаунта */
+  deletionRequest?: AccountDeletionStatus | null
+  /** @deprecated legacy-поле, может отсутствовать в новом API */
   apiKey?: ApiKeyInfo
 }
 
@@ -53,7 +124,7 @@ export interface UpdateApiKeyRequest {
   wbApiKey: string
 }
 
-export type UserRole = 'ADMIN' | 'MANAGER' | 'SELLER' | 'WORKER'
+export type UserRole = 'ADMIN' | 'USER'
 
 export interface UserListItem {
   id: number
@@ -89,18 +160,8 @@ export interface CreateUserRequest {
 export interface UpdateUserRequest {
   email: string
   isActive?: boolean
-  /** Клиент агентства (только для SELLER, меняет ADMIN) */
+  /** Клиент агентства (меняет ADMIN) */
   agencyManaged?: boolean
-}
-
-export interface SellerManagerAccessDto {
-  managerId: number
-  managerEmail: string
-  grantedAt: string
-}
-
-export interface GrantManagerAccessRequest {
-  managerEmail: string
 }
 
 export interface CabinetApiKeyInfo {
@@ -386,3 +447,65 @@ export interface UpdateCabinetRequest {
 }
 
 export type CabinetTokenType = 'PERSONAL' | 'BASIC'
+
+/** Разделы сервиса, к которым может быть выдан доступ к кабинету. */
+export type CabinetAccessSection = 'PRODUCTS' | 'SUMMARY' | 'AD_CAMPAIGNS' | 'CAMPAIGN_MANAGE'
+
+export type CabinetAccessInvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED'
+
+export interface OwnedCabinetRowDto {
+  id: number
+  name: string
+  createdAt: string
+  lastValidatedAt: string | null
+  apiKeyValid: boolean | null
+  lastDataUpdateAt: string | null
+  apiKeyMasked: string | null
+}
+
+export interface GrantedCabinetRowDto {
+  id: number
+  name: string
+  accessFrom: string
+  accessUntil: string | null
+  lastValidatedAt: string | null
+  apiKeyValid: boolean | null
+  lastDataUpdateAt: string | null
+  sections: CabinetAccessSection[]
+}
+
+export interface CabinetsOverviewDto {
+  owned: OwnedCabinetRowDto[]
+  granted: GrantedCabinetRowDto[]
+}
+
+export interface CabinetAccessEntryDto {
+  id: number
+  kind: 'GRANT' | 'INVITATION' | string
+  userName: string | null
+  userEmail: string
+  sections: CabinetAccessSection[]
+  accessFrom: string
+  accessUntil: string | null
+  grantedByLabel: string
+  grantedAt: string
+  invitationStatus?: CabinetAccessInvitationStatus | null
+  statusLabel: string
+}
+
+export interface GrantCabinetAccessRequest {
+  email: string
+  comment?: string
+  sections: CabinetAccessSection[]
+  validUntil?: string | null
+}
+
+export interface CabinetInvitationPreviewDto {
+  cabinetName: string
+  inviterName: string
+  inviterEmail: string
+  sections: CabinetAccessSection[]
+  expired: boolean
+  alreadyAccepted: boolean
+  email: string
+}

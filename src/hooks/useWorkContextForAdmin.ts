@@ -11,13 +11,13 @@ export function workContextCabinetLabel(row: WorkContextCabinetDto): string {
 }
 
 /**
- * Контекст «кабинет + селлер» для ADMIN/MANAGER в шапке: только кабинеты с API-ключом, по алфавиту названия.
+ * Контекст «кабинет + селлер» для ADMIN в шапке: только кабинеты с API-ключом, по алфавиту названия.
  */
-export function useWorkContextForManagerAdmin(isManagerOrAdmin: boolean) {
+export function useWorkContextForAdmin(isAdmin: boolean) {
   const { data: raw = [], isLoading } = useQuery({
     queryKey: WORK_CONTEXT_CABINETS_QUERY_KEY,
     queryFn: () => userApi.getWorkContextCabinets(),
-    enabled: isManagerOrAdmin,
+    enabled: isAdmin,
     staleTime: 30_000,
   })
 
@@ -30,7 +30,7 @@ export function useWorkContextForManagerAdmin(isManagerOrAdmin: boolean) {
   const [selectedCabinetId, setSelectedCabinetIdInternal] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!isManagerOrAdmin) {
+    if (!isAdmin) {
       setSelectedCabinetIdInternal(null)
       return
     }
@@ -58,7 +58,7 @@ export function useWorkContextForManagerAdmin(isManagerOrAdmin: boolean) {
       setStoredCabinetIdForSeller(first.sellerId, first.cabinetId)
       return first.cabinetId
     })
-  }, [isManagerOrAdmin, options])
+  }, [isAdmin, options])
 
   const applyWorkContextCabinet = useCallback(
     (cabinetId: number) => {
@@ -72,11 +72,11 @@ export function useWorkContextForManagerAdmin(isManagerOrAdmin: boolean) {
   )
 
   const selectedSellerId = useMemo(() => {
-    if (!isManagerOrAdmin || selectedCabinetId == null) return undefined
+    if (!isAdmin || selectedCabinetId == null) return undefined
     return options.find((o) => o.cabinetId === selectedCabinetId)?.sellerId
-  }, [isManagerOrAdmin, options, selectedCabinetId])
+  }, [isAdmin, options, selectedCabinetId])
 
-  const workContextCabinetSelectProps = isManagerOrAdmin
+  const workContextCabinetSelectProps = isAdmin
     ? {
         options: options.map((o) => ({
           value: o.cabinetId,
@@ -91,8 +91,8 @@ export function useWorkContextForManagerAdmin(isManagerOrAdmin: boolean) {
   return {
     workContextOptions: options,
     workContextLoading: isLoading,
-    selectedCabinetId: isManagerOrAdmin ? selectedCabinetId : null,
-    selectedSellerId: isManagerOrAdmin ? selectedSellerId : undefined,
+    selectedCabinetId: isAdmin ? selectedCabinetId : null,
+    selectedSellerId: isAdmin ? selectedSellerId : undefined,
     applyWorkContextCabinet,
     workContextCabinetSelectProps,
   }

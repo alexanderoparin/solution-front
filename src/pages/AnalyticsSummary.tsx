@@ -30,7 +30,7 @@ import { colors, typography, spacing, shadows, borderRadius, transitions } from 
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
-import { useWorkContextForManagerAdmin, WORK_CONTEXT_CABINETS_QUERY_KEY } from '../hooks/useWorkContextForManagerAdmin'
+import { useWorkContextForAdmin, WORK_CONTEXT_CABINETS_QUERY_KEY } from '../hooks/useWorkContextForAdmin'
 
 dayjs.locale('ru')
 
@@ -169,26 +169,26 @@ const METRIC_COLUMN_WIDTH_PERCENT = 35
 
 export default function AnalyticsSummary() {
   const role = useAuthStore((state) => state.role)
-  const isManagerOrAdmin = role === 'ADMIN' || role === 'MANAGER'
+  const isAdmin = role === 'ADMIN'
 
-  const workContext = useWorkContextForManagerAdmin(isManagerOrAdmin)
+  const workContext = useWorkContextForAdmin(isAdmin)
 
   const { data: activeSellers = [], isLoading: sellersLoading } = useQuery({
     queryKey: ['activeSellers'],
     queryFn: () => userApi.getActiveSellers(),
-    enabled: isManagerOrAdmin,
+    enabled: isAdmin,
   })
 
-  const selectedSellerId = isManagerOrAdmin ? workContext.selectedSellerId : undefined
+  const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
 
   const { data: myCabinets = [], isLoading: myCabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
-    enabled: !isManagerOrAdmin,
+    enabled: !isAdmin,
   })
 
   const cabinets: CabinetDto[] = useMemo(() => {
-    if (isManagerOrAdmin) {
+    if (isAdmin) {
       return workContext.workContextOptions.map((o) => ({
         id: o.cabinetId,
         name: o.cabinetName,
@@ -200,41 +200,41 @@ export default function AnalyticsSummary() {
       }))
     }
     return myCabinets
-  }, [isManagerOrAdmin, workContext.workContextOptions, myCabinets])
+  }, [isAdmin, workContext.workContextOptions, myCabinets])
 
-  const cabinetsLoading = isManagerOrAdmin ? workContext.workContextLoading : myCabinetsLoading
+  const cabinetsLoading = isAdmin ? workContext.workContextLoading : myCabinetsLoading
 
   const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
 
-  const selectedCabinetId = isManagerOrAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
 
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
-      if (isManagerOrAdmin) {
+      if (isAdmin) {
         if (id != null) workContext.applyWorkContextCabinet(id)
       } else {
         setSellerSelectedCabinetId(id)
         setStoredCabinetId(id)
       }
     },
-    [isManagerOrAdmin, workContext.applyWorkContextCabinet],
+    [isAdmin, workContext.applyWorkContextCabinet],
   )
 
   useEffect(() => {
-    if (!isManagerOrAdmin) {
+    if (!isAdmin) {
       setSellerSelectedCabinetId(getStoredCabinetId())
     }
-  }, [isManagerOrAdmin])
+  }, [isAdmin])
 
-  // По умолчанию — первый кабинет (SELLER/WORKER; для админа/менеджера выбор задаёт work context)
+  // По умолчанию — первый кабинет (USER; для админа выбор задаёт work context)
   useEffect(() => {
-    if (isManagerOrAdmin) return
+    if (isAdmin) return
     if (myCabinets.length > 0 && sellerSelectedCabinetId === null) {
       const first = myCabinets[0].id
       setSellerSelectedCabinetId(first)
       setStoredCabinetId(first)
     }
-  }, [isManagerOrAdmin, myCabinets, sellerSelectedCabinetId])
+  }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 
   const [periods, setPeriods] = useState<Period[]>(() => {
     // Загружаем периоды из localStorage или генерируем по умолчанию
@@ -327,10 +327,10 @@ export default function AnalyticsSummary() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   /** Пока грузится справочник артикулов — не дергаем сводную (и не блокируем навсегда при пустом списке). */
-  const [articleCatalogLoading, setArticleCatalogLoading] = useState(() => !isManagerOrAdmin)
+  const [articleCatalogLoading, setArticleCatalogLoading] = useState(() => !isAdmin)
   // Инициализируем фильтр из localStorage, если selectedSellerId уже определен
   const [excludedNmIds, setExcludedNmIds] = useState<Set<number>>(() => {
-    if (isManagerOrAdmin && selectedSellerId !== undefined) {
+    if (isAdmin && selectedSellerId !== undefined) {
       const saved = localStorage.getItem(`analytics_excluded_nm_ids_${selectedSellerId}`)
       if (saved) {
         try {
@@ -354,7 +354,7 @@ export default function AnalyticsSummary() {
 
   // 1) Список артикулов — отдельный лёгкий эндпоинт (только справочная информация для фильтра)
   const loadArticles = useCallback(async () => {
-    if (isManagerOrAdmin && selectedSellerId === undefined) return
+    if (isAdmin && selectedSellerId === undefined) return
     setArticleCatalogLoading(true)
     try {
       const list = await analyticsApi.getArticleList(
@@ -371,11 +371,11 @@ export default function AnalyticsSummary() {
     } finally {
       setArticleCatalogLoading(false)
     }
-  }, [selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, onlyInAdvertising, isManagerOrAdmin])
+  }, [selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, onlyInAdvertising, isAdmin])
 
   // 2) Сводная только по выбранным артикулам (после того как список и фильтр готовы)
   const loadSummary = useCallback(async () => {
-    if (isManagerOrAdmin && selectedSellerId === undefined) {
+    if (isAdmin && selectedSellerId === undefined) {
       setLoading(false)
       return
     }
@@ -401,7 +401,7 @@ export default function AnalyticsSummary() {
     } finally {
       setLoading(false)
     }
-  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, onlyInAdvertising, isManagerOrAdmin])
+  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, onlyInAdvertising, isAdmin])
 
   const queryClient = useQueryClient()
   const selectedSeller = useMemo(
@@ -503,7 +503,7 @@ export default function AnalyticsSummary() {
 
   // Смена селлера (админ/менеджер) или кабинета/фильтра (продавец/работник): фильтр из localStorage + список артикулов
   useEffect(() => {
-    if (isManagerOrAdmin) {
+    if (isAdmin) {
       if (selectedSellerId === undefined) return
       const exKey = excludedNmIdsStorageKey(selectedCabinetId, selectedSellerId)
       if (exKey) {
@@ -525,13 +525,13 @@ export default function AnalyticsSummary() {
       void loadArticles()
       return
     }
-    // SELLER / WORKER: sellerId в API не передаём — только кабинет и фильтр фото
+    // USER: sellerId в API не передаём — только кабинет и фильтр фото
     void loadArticles()
-  }, [isManagerOrAdmin, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, onlyInAdvertising, loadArticles])
+  }, [isAdmin, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, onlyInAdvertising, loadArticles])
 
   // Сводная — после завершения загрузки справочника артикулов (в т.ч. пустого каталога)
   useEffect(() => {
-    if (isManagerOrAdmin && selectedSellerId === undefined) return
+    if (isAdmin && selectedSellerId === undefined) return
     if (articleCatalogLoading) return
     void loadSummary()
   }, [
@@ -540,7 +540,7 @@ export default function AnalyticsSummary() {
     excludedNmIds,
     selectedCabinetId,
     selectedSellerId,
-    isManagerOrAdmin,
+    isAdmin,
   ])
 
   // Синхронизация с «Товарами»: общий список включённых nmId или режим «ничего не выбрано»
@@ -671,7 +671,7 @@ export default function AnalyticsSummary() {
   const showInitialLoader =
     (loading ||
       sellersLoading ||
-      (isManagerOrAdmin && workContext.workContextLoading) ||
+      (isAdmin && workContext.workContextLoading) ||
       articleCatalogLoading) &&
     !summary
 
@@ -679,9 +679,9 @@ export default function AnalyticsSummary() {
     return (
       <>
         <Header
-          workContextCabinetSelect={isManagerOrAdmin ? workContext.workContextCabinetSelectProps : undefined}
+          workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
           cabinetSelectProps={
-            !isManagerOrAdmin && cabinets.length > 0
+            !isAdmin && cabinets.length > 0
               ? {
                   cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
                   selectedCabinetId,
@@ -709,7 +709,7 @@ export default function AnalyticsSummary() {
   }
 
   // Менеджер/админ: нет кабинетов с API-ключом
-  if (isManagerOrAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0) {
+  if (isAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0) {
     return (
       <>
         <Header />
@@ -787,9 +787,9 @@ export default function AnalyticsSummary() {
   return (
     <>
       <Header
-        workContextCabinetSelect={isManagerOrAdmin ? workContext.workContextCabinetSelectProps : undefined}
+        workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
         cabinetSelectProps={
-          !isManagerOrAdmin && cabinets.length > 0
+          !isAdmin && cabinets.length > 0
             ? {
                 cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
                 selectedCabinetId,
@@ -799,7 +799,7 @@ export default function AnalyticsSummary() {
             : undefined
         }
         headerRightExtra={
-          isManagerOrAdmin && selectedSellerId != null ? (
+          isAdmin && selectedSellerId != null ? (
             <Tooltip
               title={
                 canUpdateSellerData()

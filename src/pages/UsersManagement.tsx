@@ -40,18 +40,9 @@ export default function UsersManagement() {
   const role = useAuthStore((state) => state.role) as UserRole
 
   // Определяем, какую роль можно создавать (по умолчанию)
-  const getCreatableRole = (): UserRole => {
-    if (role === 'ADMIN') return 'MANAGER'
-    if (role === 'SELLER') return 'WORKER'
-    return 'WORKER'
-  }
+  const getCreatableRole = (): UserRole => 'USER'
 
-  // Определяем, какие роли можно создавать
-  const getCreatableRoles = (): UserRole[] => {
-    if (role === 'ADMIN') return ['MANAGER', 'SELLER']
-    if (role === 'SELLER') return ['WORKER']
-    return []
-  }
+  const getCreatableRoles = (): UserRole[] => (role === 'ADMIN' ? ['USER'] : [])
 
   const canCreateUsers = getCreatableRoles().length > 0
 
@@ -143,7 +134,7 @@ export default function UsersManagement() {
       title: 'Менеджеры',
       key: 'managerEmails',
       render: (_: unknown, record: UserListItem) => {
-        if (record.role !== 'SELLER') return '—'
+        if (record.role !== 'USER') return '—'
         const emails = record.managerEmails ?? []
         if (emails.length === 0) return '—'
         return (
@@ -167,7 +158,7 @@ export default function UsersManagement() {
       title: 'Селлер',
       key: 'ownerEmail',
       render: (_: unknown, record: UserListItem) => {
-        if (record.role !== 'WORKER') return '—'
+        if (record.role !== 'USER') return '—'
         const trimmed = record.ownerEmail?.trim()
         return trimmed ? trimmed : '—'
       },
@@ -346,7 +337,7 @@ export default function UsersManagement() {
             {role === 'ADMIN' && (
               <Form.Item noStyle shouldUpdate={(prev, cur) => prev.role !== cur.role}>
                 {({ getFieldValue }) =>
-                  getFieldValue('role') === 'SELLER' ? (
+                  getFieldValue('role') === 'USER' ? (
                     <Form.Item
                       name="agencyManaged"
                       valuePropName="checked"
@@ -416,7 +407,7 @@ export default function UsersManagement() {
               <Switch />
             </Form.Item>
 
-            {role === 'ADMIN' && editingUser?.role === 'SELLER' && (
+            {role === 'ADMIN' && editingUser?.role === 'USER' && (
               <Form.Item
                 name="agencyManaged"
                 valuePropName="checked"

@@ -16,6 +16,8 @@ import type {
   WbApiEventStatsDto,
   WbApiEventTypeStatsDto,
   WbApiEventCabinetStatsDto,
+  AccountDeletionRequestAdminDto,
+  MessageResponse,
 } from '../types/api'
 
 export const adminApi = {
@@ -105,6 +107,16 @@ export const adminApi = {
 
   cancelWbEvent: async (eventId: number): Promise<{ message: string }> => {
     const response = await apiClient.post<{ message: string }>(`/admin/wb-events/${eventId}/cancel`)
+    return response.data
+  },
+
+  getDeletionRequests: async (): Promise<AccountDeletionRequestAdminDto[]> => {
+    const response = await apiClient.get<AccountDeletionRequestAdminDto[]>('/admin/deletion-requests')
+    return response.data
+  },
+
+  approveDeletionRequest: async (requestId: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(`/admin/deletion-requests/${requestId}/approve`)
     return response.data
   },
 }

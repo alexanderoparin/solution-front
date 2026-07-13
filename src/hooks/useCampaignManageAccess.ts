@@ -4,10 +4,10 @@ import { accessStatusQueryKey, ACCESS_STATUS_STALE_MS, userApi } from '../api/us
 import { useAuthStore } from '../store/authStore'
 
 function resolveSellerIdForAccess(role: string | null, userId: number | null): number | undefined {
-  if (role === 'SELLER' && userId != null) {
+  if (role === 'USER' && userId != null) {
     return userId
   }
-  if (role === 'ADMIN' || role === 'MANAGER') {
+  if (role === 'ADMIN') {
     const raw = localStorage.getItem('analytics_selected_seller_id')
     const parsed = raw ? parseInt(raw, 10) : NaN
     return Number.isNaN(parsed) ? undefined : parsed
@@ -30,8 +30,8 @@ export function useCampaignManageAccess(overrideSellerId?: number) {
   const campaignManage = access?.campaignManage
 
   const showBadge = useMemo(() => {
-    // Подписку на Управление РК оформляет селлер; менеджер/работник наследуют доступ.
-    if (role !== 'SELLER') return false
+    // Подписку на Управление РК оформляет владелец; сотрудники наследуют доступ.
+    if (role !== 'USER') return false
     if (campaignManage?.status === 'AGENCY') return false
     return campaignManage?.enabled === true
   }, [role, campaignManage?.enabled, campaignManage?.status])

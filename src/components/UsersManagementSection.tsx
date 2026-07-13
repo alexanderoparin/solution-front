@@ -78,7 +78,7 @@ const renderEmailListCell = (emails?: string[] | null): React.ReactNode => {
 }
 
 const renderManagerEmailsCell = (record: UserListItem): React.ReactNode => {
-  if (record.role !== 'SELLER') {
+  if (record.role !== 'USER') {
     return '—'
   }
   return renderEmailListCell(record.managerEmails)
@@ -207,10 +207,10 @@ export default function UsersManagementSection({
   const [editForm] = Form.useForm()
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role) as UserRole
-  const isAdminOrManager = role === 'ADMIN' || role === 'MANAGER'
-  const effectiveOnlySellers = role === 'SELLER' ? false : onlySellers
+  const isAdmin = role === 'ADMIN'
+  const effectiveOnlySellers = onlySellers
   const isManagementControlled =
-    isAdminOrManager && managementViewProp !== undefined && onManagementViewChange !== undefined
+    isAdmin && managementViewProp !== undefined && onManagementViewChange !== undefined
   const managementView = isManagementControlled ? managementViewProp! : internalManagementView
 
   useEffect(() => {
@@ -221,17 +221,9 @@ export default function UsersManagementSection({
     setCabinetPage(1)
   }, [searchEmail, managementView, cabinetSortBy, cabinetSortDir, onlyActiveCabinets])
 
-  const getCreatableRole = (): UserRole => {
-    if (role === 'ADMIN') return 'MANAGER'
-    if (role === 'SELLER') return 'WORKER'
-    return 'WORKER'
-  }
+  const getCreatableRole = (): UserRole => 'USER'
 
-  const getCreatableRoles = (): UserRole[] => {
-    if (role === 'ADMIN') return ['MANAGER', 'SELLER']
-    if (role === 'SELLER') return ['WORKER']
-    return []
-  }
+  const getCreatableRoles = (): UserRole[] => (role === 'ADMIN' ? ['USER'] : [])
 
   const canCreateUsers = getCreatableRoles().length > 0
 
@@ -245,7 +237,7 @@ export default function UsersManagementSection({
       sortBy,
       sortDir,
     }),
-    enabled: !isAdminOrManager || managementView === USER_MANAGEMENT_VIEW.USERS,
+    enabled: !isAdmin || managementView === USER_MANAGEMENT_VIEW.USERS,
   })
 
   const {
@@ -272,7 +264,7 @@ export default function UsersManagementSection({
         sortBy: cabinetSortBy,
         sortDir: cabinetSortDir,
       }),
-    enabled: isAdminOrManager && managementView === USER_MANAGEMENT_VIEW.CABINETS,
+    enabled: isAdmin && managementView === USER_MANAGEMENT_VIEW.CABINETS,
   })
 
   const toggleAgencyManagedMutation = useMutation({
@@ -572,7 +564,7 @@ export default function UsersManagementSection({
             width: 140,
             align: 'center' as const,
             render: (_: unknown, record: UserListItem) =>
-              record.role === 'SELLER' ? (
+              record.role === 'USER' ? (
                 <Checkbox
                   className="agency-managed-checkbox"
                   checked={record.agencyManaged ?? false}
@@ -675,7 +667,7 @@ export default function UsersManagementSection({
         </Space>
       ),
     },
-    ...((role === 'ADMIN' || role === 'MANAGER')
+    ...((role === 'ADMIN')
       ? [
           {
             title: 'Обновить кабинеты',
@@ -683,7 +675,7 @@ export default function UsersManagementSection({
             width: 160,
             align: 'center' as const,
             render: (_: any, record: UserListItem) =>
-              record.role === 'SELLER' ? (() => {
+              record.role === 'USER' ? (() => {
                 const lastRequested = record.lastDataUpdateRequestedAt ? dayjs(record.lastDataUpdateRequestedAt) : null
                 const now = dayjs()
                 const minutesSinceLast = lastRequested ? now.diff(lastRequested, 'minute') : null
@@ -749,8 +741,8 @@ export default function UsersManagementSection({
     next_5: 'След. 5',
   }
 
-  const showUsersTable = !isAdminOrManager || managementView === USER_MANAGEMENT_VIEW.USERS
-  const showCabinetsTable = isAdminOrManager && managementView === USER_MANAGEMENT_VIEW.CABINETS
+  const showUsersTable = !isAdmin || managementView === USER_MANAGEMENT_VIEW.USERS
+  const showCabinetsTable = isAdmin && managementView === USER_MANAGEMENT_VIEW.CABINETS
 
   return (
     <>
@@ -776,7 +768,7 @@ export default function UsersManagementSection({
             allowClear
             style={{ width: 280 }}
           />
-          {showUsersTable && role !== 'SELLER' && (
+          {showUsersTable && role !== 'USER' && (
             <Checkbox checked={onlySellers} onChange={(e) => setOnlySellers(e.target.checked)}>
               Только селлеры
             </Checkbox>
@@ -918,13 +910,13 @@ export default function UsersManagementSection({
           }
         }}
         expandable={
-          isAdminOrManager
+          isAdmin
             ? {
                 expandedRowRender: (record: UserListItem) =>
-                  record.role === 'SELLER' ? <SellerCabinetsInline sellerId={record.id} /> : null,
-                rowExpandable: (record: UserListItem) => record.role === 'SELLER',
+                  record.role === 'USER' ? <SellerCabinetsInline sellerId={record.id} /> : null,
+                rowExpandable: (record: UserListItem) => record.role === 'USER',
                 expandIcon: ({ expanded, onExpand, record }) =>
-                  record.role === 'SELLER' ? (
+                  record.role === 'USER' ? (
                     <span
                       role="button"
                       tabIndex={0}
@@ -1017,7 +1009,7 @@ export default function UsersManagementSection({
           {role === 'ADMIN' && (
             <Form.Item noStyle shouldUpdate={(prev, cur) => prev.role !== cur.role}>
               {({ getFieldValue }) =>
-                getFieldValue('role') === 'SELLER' ? (
+                getFieldValue('role') === 'USER' ? (
                   <Form.Item
                     name="agencyManaged"
                     valuePropName="checked"
@@ -1070,7 +1062,7 @@ export default function UsersManagementSection({
           <Form.Item name="isActive" label="Активен" valuePropName="checked">
             <Switch />
           </Form.Item>
-          {role === 'ADMIN' && editingUser?.role === 'SELLER' && (
+          {role === 'ADMIN' && editingUser?.role === 'USER' && (
             <Form.Item
               name="agencyManaged"
               valuePropName="checked"

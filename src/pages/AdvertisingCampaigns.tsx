@@ -12,7 +12,7 @@ import { colors, typography, spacing, borderRadius, transitions, shadows } from 
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
-import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
+import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 
 dayjs.locale('ru')
 
@@ -70,7 +70,7 @@ const COL_WIDTHS_PCT = {
 
 export default function AdvertisingCampaigns() {
   const role = useAuthStore((state) => state.role)
-  const isManagerOrAdmin = role === 'ADMIN' || role === 'MANAGER'
+  const isAdmin = role === 'ADMIN'
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('createdAt')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -82,27 +82,27 @@ export default function AdvertisingCampaigns() {
     return [to.subtract(13, 'day'), to]
   })
 
-  const workContext = useWorkContextForManagerAdmin(isManagerOrAdmin)
-  const selectedSellerId = isManagerOrAdmin ? workContext.selectedSellerId : undefined
+  const workContext = useWorkContextForAdmin(isAdmin)
+  const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
 
   const { data: myCabinets = [], isLoading: cabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
-    enabled: role === 'SELLER' || role === 'WORKER',
+    enabled: role === 'USER',
   })
 
   const cabinets = useMemo(() => {
-    if (isManagerOrAdmin) {
+    if (isAdmin) {
       return workContext.workContextOptions.map((o) => ({ id: o.cabinetId, name: o.cabinetName }))
     }
     return myCabinets
-  }, [isManagerOrAdmin, workContext.workContextOptions, myCabinets])
+  }, [isAdmin, workContext.workContextOptions, myCabinets])
 
-  const cabinetsLoadingState = isManagerOrAdmin ? workContext.workContextLoading : cabinetsLoading
+  const cabinetsLoadingState = isAdmin ? workContext.workContextLoading : cabinetsLoading
 
   const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
 
-  const selectedCabinetId = isManagerOrAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
 
   const dateFromStr = dateRange[0].format('YYYY-MM-DD')
   const dateToStr = dateRange[1].format('YYYY-MM-DD')
@@ -110,7 +110,7 @@ export default function AdvertisingCampaigns() {
   const promotionSyncMutation = useMutation({
     mutationFn: () =>
       analyticsApi.enqueuePromotionSync(
-        isManagerOrAdmin ? selectedSellerId ?? undefined : undefined,
+        isAdmin ? selectedSellerId ?? undefined : undefined,
         selectedCabinetId ?? undefined,
         dateFromStr,
         dateToStr
@@ -133,10 +133,10 @@ export default function AdvertisingCampaigns() {
   })
 
   const { data: campaigns = [], isLoading: campaignsLoading, isError: campaignsError, error: campaignsErr } = useQuery({
-    queryKey: ['advertising-campaigns', isManagerOrAdmin ? selectedSellerId : null, selectedCabinetId, dateFromStr, dateToStr],
+    queryKey: ['advertising-campaigns', isAdmin ? selectedSellerId : null, selectedCabinetId, dateFromStr, dateToStr],
     queryFn: () =>
       analyticsApi.getCampaigns(
-        isManagerOrAdmin ? selectedSellerId ?? undefined : undefined,
+        isAdmin ? selectedSellerId ?? undefined : undefined,
         selectedCabinetId ?? undefined,
         dateFromStr,
         dateToStr
@@ -150,39 +150,39 @@ export default function AdvertisingCampaigns() {
     null
 
   const emptyStateMessage =
-    isManagerOrAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0
+    isAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0
       ? 'Нет кабинетов с API-ключом'
       : backendErrorMessage ?? 'Нет рекламных кампаний за выбранный период'
 
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
-      if (isManagerOrAdmin) {
+      if (isAdmin) {
         if (id != null) workContext.applyWorkContextCabinet(id)
       } else {
         setSellerSelectedCabinetId(id)
         setStoredCabinetId(id)
       }
     },
-    [isManagerOrAdmin, workContext.applyWorkContextCabinet],
+    [isAdmin, workContext.applyWorkContextCabinet],
   )
 
   useEffect(() => {
-    if (!isManagerOrAdmin) {
+    if (!isAdmin) {
       setSellerSelectedCabinetId(getStoredCabinetId())
     }
-  }, [isManagerOrAdmin])
+  }, [isAdmin])
 
   useEffect(() => {
-    if (isManagerOrAdmin) return
+    if (isAdmin) return
     if (myCabinets.length > 0 && sellerSelectedCabinetId === null) {
       const first = myCabinets[0].id
       setSellerSelectedCabinetId(first)
       setStoredCabinetId(first)
     }
-  }, [isManagerOrAdmin, myCabinets, sellerSelectedCabinetId])
+  }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 
   const cabinetSelectProps =
-    !isManagerOrAdmin && cabinets.length > 0
+    !isAdmin && cabinets.length > 0
       ? {
           cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
           selectedCabinetId,
@@ -319,7 +319,7 @@ export default function AdvertisingCampaigns() {
   return (
     <>
       <Header
-        workContextCabinetSelect={isManagerOrAdmin ? workContext.workContextCabinetSelectProps : undefined}
+        workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
         cabinetSelectProps={cabinetSelectProps}
       />
       <Breadcrumbs />

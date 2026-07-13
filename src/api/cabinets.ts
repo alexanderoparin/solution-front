@@ -1,5 +1,13 @@
 import apiClient from './client'
-import type { CabinetDto, CreateCabinetRequest, MessageResponse, UpdateCabinetRequest } from '../types/api'
+import type {
+  CabinetAccessEntryDto,
+  CabinetDto,
+  CabinetsOverviewDto,
+  CreateCabinetRequest,
+  GrantCabinetAccessRequest,
+  MessageResponse,
+  UpdateCabinetRequest,
+} from '../types/api'
 
 const CABINET_STORAGE_KEY = 'analytics_selected_cabinet_id'
 
@@ -31,6 +39,35 @@ export const cabinetsApi = {
 
   delete: async (id: number): Promise<void> => {
     await apiClient.delete(`/cabinets/${id}`)
+  },
+
+  getOverview: async (search?: string): Promise<CabinetsOverviewDto> => {
+    const response = await apiClient.get<CabinetsOverviewDto>('/cabinets/overview', {
+      params: search?.trim() ? { search: search.trim() } : undefined,
+    })
+    return response.data
+  },
+
+  listAccess: async (cabinetId: number): Promise<CabinetAccessEntryDto[]> => {
+    const response = await apiClient.get<CabinetAccessEntryDto[]>(`/cabinets/${cabinetId}/access`)
+    return response.data
+  },
+
+  grantAccess: async (cabinetId: number, body: GrantCabinetAccessRequest): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(`/cabinets/${cabinetId}/access`, body)
+    return response.data
+  },
+
+  revokeGrant: async (cabinetId: number, grantId: number): Promise<MessageResponse> => {
+    const response = await apiClient.delete<MessageResponse>(`/cabinets/${cabinetId}/access/grants/${grantId}`)
+    return response.data
+  },
+
+  revokeInvitation: async (cabinetId: number, invitationId: number): Promise<MessageResponse> => {
+    const response = await apiClient.delete<MessageResponse>(
+      `/cabinets/${cabinetId}/access/invitations/${invitationId}`,
+    )
+    return response.data
   },
 }
 

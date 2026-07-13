@@ -24,7 +24,7 @@ import {
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
-import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
+import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useFunnelTableVerticalSelection, sumFunnelBaseMetricsForDates } from '../hooks/useFunnelTableVerticalSelection'
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
@@ -147,40 +147,40 @@ export default function AnalyticsArticle() {
   const navigate = useNavigate()
   const role = useAuthStore((state) => state.role)
   const userId = useAuthStore((state) => state.userId)
-  const isManagerOrAdmin = role === 'MANAGER' || role === 'ADMIN'
+  const isAdmin = role === 'ADMIN'
 
-  const workContext = useWorkContextForManagerAdmin(isManagerOrAdmin)
-  const selectedSellerId = isManagerOrAdmin ? workContext.selectedSellerId : undefined
+  const workContext = useWorkContextForAdmin(isAdmin)
+  const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
   const [cabinetReloadTrigger, setCabinetReloadTrigger] = useState(0)
   const prevAdminCabinetRef = useRef<number | null>(null)
 
   const { data: myCabinets = [], isLoading: myCabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
-    enabled: role === 'SELLER' || role === 'WORKER',
+    enabled: role === 'USER',
   })
 
   const cabinets = useMemo(() => {
-    if (isManagerOrAdmin) {
+    if (isAdmin) {
       return workContext.workContextOptions.map((o) => ({ id: o.cabinetId, name: o.cabinetName }))
     }
     return myCabinets
-  }, [isManagerOrAdmin, workContext.workContextOptions, myCabinets])
+  }, [isAdmin, workContext.workContextOptions, myCabinets])
 
-  const cabinetsLoading = isManagerOrAdmin ? workContext.workContextLoading : myCabinetsLoading
+  const cabinetsLoading = isAdmin ? workContext.workContextLoading : myCabinetsLoading
 
-  const storedCabinetIdSeller = !isManagerOrAdmin ? getStoredCabinetId() : null
+  const storedCabinetIdSeller = !isAdmin ? getStoredCabinetId() : null
   const selectedCabinetIdSeller =
-    !isManagerOrAdmin && myCabinets.length > 0
+    !isAdmin && myCabinets.length > 0
       ? (storedCabinetIdSeller != null && myCabinets.some((c) => c.id === storedCabinetIdSeller)
           ? storedCabinetIdSeller
           : myCabinets[0].id)
       : null
 
-  const selectedCabinetId = isManagerOrAdmin ? workContext.selectedCabinetId : selectedCabinetIdSeller
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : selectedCabinetIdSeller
 
   useEffect(() => {
-    if (!isManagerOrAdmin) {
+    if (!isAdmin) {
       prevAdminCabinetRef.current = null
       return
     }
@@ -193,22 +193,22 @@ export default function AnalyticsArticle() {
       navigate('/analytics/products')
     }
     prevAdminCabinetRef.current = cur
-  }, [isManagerOrAdmin, workContext.selectedCabinetId, navigate])
+  }, [isAdmin, workContext.selectedCabinetId, navigate])
 
   const setSelectedCabinetId = useCallback(
     (cid: number | null) => {
-      if (isManagerOrAdmin) {
+      if (isAdmin) {
         if (cid != null) workContext.applyWorkContextCabinet(cid)
       } else {
         setStoredCabinetId(cid)
       }
       setCabinetReloadTrigger((t) => t + 1)
     },
-    [isManagerOrAdmin, workContext.applyWorkContextCabinet],
+    [isAdmin, workContext.applyWorkContextCabinet],
   )
 
   const cabinetSelectProps =
-    !isManagerOrAdmin && cabinets.length > 0
+    !isAdmin && cabinets.length > 0
       ? {
           cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
           selectedCabinetId,
@@ -218,16 +218,16 @@ export default function AnalyticsArticle() {
       : undefined
 
   const getSelectedSellerId = useCallback((): number | undefined => {
-    if (isManagerOrAdmin) return selectedSellerId ?? undefined
+    if (isAdmin) return selectedSellerId ?? undefined
     return userId ?? undefined
-  }, [isManagerOrAdmin, selectedSellerId, userId])
+  }, [isAdmin, selectedSellerId, userId])
 
   const getSelectedCabinetId = useCallback((): number | undefined => {
-    if (isManagerOrAdmin) {
+    if (isAdmin) {
       return workContext.selectedCabinetId ?? undefined
     }
     return getStoredCabinetId() ?? undefined
-  }, [isManagerOrAdmin, workContext.selectedCabinetId])
+  }, [isAdmin, workContext.selectedCabinetId])
 
   // Общий диапазон дат для графика и воронок (по умолчанию последние 2 недели)
   const yesterday = dayjs().subtract(1, 'day')
@@ -301,9 +301,9 @@ export default function AnalyticsArticle() {
 
   /** Пока список work context грузится или выбранный кабинет ещё не проставлен — не дергаем API (иначе бэкенд берёт «дефолтный» кабинет и 404 по nmId). */
   const workContextListEmpty =
-    isManagerOrAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0
+    isAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0
   const workContextReady =
-    !isManagerOrAdmin ||
+    !isAdmin ||
     (!workContext.workContextLoading &&
       (workContext.workContextOptions.length === 0 || workContext.selectedCabinetId != null))
 
@@ -938,7 +938,7 @@ export default function AnalyticsArticle() {
   return (
     <>
       <Header
-        workContextCabinetSelect={isManagerOrAdmin ? workContext.workContextCabinetSelectProps : undefined}
+        workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
         cabinetSelectProps={cabinetSelectProps}
       />
       <Breadcrumbs />

@@ -15,6 +15,7 @@ import BidderCampaigns from './pages/BidderCampaigns'
 import Profile from './pages/Profile'
 import AdminPlansAndSubscriptions from './pages/AdminPlansAndSubscriptions'
 import AdminWbEvents from './pages/AdminWbEvents'
+import AdminDeletionRequests from './pages/AdminDeletionRequests'
 import Subscribe from './pages/Subscribe'
 import Subscription from './pages/Subscription'
 import PaymentUnavailable from './pages/PaymentUnavailable'
@@ -25,6 +26,9 @@ import Privacy from './pages/Privacy'
 import Refund from './pages/Refund'
 import Oferta from './pages/Oferta'
 import UserAgreement from './pages/UserAgreement'
+import CabinetsPage from './pages/cabinets/CabinetsPage'
+import CabinetDetailPage from './pages/cabinets/CabinetDetailPage'
+import InviteAccept from './pages/InviteAccept'
 import Footer from './components/Footer'
 import AccessStatusPrefetch from './components/AccessStatusPrefetch'
 import CampaignManageSubscriptionModals from './components/campaignManageSubscription/CampaignManageSubscriptionModals'
@@ -48,6 +52,7 @@ function AppRoutes() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/confirm-email" element={<ConfirmEmail />} />
+        <Route path="/invite/:token" element={<InviteAccept />} />
         <Route
           path="/"
           element={
@@ -87,6 +92,14 @@ function AppRoutes() {
           element={token ? <Profile /> : <Navigate to="/login" replace />}
         />
         <Route
+          path="/cabinets"
+          element={token ? <AccessGuard><CabinetsPage /></AccessGuard> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/cabinets/:id"
+          element={token ? <AccessGuard><CabinetDetailPage /></AccessGuard> : <Navigate to="/login" replace />}
+        />
+        <Route
           path="/subscribe"
           element={token ? <Subscribe /> : <Navigate to="/login" replace />}
         />
@@ -97,6 +110,10 @@ function AppRoutes() {
         <Route
           path="/admin/plans"
           element={token ? <AdminPlansAndSubscriptions /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/admin/deletion-requests"
+          element={token ? <AdminDeletionRequests /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/admin/wb-events"

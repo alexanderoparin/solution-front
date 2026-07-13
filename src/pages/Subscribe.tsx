@@ -25,7 +25,7 @@ export default function Subscribe() {
   })
 
   const showConfirmEmailHint =
-    profile?.role === 'SELLER' && profile.emailConfirmed === false
+    profile?.role === 'USER' && profile.emailConfirmed === false
 
   const formatPrice = (rub: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'decimal', minimumFractionDigits: 0 }).format(rub) + ' ₽'
@@ -46,13 +46,13 @@ export default function Subscribe() {
             type="info"
             icon={<MailOutlined />}
             message={
-              profile.role === 'SELLER'
-                ? 'Пробный период после подтверждения почты'
+              profile.role === 'USER'
+                ? 'Бесплатный доступ после подтверждения почты'
                 : 'Сначала подтвердите email'
             }
             description={
-              profile.role === 'SELLER'
-                ? 'Мы предоставляем бесплатный пробный период после подтверждения email. Подтвердите почту в разделе «Профиль» — письмо со ссылкой придёт на вашу почту. После перехода по ссылке вам будет доступен пробный доступ.'
+              profile.role === 'USER'
+                ? 'Подтвердите почту в разделе «Профиль» — письмо со ссылкой придёт на ваш email. После подтверждения вам будет доступен бесплатный тариф с разделами Товары, Сводная и Рекламные кампании.'
                 : 'Откройте раздел «Профиль» и запросите письмо со ссылкой для подтверждения адреса почты.'
             }
             style={{ marginBottom: 24 }}

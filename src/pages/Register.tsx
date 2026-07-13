@@ -1,12 +1,14 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Form, Input, Button, Card, Typography, message, Checkbox, Tooltip } from 'antd'
-import { UserOutlined, LockOutlined } from '@ant-design/icons'
+import { Form, Input, Button, Card, Typography, message, Checkbox, Tooltip, Radio } from 'antd'
+import { UserOutlined, LockOutlined, IdcardOutlined } from '@ant-design/icons'
 import { authApi } from '../api/auth'
 import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
 import { useAuthStore } from '../store/authStore'
-import type { RegisterRequest } from '../types/api'
+import type { AccountType, RegisterRequest } from '../types/api'
+import { ACCOUNT_TYPE_LABELS } from '../constants/accountTypeLabels'
+import { getStoredInvitationToken } from '../constants/invitationStorage'
 import SiteLogo from '../components/SiteLogo'
 import { activateBidderTrialPlanIfAvailable } from '../utils/activateBidderTrialPlan'
 import {
@@ -17,6 +19,8 @@ import {
 
 const { Title, Text } = Typography
 
+const REGISTRATION_ACCOUNT_TYPES: AccountType[] = ['SELLER', 'AGENCY', 'EMPLOYEE']
+
 export default function Register() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -24,6 +28,8 @@ export default function Register() {
   const [form] = Form.useForm()
   const setAuth = useAuthStore((state) => state.setAuth)
   const agreeToOffer = Form.useWatch('agreeToOffer', form)
+  const invitationToken = getStoredInvitationToken()
+  const isInviteFlow = invitationToken != null
   const consentTooltip = 'Необходимо согласие с условиями оферты и политикой конфиденциальности'
 
   useEffect(() => {
@@ -31,6 +37,12 @@ export default function Register() {
       markBidderTrialRegisterIntent()
     }
   }, [searchParams])
+
+  useEffect(() => {
+    if (isInviteFlow) {
+      form.setFieldValue('accountType', 'EMPLOYEE')
+    }
+  }, [isInviteFlow, form])
 
   const registerMutation = useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
@@ -70,18 +82,24 @@ export default function Register() {
   })
 
   const onFinish = (values: {
+    name: string
     email: string
     password: string
     confirmPassword: string
+    accountType: AccountType
     agreeToOffer: boolean
     marketingConsent?: boolean
   }) => {
     if (!values.agreeToOffer) return
+    const accountType = isInviteFlow ? 'EMPLOYEE' : values.accountType
     registerMutation.mutate({
+      name: values.name.trim(),
       email: values.email,
       password: values.password,
       agreeToOffer: values.agreeToOffer,
       marketingConsent: values.marketingConsent ?? false,
+      accountTypes: [accountType],
+      invitationToken: invitationToken ?? undefined,
     })
   }
 
@@ -96,13 +114,21 @@ export default function Register() {
         padding: 24,
       }}
     >
-      <Card style={{ width: '100%', maxWidth: 400, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)' }}>
+      <Card style={{ width: '100%', maxWidth: 440, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
           <SiteLogo to="/" borderRadius={10} />
           <div style={{ textAlign: 'center' }}>
-            <Title level={2} style={{ marginBottom: 4, color: '#1E293B', margin: 0 }}>Регистрация</Title>
+            <Title level={2} style={{ marginBottom: 4, color: '#1E293B', margin: 0 }}>
+              {isInviteFlow ? 'Регистрация по приглашению' : 'Регистрация'}
+            </Title>
           </div>
         </div>
+
+        {isInviteFlow && (
+          <Text type="secondary" style={{ display: 'block', marginBottom: 16, textAlign: 'center' }}>
+            Вы регистрируетесь как сотрудник по приглашению в кабинет.
+          </Text>
+        )}
 
         <Form
           form={form}
@@ -111,7 +137,17 @@ export default function Register() {
           layout="vertical"
           size="large"
           autoComplete="off"
+          initialValues={{ accountType: 'SELLER' }}
         >
+          <Form.Item
+            name="name"
+            rules={[
+              { required: true, message: 'Введите имя' },
+              { max: 255, message: 'Имя слишком длинное' },
+            ]}
+          >
+            <Input prefix={<IdcardOutlined />} placeholder="Имя" autoComplete="name" />
+          </Form.Item>
           <Form.Item
             name="email"
             rules={[
@@ -144,6 +180,19 @@ export default function Register() {
             ]}
           >
             <Input.Password prefix={<LockOutlined />} placeholder="Повторите пароль" autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item
+            name="accountType"
+            label="Тип аккаунта"
+            rules={[{ required: !isInviteFlow, message: 'Выберите тип аккаунта' }]}
+          >
+            <Radio.Group disabled={isInviteFlow}>
+              {REGISTRATION_ACCOUNT_TYPES.map((type) => (
+                <Radio key={type} value={type}>
+                  {ACCOUNT_TYPE_LABELS[type]}
+                </Radio>
+              ))}
+            </Radio.Group>
           </Form.Item>
           <Form.Item name="agreeToOffer" valuePropName="checked">
             <Checkbox>

@@ -29,7 +29,7 @@ import {
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
-import { useWorkContextForManagerAdmin } from '../hooks/useWorkContextForManagerAdmin'
+import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { hasMeaningfulArticleRating, formatArticleRating } from '../utils/articleRating'
 
 dayjs.locale('ru')
@@ -139,7 +139,7 @@ function MiniChart({ values, height = 32 }: { values: number[]; height?: number 
 export default function AnalyticsProducts() {
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role)
-  const isManagerOrAdmin = role === 'ADMIN' || role === 'MANAGER'
+  const isAdmin = role === 'ADMIN'
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedNmIds, setSelectedNmIds] = useState<number[]>(() => [])
   const [allDeselected, setAllDeselected] = useState(false)
@@ -156,55 +156,55 @@ export default function AnalyticsProducts() {
   /** Пропустить одну запись в storage, если только что восстановили выбор из общего ключа (чтобы не перезаписать 155 на []) */
   const skipNextWriteRef = useRef(false)
 
-  const workContext = useWorkContextForManagerAdmin(isManagerOrAdmin)
+  const workContext = useWorkContextForAdmin(isAdmin)
 
-  const selectedSellerId = isManagerOrAdmin ? workContext.selectedSellerId : undefined
+  const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
 
   const { data: myCabinets = [], isLoading: cabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
-    enabled: !isManagerOrAdmin,
+    enabled: !isAdmin,
   })
 
   const cabinets = useMemo(() => {
-    if (isManagerOrAdmin) {
+    if (isAdmin) {
       return workContext.workContextOptions.map((o) => ({ id: o.cabinetId, name: o.cabinetName }))
     }
     return myCabinets
-  }, [isManagerOrAdmin, workContext.workContextOptions, myCabinets])
+  }, [isAdmin, workContext.workContextOptions, myCabinets])
 
-  const cabinetsLoadingState = isManagerOrAdmin ? workContext.workContextLoading : cabinetsLoading
+  const cabinetsLoadingState = isAdmin ? workContext.workContextLoading : cabinetsLoading
 
   const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
 
-  const selectedCabinetId = isManagerOrAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
 
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
-      if (isManagerOrAdmin) {
+      if (isAdmin) {
         if (id != null) workContext.applyWorkContextCabinet(id)
       } else {
         setSellerSelectedCabinetId(id)
         setStoredCabinetId(id)
       }
     },
-    [isManagerOrAdmin, workContext.applyWorkContextCabinet],
+    [isAdmin, workContext.applyWorkContextCabinet],
   )
 
   useEffect(() => {
-    if (!isManagerOrAdmin) {
+    if (!isAdmin) {
       setSellerSelectedCabinetId(getStoredCabinetId())
     }
-  }, [isManagerOrAdmin])
+  }, [isAdmin])
 
   useEffect(() => {
-    if (isManagerOrAdmin) return
+    if (isAdmin) return
     if (myCabinets.length > 0 && sellerSelectedCabinetId === null) {
       const first = myCabinets[0].id
       setSellerSelectedCabinetId(first)
       setStoredCabinetId(first)
     }
-  }, [isManagerOrAdmin, myCabinets, sellerSelectedCabinetId])
+  }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 
   const last7DaysPeriod = useMemo(() => getLast7DaysPeriod(), [])
 
@@ -327,7 +327,7 @@ export default function AnalyticsProducts() {
     null
 
   const emptyStateMessage =
-    isManagerOrAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0
+    isAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0
       ? 'Нет кабинетов с API-ключом'
       : summaryErrorMessage ?? 'Нет товаров за последние 7 дней'
 
@@ -403,7 +403,7 @@ export default function AnalyticsProducts() {
   }, [sortField, selectedCabinetId])
 
   const cabinetSelectProps =
-    !isManagerOrAdmin && cabinets.length > 0
+    !isAdmin && cabinets.length > 0
       ? {
           cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
           selectedCabinetId,
@@ -564,13 +564,13 @@ export default function AnalyticsProducts() {
 
   const showRatingColumn = useMemo(() => {
     if (selectedCabinetId == null) return false
-    if (isManagerOrAdmin) {
+    if (isAdmin) {
       const row = workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)
       return cabinetSupportsItemRating(row?.tokenType)
     }
     const cab = myCabinets.find((c) => c.id === selectedCabinetId)
     return cabinetSupportsItemRating(cab?.apiKey?.tokenType)
-  }, [selectedCabinetId, isManagerOrAdmin, workContext.workContextOptions, myCabinets])
+  }, [selectedCabinetId, isAdmin, workContext.workContextOptions, myCabinets])
 
   return (
     <>
@@ -582,7 +582,7 @@ export default function AnalyticsProducts() {
       `}</style>
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header
-          workContextCabinetSelect={isManagerOrAdmin ? workContext.workContextCabinetSelectProps : undefined}
+          workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
           cabinetSelectProps={cabinetSelectProps}
         />
         <Breadcrumbs />

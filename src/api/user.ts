@@ -1,6 +1,8 @@
 import apiClient from './client'
 import {
   UserProfileResponse,
+  UpdateProfileRequest,
+  CreateDeletionRequestRequest,
   UpdateApiKeyRequest,
   MessageResponse,
   UserListItem,
@@ -12,8 +14,6 @@ import {
   WorkContextCabinetDto,
   AccessStatusResponse,
   PaymentDto,
-  SellerManagerAccessDto,
-  GrantManagerAccessRequest,
 } from '../types/api'
 import type { CabinetTokenType } from '../types/api'
 import type { SortDirection, UserSortField } from '../constants/userSorting'
@@ -52,6 +52,16 @@ export const userApi = {
     return response.data
   },
 
+  updateProfile: async (data: UpdateProfileRequest): Promise<UserProfileResponse> => {
+    const response = await apiClient.put<UserProfileResponse>('/user/profile', data)
+    return response.data
+  },
+
+  createDeletionRequest: async (data: CreateDeletionRequestRequest): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/user/deletion-request', data)
+    return response.data
+  },
+
   /** Доступ к функционалу и статус подписки */
   getAccessStatus: async (sellerId?: number): Promise<AccessStatusResponse> => {
     const params = sellerId != null ? { sellerId } : undefined
@@ -73,21 +83,6 @@ export const userApi = {
    */
   sendEmailConfirmation: async (): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>('/user/send-email-confirmation')
-    return response.data
-  },
-
-  listManagerAccess: async (): Promise<SellerManagerAccessDto[]> => {
-    const response = await apiClient.get<SellerManagerAccessDto[]>('/user/manager-access')
-    return response.data
-  },
-
-  grantManagerAccess: async (data: GrantManagerAccessRequest): Promise<SellerManagerAccessDto> => {
-    const response = await apiClient.post<SellerManagerAccessDto>('/user/manager-access', data)
-    return response.data
-  },
-
-  revokeManagerAccess: async (managerId: number): Promise<MessageResponse> => {
-    const response = await apiClient.delete<MessageResponse>(`/user/manager-access/${managerId}`)
     return response.data
   },
 
