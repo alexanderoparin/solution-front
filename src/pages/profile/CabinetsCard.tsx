@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
   Card,
@@ -27,9 +27,12 @@ import {
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { cabinetsApi } from '../../api/cabinets'
+import { ACCESS_STATUS_QUERY_KEY } from '../../api/user'
 import NoCabinetsPlaceholder from '../../components/NoCabinetsPlaceholder'
 import { formatCabinetAccessSections } from '../../constants/cabinetAccessSections'
-import type { GrantedCabinetRowDto, OwnedCabinetRowDto } from '../../types/api'
+import type { GrantedCabinetRowDto, OwnedCabinetRowDto, PendingCabinetInvitationRowDto } from '../../types/api'
+import { invitationsApi } from '../../api/invitations'
+import { getRequestFailureDescription } from '../../utils/requestError'
 
 dayjs.locale('ru')
 
@@ -305,6 +308,58 @@ function GrantedCabinetRow({ row }: { row: GrantedCabinetRowDto }) {
   )
 }
 
+const pendingInviteGrid: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(220px, 1.5fr) minmax(160px, 1fr) minmax(180px, 1.2fr) minmax(140px, 0.9fr) 160px',
+  gap: 16,
+  alignItems: 'center',
+}
+
+function PendingInvitationRow({
+  row,
+  accepting,
+  onAccept,
+}: {
+  row: PendingCabinetInvitationRowDto
+  accepting: boolean
+  onAccept: () => void
+}) {
+  const inviter = row.inviterName || row.inviterEmail || '—'
+  return (
+    <div
+      style={{
+        border: `1px solid ${border}`,
+        borderRadius: 12,
+        padding: '16px 20px',
+        background: '#FFFBEB',
+      }}
+    >
+      <div style={pendingInviteGrid}>
+        <CabinetIdentity
+          name={row.cabinetName}
+          badgeLabel="Ожидает принятия"
+          badgeColor="#B45309"
+          badgeBg="#FEF3C7"
+          icon={<UserOutlined />}
+          iconBg="#FEF3C7"
+          iconColor="#B45309"
+        />
+        <ColumnValue>{inviter}</ColumnValue>
+        <ColumnValue>{formatCabinetAccessSections(row.sections)}</ColumnValue>
+        <ColumnValue>{formatAccessUntil(row.accessUntil)}</ColumnValue>
+        <Button
+          type="primary"
+          loading={accepting}
+          onClick={onAccept}
+          style={{ backgroundColor: accent, borderColor: accent }}
+        >
+          Принять
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 function SectionCountBadge({ count }: { count: number }) {
   return (
     <span
@@ -334,8 +389,10 @@ interface CabinetsCardProps {
 }
 
 export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }: CabinetsCardProps) {
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [acceptingToken, setAcceptingToken] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput.trim()), 300)
@@ -347,8 +404,23 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
     queryFn: () => cabinetsApi.getOverview(search),
   })
 
+  const acceptMutation = useMutation({
+    mutationFn: (token: string) => invitationsApi.accept(token),
+    onMutate: (token) => setAcceptingToken(token),
+    onSuccess: () => {
+      message.success('Приглашение принято')
+      void queryClient.invalidateQueries({ queryKey: ['cabinetsOverview'] })
+      void queryClient.invalidateQueries({ queryKey: ACCESS_STATUS_QUERY_KEY })
+    },
+    onError: (err: unknown) => {
+      message.error(getRequestFailureDescription(err))
+    },
+    onSettled: () => setAcceptingToken(null),
+  })
+
   const owned = data?.owned ?? []
   const granted = data?.granted ?? []
+  const pendingInvitations = data?.pendingInvitations ?? []
 
   return (
     <Card
@@ -373,7 +445,7 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
           <Title level={4} style={{ margin: 0 }}>
             Управление кабинетами
           </Title>
-          <Tooltip title="Здесь отображаются ваши кабинеты Wildberries и кабинеты, к которым вам выдали доступ.">
+          <Tooltip title="Здесь отображаются ваши кабинеты Wildberries, доступы к чужим кабинетам и ожидающие приглашения.">
             <QuestionCircleOutlined style={{ color: '#94A3B8', fontSize: 14, cursor: 'help' }} />
           </Tooltip>
         </div>
@@ -403,6 +475,34 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+          {pendingInvitations.length > 0 && (
+            <section>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <Title level={5} style={{ margin: 0 }}>
+                  Приглашения
+                </Title>
+                <SectionCountBadge count={pendingInvitations.length} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ ...pendingInviteGrid, padding: '0 20px' }}>
+                  <ColumnHeader>Кабинет</ColumnHeader>
+                  <ColumnHeader>Кто пригласил</ColumnHeader>
+                  <ColumnHeader>Разделы</ColumnHeader>
+                  <ColumnHeader>Доступ до</ColumnHeader>
+                  <span />
+                </div>
+                {pendingInvitations.map((row) => (
+                  <PendingInvitationRow
+                    key={row.token}
+                    row={row}
+                    accepting={acceptingToken === row.token}
+                    onAccept={() => acceptMutation.mutate(row.token)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
           <section>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <Title level={5} style={{ margin: 0 }}>

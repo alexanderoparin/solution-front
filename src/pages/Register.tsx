@@ -1,14 +1,15 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Form, Input, Button, Card, Typography, message, Checkbox, Tooltip, Radio } from 'antd'
 import { UserOutlined, LockOutlined, IdcardOutlined } from '@ant-design/icons'
 import { authApi } from '../api/auth'
+import { invitationsApi } from '../api/invitations'
 import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
 import { useAuthStore } from '../store/authStore'
 import type { AccountType, RegisterRequest } from '../types/api'
 import { ACCOUNT_TYPE_LABELS } from '../constants/accountTypeLabels'
-import { getStoredInvitationToken } from '../constants/invitationStorage'
+import { getStoredInvitationToken, setStoredInvitationToken, clearStoredInvitationToken } from '../constants/invitationStorage'
 import SiteLogo from '../components/SiteLogo'
 import { activateBidderTrialPlanIfAvailable } from '../utils/activateBidderTrialPlan'
 import {
@@ -28,9 +29,9 @@ export default function Register() {
   const [form] = Form.useForm()
   const setAuth = useAuthStore((state) => state.setAuth)
   const agreeToOffer = Form.useWatch('agreeToOffer', form)
-  const invitationToken = getStoredInvitationToken()
-  const isInviteFlow = invitationToken != null
-  const consentTooltip = 'Необходимо согласие с условиями оферты и политикой конфиденциальности'
+  const nextPath = searchParams.get('next')
+  const invitationTokenFromNext =
+    nextPath && /^\/invite\/([A-Za-z0-9_-]+)$/.exec(nextPath)?.[1]
 
   useEffect(() => {
     if (isBidderTrialRegisterSearch(searchParams.toString())) {
@@ -39,10 +40,33 @@ export default function Register() {
   }, [searchParams])
 
   useEffect(() => {
+    if (invitationTokenFromNext) {
+      setStoredInvitationToken(invitationTokenFromNext)
+    }
+  }, [invitationTokenFromNext])
+
+  const invitationToken = getStoredInvitationToken() ?? invitationTokenFromNext ?? null
+  const isInviteFlow = invitationToken != null
+  const consentTooltip = 'Необходимо согласие с условиями оферты и политикой конфиденциальности'
+
+  useEffect(() => {
     if (isInviteFlow) {
       form.setFieldValue('accountType', 'EMPLOYEE')
     }
   }, [isInviteFlow, form])
+
+  const { data: invitePreview } = useQuery({
+    queryKey: ['invitationPreview', invitationToken],
+    queryFn: () => invitationsApi.preview(invitationToken!),
+    enabled: !!invitationToken,
+    retry: false,
+  })
+
+  useEffect(() => {
+    if (invitePreview?.email) {
+      form.setFieldValue('email', invitePreview.email)
+    }
+  }, [invitePreview?.email, form])
 
   const registerMutation = useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
@@ -69,10 +93,19 @@ export default function Register() {
             message.info('Аккаунт создан. Пробный доступ к автозапуску можно подключить в профиле после подтверждения email.')
           }
         }
+        if (variables.invitationToken) {
+          clearStoredInvitationToken()
+          navigate('/profile?inviteAccepted=1')
+          return
+        }
+        if (nextPath && nextPath.startsWith('/')) {
+          navigate(nextPath)
+          return
+        }
         navigate('/profile')
       } catch {
         message.success('Регистрация успешна. Войдите в систему.')
-        navigate('/login')
+        navigate(nextPath && nextPath.startsWith('/') ? `/login?next=${encodeURIComponent(nextPath)}` : '/login')
       }
     },
     onError: (error: any) => {
@@ -155,7 +188,12 @@ export default function Register() {
               { type: 'email', message: 'Некорректный email' },
             ]}
           >
-            <Input prefix={<UserOutlined />} placeholder="Email" autoComplete="email" />
+            <Input
+              prefix={<UserOutlined />}
+              placeholder="Email"
+              autoComplete="email"
+              disabled={isInviteFlow && !!invitePreview?.email}
+            />
           </Form.Item>
           <Form.Item
             name="password"

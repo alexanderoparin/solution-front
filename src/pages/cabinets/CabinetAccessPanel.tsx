@@ -126,7 +126,7 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
   const grantMutation = useMutation({
     mutationFn: (body: GrantCabinetAccessRequest) => cabinetsApi.grantAccess(cabinetId, body),
     onSuccess: (data) => {
-      message.success(data.message || 'Доступ выдан')
+      message.success(data.message || 'Приглашение отправлено')
       setGrantModalOpen(false)
       form.resetFields()
       invalidateAccess()

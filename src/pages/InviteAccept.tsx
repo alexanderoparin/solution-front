@@ -1,9 +1,11 @@
+import { useEffect, useRef } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Alert, Button, Card, Spin, Tag, Typography, message } from 'antd'
+import { Alert, Button, Card, Spin, Typography, message } from 'antd'
 import { CheckCircleOutlined, LoginOutlined, UserAddOutlined } from '@ant-design/icons'
 import { invitationsApi } from '../api/invitations'
 import { formatCabinetAccessSections } from '../constants/cabinetAccessSections'
+import { setStoredInvitationToken, clearStoredInvitationToken } from '../constants/invitationStorage'
 import { useAuthStore } from '../store/authStore'
 import { getRequestFailureDescription } from '../utils/requestError'
 
@@ -14,12 +16,18 @@ export default function InviteAccept() {
   const navigate = useNavigate()
   const authToken = useAuthStore((s) => s.token)
   const invitePath = token ? `/invite/${token}` : '/'
+  const autoAcceptStarted = useRef(false)
+
+  useEffect(() => {
+    if (token) {
+      setStoredInvitationToken(token)
+    }
+  }, [token])
 
   const {
     data: preview,
     isLoading,
     error,
-    refetch,
   } = useQuery({
     queryKey: ['invitationPreview', token],
     queryFn: () => invitationsApi.preview(token!),
@@ -30,13 +38,25 @@ export default function InviteAccept() {
   const acceptMutation = useMutation({
     mutationFn: () => invitationsApi.accept(token!),
     onSuccess: () => {
+      clearStoredInvitationToken()
       message.success('Приглашение принято')
-      void refetch()
+      navigate('/profile?inviteAccepted=1', { replace: true })
     },
     onError: (err: unknown) => {
       message.error(getRequestFailureDescription(err))
     },
   })
+
+  const canAccept = Boolean(authToken && preview && !preview.expired && !preview.alreadyAccepted)
+  const { mutate: acceptInvite, isPending: isAccepting, isError: acceptFailed } = acceptMutation
+
+  useEffect(() => {
+    if (!canAccept || autoAcceptStarted.current || isAccepting) {
+      return
+    }
+    autoAcceptStarted.current = true
+    acceptInvite()
+  }, [canAccept, isAccepting, acceptInvite])
 
   const pageShell = (children: React.ReactNode) => (
     <div
@@ -71,12 +91,14 @@ export default function InviteAccept() {
     )
   }
 
-  if (isLoading) {
+  if (isLoading || (canAccept && isAccepting)) {
     return pageShell(
       <div style={{ textAlign: 'center' }}>
         <Spin size="large" />
         <div style={{ marginTop: 16 }}>
-          <Text type="secondary">Загрузка приглашения…</Text>
+          <Text type="secondary">
+            {isAccepting ? 'Принимаем приглашение…' : 'Загрузка приглашения…'}
+          </Text>
         </div>
       </div>,
     )
@@ -97,8 +119,6 @@ export default function InviteAccept() {
       </>,
     )
   }
-
-  const canAccept = authToken && !preview.expired && !preview.alreadyAccepted
 
   return pageShell(
     <>
@@ -137,7 +157,7 @@ export default function InviteAccept() {
             type="info"
             showIcon
             message="Войдите или зарегистрируйтесь"
-            description="После авторизации вернитесь по этой ссылке, чтобы принять приглашение."
+            description="После авторизации приглашение будет применено автоматически."
             style={{ marginBottom: 16 }}
           />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -155,29 +175,28 @@ export default function InviteAccept() {
         </>
       )}
 
-      {canAccept && (
+      {authToken && preview.alreadyAccepted && (
         <Button
           type="primary"
           block
-          size="large"
-          loading={acceptMutation.isPending}
-          onClick={() => acceptMutation.mutate()}
-          style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', marginTop: 8 }}
+          onClick={() => navigate('/profile?inviteAccepted=1')}
+          style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', marginTop: 16 }}
         >
-          Принять приглашение
-        </Button>
-      )}
-
-      {authToken && preview.alreadyAccepted && (
-        <Button type="primary" block onClick={() => navigate('/profile?inviteAccepted=1')} style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', marginTop: 16 }}>
           Перейти к кабинетам
         </Button>
       )}
 
-      {authToken && !preview.expired && !preview.alreadyAccepted && (
-        <div style={{ marginTop: 16, textAlign: 'center' }}>
-          <Tag color="processing">Вы авторизованы</Tag>
-        </div>
+      {authToken && acceptFailed && !preview.expired && !preview.alreadyAccepted && (
+        <Button
+          type="primary"
+          block
+          size="large"
+          loading={isAccepting}
+          onClick={() => acceptInvite()}
+          style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', marginTop: 8 }}
+        >
+          Принять приглашение
+        </Button>
       )}
     </>,
   )

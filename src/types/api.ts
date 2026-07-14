@@ -476,9 +476,23 @@ export interface GrantedCabinetRowDto {
   sections: CabinetAccessSection[]
 }
 
+/** Ожидающее принятия приглашение в кабинет (для профиля приглашённого). */
+export interface PendingCabinetInvitationRowDto {
+  token: string
+  cabinetId: number
+  cabinetName: string
+  inviterName: string | null
+  inviterEmail: string | null
+  sections: CabinetAccessSection[]
+  accessUntil: string | null
+  expiresAt: string
+  createdAt: string
+}
+
 export interface CabinetsOverviewDto {
   owned: OwnedCabinetRowDto[]
   granted: GrantedCabinetRowDto[]
+  pendingInvitations?: PendingCabinetInvitationRowDto[]
 }
 
 export interface CabinetAccessEntryDto {
