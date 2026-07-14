@@ -6,6 +6,7 @@ import {
   Card,
   Dropdown,
   Input,
+  Popconfirm,
   Spin,
   Tooltip,
   Typography,
@@ -310,7 +311,7 @@ function GrantedCabinetRow({ row }: { row: GrantedCabinetRowDto }) {
 
 const pendingInviteGrid: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(220px, 1.5fr) minmax(160px, 1fr) minmax(180px, 1.2fr) minmax(140px, 0.9fr) 160px',
+  gridTemplateColumns: 'minmax(220px, 1.5fr) minmax(160px, 1fr) minmax(180px, 1.2fr) minmax(140px, 0.9fr) 220px',
   gap: 16,
   alignItems: 'center',
 }
@@ -318,13 +319,18 @@ const pendingInviteGrid: CSSProperties = {
 function PendingInvitationRow({
   row,
   accepting,
+  declining,
   onAccept,
+  onDecline,
 }: {
   row: PendingCabinetInvitationRowDto
   accepting: boolean
+  declining: boolean
   onAccept: () => void
+  onDecline: () => void
 }) {
   const inviter = row.inviterName || row.inviterEmail || '—'
+  const busy = accepting || declining
   return (
     <div
       style={{
@@ -347,14 +353,30 @@ function PendingInvitationRow({
         <ColumnValue>{inviter}</ColumnValue>
         <ColumnValue>{formatCabinetAccessSections(row.sections)}</ColumnValue>
         <ColumnValue>{formatAccessUntil(row.accessUntil)}</ColumnValue>
-        <Button
-          type="primary"
-          loading={accepting}
-          onClick={onAccept}
-          style={{ backgroundColor: accent, borderColor: accent }}
-        >
-          Принять
-        </Button>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Popconfirm
+            title="Отклонить приглашение?"
+            description="Доступ к кабинету не будет предоставлен."
+            okText="Отклонить"
+            cancelText="Отмена"
+            okButtonProps={{ danger: true }}
+            onConfirm={onDecline}
+            disabled={busy}
+          >
+            <Button danger disabled={busy} loading={declining}>
+              Отклонить
+            </Button>
+          </Popconfirm>
+          <Button
+            type="primary"
+            loading={accepting}
+            disabled={busy && !accepting}
+            onClick={onAccept}
+            style={{ backgroundColor: accent, borderColor: accent }}
+          >
+            Принять
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -393,6 +415,7 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [acceptingToken, setAcceptingToken] = useState<string | null>(null)
+  const [decliningToken, setDecliningToken] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setSearch(searchInput.trim()), 300)
@@ -416,6 +439,19 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
       message.error(getRequestFailureDescription(err))
     },
     onSettled: () => setAcceptingToken(null),
+  })
+
+  const declineMutation = useMutation({
+    mutationFn: (token: string) => invitationsApi.decline(token),
+    onMutate: (token) => setDecliningToken(token),
+    onSuccess: () => {
+      message.success('Приглашение отклонено')
+      void queryClient.invalidateQueries({ queryKey: ['cabinetsOverview'] })
+    },
+    onError: (err: unknown) => {
+      message.error(getRequestFailureDescription(err))
+    },
+    onSettled: () => setDecliningToken(null),
   })
 
   const owned = data?.owned ?? []
@@ -475,34 +511,6 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-          {pendingInvitations.length > 0 && (
-            <section>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <Title level={5} style={{ margin: 0 }}>
-                  Приглашения
-                </Title>
-                <SectionCountBadge count={pendingInvitations.length} />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ ...pendingInviteGrid, padding: '0 20px' }}>
-                  <ColumnHeader>Кабинет</ColumnHeader>
-                  <ColumnHeader>Кто пригласил</ColumnHeader>
-                  <ColumnHeader>Разделы</ColumnHeader>
-                  <ColumnHeader>Доступ до</ColumnHeader>
-                  <span />
-                </div>
-                {pendingInvitations.map((row) => (
-                  <PendingInvitationRow
-                    key={row.token}
-                    row={row}
-                    accepting={acceptingToken === row.token}
-                    onAccept={() => acceptMutation.mutate(row.token)}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
           <section>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <Title level={5} style={{ margin: 0 }}>
@@ -539,26 +547,58 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
               <Title level={5} style={{ margin: 0 }}>
                 Доступ предоставлен
               </Title>
-              <SectionCountBadge count={granted.length} />
+              <SectionCountBadge count={granted.length + pendingInvitations.length} />
             </div>
 
-            {granted.length === 0 ? (
-              <Text type="secondary">Вам ещё не предоставили доступ к чужим кабинетам.</Text>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ ...grantedRowGrid, padding: '0 20px' }}>
-                  <ColumnHeader>Кабинет</ColumnHeader>
-                  <ColumnHeader>Доступ с</ColumnHeader>
-                  <ColumnHeader>Доступ до</ColumnHeader>
-                  <ColumnHeader>Последняя проверка</ColumnHeader>
-                  <ColumnHeader>Обновление данных</ColumnHeader>
-                  <ColumnHeader>Разделы</ColumnHeader>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {pendingInvitations.length > 0 && (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <Text strong style={{ fontSize: 14 }}>
+                      Приглашения
+                    </Text>
+                    <SectionCountBadge count={pendingInvitations.length} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div style={{ ...pendingInviteGrid, padding: '0 20px' }}>
+                      <ColumnHeader>Кабинет</ColumnHeader>
+                      <ColumnHeader>Кто пригласил</ColumnHeader>
+                      <ColumnHeader>Разделы</ColumnHeader>
+                      <ColumnHeader>Доступ до</ColumnHeader>
+                      <span />
+                    </div>
+                    {pendingInvitations.map((row) => (
+                      <PendingInvitationRow
+                        key={row.token}
+                        row={row}
+                        accepting={acceptingToken === row.token}
+                        declining={decliningToken === row.token}
+                        onAccept={() => acceptMutation.mutate(row.token)}
+                        onDecline={() => declineMutation.mutate(row.token)}
+                      />
+                    ))}
+                  </div>
                 </div>
-                {granted.map((row) => (
-                  <GrantedCabinetRow key={row.id} row={row} />
-                ))}
-              </div>
-            )}
+              )}
+
+              {granted.length === 0 && pendingInvitations.length === 0 ? (
+                <Text type="secondary">Вам ещё не предоставили доступ к чужим кабинетам.</Text>
+              ) : granted.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ ...grantedRowGrid, padding: '0 20px' }}>
+                    <ColumnHeader>Кабинет</ColumnHeader>
+                    <ColumnHeader>Доступ с</ColumnHeader>
+                    <ColumnHeader>Доступ до</ColumnHeader>
+                    <ColumnHeader>Последняя проверка</ColumnHeader>
+                    <ColumnHeader>Обновление данных</ColumnHeader>
+                    <ColumnHeader>Разделы</ColumnHeader>
+                  </div>
+                  {granted.map((row) => (
+                    <GrantedCabinetRow key={row.id} row={row} />
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </section>
         </div>
       )}

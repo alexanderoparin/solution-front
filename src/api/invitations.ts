@@ -11,4 +11,8 @@ export const invitationsApi = {
     const response = await apiClient.post<CabinetInvitationPreviewDto>(`/public/invitations/${token}/accept`)
     return response.data
   },
+
+  decline: async (token: string): Promise<void> => {
+    await apiClient.post(`/public/invitations/${token}/decline`)
+  },
 }
