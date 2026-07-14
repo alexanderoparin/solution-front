@@ -115,6 +115,11 @@ export const adminApi = {
     return response.data
   },
 
+  getPendingDeletionRequestsCount: async (): Promise<number> => {
+    const response = await apiClient.get<{ count: number }>('/admin/deletion-requests/pending-count')
+    return response.data.count
+  },
+
   approveDeletionRequest: async (requestId: number): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>(`/admin/deletion-requests/${requestId}/approve`)
     return response.data

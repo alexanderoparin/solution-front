@@ -44,6 +44,7 @@ export default function AdminDeletionRequests() {
     onSuccess: (res) => {
       message.success(res.message ?? 'Заявка одобрена')
       void queryClient.invalidateQueries({ queryKey: ['adminDeletionRequests'] })
+      void queryClient.invalidateQueries({ queryKey: ['pendingDeletionRequestsCount'] })
     },
     onError: (error: unknown) => {
       const msg =

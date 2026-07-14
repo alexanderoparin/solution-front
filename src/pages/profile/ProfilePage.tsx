@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, Row, Col, Spin, Typography, Button, Space, message, Segmented } from 'antd'
+import { Card, Row, Col, Spin, Typography, Button, Space, message, Segmented, Badge } from 'antd'
 import {
   SettingOutlined,
   CreditCardOutlined,
@@ -14,6 +14,7 @@ import Header from '../../components/Header'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import UsersManagementSection from '../../components/UsersManagementSection'
 import { userApi } from '../../api/user'
+import { adminApi } from '../../api/admin'
 import type { CreateDeletionRequestRequest, UpdateProfileRequest, UserProfileResponse } from '../../types/api'
 import { getRequestFailureDescription } from '../../utils/requestError'
 import { useAuthStore } from '../../store/authStore'
@@ -62,6 +63,15 @@ export default function ProfilePage() {
   const { data: profile, isLoading, error } = useQuery<UserProfileResponse>({
     queryKey: ['userProfile'],
     queryFn: () => userApi.getProfile(),
+  })
+
+  const isAdminProfile = profile?.role === 'ADMIN'
+
+  const { data: pendingDeletionCount = 0 } = useQuery({
+    queryKey: ['pendingDeletionRequestsCount'],
+    queryFn: () => adminApi.getPendingDeletionRequestsCount(),
+    enabled: isAdminProfile,
+    staleTime: 30_000,
   })
 
   useEffect(() => {
@@ -232,15 +242,19 @@ export default function ProfilePage() {
                 >
                   Управление РК — планы
                 </Button>
-                <Button
-                  block
-                  icon={<DeleteOutlined />}
-                  onClick={() => navigate('/admin/deletion-requests')}
-                  size="large"
-                  style={profileAdminActionGridButtonStyle}
-                >
-                  Заявки на удаление
-                </Button>
+                <div style={{ width: '100%' }}>
+                  <Badge count={pendingDeletionCount} overflowCount={99} offset={[-6, 6]} style={{ width: '100%' }}>
+                    <Button
+                      block
+                      icon={<DeleteOutlined />}
+                      onClick={() => navigate('/admin/deletion-requests')}
+                      size="large"
+                      style={profileAdminActionGridButtonStyle}
+                    >
+                      Заявки на удаление
+                    </Button>
+                  </Badge>
+                </div>
               </div>
             </Card>
           )}
