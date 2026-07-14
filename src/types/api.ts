@@ -69,7 +69,8 @@ export interface AccountDeletionStatus {
 /** Заявка на удаление аккаунта (админский список). */
 export interface AccountDeletionRequestAdminDto {
   id: number
-  userId: number
+  /** null, если аккаунт уже удалён (история заявки сохраняется). */
+  userId: number | null
   userEmail: string
   userName: string | null
   reason: AccountDeletionReason
