@@ -47,7 +47,14 @@ export default function InviteAccept() {
     },
   })
 
-  const canAccept = Boolean(authToken && preview && !preview.expired && !preview.alreadyAccepted)
+  const canAccept = Boolean(
+    authToken &&
+      preview &&
+      !preview.expired &&
+      !preview.alreadyAccepted &&
+      !preview.declined &&
+      !preview.revoked,
+  )
   const { mutate: acceptInvite, isPending: isAccepting, isError: acceptFailed } = acceptMutation
 
   useEffect(() => {
@@ -150,8 +157,14 @@ export default function InviteAccept() {
       {preview.alreadyAccepted && (
         <Alert type="success" showIcon message="Приглашение уже принято" style={{ marginBottom: 16 }} />
       )}
+      {preview.declined && (
+        <Alert type="info" showIcon message="Вы отклонили это приглашение" style={{ marginBottom: 16 }} />
+      )}
+      {preview.revoked && (
+        <Alert type="info" showIcon message="Приглашение отозвано владельцем кабинета" style={{ marginBottom: 16 }} />
+      )}
 
-      {!authToken && !preview.expired && !preview.alreadyAccepted && (
+      {!authToken && !preview.expired && !preview.alreadyAccepted && !preview.declined && !preview.revoked && (
         <>
           <Alert
             type="info"
@@ -186,7 +199,7 @@ export default function InviteAccept() {
         </Button>
       )}
 
-      {authToken && acceptFailed && !preview.expired && !preview.alreadyAccepted && (
+      {authToken && acceptFailed && canAccept && (
         <Button
           type="primary"
           block

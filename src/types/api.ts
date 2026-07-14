@@ -451,7 +451,7 @@ export type CabinetTokenType = 'PERSONAL' | 'BASIC'
 /** Разделы сервиса, к которым может быть выдан доступ к кабинету. */
 export type CabinetAccessSection = 'PRODUCTS' | 'SUMMARY' | 'AD_CAMPAIGNS' | 'CAMPAIGN_MANAGE'
 
-export type CabinetAccessInvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED'
+export type CabinetAccessInvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'DECLINED' | 'EXPIRED'
 
 export interface OwnedCabinetRowDto {
   id: number
@@ -528,5 +528,7 @@ export interface CabinetInvitationPreviewDto {
   sections: CabinetAccessSection[]
   expired: boolean
   alreadyAccepted: boolean
+  declined?: boolean
+  revoked?: boolean
   email: string
 }

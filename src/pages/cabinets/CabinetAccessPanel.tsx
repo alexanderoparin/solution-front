@@ -14,7 +14,7 @@ import {
   Typography,
   message,
 } from 'antd'
-import { PlusOutlined, StopOutlined } from '@ant-design/icons'
+import { PlusOutlined, SendOutlined, StopOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import { cabinetsApi } from '../../api/cabinets'
@@ -73,7 +73,20 @@ function isRevokedEntry(row: CabinetAccessEntryDto): boolean {
   if (row.kind === 'GRANT') {
     return row.statusLabel === 'Доступ отозван'
   }
-  return row.invitationStatus === 'REVOKED' || row.invitationStatus === 'EXPIRED'
+  return (
+    row.invitationStatus === 'REVOKED' ||
+    row.invitationStatus === 'DECLINED' ||
+    row.invitationStatus === 'EXPIRED'
+  )
+}
+
+function canResendInvitation(row: CabinetAccessEntryDto): boolean {
+  return (
+    row.kind === 'INVITATION' &&
+    (row.invitationStatus === 'REVOKED' ||
+      row.invitationStatus === 'DECLINED' ||
+      row.invitationStatus === 'EXPIRED')
+  )
 }
 
 function filterByTab(entries: CabinetAccessEntryDto[], tab: AccessTab): CabinetAccessEntryDto[] {
@@ -92,6 +105,7 @@ function filterByTab(entries: CabinetAccessEntryDto[], tab: AccessTab): CabinetA
 function statusTagColor(row: CabinetAccessEntryDto): string {
   if (row.kind === 'INVITATION') {
     if (row.invitationStatus === 'PENDING') return 'processing'
+    if (row.invitationStatus === 'DECLINED') return 'warning'
     if (row.invitationStatus === 'EXPIRED') return 'warning'
     return 'default'
   }
@@ -169,6 +183,17 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
     mutationFn: (invitationId: number) => cabinetsApi.revokeInvitation(cabinetId, invitationId),
     onSuccess: (data) => {
       message.success(data.message || 'Приглашение отозвано')
+      invalidateAccess()
+    },
+    onError: (err: unknown) => {
+      message.error(getRequestFailureDescription(err))
+    },
+  })
+
+  const resendInvitationMutation = useMutation({
+    mutationFn: (invitationId: number) => cabinetsApi.resendInvitation(cabinetId, invitationId),
+    onSuccess: (data) => {
+      message.success(data.message || 'Приглашение отправлено повторно')
       invalidateAccess()
     },
     onError: (err: unknown) => {
@@ -317,11 +342,31 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
               </Popconfirm>
             )
           }
+          if (canResendInvitation(row)) {
+            return (
+              <Popconfirm
+                title="Отправить приглашение снова?"
+                description="На этот email уйдёт новое письмо со ссылкой."
+                okText="Отправить"
+                cancelText="Отмена"
+                onConfirm={() => resendInvitationMutation.mutate(row.id)}
+              >
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<SendOutlined />}
+                  loading={resendInvitationMutation.isPending}
+                >
+                  Отправить снова
+                </Button>
+              </Popconfirm>
+            )
+          }
           return null
         },
       },
     ],
-    [revokeGrantMutation, revokeInvitationMutation, updatingUntilKey, handleAccessUntilChange],
+    [revokeGrantMutation, revokeInvitationMutation, resendInvitationMutation, updatingUntilKey, handleAccessUntilChange],
   )
 
   const tabItems = [

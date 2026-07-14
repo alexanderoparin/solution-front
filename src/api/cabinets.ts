@@ -94,6 +94,13 @@ export const cabinetsApi = {
     )
     return response.data
   },
+
+  resendInvitation: async (cabinetId: number, invitationId: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(
+      `/cabinets/${cabinetId}/access/invitations/${invitationId}/resend`,
+    )
+    return response.data
+  },
 }
 
 export function getStoredCabinetId(): number | null {
