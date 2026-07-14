@@ -153,6 +153,7 @@ export default function AccessGuard({ children }: AccessGuardProps) {
     && isOwnerAccount(profile?.accountTypes)
     && cabinetsOverview != null
     && cabinetsOverview.owned.length === 0
+    && cabinetsOverview.granted.length === 0
   ) {
     return (
       <>
