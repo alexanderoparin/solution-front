@@ -22,10 +22,11 @@ export default function CampaignManageSubscriptionBadge() {
     line2 = days > 0 ? `Осталось ${campaignManageDaysLabel(days)}` : 'Осталось менее дня'
     line2Clickable = true
   } else if (campaignManage.status === 'EXPIRED') {
+    line1 = 'Управление РК'
     const ago = campaignManage.daysExpiredAgo ?? 0
     line2 = ago > 0
-      ? `Управление РК закончилось ${campaignManageDaysLabel(ago)} назад`
-      : 'Управление РК закончилось сегодня'
+      ? `Закончилось ${campaignManageDaysLabel(ago)} назад`
+      : 'Закончилось сегодня'
   }
 
   return (
