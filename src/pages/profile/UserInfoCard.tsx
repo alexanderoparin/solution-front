@@ -142,12 +142,14 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
               )}
             </div>
 
-            <Button
-              onClick={onEmailConfirmPrompt}
-              style={{ borderRadius: 10, height: 40, padding: '0 16px', minWidth: 240, textAlign: 'left' }}
-            >
-              Отправить письмо повторно
-            </Button>
+            {!emailConfirmed && (
+              <Button
+                onClick={onEmailConfirmPrompt}
+                style={{ borderRadius: 10, height: 40, padding: '0 16px', minWidth: 240, textAlign: 'left' }}
+              >
+                Отправить письмо повторно
+              </Button>
+            )}
           </div>
         </div>
       )}
