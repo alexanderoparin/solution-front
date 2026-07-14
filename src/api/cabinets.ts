@@ -126,6 +126,13 @@ export const cabinetsApi = {
     )
     return response.data
   },
+
+  reinviteFromGrant: async (cabinetId: number, grantId: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(
+      `/cabinets/${cabinetId}/access/grants/${grantId}/reinvite`,
+    )
+    return response.data
+  },
 }
 
 export function getStoredCabinetId(): number | null {

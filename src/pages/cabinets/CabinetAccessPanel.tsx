@@ -101,6 +101,10 @@ function canResendInvitation(row: CabinetAccessEntryDto): boolean {
   )
 }
 
+function canReinviteFromGrant(row: CabinetAccessEntryDto): boolean {
+  return row.kind === 'GRANT' && row.statusLabel === 'Доступ отозван'
+}
+
 function filterByTab(entries: CabinetAccessEntryDto[], tab: AccessTab): CabinetAccessEntryDto[] {
   switch (tab) {
     case 'active':
@@ -321,6 +325,17 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
     },
   })
 
+  const reinviteFromGrantMutation = useMutation({
+    mutationFn: (grantId: number) => cabinetsApi.reinviteFromGrant(cabinetId, grantId),
+    onSuccess: (data) => {
+      message.success(data.message || 'Приглашение отправлено повторно')
+      invalidateAccess()
+    },
+    onError: (err: unknown) => {
+      message.error(getRequestFailureDescription(err))
+    },
+  })
+
   const updateValidUntilMutation = useMutation({
     mutationFn: ({ entry, validUntil }: { entry: CabinetAccessEntryDto; validUntil: string | null }) => {
       const body = { validUntil }
@@ -515,11 +530,31 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
               </Popconfirm>
             )
           }
+          if (canReinviteFromGrant(row)) {
+            return (
+              <Popconfirm
+                title="Отправить приглашение снова?"
+                description="На этот email уйдёт новое письмо со ссылкой."
+                okText="Отправить"
+                cancelText="Отмена"
+                onConfirm={() => reinviteFromGrantMutation.mutate(row.id)}
+              >
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<SendOutlined />}
+                  loading={reinviteFromGrantMutation.isPending}
+                >
+                  Отправить снова
+                </Button>
+              </Popconfirm>
+            )
+          }
           return null
         },
       },
     ],
-    [revokeGrantMutation, revokeInvitationMutation, resendInvitationMutation, updatingUntilKey, updatingSectionsKey, handleAccessUntilChange, handleSectionsChange],
+    [revokeGrantMutation, revokeInvitationMutation, resendInvitationMutation, reinviteFromGrantMutation, updatingUntilKey, updatingSectionsKey, handleAccessUntilChange, handleSectionsChange],
   )
 
   const tabItems = [
