@@ -7,6 +7,7 @@ import type {
   GrantCabinetAccessRequest,
   MessageResponse,
   UpdateCabinetAccessValidUntilRequest,
+  UpdateCabinetAccessSectionsRequest,
   UpdateCabinetRequest,
 } from '../types/api'
 
@@ -83,6 +84,30 @@ export const cabinetsApi = {
   ): Promise<MessageResponse> => {
     const response = await apiClient.patch<MessageResponse>(
       `/cabinets/${cabinetId}/access/invitations/${invitationId}`,
+      body,
+    )
+    return response.data
+  },
+
+  updateGrantSections: async (
+    cabinetId: number,
+    grantId: number,
+    body: UpdateCabinetAccessSectionsRequest,
+  ): Promise<MessageResponse> => {
+    const response = await apiClient.patch<MessageResponse>(
+      `/cabinets/${cabinetId}/access/grants/${grantId}/sections`,
+      body,
+    )
+    return response.data
+  },
+
+  updateInvitationSections: async (
+    cabinetId: number,
+    invitationId: number,
+    body: UpdateCabinetAccessSectionsRequest,
+  ): Promise<MessageResponse> => {
+    const response = await apiClient.patch<MessageResponse>(
+      `/cabinets/${cabinetId}/access/invitations/${invitationId}/sections`,
       body,
     )
     return response.data

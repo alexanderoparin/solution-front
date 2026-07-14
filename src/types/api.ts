@@ -521,6 +521,10 @@ export interface UpdateCabinetAccessValidUntilRequest {
   validUntil?: string | null
 }
 
+export interface UpdateCabinetAccessSectionsRequest {
+  sections: CabinetAccessSection[]
+}
+
 export interface CabinetInvitationPreviewDto {
   cabinetName: string
   inviterName: string

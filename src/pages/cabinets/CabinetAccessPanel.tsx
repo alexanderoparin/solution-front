@@ -2,11 +2,13 @@ import { useCallback, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
+  Checkbox,
   DatePicker,
   Form,
   Input,
   Modal,
   Popconfirm,
+  Popover,
   Select,
   Table,
   Tabs,
@@ -20,7 +22,6 @@ import 'dayjs/locale/ru'
 import { cabinetsApi } from '../../api/cabinets'
 import {
   CABINET_ACCESS_SECTION_OPTIONS,
-  formatCabinetAccessSections,
 } from '../../constants/cabinetAccessSections'
 import type { CabinetAccessEntryDto, CabinetAccessSection, GrantCabinetAccessRequest } from '../../types/api'
 import { GRANT_ACCOUNT_TYPE_OPTIONS } from '../../constants/grantAccountTypes'
@@ -59,6 +60,17 @@ function canEditAccessUntil(row: CabinetAccessEntryDto): boolean {
     return row.invitationStatus === 'PENDING'
   }
   return row.kind === 'GRANT' && row.statusLabel === 'Активен'
+}
+
+function canEditSections(row: CabinetAccessEntryDto): boolean {
+  return canEditAccessUntil(row)
+}
+
+function sameSections(a: CabinetAccessSection[] | undefined, b: CabinetAccessSection[]): boolean {
+  const left = [...(a ?? [])].sort()
+  const right = [...b].sort()
+  if (left.length !== right.length) return false
+  return left.every((value, index) => value === right[index])
 }
 
 function toValidUntilPayload(value: Dayjs | null | undefined): string | null {
@@ -138,11 +150,119 @@ function AccessUntilCell({ row, loading, onChange }: AccessUntilCellProps) {
   )
 }
 
+interface SectionsCellProps {
+  row: CabinetAccessEntryDto
+  loading: boolean
+  onChange: (row: CabinetAccessEntryDto, sections: CabinetAccessSection[]) => void
+}
+
+function SectionsList({ selected }: { selected: CabinetAccessSection[] }) {
+  const selectedSet = new Set(selected)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, lineHeight: 1.25 }}>
+      {CABINET_ACCESS_SECTION_OPTIONS.map((option) => {
+        const enabled = selectedSet.has(option.value)
+        return (
+          <span
+            key={option.value}
+            style={{
+              fontSize: 11,
+              color: enabled ? '#15803D' : '#94A3B8',
+              fontWeight: enabled ? 500 : 400,
+            }}
+          >
+            {option.label}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+function SectionsCell({ row, loading, onChange }: SectionsCellProps) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState<CabinetAccessSection[]>(row.sections ?? [])
+  const sections = row.sections ?? []
+
+  const openEditor = (nextOpen: boolean) => {
+    if (nextOpen) {
+      setDraft(sections)
+    }
+    setOpen(nextOpen)
+  }
+
+  const applyDraft = () => {
+    if (!draft.length) {
+      message.warning('Нужно выбрать хотя бы один раздел')
+      return
+    }
+    if (!sameSections(sections, draft)) {
+      onChange(row, draft)
+    }
+    setOpen(false)
+  }
+
+  if (!canEditSections(row)) {
+    return <SectionsList selected={sections} />
+  }
+
+  return (
+    <Popover
+      trigger="click"
+      open={open}
+      onOpenChange={openEditor}
+      placement="bottomLeft"
+      content={
+        <div style={{ width: 220 }}>
+          <Checkbox.Group
+            style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+            options={CABINET_ACCESS_SECTION_OPTIONS}
+            value={draft}
+            onChange={(value) => setDraft(value as CabinetAccessSection[])}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+            <Button size="small" onClick={() => setOpen(false)}>
+              Отмена
+            </Button>
+            <Button
+              type="primary"
+              size="small"
+              loading={loading}
+              onClick={applyDraft}
+              style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
+            >
+              Сохранить
+            </Button>
+          </div>
+        </div>
+      }
+    >
+      <button
+        type="button"
+        disabled={loading}
+        style={{
+          border: 'none',
+          background: 'transparent',
+          padding: 0,
+          margin: 0,
+          cursor: loading ? 'wait' : 'pointer',
+          textAlign: 'left',
+          opacity: loading ? 0.6 : 1,
+        }}
+        title="Изменить разделы"
+      >
+        <SectionsList selected={sections} />
+      </button>
+    </Popover>
+  )
+}
+
 export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProps) {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<AccessTab>('all')
   const [grantModalOpen, setGrantModalOpen] = useState(false)
   const [updatingUntilKey, setUpdatingUntilKey] = useState<string | null>(null)
+  const [updatingSectionsKey, setUpdatingSectionsKey] = useState<string | null>(null)
   const [form] = Form.useForm<GrantFormValues>()
 
   const { data: entries = [], isLoading, isFetching } = useQuery({
@@ -224,11 +344,38 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
     },
   })
 
+  const updateSectionsMutation = useMutation({
+    mutationFn: ({ entry, sections }: { entry: CabinetAccessEntryDto; sections: CabinetAccessSection[] }) => {
+      const body = { sections }
+      if (entry.kind === 'INVITATION') {
+        return cabinetsApi.updateInvitationSections(cabinetId, entry.id, body)
+      }
+      return cabinetsApi.updateGrantSections(cabinetId, entry.id, body)
+    },
+    onMutate: ({ entry }) => {
+      setUpdatingSectionsKey(`${entry.kind}-${entry.id}`)
+    },
+    onSuccess: (data) => {
+      message.success(data.message || 'Разделы обновлены')
+      invalidateAccess()
+    },
+    onError: (err: unknown) => {
+      message.error(getRequestFailureDescription(err))
+    },
+    onSettled: () => {
+      setUpdatingSectionsKey(null)
+    },
+  })
+
   const handleAccessUntilChange = useCallback((row: CabinetAccessEntryDto, value: Dayjs | null) => {
     const validUntil = toValidUntilPayload(value)
     if (isSameValidUntil(row.accessUntil, validUntil)) return
     updateValidUntilMutation.mutate({ entry: row, validUntil })
   }, [updateValidUntilMutation])
+
+  const handleSectionsChange = useCallback((row: CabinetAccessEntryDto, sections: CabinetAccessSection[]) => {
+    updateSectionsMutation.mutate({ entry: row, sections })
+  }, [updateSectionsMutation])
 
   const filteredEntries = useMemo(() => filterByTab(entries, activeTab), [entries, activeTab])
 
@@ -267,7 +414,13 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
         title: 'Разделы',
         dataIndex: 'sections',
         key: 'sections',
-        render: (sections: CabinetAccessSection[]) => formatCabinetAccessSections(sections),
+        render: (_: CabinetAccessSection[], row: CabinetAccessEntryDto) => (
+          <SectionsCell
+            row={row}
+            loading={updatingSectionsKey === `${row.kind}-${row.id}`}
+            onChange={handleSectionsChange}
+          />
+        ),
       },
       {
         title: 'С',
@@ -366,7 +519,7 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
         },
       },
     ],
-    [revokeGrantMutation, revokeInvitationMutation, resendInvitationMutation, updatingUntilKey, handleAccessUntilChange],
+    [revokeGrantMutation, revokeInvitationMutation, resendInvitationMutation, updatingUntilKey, updatingSectionsKey, handleAccessUntilChange, handleSectionsChange],
   )
 
   const tabItems = [
