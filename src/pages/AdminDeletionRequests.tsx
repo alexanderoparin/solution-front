@@ -55,6 +55,22 @@ export default function AdminDeletionRequests() {
     },
   })
 
+  const rejectMutation = useMutation({
+    mutationFn: (requestId: number) => adminApi.rejectDeletionRequest(requestId),
+    onSuccess: (res) => {
+      message.success(res.message ?? 'Заявка отклонена')
+      void queryClient.invalidateQueries({ queryKey: ['adminDeletionRequests'] })
+      void queryClient.invalidateQueries({ queryKey: ['pendingDeletionRequestsCount'] })
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.error
+        ?? (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.message
+        ?? 'Не удалось отклонить заявку'
+      message.error(msg)
+    },
+  })
+
   const handleApprove = (record: AccountDeletionRequestAdminDto) => {
     Modal.confirm({
       title: 'Одобрить удаление аккаунта?',
@@ -69,6 +85,22 @@ export default function AdminDeletionRequests() {
       cancelText: 'Отмена',
       okButtonProps: { danger: true },
       onOk: () => approveMutation.mutateAsync(record.id),
+    })
+  }
+
+  const handleReject = (record: AccountDeletionRequestAdminDto) => {
+    Modal.confirm({
+      title: 'Отклонить заявку?',
+      content: (
+        <div>
+          <Text>Пользователь: <b>{record.userEmail}</b></Text>
+          <br />
+          <Text type="secondary">Аккаунт не будет удалён. Пользователь сможет подать заявку снова.</Text>
+        </div>
+      ),
+      okText: 'Отклонить',
+      cancelText: 'Отмена',
+      onOk: () => rejectMutation.mutateAsync(record.id),
     })
   }
 
@@ -113,17 +145,26 @@ export default function AdminDeletionRequests() {
     {
       title: 'Действия',
       key: 'actions',
-      width: 140,
+      width: 220,
       render: (_, record) => (
         record.status === 'PENDING' ? (
-          <Button
-            danger
-            size="small"
-            loading={approveMutation.isPending}
-            onClick={() => handleApprove(record)}
-          >
-            Одобрить
-          </Button>
+          <Space size={8}>
+            <Button
+              danger
+              size="small"
+              loading={approveMutation.isPending}
+              onClick={() => handleApprove(record)}
+            >
+              Одобрить
+            </Button>
+            <Button
+              size="small"
+              loading={rejectMutation.isPending}
+              onClick={() => handleReject(record)}
+            >
+              Отклонить
+            </Button>
+          </Space>
         ) : (
           <Text type="secondary">—</Text>
         )

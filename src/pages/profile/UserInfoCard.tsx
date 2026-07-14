@@ -31,7 +31,6 @@ function formatDate(dateString: string | null | undefined): string {
 export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: UserInfoCardProps) {
   const accountTypes = profile.accountTypes ?? []
   const isAdmin = profile.role === 'ADMIN'
-  const showEmailRow = !isAdmin
   const displayName = profile.name?.trim() ?? ''
   const emailConfirmed = profile.emailConfirmed === true
 
@@ -109,50 +108,48 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
         </div>
       </div>
 
-      {showEmailRow && (
-        <div style={{ marginTop: 16 }}>
-          <Text type="secondary">Email</Text>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div
-              style={{
-                flex: '1 1 auto',
-                minWidth: 0,
-                height: 40,
-                borderRadius: 10,
-                border: `1px solid ${border}`,
-                background: emailConfirmed ? '#F0FDF4' : '#FFFFFF',
-                padding: '0 12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-              }}
-            >
-              <Text style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {profile.email}
-              </Text>
-              {emailConfirmed ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#16a34a', fontSize: 13, fontWeight: 600 }}>
-                  <CheckCircleOutlined /> Подтверждена
-                </span>
-              ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#d97706', fontSize: 13, fontWeight: 600 }}>
-                  <ExclamationCircleOutlined /> Не подтверждена
-                </span>
-              )}
-            </div>
-
-            {!emailConfirmed && (
-              <Button
-                onClick={onEmailConfirmPrompt}
-                style={{ borderRadius: 10, height: 40, padding: '0 16px', minWidth: 240, textAlign: 'left' }}
-              >
-                Отправить письмо повторно
-              </Button>
+      <div style={{ marginTop: 16 }}>
+        <Text type="secondary">Email</Text>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div
+            style={{
+              flex: '1 1 auto',
+              minWidth: 0,
+              height: 40,
+              borderRadius: 10,
+              border: `1px solid ${border}`,
+              background: emailConfirmed ? '#F0FDF4' : '#FFFFFF',
+              padding: '0 12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
+          >
+            <Text style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {profile.email}
+            </Text>
+            {emailConfirmed ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#16a34a', fontSize: 13, fontWeight: 600 }}>
+                <CheckCircleOutlined /> Подтверждена
+              </span>
+            ) : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#d97706', fontSize: 13, fontWeight: 600 }}>
+                <ExclamationCircleOutlined /> Не подтверждена
+              </span>
             )}
           </div>
+
+          {!emailConfirmed && (
+            <Button
+              onClick={onEmailConfirmPrompt}
+              style={{ borderRadius: 10, height: 40, padding: '0 16px', minWidth: 240, textAlign: 'left' }}
+            >
+              Отправить письмо повторно
+            </Button>
+          )}
         </div>
-      )}
+      </div>
 
       <Divider style={{ margin: '16px 0' }} />
 

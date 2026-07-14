@@ -124,4 +124,9 @@ export const adminApi = {
     const response = await apiClient.post<MessageResponse>(`/admin/deletion-requests/${requestId}/approve`)
     return response.data
   },
+
+  rejectDeletionRequest: async (requestId: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(`/admin/deletion-requests/${requestId}/reject`)
+    return response.data
+  },
 }

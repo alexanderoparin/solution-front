@@ -219,13 +219,14 @@ export default function ProfilePage() {
             >
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                  alignItems: 'center',
                   gap: 12,
                 }}
               >
                 <Button
-                  block
                   icon={<ApiOutlined />}
                   onClick={() => navigate('/admin/wb-events')}
                   size="large"
@@ -234,7 +235,6 @@ export default function ProfilePage() {
                   WB API события
                 </Button>
                 <Button
-                  block
                   icon={<CreditCardOutlined />}
                   onClick={() => navigate('/admin/plans')}
                   size="large"
@@ -242,19 +242,16 @@ export default function ProfilePage() {
                 >
                   Управление РК — планы
                 </Button>
-                <div style={{ width: '100%' }}>
-                  <Badge count={pendingDeletionCount} overflowCount={99} offset={[-6, 6]} style={{ width: '100%' }}>
-                    <Button
-                      block
-                      icon={<DeleteOutlined />}
-                      onClick={() => navigate('/admin/deletion-requests')}
-                      size="large"
-                      style={profileAdminActionGridButtonStyle}
-                    >
-                      Заявки на удаление
-                    </Button>
-                  </Badge>
-                </div>
+                <Badge count={pendingDeletionCount} overflowCount={99} offset={[-4, 4]}>
+                  <Button
+                    icon={<DeleteOutlined />}
+                    onClick={() => navigate('/admin/deletion-requests')}
+                    size="large"
+                    style={profileAdminActionGridButtonStyle}
+                  >
+                    Заявки на удаление
+                  </Button>
+                </Badge>
               </div>
             </Card>
           )}
