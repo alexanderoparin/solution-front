@@ -55,7 +55,9 @@ function formatAccessUntil(value: string | null | undefined): string {
 }
 
 function canEditAccessUntil(row: CabinetAccessEntryDto): boolean {
-  if (row.kind === 'INVITATION') return true
+  if (row.kind === 'INVITATION') {
+    return row.invitationStatus === 'PENDING'
+  }
   return row.kind === 'GRANT' && row.statusLabel === 'Активен'
 }
 
@@ -67,17 +69,33 @@ function isSameValidUntil(current: string | null | undefined, next: string | nul
   return toValidUntilPayload(current ? dayjs(current) : null) === next
 }
 
+function isRevokedEntry(row: CabinetAccessEntryDto): boolean {
+  if (row.kind === 'GRANT') {
+    return row.statusLabel === 'Доступ отозван'
+  }
+  return row.invitationStatus === 'REVOKED' || row.invitationStatus === 'EXPIRED'
+}
+
 function filterByTab(entries: CabinetAccessEntryDto[], tab: AccessTab): CabinetAccessEntryDto[] {
   switch (tab) {
     case 'active':
       return entries.filter((e) => e.kind === 'GRANT' && e.statusLabel === 'Активен')
     case 'invitations':
-      return entries.filter((e) => e.kind === 'INVITATION')
+      return entries.filter((e) => e.kind === 'INVITATION' && e.invitationStatus === 'PENDING')
     case 'revoked':
-      return entries.filter((e) => e.kind === 'GRANT' && e.statusLabel === 'Доступ отозван')
+      return entries.filter(isRevokedEntry)
     default:
       return entries
   }
+}
+
+function statusTagColor(row: CabinetAccessEntryDto): string {
+  if (row.kind === 'INVITATION') {
+    if (row.invitationStatus === 'PENDING') return 'processing'
+    if (row.invitationStatus === 'EXPIRED') return 'warning'
+    return 'default'
+  }
+  return row.statusLabel === 'Активен' ? 'success' : 'default'
 }
 
 interface AccessUntilCellProps {
@@ -249,7 +267,7 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
         dataIndex: 'statusLabel',
         key: 'statusLabel',
         render: (label: string, row: CabinetAccessEntryDto) => (
-          <Tag color={row.kind === 'INVITATION' ? 'processing' : label === 'Активен' ? 'success' : 'default'}>
+          <Tag color={statusTagColor(row)}>
             {label}
           </Tag>
         ),
@@ -279,7 +297,7 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
               </Popconfirm>
             )
           }
-          if (row.kind === 'INVITATION') {
+          if (row.kind === 'INVITATION' && row.invitationStatus === 'PENDING') {
             return (
               <Popconfirm
                 title="Отозвать приглашение?"
