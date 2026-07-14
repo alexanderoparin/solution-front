@@ -20,20 +20,27 @@ export function useCabinetSectionAccess(selectedCabinetId?: number | null) {
 
   const cabinetId = selectedCabinetId ?? getStoredCabinetId()
 
-  const { data } = useQuery({
+  const { data, isFetched, isError } = useQuery({
     queryKey: ['cabinetsOverview', ''],
     queryFn: () => cabinetsApi.getOverview(),
     enabled: !isAdmin,
     staleTime: 60_000,
   })
 
+  /** Готовность проверить доступ: админ сразу, остальные — после overview. */
+  const isReady = isAdmin || isFetched || isError
+
   const sections = useMemo(() => {
     if (isAdmin) {
       return new Set(ALL_SECTIONS)
     }
 
-    const ownedIds = new Set((data?.owned ?? []).map((c) => c.id))
-    const granted = data?.granted ?? []
+    if (!isReady || data == null) {
+      return new Set(ALL_SECTIONS)
+    }
+
+    const ownedIds = new Set((data.owned ?? []).map((c) => c.id))
+    const granted = data.granted ?? []
 
     if (cabinetId != null && ownedIds.has(cabinetId)) {
       return new Set(ALL_SECTIONS)
@@ -44,23 +51,18 @@ export function useCabinetSectionAccess(selectedCabinetId?: number | null) {
       return new Set(grant.sections)
     }
 
-    // Кабинет ещё не выбран — не скрываем меню заранее
+    // Кабинет ещё не выбран — не блокируем заранее
     if (cabinetId == null) {
       return new Set(ALL_SECTIONS)
     }
 
-    // Overview ещё грузится
-    if (data == null) {
-      return new Set(ALL_SECTIONS)
-    }
-
     return new Set<CabinetAccessSection>()
-  }, [isAdmin, cabinetId, data])
+  }, [isAdmin, isReady, cabinetId, data])
 
   const hasSection = useCallback(
     (section: CabinetAccessSection) => sections.has(section),
     [sections],
   )
 
-  return { cabinetId, sections, hasSection }
+  return { cabinetId, sections, hasSection, isReady }
 }

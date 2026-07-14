@@ -22,6 +22,7 @@ import PaymentUnavailable from './pages/PaymentUnavailable'
 import SubscriptionSuccess from './pages/SubscriptionSuccess'
 import SubscriptionFail from './pages/SubscriptionFail'
 import AccessGuard from './components/AccessGuard'
+import CabinetSectionGuard from './components/CabinetSectionGuard'
 import Privacy from './pages/Privacy'
 import Refund from './pages/Refund'
 import Oferta from './pages/Oferta'
@@ -60,31 +61,31 @@ function AppRoutes() {
         />
         <Route
           path="/analytics"
-          element={token ? <AccessGuard><AnalyticsSummary /></AccessGuard> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><CabinetSectionGuard section="SUMMARY"><AnalyticsSummary /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/analytics/products"
-          element={token ? <AccessGuard><AnalyticsProducts /></AccessGuard> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><CabinetSectionGuard section="PRODUCTS"><AnalyticsProducts /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/analytics/article/:nmId"
-          element={token ? <AccessGuard><AnalyticsArticle /></AccessGuard> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><CabinetSectionGuard section="PRODUCTS"><AnalyticsArticle /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/advertising/campaigns"
-          element={token ? <AccessGuard><AdvertisingCampaigns /></AccessGuard> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><CabinetSectionGuard section="AD_CAMPAIGNS"><AdvertisingCampaigns /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/advertising/bidder"
-          element={token ? <AccessGuard><BidderCampaigns /></AccessGuard> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><CabinetSectionGuard section="CAMPAIGN_MANAGE"><BidderCampaigns /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/advertising/campaigns/:id/manage"
-          element={token ? <AccessGuard><AdvertisingCampaignManage /></AccessGuard> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><CabinetSectionGuard section="CAMPAIGN_MANAGE"><AdvertisingCampaignManage /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/advertising/campaigns/:id"
-          element={token ? <AccessGuard><AdvertisingCampaignDetail /></AccessGuard> : <Navigate to="/login" replace />}
+          element={token ? <AccessGuard><CabinetSectionGuard section="AD_CAMPAIGNS"><AdvertisingCampaignDetail /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/profile"
