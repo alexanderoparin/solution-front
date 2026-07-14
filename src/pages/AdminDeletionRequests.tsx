@@ -140,7 +140,20 @@ export default function AdminDeletionRequests() {
     {
       title: 'Создана',
       dataIndex: 'createdAt',
+      width: 140,
       render: (value: string) => dayjs(value).format('DD.MM.YYYY HH:mm'),
+    },
+    {
+      title: 'Обработана',
+      dataIndex: 'processedAt',
+      width: 140,
+      render: (value: string | null) => (value ? dayjs(value).format('DD.MM.YYYY HH:mm') : '—'),
+    },
+    {
+      title: 'Кем',
+      dataIndex: 'processedByEmail',
+      ellipsis: true,
+      render: (value: string | null) => value?.trim() || '—',
     },
     {
       title: 'Действия',
@@ -176,7 +189,7 @@ export default function AdminDeletionRequests() {
     <>
       <Header />
       <Breadcrumbs />
-      <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
+      <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
           <div>
             <Title level={3} style={{ marginBottom: 4 }}>Заявки на удаление аккаунтов</Title>
@@ -188,6 +201,7 @@ export default function AdminDeletionRequests() {
               columns={columns}
               dataSource={requests}
               loading={isLoading}
+              scroll={{ x: 1100 }}
               pagination={{ pageSize: 20, showSizeChanger: false }}
               locale={{ emptyText: 'Нет заявок на удаление' }}
             />

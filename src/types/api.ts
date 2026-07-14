@@ -77,6 +77,10 @@ export interface AccountDeletionRequestAdminDto {
   comment: string | null
   status: AccountDeletionRequestStatus
   createdAt: string
+  /** Момент одобрения/отклонения (при одобрении — запуск удаления). */
+  processedAt: string | null
+  /** Email админа, обработавшего заявку. */
+  processedByEmail: string | null
 }
 
 export interface UpdateProfileRequest {
