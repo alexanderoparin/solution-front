@@ -4,6 +4,7 @@ import { Button, Space, Dropdown, Select } from 'antd'
 import { UserOutlined, BarChartOutlined, RiseOutlined, DownOutlined } from '@ant-design/icons'
 import SiteLogo from './SiteLogo'
 import CampaignManageSubscriptionBadge from './campaignManageSubscription/CampaignManageSubscriptionBadge'
+import { useCabinetSectionAccess } from '../hooks/useCabinetSectionAccess'
 
 interface CabinetSelectProps {
   cabinets: { id: number; name: string }[]
@@ -59,6 +60,38 @@ export default function Header({
   headerRightExtra,
 }: HeaderProps = {}) {
   const location = useLocation()
+
+  const selectedCabinetIdForAccess =
+    workContextCabinetSelect?.value ?? cabinetSelectProps?.selectedCabinetId ?? null
+  const { hasSection } = useCabinetSectionAccess(selectedCabinetIdForAccess)
+
+  const analyticsMenuItems = useMemo(() => {
+    const items: { key: string; label: React.ReactNode }[] = []
+    if (hasSection('PRODUCTS')) {
+      items.push({ key: 'products', label: <NavMenuLink to="/analytics/products">Товары</NavMenuLink> })
+    }
+    if (hasSection('SUMMARY')) {
+      items.push({ key: 'summary', label: <NavMenuLink to="/analytics">Сводная</NavMenuLink> })
+    }
+    return items
+  }, [hasSection])
+
+  const advertisingMenuItems = useMemo(() => {
+    const items: { key: string; label: React.ReactNode }[] = []
+    if (hasSection('AD_CAMPAIGNS')) {
+      items.push({
+        key: 'campaigns',
+        label: <NavMenuLink to="/advertising/campaigns">Рекламные кампании</NavMenuLink>,
+      })
+    }
+    if (hasSection('CAMPAIGN_MANAGE')) {
+      items.push({
+        key: 'bidder',
+        label: <NavMenuLink to="/advertising/bidder">Управление РК</NavMenuLink>,
+      })
+    }
+    return items
+  }, [hasSection])
 
   const selectedCabinetName = useMemo(() => {
     if (workContextCabinetSelect?.options.length) {
@@ -123,58 +156,40 @@ export default function Header({
         <SiteLogo size={40} borderRadius={8} />
 
         {/* Аналитика */}
-        <Dropdown
-          menu={{
-            items: [
-              { key: 'products', label: <NavMenuLink to="/analytics/products">Товары</NavMenuLink> },
-              { key: 'summary', label: <NavMenuLink to="/analytics">Сводная</NavMenuLink> },
-            ],
-          }}
-          trigger={['click']}
-        >
-          <Button
-            type="text"
-            icon={<BarChartOutlined />}
-            style={{
-              ...buttonStyle,
-              color: isAnalyticsActive ? '#7C3AED' : '#1E293B',
-              fontWeight: isAnalyticsActive ? 600 : 400,
-            }}
-          >
-            Аналитика
-            <DownOutlined style={{ fontSize: 10 }} />
-          </Button>
-        </Dropdown>
+        {analyticsMenuItems.length > 0 && (
+          <Dropdown menu={{ items: analyticsMenuItems }} trigger={['click']}>
+            <Button
+              type="text"
+              icon={<BarChartOutlined />}
+              style={{
+                ...buttonStyle,
+                color: isAnalyticsActive ? '#7C3AED' : '#1E293B',
+                fontWeight: isAnalyticsActive ? 600 : 400,
+              }}
+            >
+              Аналитика
+              <DownOutlined style={{ fontSize: 10 }} />
+            </Button>
+          </Dropdown>
+        )}
 
         {/* Реклама */}
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: 'campaigns',
-                label: <NavMenuLink to="/advertising/campaigns">Рекламные кампании</NavMenuLink>,
-              },
-              {
-                key: 'bidder',
-                label: <NavMenuLink to="/advertising/bidder">Управление РК</NavMenuLink>,
-              },
-            ],
-          }}
-          trigger={['click']}
-        >
-          <Button
-            type="text"
-            icon={<RiseOutlined />}
-            style={{
-              ...buttonStyle,
-              color: isAdvertisingActive ? '#7C3AED' : '#1E293B',
-              fontWeight: isAdvertisingActive ? 600 : 400,
-            }}
-          >
-            Реклама
-            <DownOutlined style={{ fontSize: 10 }} />
-          </Button>
-        </Dropdown>
+        {advertisingMenuItems.length > 0 && (
+          <Dropdown menu={{ items: advertisingMenuItems }} trigger={['click']}>
+            <Button
+              type="text"
+              icon={<RiseOutlined />}
+              style={{
+                ...buttonStyle,
+                color: isAdvertisingActive ? '#7C3AED' : '#1E293B',
+                fontWeight: isAdvertisingActive ? 600 : 400,
+              }}
+            >
+              Реклама
+              <DownOutlined style={{ fontSize: 10 }} />
+            </Button>
+          </Dropdown>
+        )}
 
       </div>
 
