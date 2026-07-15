@@ -2,8 +2,6 @@ import { useCampaignManageAccess } from '../../hooks/useCampaignManageAccess'
 import { useCampaignManageSubscriptionUi } from '../../store/campaignManageSubscriptionUi'
 import { campaignManageDaysLabel } from '../../utils/campaignManageSubscription'
 
-const accent = '#7C3AED'
-
 export default function CampaignManageSubscriptionBadge() {
   const { showBadge, campaignManage } = useCampaignManageAccess()
   const openPlans = useCampaignManageSubscriptionUi((s) => s.openPlans)
@@ -32,14 +30,15 @@ export default function CampaignManageSubscriptionBadge() {
   return (
     <div
       style={{
-        background: '#F1F5F9',
+        background: 'rgba(124, 58, 237, 0.22)',
+        border: '1px solid rgba(167, 139, 250, 0.4)',
         borderRadius: 10,
         padding: '6px 12px',
         maxWidth: 220,
         lineHeight: 1.35,
       }}
     >
-      <div style={{ fontSize: 12, color: '#1E293B', fontWeight: 500 }}>{line1}</div>
+      <div style={{ fontSize: 12, color: '#E9D5FF', fontWeight: 500 }}>{line1}</div>
       {line2Clickable ? (
         <button
           type="button"
@@ -52,14 +51,14 @@ export default function CampaignManageSubscriptionBadge() {
             cursor: 'pointer',
             fontSize: 12,
             textAlign: 'left',
-            color: accent,
+            color: '#C4B5FD',
             fontWeight: 600,
           }}
         >
           {line2}
         </button>
       ) : (
-        <div style={{ fontSize: 12, color: '#64748B' }}>{line2}</div>
+        <div style={{ fontSize: 12, color: '#A78BFA' }}>{line2}</div>
       )}
     </div>
   )
