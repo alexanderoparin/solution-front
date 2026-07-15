@@ -26,10 +26,24 @@ body {
   min-height: 100vh;
 }
 
-/* Окантовка селекта «Продавец» и «Кабинет» в шапке: фиолетовая рамка (акцентный цвет), скруглённые углы */
+/* Окантовка селекта «Продавец» и «Кабинет» в шапке */
 .header-select-field.ant-select .ant-select-selector {
-  border: 1px solid var(--color-primary) !important;
   border-radius: 8px !important;
+}
+
+.header-select-field--dark.ant-select .ant-select-selector {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  color: #F8FAFC !important;
+}
+
+.header-select-field--dark.ant-select .ant-select-selection-item,
+.header-select-field--dark.ant-select .ant-select-selection-placeholder {
+  color: #F8FAFC !important;
+}
+
+.header-select-field--dark.ant-select .ant-select-arrow {
+  color: #CBD5E1 !important;
 }
 
 /* Чекбоксы: заметная рамка в обычном состоянии (не только при наведении) */

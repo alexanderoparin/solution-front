@@ -115,6 +115,8 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
                 }}
               >
                 {landingHero.titleBefore}
+                <br />
+                {landingHero.titlePreposition}&nbsp;
                 <span style={{ color: landingColors.accent }}>{landingHero.titleHighlight}</span>
                 {landingHero.titleAfter}
               </h1>
@@ -159,7 +161,7 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
                     <CheckCircleOutlined style={{ color: landingColors.accent, fontSize: 18, marginTop: 2 }} />
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 16 }}>{badge.title}</div>
-                      <div style={{ fontSize: 13, color: landingColors.textOnDarkMuted }}>{badge.description}</div>
+                      <div style={{ fontSize: 13, color: landingColors.textOnDarkMuted, whiteSpace: 'pre-line' }}>{badge.description}</div>
                     </div>
                   </div>
                 ))}
@@ -170,13 +172,13 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
               <img
                 className="landing-hero-shot-top"
                 src={landingAssets.heroAnalytics}
-                alt="Аналитика рекламы Click-I"
+                alt="Аналитика рекламы Clicki"
                 loading="eager"
               />
               <img
                 className="landing-hero-shot-bottom"
                 src={landingAssets.heroBidder}
-                alt="Автоматический запуск рекламы Click-I"
+                alt="Автоматический запуск рекламы Clicki"
                 loading="eager"
               />
             </div>

@@ -99,6 +99,22 @@ export default function LandingPricing({ onOpenLeadForm }: LandingPricingProps) 
           color: ${landingColors.textSecondary};
           white-space: nowrap;
         }
+        .landing-pricing-title {
+          margin: 0;
+          font-size: 17px;
+          font-weight: 700;
+          color: ${landingColors.textPrimary};
+          line-height: 1.3;
+          min-height: calc(1.3em * 2);
+          white-space: pre-line;
+        }
+        .landing-pricing-desc {
+          margin: 0 0 20px;
+          font-size: 14px;
+          color: ${landingColors.textSecondary};
+          line-height: 1.5;
+          min-height: calc(1.5em * 2);
+        }
       `}</style>
       <section id={LANDING_ANCHORS.pricing} style={{ ...landingSectionStyle({ paddingTop: 56 }), backgroundColor: landingColors.sectionBg }}>
         <div style={landingContainerStyle()}>
@@ -116,12 +132,12 @@ export default function LandingPricing({ onOpenLeadForm }: LandingPricingProps) 
                 bodyStyle={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 12 }}>
-                  <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: landingColors.textPrimary, lineHeight: 1.3 }}>
+                  <h3 className="landing-pricing-title">
                     {plan.name}
                   </h3>
                   {plan.badge ? <span style={pricingBadgeStyle()}>{plan.badge}</span> : null}
                 </div>
-                <p style={{ margin: '0 0 20px', fontSize: 14, color: landingColors.textSecondary, lineHeight: 1.5 }}>{plan.description}</p>
+                <p className="landing-pricing-desc">{plan.description}</p>
                 <div style={{ marginBottom: 24 }}>
                   <span style={{ fontSize: 28, fontWeight: 800, color: landingColors.accent, letterSpacing: '-0.02em' }}>{plan.priceLabel}</span>
                   <span style={{ fontSize: 15, color: landingColors.textMuted }}>{plan.period}</span>

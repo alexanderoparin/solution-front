@@ -20,11 +20,13 @@ export const landingNavItems = [
 ] as const
 
 export const landingHero = {
-  titleBefore: 'Увеличиваем продажи на ',
+  titleBefore: 'Увеличиваем продажи',
   titleHighlight: 'Wildberries',
   titleAfter: ' с помощью рекламы и аналитики',
+  /** Предлог перед подсветкой — с новой строки, без «висящего» «на» в конце первой. */
+  titlePreposition: 'на',
   subtitle:
-    'Click-I — маркетинговое агентство и сервис для эффективного продвижения на Wildberries: аналитика, автоматизация рекламы и ведение кабинетов под ключ.',
+    'Clicki — маркетинговое агентство и сервис для эффективного продвижения на Wildberries: аналитика, автоматизация рекламы и ведение рекламных кабинетов под ключ.',
   trustBadges: [
     { title: '3+ года', description: 'практического опыта' },
     { title: '60%', description: 'клиентов по рекомендации' },
@@ -43,7 +45,7 @@ export const landingServices = [
     id: 'analytics',
     badge: 'Бесплатно',
     title: 'Аналитика рекламы',
-    description: 'Компилируем данные',
+    description: 'Собираем и объединяем все данные по рекламе в одном месте',
     bullets: ['Детальная статистика по кампаниям', 'Сравнительный анализ выбранных периодов', 'Экспорт данных в один клик'],
     image: null,
     detailLink: { label: 'Подробнее', href: `#${LANDING_ANCHORS.features}` },
@@ -114,7 +116,7 @@ export const landingPricing = [
     badge: null,
     priceLabel: 'от 1000 ₽',
     period: '/неделя',
-    description: 'Автоматизируйте запуск и управление рекламой по заданным правилам',
+    description: 'Автоматизируйте запуск и управление рекламой',
     features: ['Автопополнение баланса', 'Запуск РК по вашим настройкам'],
     popular: false,
     cta: { label: 'Попробовать бесплатно', to: '/register?plan=bidder' },
@@ -125,7 +127,7 @@ export const landingPricing = [
     badge: null,
     priceLabel: 'от 22 500 ₽',
     period: '/2 недели',
-    description: 'Полное ведение рекламы под ключ',
+    description: 'Запускаем, оптимизируем и масштабируем РК',
     features: [
       'Стратегия и настройка кампаний',
       'Ведение и оптимизация',
@@ -138,11 +140,11 @@ export const landingPricing = [
   },
   {
     id: 'audit',
-    name: 'Аудит рекламного кабинета',
+    name: 'Аудит рекламного\nкабинета',
     badge: null,
     priceLabel: '7 000 ₽',
     period: '/час',
-    description: 'Разберем ваш кабинет за 1 час и покажем точки роста.',
+    description: 'Разберем ваш кабинет за 1 час и покажем точки роста',
     features: [
       'Онлайн-встреча до 60 минут',
       'Анализ рекламных кампаний',
@@ -257,6 +259,6 @@ export const landingFooterLinks = {
 } as const
 
 export const landingBlogTeaser = {
-  title: 'Блог Click-I',
+  title: 'Блог Clicki',
   description: 'Скоро здесь появятся статьи о рекламе и аналитике на Wildberries. Подпишитесь на рассылку — напишите нам на corp@click-i.ru',
 } as const

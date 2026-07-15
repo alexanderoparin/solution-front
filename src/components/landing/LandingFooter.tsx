@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import SiteLogo from '../SiteLogo'
 import { LEGAL_OPERATOR } from '../../constants/legalOperator'
 import { LANDING_ANCHORS, landingFooterLinks } from '../../content/landingContent'
-import { landingColors, landingRadii } from '../../styles/landing'
+import { landingColors } from '../../styles/landing'
 import { landingContainerStyle } from './landingShared'
 
 function FooterColumn({ title, children }: { title: string; children: React.ReactNode }) {
@@ -48,9 +48,8 @@ export default function LandingFooter() {
             className="landing-footer-grid"
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                <SiteLogo size={36} borderRadius={landingRadii.sm} />
-                <span style={{ fontSize: 18, fontWeight: 700 }}>{LEGAL_OPERATOR.siteBrandName}</span>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+                <SiteLogo variant="wordmark" size={32} />
               </div>
               <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: landingColors.textOnDarkMuted, maxWidth: 280 }}>
                 Сервис и агентство для эффективной рекламы и аналитики на Wildberries.

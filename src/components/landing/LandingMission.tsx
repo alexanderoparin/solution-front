@@ -7,7 +7,7 @@ const MISSION_ACCENT_I = '#DDD6FE'
 function MissionBrandName() {
   return (
     <>
-      Click-<span style={{ color: MISSION_ACCENT_I }}>i</span>
+      Click<span style={{ color: MISSION_ACCENT_I }}>i</span>
     </>
   )
 }
@@ -31,18 +31,18 @@ export default function LandingMission() {
       <style>{`
         .landing-mission-card {
           display: grid;
-          grid-template-columns: minmax(96px, 132px) 1fr;
-          gap: 24px 36px;
+          grid-template-columns: minmax(64px, 88px) 1fr;
+          gap: 16px 28px;
           align-items: center;
           background: linear-gradient(90deg, #9333EA 0%, #7C3AED 42%, #5B21B6 100%);
-          border-radius: ${landingRadii.xl}px;
-          padding: 48px 56px;
+          border-radius: ${landingRadii.lg}px;
+          padding: 28px 36px;
           color: ${landingColors.textOnDark};
           overflow: hidden;
         }
         .landing-mission-quote-mark {
           display: block;
-          width: clamp(72px, 10vw, 96px);
+          width: clamp(48px, 7vw, 64px);
           height: auto;
           user-select: none;
           justify-self: center;
@@ -50,36 +50,36 @@ export default function LandingMission() {
           opacity: 0.95;
         }
         .landing-mission-text {
-          font-size: clamp(17px, 2.2vw, 20px);
-          line-height: 1.75;
+          font-size: clamp(14px, 1.6vw, 16px);
+          line-height: 1.55;
           font-weight: 400;
           margin: 0;
         }
         .landing-mission-divider {
-          width: 72px;
+          width: 56px;
           height: 1px;
           background: rgba(255, 255, 255, 0.35);
-          margin: 28px 0 20px;
+          margin: 16px 0 12px;
           border: none;
         }
         .landing-mission-author {
-          font-size: 15px;
+          font-size: 13px;
           font-weight: 600;
           color: rgba(255, 255, 255, 0.92);
         }
         @media (max-width: 640px) {
           .landing-mission-card {
             grid-template-columns: 1fr;
-            padding: 32px 28px;
-            gap: 16px;
+            padding: 22px 20px;
+            gap: 12px;
           }
           .landing-mission-quote-mark {
-            width: 72px;
+            width: 48px;
             justify-self: start;
           }
         }
       `}</style>
-      <section id={LANDING_ANCHORS.about} style={{ ...landingSectionStyle({ paddingTop: 32, paddingBottom: 24 }) }}>
+      <section id={LANDING_ANCHORS.about} style={{ ...landingSectionStyle({ paddingTop: 24, paddingBottom: 16 }) }}>
         <div style={landingContainerStyle()}>
           <div className="landing-mission-card">
             <MissionQuoteMark />

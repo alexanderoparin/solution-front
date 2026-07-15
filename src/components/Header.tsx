@@ -4,6 +4,7 @@ import { Button, Space, Dropdown, Select } from 'antd'
 import { UserOutlined, BarChartOutlined, RiseOutlined, DownOutlined } from '@ant-design/icons'
 import SiteLogo from './SiteLogo'
 import CampaignManageSubscriptionBadge from './campaignManageSubscription/CampaignManageSubscriptionBadge'
+import { landingColors } from '../styles/landing'
 
 interface CabinetSelectProps {
   cabinets: { id: number; name: string }[]
@@ -87,6 +88,11 @@ export default function Header({
     location.pathname.startsWith('/analytics/article/')
   const isAdvertisingActive = location.pathname.startsWith('/advertising')
   const isProfilePage = location.pathname === '/profile'
+  const isProfileActive = location.pathname === '/profile'
+
+  const muted = landingColors.textOnDarkMuted
+  const active = landingColors.accent
+  const onDark = landingColors.textOnDark
 
   const buttonStyle = {
     display: 'flex',
@@ -94,33 +100,36 @@ export default function Header({
     gap: '6px',
   } as const
 
-  /** Окантовка: фиолетовая рамка (акцентный цвет), скруглённые углы */
+  /** Окантовка кабинета на тёмном хедере */
   const fieldBorderStyle: React.CSSProperties = {
-    border: '1px solid var(--color-primary)',
+    border: '1px solid rgba(255,255,255,0.22)',
     borderRadius: 8,
-    background: '#FFFFFF',
+    background: 'rgba(255,255,255,0.06)',
     padding: '6px 12px',
     minHeight: 36,
     boxSizing: 'border-box',
   }
 
+  const navColor = (activeNav: boolean) => (activeNav ? active : muted)
+  const navWeight = (activeNav: boolean) => (activeNav ? 600 : 500)
+
   return (
     <div
       style={{
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #E2E8F0',
+        backgroundColor: 'rgba(11, 11, 16, 0.88)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
         padding: '12px 24px',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
         position: 'sticky',
         top: 0,
         zIndex: 100,
       }}
     >
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <SiteLogo size={40} borderRadius={8} />
+        <SiteLogo variant="wordmark" size={32} to="/" />
 
         {/* Аналитика */}
         <Dropdown
@@ -137,8 +146,8 @@ export default function Header({
             icon={<BarChartOutlined />}
             style={{
               ...buttonStyle,
-              color: isAnalyticsActive ? '#7C3AED' : '#1E293B',
-              fontWeight: isAnalyticsActive ? 600 : 400,
+              color: navColor(isAnalyticsActive),
+              fontWeight: navWeight(isAnalyticsActive),
             }}
           >
             Аналитика
@@ -167,8 +176,8 @@ export default function Header({
             icon={<RiseOutlined />}
             style={{
               ...buttonStyle,
-              color: isAdvertisingActive ? '#7C3AED' : '#1E293B',
-              fontWeight: isAdvertisingActive ? 600 : 400,
+              color: navColor(isAdvertisingActive),
+              fontWeight: navWeight(isAdvertisingActive),
             }}
           >
             Реклама
@@ -182,7 +191,7 @@ export default function Header({
         {!isProfilePage && workContextCabinetSelect && (
           <>
             <Select
-              className="header-select-field"
+              className="header-select-field header-select-field--dark"
               showSearch
               optionFilterProp="label"
               value={workContextCabinetSelect.value}
@@ -199,7 +208,7 @@ export default function Header({
         {!isProfilePage && !workContextCabinetSelect && sellerSelectProps && sellerSelectProps.sellers.length > 0 && (
           <>
             <Select
-              className="header-select-field"
+              className="header-select-field header-select-field--dark"
               value={sellerSelectProps.selectedSellerId}
               onChange={sellerSelectProps.onSellerChange}
               style={{ minWidth: 200 }}
@@ -230,13 +239,13 @@ export default function Header({
                   alignItems: 'center',
                   gap: 8,
                   fontSize: '14px',
-                  color: '#1E293B',
+                  color: onDark,
                   fontWeight: 500,
                   cursor: 'pointer',
                 }}
               >
                 {selectedCabinetName ?? '—'} ({cabinetSelectProps.cabinets.length})
-                <DownOutlined style={{ fontSize: 10, color: '#64748B' }} />
+                <DownOutlined style={{ fontSize: 10, color: muted }} />
               </span>
             </Dropdown>
           ) : (
@@ -246,7 +255,7 @@ export default function Header({
                 display: 'inline-flex',
                 alignItems: 'center',
                 fontSize: '14px',
-                color: '#1E293B',
+                color: onDark,
                 fontWeight: 500,
               }}
             >
@@ -260,8 +269,8 @@ export default function Header({
           className="ant-btn ant-btn-text ant-btn-color-default ant-btn-variant-text"
           style={{
             ...buttonStyle,
-            color: location.pathname === '/profile' ? '#7C3AED' : '#1E293B',
-            fontWeight: location.pathname === '/profile' ? 600 : 400,
+            color: navColor(isProfileActive),
+            fontWeight: navWeight(isProfileActive),
             textDecoration: 'none',
           }}
         >

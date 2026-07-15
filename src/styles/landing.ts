@@ -1,4 +1,4 @@
-/** Дизайн-токены лендинга Click-I (по макету). */
+/** Дизайн-токены лендинга Clicki (по макету). */
 export const landingColors = {
   accent: '#7C3AED',
   accentHover: '#6D28D9',
@@ -17,7 +17,7 @@ export const landingColors = {
   cardBg: '#FFFFFF',
   sectionBg: '#F8FAFC',
   footerBg: '#0F172A',
-  /** Лайм из логотипа Click-I (DESIGN_SYSTEM / logo). */
+  /** Лайм из логотипа Clicki (DESIGN_SYSTEM / logo). */
   brandGreen: '#B4D705',
   brandGreenHover: '#96AF04',
   brandGreenLight: 'rgba(180, 215, 5, 0.18)',

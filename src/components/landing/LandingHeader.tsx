@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button, Drawer } from 'antd'
 import { MenuOutlined } from '@ant-design/icons'
 import SiteLogo from '../SiteLogo'
-import { LEGAL_OPERATOR } from '../../constants/legalOperator'
 import { landingNavItems } from '../../content/landingContent'
 import { landingColors, landingLayout, landingRadii } from '../../styles/landing'
 import { landingContainerStyle } from './landingShared'
@@ -64,11 +63,8 @@ export default function LandingHeader() {
             gap: 16,
           }}
         >
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', flexShrink: 0 }}>
-            <SiteLogo size={40} borderRadius={landingRadii.md} />
-            <span style={{ fontSize: 20, fontWeight: 700, color: landingColors.textOnDark, letterSpacing: '-0.02em' }}>
-              {LEGAL_OPERATOR.siteBrandName}
-            </span>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
+            <SiteLogo variant="wordmark" size={36} />
           </Link>
 
           <nav className="landing-header-nav" style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1, justifyContent: 'center' }}>

@@ -13,7 +13,7 @@ export const LEGAL_OPERATOR = {
   phoneTel: '+79936130259',
   site: 'https://click-i.ru',
   /** Название сервиса на сайте (бренд). */
-  siteBrandName: 'Click-I',
+  siteBrandName: 'Clicki',
 } as const
 
 /** Дата редакции юридических документов на сайте. */
