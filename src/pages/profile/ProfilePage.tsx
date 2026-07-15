@@ -29,7 +29,7 @@ import DeletionRequestModal from './modals/DeletionRequestModal'
 import EmailConfirmPromptModal from './modals/EmailConfirmPromptModal'
 import EmailConfirmedModal from './modals/EmailConfirmedModal'
 import EmailConfirmAfterRegisterModal from './modals/EmailConfirmAfterRegisterModal'
-import { EMAIL_CONFIRMED_MODAL_KEY } from '../constants/emailConfirmStorage'
+import { EMAIL_CONFIRMED_MODAL_KEY } from '../../constants/emailConfirmStorage'
 
 dayjs.locale('ru')
 
