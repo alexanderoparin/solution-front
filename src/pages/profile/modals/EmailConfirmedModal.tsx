@@ -1,36 +1,51 @@
-import { Modal, Button } from 'antd'
+import { Modal, Button, Typography } from 'antd'
 import { CheckCircleOutlined } from '@ant-design/icons'
 
+const { Text } = Typography
 const accent = '#7C3AED'
 
 interface EmailConfirmedModalProps {
   open: boolean
-  onClose: () => void
+  onLater: () => void
+  onAddCabinet: () => void
 }
 
-export default function EmailConfirmedModal({ open, onClose }: EmailConfirmedModalProps) {
+/**
+ * После подтверждения email из письма: предложить добавить кабинет.
+ */
+export default function EmailConfirmedModal({
+  open,
+  onLater,
+  onAddCabinet,
+}: EmailConfirmedModalProps) {
   return (
     <Modal
       open={open}
-      onCancel={onClose}
+      centered
+      closable={false}
+      maskClosable={false}
+      keyboard={false}
+      onCancel={() => undefined}
       footer={[
+        <Button key="later" onClick={onLater}>
+          Позже
+        </Button>,
         <Button
-          key="ok"
+          key="add"
           type="primary"
-          onClick={onClose}
+          onClick={onAddCabinet}
           style={{ backgroundColor: accent, borderColor: accent }}
         >
-          Отлично
+          Добавить кабинет
         </Button>,
       ]}
-      centered
     >
       <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
         <CheckCircleOutlined style={{ fontSize: 48, color: '#52c41a', marginBottom: 16 }} />
-        <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600 }}>Email подтверждён</h3>
-        <p style={{ margin: 0, color: '#64748B' }}>
-          Ваш адрес электронной почты успешно подтверждён.
-        </p>
+        <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 600 }}>Email успешно подтверждён</h3>
+        <Text type="secondary" style={{ fontSize: 15, lineHeight: 1.55 }}>
+          Чтобы начать пользоваться сервисом, добавьте кабинет.
+        </Text>
       </div>
     </Modal>
   )

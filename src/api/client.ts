@@ -54,11 +54,19 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // 401 - неавторизован, редиректим на логин
-    // Исключаем эндпоинт логина, чтобы пользователь мог увидеть сообщение об ошибке
-    if (status === 401 && !url.includes('/auth/login')) {
+    // 401 — неавторизован. Не трогаем форму логина/регистрации и публичные auth-эндпоинты.
+    if (
+      status === 401
+      && !url.includes('/auth/login')
+      && !url.includes('/auth/register')
+      && !url.includes('/auth/forgot-password')
+      && !url.includes('/auth/reset-password')
+      && !url.includes('/auth/confirm-email')
+    ) {
       useAuthStore.getState().clearAuth()
-      window.location.href = '/login'
+      if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
+        window.location.href = '/login'
+      }
       return Promise.reject(error)
     }
     

@@ -28,6 +28,7 @@ import LogoutConfirmModal from './modals/LogoutConfirmModal'
 import DeletionRequestModal from './modals/DeletionRequestModal'
 import EmailConfirmPromptModal from './modals/EmailConfirmPromptModal'
 import EmailConfirmedModal from './modals/EmailConfirmedModal'
+import EmailConfirmAfterRegisterModal from './modals/EmailConfirmAfterRegisterModal'
 
 dayjs.locale('ru')
 
@@ -48,6 +49,7 @@ export default function ProfilePage() {
   const [deletionRequestOpen, setDeletionRequestOpen] = useState(false)
   const [emailConfirmPromptOpen, setEmailConfirmPromptOpen] = useState(false)
   const [emailConfirmedOpen, setEmailConfirmedOpen] = useState(false)
+  const [afterRegisterConfirmOpen, setAfterRegisterConfirmOpen] = useState(false)
   const [addCabinetOpen, setAddCabinetOpen] = useState(false)
   const [usersBlockView, setUsersBlockView] = useState<UserManagementView>(USER_MANAGEMENT_VIEW.CABINETS)
 
@@ -78,6 +80,10 @@ export default function ProfilePage() {
     if (searchParams.get('emailConfirmed') === '1') {
       setEmailConfirmedOpen(true)
       clearSearchParam('emailConfirmed')
+    }
+    if (searchParams.get('registered') === '1') {
+      setAfterRegisterConfirmOpen(true)
+      clearSearchParam('registered')
     }
     if (searchParams.get('addCabinet') === '1') {
       setAddCabinetOpen(true)
@@ -314,10 +320,20 @@ export default function ProfilePage() {
 
       <EmailConfirmedModal
         open={emailConfirmedOpen}
-        onClose={() => {
+        onLater={() => {
           setEmailConfirmedOpen(false)
           void queryClient.invalidateQueries({ queryKey: ['userProfile'] })
         }}
+        onAddCabinet={() => {
+          setEmailConfirmedOpen(false)
+          setAddCabinetOpen(true)
+          void queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+        }}
+      />
+
+      <EmailConfirmAfterRegisterModal
+        open={afterRegisterConfirmOpen}
+        onClose={() => setAfterRegisterConfirmOpen(false)}
       />
 
     </>

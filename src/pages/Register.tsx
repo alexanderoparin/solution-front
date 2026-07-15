@@ -70,43 +70,51 @@ export default function Register() {
 
   const registerMutation = useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
-    onSuccess: async (_, variables) => {
+    onSuccess: async (auth, variables) => {
+      setAuth(auth.token, auth.email, auth.userId, auth.role)
+
+      void userApi.sendEmailConfirmation().catch(() => {
+        /* письмо не чаще 1 раза в 12 ч или ошибка отправки */
+      })
+
       try {
-        const auth = await authApi.login({ email: variables.email, password: variables.password })
-        setAuth(auth.token, auth.email, auth.userId, auth.role)
-        userApi.sendEmailConfirmation().catch(() => { /* письмо не чаще 1 раза в 12 ч или ошибка отправки */ })
-        message.success('Регистрация успешна')
-        try {
-          await queryClient.prefetchQuery({
-            queryKey: ACCESS_STATUS_QUERY_KEY,
-            queryFn: () => userApi.getAccessStatus(),
-            staleTime: ACCESS_STATUS_STALE_MS,
-          })
-        } catch {
-          /* см. Login */
-        }
-        if (consumeBidderTrialRegisterIntent()) {
-          try {
-            await activateBidderTrialPlanIfAvailable()
-            message.success('Подключён пробный доступ к автозапуску рекламы на 3 дня')
-          } catch {
-            message.info('Аккаунт создан. Пробный доступ к автозапуску можно подключить в профиле после подтверждения email.')
-          }
-        }
-        if (variables.invitationToken) {
-          clearStoredInvitationToken()
-          navigate('/profile?inviteAccepted=1')
-          return
-        }
-        if (nextPath && nextPath.startsWith('/')) {
-          navigate(nextPath)
-          return
-        }
-        navigate('/profile')
+        await queryClient.prefetchQuery({
+          queryKey: ACCESS_STATUS_QUERY_KEY,
+          queryFn: () => userApi.getAccessStatus(),
+          staleTime: ACCESS_STATUS_STALE_MS,
+        })
       } catch {
-        message.success('Регистрация успешна. Войдите в систему.')
-        navigate(nextPath && nextPath.startsWith('/') ? `/login?next=${encodeURIComponent(nextPath)}` : '/login')
+        /* AccessStatusPrefetch / AccessGuard повторят запрос */
       }
+
+      if (consumeBidderTrialRegisterIntent()) {
+        try {
+          await activateBidderTrialPlanIfAvailable()
+          message.success('Подключён пробный доступ к автозапуску рекламы на 3 дня')
+        } catch {
+          message.info(
+            'Аккаунт создан. Пробный доступ к автозапуску можно подключить в профиле после подтверждения email.',
+          )
+        }
+      }
+
+      if (variables.invitationToken) {
+        clearStoredInvitationToken()
+        navigate('/profile?inviteAccepted=1&registered=1', { replace: true })
+        return
+      }
+      if (nextPath && nextPath.startsWith('/')) {
+        if (nextPath === '/profile' || nextPath.startsWith('/profile?')) {
+          navigate(
+            nextPath.includes('?') ? `${nextPath}&registered=1` : `${nextPath}?registered=1`,
+            { replace: true },
+          )
+        } else {
+          navigate(nextPath, { replace: true })
+        }
+        return
+      }
+      navigate('/profile?registered=1', { replace: true })
     },
     onError: (error: any) => {
       const msg = error.response?.data?.error ?? error.response?.data?.message ?? 'Ошибка регистрации'
