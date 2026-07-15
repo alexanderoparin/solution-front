@@ -29,6 +29,7 @@ import DeletionRequestModal from './modals/DeletionRequestModal'
 import EmailConfirmPromptModal from './modals/EmailConfirmPromptModal'
 import EmailConfirmedModal from './modals/EmailConfirmedModal'
 import EmailConfirmAfterRegisterModal from './modals/EmailConfirmAfterRegisterModal'
+import { EMAIL_CONFIRMED_MODAL_KEY } from '../constants/emailConfirmStorage'
 
 dayjs.locale('ru')
 
@@ -77,9 +78,20 @@ export default function ProfilePage() {
   })
 
   useEffect(() => {
-    if (searchParams.get('emailConfirmed') === '1') {
+    let showConfirmedModal = searchParams.get('emailConfirmed') === '1'
+    try {
+      if (sessionStorage.getItem(EMAIL_CONFIRMED_MODAL_KEY) === '1') {
+        showConfirmedModal = true
+        sessionStorage.removeItem(EMAIL_CONFIRMED_MODAL_KEY)
+      }
+    } catch {
+      /* ignore */
+    }
+    if (showConfirmedModal) {
       setEmailConfirmedOpen(true)
-      clearSearchParam('emailConfirmed')
+      if (searchParams.get('emailConfirmed') === '1') {
+        clearSearchParam('emailConfirmed')
+      }
     }
     if (searchParams.get('registered') === '1') {
       setAfterRegisterConfirmOpen(true)
@@ -320,7 +332,7 @@ export default function ProfilePage() {
 
       <EmailConfirmedModal
         open={emailConfirmedOpen}
-        onLater={() => {
+        onAccepted={() => {
           setEmailConfirmedOpen(false)
           void queryClient.invalidateQueries({ queryKey: ['userProfile'] })
         }}

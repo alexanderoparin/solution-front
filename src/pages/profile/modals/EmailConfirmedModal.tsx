@@ -6,16 +6,17 @@ const accent = '#7C3AED'
 
 interface EmailConfirmedModalProps {
   open: boolean
-  onLater: () => void
+  onAccepted: () => void
   onAddCabinet: () => void
 }
 
 /**
  * После подтверждения email из письма: предложить добавить кабинет.
+ * Закрывается только по кнопке «Принято» или «Добавить кабинет».
  */
 export default function EmailConfirmedModal({
   open,
-  onLater,
+  onAccepted,
   onAddCabinet,
 }: EmailConfirmedModalProps) {
   return (
@@ -27,8 +28,8 @@ export default function EmailConfirmedModal({
       keyboard={false}
       onCancel={() => undefined}
       footer={[
-        <Button key="later" onClick={onLater}>
-          Позже
+        <Button key="accepted" onClick={onAccepted}>
+          Принято
         </Button>,
         <Button
           key="add"

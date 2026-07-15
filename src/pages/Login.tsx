@@ -25,9 +25,12 @@ export default function Login() {
     const stateMessage = (location.state as { message?: string })?.message
     if (stateMessage) {
       message.success(stateMessage)
-      navigate(location.pathname, { replace: true, state: {} })
+      navigate(
+        { pathname: location.pathname, search: location.search },
+        { replace: true, state: {} },
+      )
     }
-  }, [location.state, location.pathname, navigate])
+  }, [location.state, location.pathname, location.search, navigate])
 
   const getInitialRoute = () => {
     if (nextPath && nextPath.startsWith('/')) {

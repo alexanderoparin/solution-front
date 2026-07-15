@@ -27,8 +27,8 @@ export const authApi = {
     return response.data
   },
 
-  confirmEmail: async (token: string): Promise<MessageResponse> => {
-    const response = await apiClient.post<MessageResponse>('/auth/confirm-email', { token })
+  confirmEmail: async (token: string): Promise<AuthResponse> => {
+    const response = await apiClient.post<AuthResponse>('/auth/confirm-email', { token })
     return response.data
   },
 }

@@ -1,9 +1,11 @@
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, Typography, Spin, Button, Modal } from 'antd'
 import { CloseCircleOutlined } from '@ant-design/icons'
 import { authApi } from '../api/auth'
+import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
 import { useAuthStore } from '../store/authStore'
+import { EMAIL_CONFIRMED_MODAL_KEY } from '../constants/emailConfirmStorage'
 import { useEffect, useState } from 'react'
 
 const { Title, Text } = Typography
@@ -13,26 +15,32 @@ const PROFILE_AFTER_CONFIRM = '/profile?emailConfirmed=1'
 export default function ConfirmEmail() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const setAuth = useAuthStore((state) => state.setAuth)
   const token = searchParams.get('token')
-  const authToken = useAuthStore((state) => state.token)
   const [errorModalOpen, setErrorModalOpen] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  const goToProfileAfterConfirm = () => {
-    if (authToken) {
-      navigate(PROFILE_AFTER_CONFIRM, { replace: true })
-      return
-    }
-    navigate(`/login?next=${encodeURIComponent(PROFILE_AFTER_CONFIRM)}`, {
-      replace: true,
-      state: { message: 'Email подтверждён. Войдите, чтобы продолжить.' },
-    })
-  }
-
   const confirmMutation = useMutation({
     mutationFn: (t: string) => authApi.confirmEmail(t),
-    onSuccess: () => {
-      goToProfileAfterConfirm()
+    onSuccess: async (auth) => {
+      setAuth(auth.token, auth.email, auth.userId, auth.role)
+      try {
+        sessionStorage.setItem(EMAIL_CONFIRMED_MODAL_KEY, '1')
+      } catch {
+        /* ignore */
+      }
+      try {
+        await queryClient.prefetchQuery({
+          queryKey: ACCESS_STATUS_QUERY_KEY,
+          queryFn: () => userApi.getAccessStatus(),
+          staleTime: ACCESS_STATUS_STALE_MS,
+        })
+      } catch {
+        /* AccessGuard повторит */
+      }
+      void queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+      navigate(PROFILE_AFTER_CONFIRM, { replace: true })
     },
     onError: (error: unknown) => {
       const msg =
@@ -90,7 +98,7 @@ export default function ConfirmEmail() {
             <Spin size="large" />
             <div style={{ marginTop: 16 }}>
               <Text type="secondary">
-                {confirmMutation.isSuccess ? 'Переход в профиль…' : 'Подтверждение email…'}
+                {confirmMutation.isSuccess ? 'Входим в аккаунт…' : 'Подтверждение email…'}
               </Text>
             </div>
           </>
