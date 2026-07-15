@@ -268,6 +268,7 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
   const [updatingUntilKey, setUpdatingUntilKey] = useState<string | null>(null)
   const [updatingSectionsKey, setUpdatingSectionsKey] = useState<string | null>(null)
   const [form] = Form.useForm<GrantFormValues>()
+  const selectedSections = Form.useWatch('sections', form) ?? []
 
   const { data: entries = [], isLoading, isFetching } = useQuery({
     queryKey: ['cabinetAccess', cabinetId],
@@ -652,13 +653,16 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
           </Form.Item>
           <Form.Item
             name="accountType"
-            label="Тип аккаунта"
-            rules={[{ required: true, message: 'Выберите тип аккаунта' }]}
+            label="Кем является пользователь"
+            rules={[{ required: true, message: 'Укажите, кем является пользователь' }]}
           >
-            <Select placeholder="Выберите тип аккаунта" options={GRANT_ACCOUNT_TYPE_OPTIONS} />
+            <Select placeholder="Выберите роль пользователя" options={GRANT_ACCOUNT_TYPE_OPTIONS} />
           </Form.Item>
           <Form.Item name="comment" label="Комментарий">
-            <Input.TextArea rows={2} placeholder="Необязательно" />
+            <Input.TextArea
+              rows={3}
+              placeholder={'Например: «Маркетолог», «Менеджер WB», «Иван из агентства».\nКомментарий виден только вам'}
+            />
           </Form.Item>
           <Form.Item
             name="sections"
@@ -667,8 +671,20 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
           >
             <Select
               mode="multiple"
+              allowClear
               placeholder="Выберите разделы"
               options={CABINET_ACCESS_SECTION_OPTIONS}
+              optionFilterProp="label"
+              menuItemSelectedIcon={null}
+              optionRender={(option) => {
+                const value = option.value as CabinetAccessSection
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Checkbox checked={selectedSections.includes(value)} style={{ pointerEvents: 'none' }} />
+                    <span>{option.label}</span>
+                  </div>
+                )
+              }}
             />
           </Form.Item>
           <Form.Item name="validUntil" label="Доступ до">

@@ -173,15 +173,15 @@ export default function ProfilePage() {
         }}
       >
         <div style={{ maxWidth: 1240, margin: '0 auto' }}>
-          <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-            <Col xs={24} lg={16}>
+          <Row gutter={[24, 24]} style={{ marginBottom: 24 }} wrap>
+            <Col xs={24} lg={16} style={{ minWidth: 0, display: 'flex' }}>
               <UserInfoCard
                 profile={profile}
                 onEdit={() => setEditProfileOpen(true)}
                 onEmailConfirmPrompt={() => setEmailConfirmPromptOpen(true)}
               />
             </Col>
-            <Col xs={24} lg={8}>
+            <Col xs={24} lg={8} style={{ minWidth: 0, maxWidth: '100%', display: 'flex' }}>
               <SecurityCard
                 profile={profile}
                 onLogoutClick={() => setLogoutConfirmOpen(true)}

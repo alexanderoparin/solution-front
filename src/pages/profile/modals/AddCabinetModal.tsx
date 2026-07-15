@@ -5,19 +5,10 @@ import type { CabinetTokenType, CreateCabinetRequest } from '../../../types/api'
 const { Text } = Typography
 const accent = '#7C3AED'
 
-const WB_TOKEN_CHECK_URL =
-  'https://dev.wildberries.ru/jwt?utm_source=dev-portal&utm_campaign=api-information&utm_content=cta-link'
+const WB_TOKEN_HINT =
+  'Для работы с сервисом, необходимо выбрать следующие категории «Контент, Цены и скидки, Продвижение, Аналитика, Статистика, Маркетплейс. Уровень доступа к данным: Чтение и запись»'
 
-const wbTokenCheckLink = (
-  <a
-    href={WB_TOKEN_CHECK_URL}
-    target="_blank"
-    rel="noopener noreferrer"
-    style={{ color: accent, fontSize: 12 }}
-  >
-    Проверить токен и доступ к категориям методов API
-  </a>
-)
+const WB_TOKEN_TYPE_HINT = 'Важно указать правильный тип токена — от этого зависит корректная работа сервиса.'
 
 interface AddCabinetModalProps {
   open: boolean
@@ -27,7 +18,7 @@ interface AddCabinetModalProps {
 }
 
 export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: AddCabinetModalProps) {
-  const [form] = Form.useForm<{ name?: string; apiKey: string; tokenType: CabinetTokenType }>()
+  const [form] = Form.useForm<{ name?: string; apiKey: string; tokenType?: CabinetTokenType }>()
 
   const handleCancel = () => {
     form.resetFields()
@@ -62,8 +53,10 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
         form={form}
         layout="vertical"
         autoComplete="off"
-        initialValues={{ tokenType: 'BASIC' as CabinetTokenType }}
         onFinish={({ apiKey, tokenType, name }) => {
+          if (!tokenType) {
+            return
+          }
           const body: CreateCabinetRequest = {
             tokenType,
             apiKey: apiKey.trim(),
@@ -78,7 +71,7 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
         <Form.Item
           name="apiKey"
           label="WB API-токен"
-          extra={wbTokenCheckLink}
+          extra={<Text type="secondary" style={{ fontSize: 12 }}>{WB_TOKEN_HINT}</Text>}
           rules={[{ required: true, whitespace: true, message: 'Введите API-токен WB' }]}
         >
           <Input.Password prefix={<KeyOutlined />} placeholder="Введите токен" autoComplete="off" />
@@ -87,9 +80,11 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
         <Form.Item
           name="tokenType"
           label="Тип токена WB"
+          extra={<Text type="secondary" style={{ fontSize: 12 }}>{WB_TOKEN_TYPE_HINT}</Text>}
           rules={[{ required: true, message: 'Выберите тип токена' }]}
         >
           <Select
+            allowClear
             placeholder="Выберите тип токена"
             options={[
               { value: 'BASIC', label: 'Базовый' },

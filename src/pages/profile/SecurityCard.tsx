@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Card, Space, Button, Modal, Form, Input, message, Alert, Typography } from 'antd'
+import { useState, type CSSProperties, type ReactNode } from 'react'
+import { Card, Space, Button, Modal, Form, Input, message, Typography } from 'antd'
 import { LockOutlined, LogoutOutlined, DeleteOutlined, RightOutlined } from '@ant-design/icons'
 import { useMutation } from '@tanstack/react-query'
 import { authApi } from '../../api/auth'
@@ -14,6 +14,80 @@ interface SecurityCardProps {
   profile: UserProfileResponse
   onLogoutClick: () => void
   onDeleteClick: () => void
+}
+
+interface SecurityActionRowProps {
+  icon: ReactNode
+  iconBg: string
+  iconColor: string
+  title: string
+  titleColor?: string
+  description: string
+  onClick: () => void
+  disabled?: boolean
+}
+
+function SecurityActionRow({
+  icon,
+  iconBg,
+  iconColor,
+  title,
+  titleColor = '#111827',
+  description,
+  onClick,
+  disabled = false,
+}: SecurityActionRowProps) {
+  const rowStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    margin: 0,
+    padding: 12,
+    borderRadius: 12,
+    border: `1px solid ${border}`,
+    background: '#FFFFFF',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    textAlign: 'left',
+    opacity: disabled ? 0.65 : 1,
+  }
+
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} style={rowStyle}>
+      <div
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          background: iconBg,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: iconColor,
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 600, lineHeight: '20px', color: titleColor }}>{title}</div>
+        <div
+          style={{
+            color: '#64748B',
+            fontSize: 12,
+            lineHeight: '16px',
+            marginTop: 2,
+            overflowWrap: 'anywhere',
+          }}
+        >
+          {description}
+        </div>
+      </div>
+      <RightOutlined style={{ color: '#94a3b8', fontSize: 12, flexShrink: 0 }} />
+    </button>
+  )
 }
 
 export default function SecurityCard({ profile, onLogoutClick, onDeleteClick }: SecurityCardProps) {
@@ -58,7 +132,39 @@ export default function SecurityCard({ profile, onLogoutClick, onDeleteClick }: 
 
   return (
     <>
+      <style>{`
+        .security-card.ant-card {
+          height: 100%;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+        }
+        .security-card .ant-card-body {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          overflow: hidden;
+          min-height: 0;
+        }
+        .security-card-content {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          flex: 1;
+        }
+        .security-card-footer {
+          margin-top: auto;
+          padding-top: 4px;
+        }
+      `}</style>
       <Card
+        className="security-card"
         title={
           <Space>
             <LockOutlined />
@@ -66,138 +172,56 @@ export default function SecurityCard({ profile, onLogoutClick, onDeleteClick }: 
           </Space>
         }
         style={{
-          height: '100%',
+          minWidth: 0,
           borderRadius: 16,
           border: `1px solid ${border}`,
+          overflow: 'hidden',
+          boxSizing: 'border-box',
         }}
       >
-        <div style={{ display: 'grid', gap: 12 }}>
-          <Button
-            type="text"
-            block
+        <div className="security-card-content">
+          <SecurityActionRow
+            icon={<LockOutlined style={{ fontSize: 18 }} />}
+            iconBg="#EEF2FF"
+            iconColor="#3B82F6"
+            title="Сменить пароль"
+            description="Выберите новый пароль для входа в систему"
             onClick={() => {
               passwordForm.resetFields()
               setPasswordModalOpen(true)
             }}
-            style={{
-              padding: 12,
-              height: 'auto',
-              borderRadius: 12,
-              border: `1px solid ${border}`,
-              textAlign: 'left',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12, width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  background: '#EEF2FF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#3B82F6',
-                }}>
-                  <LockOutlined style={{ fontSize: 18 }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ fontWeight: 600, lineHeight: '20px' }}>Сменить пароль</div>
-                  <div style={{ color: '#64748B', fontSize: 12, lineHeight: '16px' }}>
-                    Выберите новый пароль для входа в систему
-                  </div>
-                </div>
-              </div>
-              <RightOutlined style={{ color: '#94a3b8', fontSize: 12, marginLeft: 'auto' }} />
-            </div>
-          </Button>
+          />
 
-          <Button
-            type="text"
-            block
+          <SecurityActionRow
+            icon={<LogoutOutlined style={{ fontSize: 18 }} />}
+            iconBg="#FEF2F2"
+            iconColor="#EF4444"
+            title="Выйти из аккаунта"
+            titleColor="#DC2626"
+            description="Завершить текущую сессию"
             onClick={onLogoutClick}
-            style={{
-              padding: 12,
-              height: 'auto',
-              borderRadius: 12,
-              border: `1px solid ${border}`,
-              textAlign: 'left',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12, width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  background: '#FEF2F2',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#EF4444',
-                }}>
-                  <LogoutOutlined style={{ fontSize: 18 }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ fontWeight: 600, color: '#DC2626', lineHeight: '20px' }}>Выйти из аккаунта</div>
-                  <div style={{ color: '#64748B', fontSize: 12, lineHeight: '16px' }}>
-                    Завершить текущую сессию
-                  </div>
-                </div>
-              </div>
-              <RightOutlined style={{ color: '#94a3b8', fontSize: 12, marginLeft: 'auto' }} />
-            </div>
-          </Button>
+          />
 
-          {!isAdmin && (
-            <div style={{ marginTop: 0 }}>
-              {deletionPending && profile.deletionRequest?.message && (
-                <Alert style={{ marginTop: 8 }} type="info" showIcon message={profile.deletionRequest.message} />
-              )}
-              <Button
-                type="text"
-                block
-                onClick={onDeleteClick}
-                disabled={deletionPending}
-                style={{
-                  marginTop: deletionPending && profile.deletionRequest?.message ? 8 : 0,
-                  padding: 12,
-                  height: 'auto',
-                  borderRadius: 12,
-                  border: `1px solid ${border}`,
-                  textAlign: 'left',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12, width: '100%' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 12,
-                      background: '#F1F5F9',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#EF4444',
-                      opacity: deletionPending ? 0.6 : 1,
-                    }}>
-                      <DeleteOutlined style={{ fontSize: 18 }} />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <div style={{ fontWeight: 600, lineHeight: '20px', color: '#111827' }}>Удалить аккаунт</div>
-                      <div style={{ color: '#64748B', fontSize: 12, lineHeight: '16px' }}>
-                        {deletionPending ? 'Заявка уже отправлена' : 'Удаление аккаунта через поддержку'}
-                      </div>
-                    </div>
-                  </div>
-                  <RightOutlined style={{ color: '#94a3b8', fontSize: 12, marginLeft: 'auto' }} />
-                </div>
-              </Button>
-              {deletionPending && (
-                <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
-                  Заявка на удаление уже отправлена и ожидает обработки.
-                </Text>
-              )}
+          {!isAdmin && !deletionPending && (
+            <SecurityActionRow
+              icon={<DeleteOutlined style={{ fontSize: 18 }} />}
+              iconBg="#F1F5F9"
+              iconColor="#EF4444"
+              title="Удалить аккаунт"
+              description="Удаление аккаунта через поддержку"
+              onClick={onDeleteClick}
+            />
+          )}
+
+          {!isAdmin && deletionPending && (
+            <div className="security-card-footer">
+              <Text type="secondary" style={{ fontSize: 12, display: 'block', lineHeight: 1.5 }}>
+                Заявка на удаление уже отправлена и ожидает обработки. Если запрос был отправлен по ошибке,
+                обратитесь в поддержку{' '}
+                <a href="mailto:corp@click-i.ru" style={{ color: accent }}>
+                  corp@click-i.ru
+                </a>
+              </Text>
             </div>
           )}
         </div>
