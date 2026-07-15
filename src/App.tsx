@@ -39,10 +39,6 @@ function AppRoutes() {
   const location = useLocation()
   const showAppFooter = location.pathname !== '/'
 
-  const getInitialRoute = () => {
-    return '/analytics/products'
-  }
-
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <div>
@@ -53,12 +49,7 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/confirm-email" element={<ConfirmEmail />} />
         <Route path="/invite/:token" element={<InviteAccept />} />
-        <Route
-          path="/"
-          element={
-            token ? <Navigate to={getInitialRoute()} replace /> : <Landing />
-          }
-        />
+        <Route path="/" element={<Landing />} />
         <Route
           path="/analytics"
           element={token ? <AccessGuard><CabinetSectionGuard section="SUMMARY"><AnalyticsSummary /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
