@@ -15,11 +15,19 @@ const apiClient = axios.create({
 
 // Перехватчик для добавления токена
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  } else {
-    console.warn('Токен не найден для запроса:', config.url)
+  const url = config.url || ''
+  const isPublicAuth =
+    url.includes('/auth/login')
+    || url.includes('/auth/register')
+    || url.includes('/auth/forgot-password')
+    || url.includes('/auth/reset-password')
+    || url.includes('/auth/confirm-email')
+
+  if (!isPublicAuth) {
+    const token = useAuthStore.getState().token
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
   }
   return config
 })

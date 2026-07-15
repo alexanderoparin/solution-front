@@ -30,6 +30,7 @@ import EmailConfirmPromptModal from './modals/EmailConfirmPromptModal'
 import EmailConfirmedModal from './modals/EmailConfirmedModal'
 import EmailConfirmAfterRegisterModal from './modals/EmailConfirmAfterRegisterModal'
 import { EMAIL_CONFIRMED_MODAL_KEY } from '../../constants/emailConfirmStorage'
+import { NEED_EMAIL_CONFIRM_MODAL_KEY } from '../../constants/needEmailConfirmStorage'
 
 dayjs.locale('ru')
 
@@ -96,6 +97,14 @@ export default function ProfilePage() {
     if (searchParams.get('registered') === '1') {
       setAfterRegisterConfirmOpen(true)
       clearSearchParam('registered')
+    }
+    try {
+      if (sessionStorage.getItem(NEED_EMAIL_CONFIRM_MODAL_KEY) === '1') {
+        sessionStorage.removeItem(NEED_EMAIL_CONFIRM_MODAL_KEY)
+        setAfterRegisterConfirmOpen(true)
+      }
+    } catch {
+      /* ignore */
     }
     if (searchParams.get('addCabinet') === '1') {
       setAddCabinetOpen(true)

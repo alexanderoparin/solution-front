@@ -9,6 +9,7 @@ import { useAuthStore } from '../store/authStore'
 import SiteLogo from '../components/SiteLogo'
 import type { LoginRequest } from '../types/api'
 import { LEGAL_OPERATOR } from '../constants/legalOperator'
+import { NEED_EMAIL_CONFIRM_MODAL_KEY } from '../constants/needEmailConfirmStorage'
 
 const { Title, Text } = Typography
 
@@ -45,15 +46,29 @@ export default function Login() {
       setAuth(data.token, data.email, data.userId, data.role)
 
       message.success('Вход выполнен успешно')
+
+      let emailConfirmed = true
       try {
-        await queryClient.prefetchQuery({
+        const access = await queryClient.fetchQuery({
           queryKey: ACCESS_STATUS_QUERY_KEY,
           queryFn: () => userApi.getAccessStatus(),
           staleTime: ACCESS_STATUS_STALE_MS,
         })
+        emailConfirmed = access.emailConfirmed === true
       } catch {
         /* AccessStatusPrefetch / AccessGuard повторят запрос */
       }
+
+      if (!emailConfirmed) {
+        try {
+          sessionStorage.setItem(NEED_EMAIL_CONFIRM_MODAL_KEY, '1')
+        } catch {
+          /* ignore */
+        }
+        navigate('/profile', { replace: true })
+        return
+      }
+
       navigate(getInitialRoute())
     },
     onError: (error: any) => {
