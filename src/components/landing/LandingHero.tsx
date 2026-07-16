@@ -60,13 +60,15 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
         }
         .landing-hero-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 48px;
-          align-items: center;
+          grid-template-columns: 1fr 1.15fr;
+          gap: 28px;
+          align-items: stretch;
         }
         .landing-hero-visuals {
           position: relative;
-          min-height: 420px;
+          height: 100%;
+          min-height: 0;
+          align-self: stretch;
         }
         .landing-hero-shot-top,
         .landing-hero-shot-bottom {
@@ -78,7 +80,7 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
           position: absolute;
           top: 0;
           right: 0;
-          width: 92%;
+          width: 78%;
           z-index: 2;
           border-radius: ${landingRadii.lg}px;
           box-shadow: 0 24px 48px rgba(0,0,0,0.45);
@@ -86,15 +88,15 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
         .landing-hero-shot-bottom {
           position: absolute;
           bottom: 0;
-          left: 0;
-          width: 88%;
+          left: 12%;
+          width: 78%;
           z-index: 1;
           border-radius: ${landingRadii.lg}px;
           box-shadow: 0 16px 40px rgba(0,0,0,0.4);
         }
         @media (max-width: 960px) {
           .landing-hero-grid { grid-template-columns: 1fr; gap: 32px; }
-          .landing-hero-visuals { min-height: 320px; max-width: 520px; margin: 0 auto; width: 100%; }
+          .landing-hero-visuals { min-height: 360px; max-width: 520px; margin: 0 auto; width: 100%; height: auto; }
           .landing-hero-glow--right { right: -20%; top: 28%; }
         }
       `}</style>
@@ -105,63 +107,80 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
         <div className="landing-hero-inner" style={landingContainerStyle()}>
           <div className="landing-hero-grid">
             <div>
-              <h1
+              <div style={{ maxWidth: 600 }}>
+                <h1
+                  style={{
+                    margin: '0 0 20px',
+                    fontSize: 'clamp(32px, 5vw, 46px)',
+                    fontWeight: 800,
+                    lineHeight: 1.15,
+                    letterSpacing: '-0.03em',
+                    textAlign: 'center',
+                  }}
+                >
+                  {landingHero.titleBefore}
+                  <br />
+                  {landingHero.titlePreposition}&nbsp;
+                  <span style={{ color: landingColors.accent }}>{landingHero.titleHighlight}</span>
+                  {landingHero.titleAfter}
+                </h1>
+                <p style={{ margin: '0 0 32px', fontSize: 18, lineHeight: 1.65, color: landingColors.textOnDarkMuted, textAlign: 'center', whiteSpace: 'pre-line' }}>
+                  {landingHero.subtitle}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 40, justifyContent: 'center' }}>
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={() => navigate('/register')}
+                    style={{
+                      backgroundColor: landingColors.accent,
+                      borderColor: landingColors.accent,
+                      borderRadius: landingRadii.md,
+                      height: 48,
+                      paddingInline: 40,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Попробовать бесплатно
+                  </Button>
+                  <Button
+                    size="large"
+                    onClick={() => onOpenLeadForm({ type: 'consultation', source: 'hero-consultation' })}
+                    style={{
+                      borderRadius: landingRadii.md,
+                      height: 48,
+                      paddingInline: 40,
+                      fontWeight: 600,
+                      backgroundColor: 'transparent',
+                      borderColor: 'rgba(255,255,255,0.35)',
+                      color: landingColors.textOnDark,
+                    }}
+                  >
+                    Заказать консультацию
+                  </Button>
+                </div>
+              </div>
+              <div
                 style={{
-                  margin: '0 0 20px',
-                  fontSize: 'clamp(32px, 5vw, 46px)',
-                  fontWeight: 800,
-                  lineHeight: 1.15,
-                  letterSpacing: '-0.03em',
+                  display: 'flex',
+                  flexWrap: 'nowrap',
+                  gap: 20,
+                  alignItems: 'flex-start',
+                  width: 'max-content',
+                  maxWidth: '100%',
                 }}
               >
-                {landingHero.titleBefore}
-                <br />
-                {landingHero.titlePreposition}&nbsp;
-                <span style={{ color: landingColors.accent }}>{landingHero.titleHighlight}</span>
-                {landingHero.titleAfter}
-              </h1>
-              <p style={{ margin: '0 0 32px', fontSize: 18, lineHeight: 1.65, color: landingColors.textOnDarkMuted, maxWidth: 520 }}>
-                {landingHero.subtitle}
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 40 }}>
-                <Button
-                  type="primary"
-                  size="large"
-                  onClick={() => navigate('/register')}
-                  style={{
-                    backgroundColor: landingColors.accent,
-                    borderColor: landingColors.accent,
-                    borderRadius: landingRadii.md,
-                    height: 48,
-                    paddingInline: 24,
-                    fontWeight: 600,
-                  }}
-                >
-                  Попробовать бесплатно
-                </Button>
-                <Button
-                  size="large"
-                  onClick={() => onOpenLeadForm({ type: 'consultation', source: 'hero-consultation' })}
-                  style={{
-                    borderRadius: landingRadii.md,
-                    height: 48,
-                    paddingInline: 24,
-                    fontWeight: 600,
-                    backgroundColor: 'transparent',
-                    borderColor: 'rgba(255,255,255,0.35)',
-                    color: landingColors.textOnDark,
-                  }}
-                >
-                  Заказать консультацию
-                </Button>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
                 {landingHero.trustBadges.map((badge) => (
-                  <div key={badge.title} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 140 }}>
-                    <CheckCircleOutlined style={{ color: landingColors.accent, fontSize: 18, marginTop: 2 }} />
+                  <div
+                    key={badge.title}
+                    style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexShrink: 0 }}
+                  >
+                    <CheckCircleOutlined style={{ color: landingColors.accent, fontSize: 18, marginTop: 2, flexShrink: 0 }} />
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 16 }}>{badge.title}</div>
-                      <div style={{ fontSize: 13, color: landingColors.textOnDarkMuted, whiteSpace: 'pre-line' }}>{badge.description}</div>
+                      <div style={{ fontWeight: 700, fontSize: 16, whiteSpace: 'nowrap' }}>{badge.title}</div>
+                      <div style={{ fontSize: 13, color: landingColors.textOnDarkMuted, whiteSpace: 'nowrap' }}>
+                        {badge.description}
+                      </div>
                     </div>
                   </div>
                 ))}
