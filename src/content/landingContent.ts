@@ -49,6 +49,7 @@ export const landingServices = [
     bullets: ['Детальная статистика по кампаниям', 'Сравнительный анализ выбранных периодов', 'Экспорт данных в один клик'],
     image: null,
     detailLink: { label: 'Подробнее', href: `#${LANDING_ANCHORS.features}` },
+    galleryImages: landingAssets.galleryAnalytics,
     actions: [{ label: 'Попробовать бесплатно', to: '/register', variant: 'solid-purple', fullWidth: true }],
   },
   {
@@ -59,6 +60,7 @@ export const landingServices = [
     bullets: ['Автопополнение баланса', 'Запуск рекламной кампании по вашим настройкам', 'Создание нескольких периодов на один день'],
     image: null,
     detailLink: { label: 'Подробнее', href: `#${LANDING_ANCHORS.pricing}` },
+    galleryImages: landingAssets.galleryBidder,
     actions: [{ label: 'Попробовать бесплатно', to: '/register', variant: 'solid-purple', fullWidth: true }],
   },
   {
@@ -74,6 +76,7 @@ export const landingServices = [
     ],
     image: null,
     detailLink: { label: 'Подробнее', href: `#${LANDING_ANCHORS.contacts}` },
+    galleryImages: null,
     actions: [{ label: 'Заказать услугу', consultationForm: true, variant: 'solid-green', fullWidth: true }],
   },
 ] as const

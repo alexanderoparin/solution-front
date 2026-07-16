@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card } from 'antd'
 import {
@@ -11,6 +12,7 @@ import { LANDING_ANCHORS, landingServices } from '../../content/landingContent'
 import { landingColors, landingRadii } from '../../styles/landing'
 import type { LandingLeadRequest } from '../../types/landingLead'
 import { LandingSectionTitle, landingContainerStyle, landingSectionStyle } from './landingShared'
+import LandingServiceGalleryModal from './LandingServiceGalleryModal'
 
 const serviceIcons = {
   analytics: <BarChartOutlined />,
@@ -76,6 +78,7 @@ interface LandingServicesProps {
 
 export default function LandingServices({ onOpenLeadForm }: LandingServicesProps) {
   const navigate = useNavigate()
+  const [gallery, setGallery] = useState<{ title: string; images: readonly string[] } | null>(null)
 
   return (
     <>
@@ -94,8 +97,27 @@ export default function LandingServices({ onOpenLeadForm }: LandingServicesProps
           display: flex;
           flex-wrap: wrap;
           gap: 10px;
-          margin-top: auto;
           width: 100%;
+        }
+        .landing-service-detail {
+          display: inline-block;
+          align-self: flex-start;
+          margin-top: auto;
+          margin-bottom: 16px;
+          color: ${landingColors.accent};
+          font-weight: 500;
+          font-size: 14px;
+          text-align: left;
+          text-decoration: none;
+          background: none;
+          border: none;
+          padding: 0;
+          cursor: pointer;
+          font-family: inherit;
+          line-height: 1.4;
+        }
+        .landing-service-detail:hover {
+          color: ${landingColors.accentHover};
         }
         .landing-service-btn--solid-purple:hover,
         .landing-service-btn--solid-purple:focus {
@@ -183,19 +205,19 @@ export default function LandingServices({ onOpenLeadForm }: LandingServicesProps
                     </li>
                   ))}
                 </ul>
-                <a
-                  href={service.detailLink.href}
-                  style={{
-                    display: 'inline-block',
-                    marginBottom: 16,
-                    color: landingColors.accent,
-                    fontWeight: 500,
-                    fontSize: 14,
-                    textDecoration: 'none',
-                  }}
-                >
-                  {service.detailLink.label} →
-                </a>
+                {service.galleryImages ? (
+                  <button
+                    type="button"
+                    className="landing-service-detail"
+                    onClick={() => setGallery({ title: service.title, images: service.galleryImages })}
+                  >
+                    {service.detailLink.label} →
+                  </button>
+                ) : (
+                  <a href={service.detailLink.href} className="landing-service-detail">
+                    {service.detailLink.label} →
+                  </a>
+                )}
                 {service.image ? (
                   <img
                     src={service.image}
@@ -244,6 +266,12 @@ export default function LandingServices({ onOpenLeadForm }: LandingServicesProps
           </div>
         </div>
       </section>
+      <LandingServiceGalleryModal
+        open={gallery != null}
+        title={gallery?.title ?? ''}
+        images={gallery?.images ?? []}
+        onClose={() => setGallery(null)}
+      />
     </>
   )
 }

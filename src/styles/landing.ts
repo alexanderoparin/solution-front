@@ -46,4 +46,16 @@ export const landingAssets = {
   caseCosmetics: '/landing/case-cosmetics.png',
   caseClothes: '/landing/case-clothes.png',
   missionQuotes: '/landing/mission-quotes.png',
+  /** Галерея «Аналитика рекламы» (?v= — сброс кеша после замены файлов). */
+  galleryAnalytics: [
+    '/landing/gallery/analytics/1.png?v=1',
+    '/landing/gallery/analytics/2.png?v=1',
+    '/landing/gallery/analytics/3.png?v=1',
+    '/landing/gallery/analytics/4.png?v=1',
+  ],
+  /** Галерея «Автоматический запуск рекламы» / Управление РК. */
+  galleryBidder: [
+    '/landing/gallery/bidder/1.png?v=1',
+    '/landing/gallery/bidder/2.png?v=1',
+  ],
 } as const
