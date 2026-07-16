@@ -1,9 +1,14 @@
-import { CustomerServiceOutlined, EyeOutlined, TeamOutlined } from '@ant-design/icons'
+import { CustomerServiceOutlined, EyeOutlined, RobotOutlined, TrophyOutlined } from '@ant-design/icons'
 import { landingTrustStats } from '../../content/landingContent'
-import { landingColors, landingRadii } from '../../styles/landing'
+import { landingColors, landingLayout, landingRadii } from '../../styles/landing'
 import { LandingSectionTitle, landingContainerStyle, landingSectionStyle } from './landingShared'
 
-const trustIcons = [<TeamOutlined />, <CustomerServiceOutlined />, <EyeOutlined />]
+const trustIcons = [
+  <TrophyOutlined key="expertise" />,
+  <RobotOutlined key="tech" />,
+  <EyeOutlined key="transparency" />,
+  <CustomerServiceOutlined key="support" />,
+]
 
 export default function LandingTrust() {
   return (
@@ -11,16 +16,33 @@ export default function LandingTrust() {
       <style>{`
         .landing-trust-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 24px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 20px;
+        }
+        .landing-trust-title {
+          font-size: clamp(16px, 1.7vw, 22px) !important;
+          white-space: nowrap;
+        }
+        @media (max-width: 1100px) {
+          .landing-trust-title {
+            font-size: clamp(15px, 1.6vw, 20px) !important;
+          }
+          .landing-trust-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 960px) {
+          .landing-trust-title { white-space: normal !important; }
+        }
+        @media (max-width: 640px) {
           .landing-trust-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
         }
       `}</style>
       <section style={landingSectionStyle()}>
         <div style={landingContainerStyle()}>
-          <LandingSectionTitle title="Мы ведем рекламу сами и знаем как получить результат" />
+          <LandingSectionTitle
+            title="Мы ежедневно работаем с рекламой Wildberries и объединяем практический опыт, технологии и прозрачный подход к работе"
+            contentMaxWidth={landingLayout.maxWidth}
+            titleClassName="landing-trust-title"
+          />
           <div className="landing-trust-grid">
             {landingTrustStats.map((item, index) => (
               <div

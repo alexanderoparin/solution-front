@@ -196,7 +196,7 @@ export default function LandingServices({ onOpenLeadForm }: LandingServicesProps
                     </span>
                   ) : null}
                 </div>
-                <p style={{ margin: '0 0 16px', color: landingColors.textSecondary, lineHeight: 1.6 }}>{service.description}</p>
+                <p style={{ margin: '0 0 16px', color: landingColors.textSecondary, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{service.description}</p>
                 <ul style={{ margin: '0 0 16px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {service.bullets.map((bullet) => (
                     <li key={bullet} style={{ display: 'flex', gap: 8, fontSize: 14, color: landingColors.textSecondary }}>

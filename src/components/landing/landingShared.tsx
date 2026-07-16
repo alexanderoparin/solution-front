@@ -29,14 +29,20 @@ export function LandingSectionTitle({
   title,
   subtitle,
   light = false,
+  contentMaxWidth = 720,
+  titleStyle,
+  titleClassName,
 }: {
   eyebrow?: string
   title: string
   subtitle?: string
   light?: boolean
+  contentMaxWidth?: number
+  titleStyle?: CSSProperties
+  titleClassName?: string
 }) {
   return (
-    <div style={{ textAlign: 'center', marginBottom: 36, maxWidth: 720, marginLeft: 'auto', marginRight: 'auto' }}>
+    <div style={{ textAlign: 'center', marginBottom: 36, maxWidth: contentMaxWidth, marginLeft: 'auto', marginRight: 'auto' }}>
       {eyebrow ? (
         <div
           style={{
@@ -52,6 +58,7 @@ export function LandingSectionTitle({
         </div>
       ) : null}
       <h2
+        className={titleClassName}
         style={{
           margin: 0,
           fontSize: 'clamp(28px, 4vw, 36px)',
@@ -59,6 +66,7 @@ export function LandingSectionTitle({
           lineHeight: 1.2,
           letterSpacing: '-0.02em',
           color: light ? landingColors.textOnDark : landingColors.textPrimary,
+          ...titleStyle,
         }}
       >
         {title}
