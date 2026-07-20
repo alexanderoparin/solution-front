@@ -48,9 +48,8 @@ export default function LandingHeader() {
           top: 0,
           zIndex: 100,
           height: landingLayout.headerHeight,
-          backgroundColor: 'rgba(11, 11, 16, 0.88)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          backgroundColor: landingColors.darkBg,
+          borderBottom: 'none',
         }}
       >
         <div

@@ -3,8 +3,10 @@ export const landingColors = {
   accent: '#7C3AED',
   accentHover: '#6D28D9',
   accentLight: '#EDE9FE',
+  /** Основной почти-чёрный фон (hero, шапка, футер). */
+  darkBg: '#0B0B10',
   heroBg: '#0B0B10',
-  heroBgSoft: '#12121A',
+  heroBgSoft: '#0B0B10',
   /** Мягкое фиолетовое свечение на hero (как в макете «Лендинг»). */
   heroGlow: 'rgba(124, 58, 237, 0.42)',
   heroGlowSoft: 'rgba(124, 58, 237, 0.14)',
@@ -16,7 +18,7 @@ export const landingColors = {
   border: '#E2E8F0',
   cardBg: '#FFFFFF',
   sectionBg: '#F8FAFC',
-  footerBg: '#0F172A',
+  footerBg: '#0B0B10',
   /** Лайм из логотипа Clicki (DESIGN_SYSTEM / logo). */
   brandGreen: '#B4D705',
   brandGreenHover: '#96AF04',

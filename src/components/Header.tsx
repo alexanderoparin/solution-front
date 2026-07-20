@@ -116,9 +116,8 @@ export default function Header({
   return (
     <div
       style={{
-        backgroundColor: 'rgba(11, 11, 16, 0.88)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        backgroundColor: landingColors.darkBg,
+        borderBottom: 'none',
         padding: '12px 24px',
         display: 'flex',
         justifyContent: 'space-between',
