@@ -8,6 +8,7 @@ import LandingServices from '../components/landing/LandingServices'
 import LandingFeatures from '../components/landing/LandingFeatures'
 import LandingPricing from '../components/landing/LandingPricing'
 import LandingTrust from '../components/landing/LandingTrust'
+import LandingCases from '../components/landing/LandingCases'
 import LandingFaq, { LandingBlogSection } from '../components/landing/LandingFaq'
 import LandingFooter from '../components/landing/LandingFooter'
 import { landingColors } from '../styles/landing'
@@ -42,6 +43,7 @@ export default function Landing() {
         <LandingFeatures />
         <LandingPricing onOpenLeadForm={openLeadForm} />
         <LandingTrust />
+        <LandingCases />
         <LandingFaq />
         <LandingBlogSection />
       </main>

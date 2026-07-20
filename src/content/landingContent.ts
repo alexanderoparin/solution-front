@@ -207,35 +207,10 @@ export const landingTrustStats = [
   },
 ] as const
 
-export const landingCases = [
-  {
-    id: 'home',
-    category: 'Дом и интерьер',
-    metrics: [
-      { label: 'Рост продаж', value: '3,5×' },
-      { label: 'ДРР', value: '−23%' },
-    ],
-    image: landingAssets.caseHome,
-  },
-  {
-    id: 'cosmetics',
-    category: 'Косметика',
-    metrics: [
-      { label: 'Прибыль', value: '+67%' },
-      { label: 'Заказы', value: '+42%' },
-    ],
-    image: landingAssets.caseCosmetics,
-  },
-  {
-    id: 'clothes',
-    category: 'Одежда',
-    metrics: [
-      { label: 'Расходы', value: '−31%' },
-      { label: 'ROAS', value: '+28%' },
-    ],
-    image: landingAssets.caseClothes,
-  },
-] as const
+export const landingCases = landingAssets.cases
+
+/** PDF со всеми кейсами — скачивается по кнопке «Посмотреть все кейсы». */
+export const landingCasesPresentationUrl = landingAssets.casesPresentationPdf
 
 export const landingFaq = [
   {

@@ -60,4 +60,12 @@ export const landingAssets = {
     '/landing/gallery/bidder/1.png?v=1',
     '/landing/gallery/bidder/2.png?v=1',
   ],
+  /** Кейсы клиентов (слайды презентации). */
+  cases: [
+    { id: 'jeans', title: 'Джинсы', image: '/landing/cases/01-jeans.png?v=1' },
+    { id: 'hooks', title: 'Крючки для полотенец', image: '/landing/cases/02-hooks.png?v=1' },
+    { id: 'dress', title: 'Платье', image: '/landing/cases/03-dress.png?v=1' },
+    { id: 'tshirt', title: 'Футболка', image: '/landing/cases/04-tshirt.png?v=1' },
+  ],
+  casesPresentationPdf: '/landing/cases-clicki.pdf',
 } as const
