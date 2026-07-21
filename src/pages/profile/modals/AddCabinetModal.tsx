@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Modal, Form, Input, Select, Button, Typography } from 'antd'
 import { KeyOutlined } from '@ant-design/icons'
 import type { CabinetTokenType, CreateCabinetRequest } from '../../../types/api'
+import TokenCreationGuideModal from './TokenCreationGuideModal'
 
 const { Text } = Typography
 const accent = '#7C3AED'
@@ -19,8 +21,10 @@ interface AddCabinetModalProps {
 
 export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: AddCabinetModalProps) {
   const [form] = Form.useForm<{ name?: string; apiKey: string; tokenType?: CabinetTokenType }>()
+  const [guideOpen, setGuideOpen] = useState(false)
 
   const handleCancel = () => {
+    setGuideOpen(false)
     form.resetFields()
     onCancel()
   }
@@ -71,7 +75,21 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
         <Form.Item
           name="apiKey"
           label="WB API-токен"
-          extra={<Text type="secondary" style={{ fontSize: 12 }}>{WB_TOKEN_HINT}</Text>}
+          extra={(
+            <div>
+              <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+                {WB_TOKEN_HINT}
+              </Text>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => setGuideOpen(true)}
+                style={{ height: 'auto', padding: '4px 0 0', fontSize: 12 }}
+              >
+                Как создать токен
+              </Button>
+            </div>
+          )}
           rules={[{ required: true, whitespace: true, message: 'Введите API-токен WB' }]}
         >
           <Input.Password prefix={<KeyOutlined />} placeholder="Введите токен" autoComplete="off" />
@@ -97,6 +115,7 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
           <Input placeholder="Необязательно — подставится из WB" />
         </Form.Item>
       </Form>
+      <TokenCreationGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </Modal>
   )
 }
