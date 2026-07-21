@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Spin, Input, Select, DatePicker, Button, message } from 'antd'
+import { Spin, Input, Select, DatePicker, Button, Tooltip, message } from 'antd'
 import { SearchOutlined, CaretUpOutlined, CaretDownOutlined, SyncOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -417,16 +417,20 @@ export default function AdvertisingCampaigns() {
               />
             </div>
             <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
-              <Button
-                type="default"
-                icon={<SyncOutlined />}
-                loading={promotionSyncMutation.isPending}
-                disabled={selectedCabinetId == null}
-                onClick={() => promotionSyncMutation.mutate()}
-                style={{ borderRadius: borderRadius.sm }}
+              <Tooltip
+                title="Обновление выполняется в фоновом режиме и может занять некоторое время."
               >
-                Обновить все РК
-              </Button>
+                <Button
+                  type="default"
+                  icon={<SyncOutlined />}
+                  loading={promotionSyncMutation.isPending}
+                  disabled={selectedCabinetId == null}
+                  onClick={() => promotionSyncMutation.mutate()}
+                  style={{ borderRadius: borderRadius.sm }}
+                >
+                  Обновить все РК
+                </Button>
+              </Tooltip>
             </div>
           </div>
           {campaignsLoading ? (
