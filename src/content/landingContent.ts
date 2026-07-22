@@ -207,7 +207,49 @@ export const landingTrustStats = [
   },
 ] as const
 
-export const landingCases = landingAssets.cases
+/** Карточки кейсов для лендинга: метрики «было → стало» и точки sparkline. */
+export const landingCases = [
+  {
+    id: 'jeans',
+    title: 'Джинсы',
+    thumb: '/landing/cases/thumbs/jeans.png',
+    metrics: [{ label: 'CPO', from: '273 ₽', to: '110 ₽', improved: true, direction: 'down' as const }],
+    // Плавный спад с одним отскоком в середине
+    chart: [273, 255, 235, 228, 190, 205, 155, 132, 118, 110],
+  },
+  {
+    id: 'hooks',
+    title: 'Крючки для полотенец',
+    thumb: '/landing/cases/thumbs/hooks.png',
+    metrics: [{ label: 'CPO', from: '111 ₽', to: '71 ₽', improved: true, direction: 'down' as const }],
+    // Ранний резкий спад → полка → финальный дожим
+    chart: [111, 108, 86, 84, 83, 92, 78, 74, 71],
+  },
+  {
+    id: 'grater',
+    title: 'Терка',
+    thumb: '/landing/cases/thumbs/grater.png',
+    metrics: [
+      { label: 'Заказы', from: '169', to: '303', improved: true, direction: 'up' as const },
+      { label: 'CTR', from: '4,15%', to: '7,85%', improved: true, direction: 'up' as const },
+      { label: 'CPO', from: '112 ₽', to: '90 ₽', improved: true, direction: 'down' as const },
+    ],
+    // Медленный старт, затем ускорение
+    chart: [169, 172, 185, 210, 255, 248, 290, 303],
+  },
+  {
+    id: 'tshirt',
+    title: 'Футболка',
+    thumb: '/landing/cases/thumbs/tshirt.png',
+    metrics: [
+      { label: 'Заказы', from: '1 425', to: '2 723', improved: true, direction: 'up' as const },
+      { label: 'CPO', from: '137 ₽', to: '68 ₽', improved: true, direction: 'down' as const },
+      { label: 'CTR', from: '3,16%', to: '4,95%', improved: true, direction: 'up' as const },
+    ],
+    // Ранний рывок, просадка в середине, сильный финиш
+    chart: [1425, 2100, 1950, 1780, 2050, 2480, 2350, 2723],
+  },
+] as const
 
 /** PDF со всеми кейсами — скачивается по кнопке «Посмотреть все кейсы». */
 export const landingCasesPresentationUrl = landingAssets.casesPresentationPdf
