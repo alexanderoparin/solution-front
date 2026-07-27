@@ -75,7 +75,7 @@ export const landingServices = [
       'Прозрачная отчетность и контроль результата',
     ],
     image: null,
-    detailLink: { label: 'Подробнее', href: `#${LANDING_ANCHORS.contacts}` },
+    detailLink: { label: 'Подробнее', href: `#${LANDING_ANCHORS.cases}` },
     galleryImages: null,
     actions: [{ label: 'Заказать услугу', consultationForm: true, variant: 'solid-green', fullWidth: true }],
   },

@@ -1,7 +1,7 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Form, Input, Button, Card, Typography, message, Checkbox, Tooltip, Radio } from 'antd'
+import { Form, Input, Button, Card, Typography, message, Checkbox, Tooltip } from 'antd'
 import { UserOutlined, LockOutlined, IdcardOutlined } from '@ant-design/icons'
 import { authApi } from '../api/auth'
 import { invitationsApi } from '../api/invitations'
@@ -51,7 +51,7 @@ export default function Register() {
 
   useEffect(() => {
     if (isInviteFlow) {
-      form.setFieldValue('accountType', 'EMPLOYEE')
+      form.setFieldValue('accountTypes', ['EMPLOYEE'])
     }
   }, [isInviteFlow, form])
 
@@ -127,19 +127,19 @@ export default function Register() {
     email: string
     password: string
     confirmPassword: string
-    accountType: AccountType
+    accountTypes: AccountType[]
     agreeToOffer: boolean
     marketingConsent?: boolean
   }) => {
     if (!values.agreeToOffer) return
-    const accountType = isInviteFlow ? 'EMPLOYEE' : values.accountType
+    const accountTypes = isInviteFlow ? (['EMPLOYEE'] as AccountType[]) : values.accountTypes
     registerMutation.mutate({
       name: values.name.trim(),
       email: values.email,
       password: values.password,
       agreeToOffer: values.agreeToOffer,
       marketingConsent: values.marketingConsent ?? false,
-      accountTypes: [accountType],
+      accountTypes,
       invitationToken: invitationToken ?? undefined,
     })
   }
@@ -178,7 +178,7 @@ export default function Register() {
           layout="vertical"
           size="large"
           autoComplete="off"
-          initialValues={{ accountType: 'SELLER' }}
+          initialValues={{ accountTypes: ['SELLER'] }}
         >
           <Form.Item
             name="name"
@@ -228,17 +228,27 @@ export default function Register() {
             <Input.Password prefix={<LockOutlined />} placeholder="Повторите пароль" autoComplete="new-password" />
           </Form.Item>
           <Form.Item
-            name="accountType"
+            name="accountTypes"
             label="Тип аккаунта"
-            rules={[{ required: !isInviteFlow, message: 'Выберите тип аккаунта' }]}
+            rules={[
+              {
+                required: !isInviteFlow,
+                type: 'array',
+                min: 1,
+                message: 'Выберите хотя бы один тип аккаунта',
+              },
+            ]}
           >
-            <Radio.Group disabled={isInviteFlow}>
+            <Checkbox.Group
+              disabled={isInviteFlow}
+              style={{ display: 'flex', width: '100%', justifyContent: 'space-between' }}
+            >
               {REGISTRATION_ACCOUNT_TYPES.map((type) => (
-                <Radio key={type} value={type}>
+                <Checkbox key={type} value={type}>
                   {ACCOUNT_TYPE_LABELS[type]}
-                </Radio>
+                </Checkbox>
               ))}
-            </Radio.Group>
+            </Checkbox.Group>
           </Form.Item>
           <Form.Item name="agreeToOffer" valuePropName="checked">
             <Checkbox>

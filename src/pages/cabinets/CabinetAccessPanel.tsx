@@ -660,7 +660,7 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
           </Form.Item>
           <Form.Item name="comment" label="Комментарий">
             <Input.TextArea
-              rows={3}
+              rows={2}
               placeholder={'Например: «Маркетолог», «Менеджер WB», «Иван из агентства».\nКомментарий виден только вам'}
             />
           </Form.Item>
