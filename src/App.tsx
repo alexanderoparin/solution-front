@@ -12,6 +12,8 @@ import AdvertisingCampaigns from './pages/AdvertisingCampaigns'
 import AdvertisingCampaignDetail from './pages/AdvertisingCampaignDetail'
 import AdvertisingCampaignManage from './pages/AdvertisingCampaignManage'
 import BidderCampaigns from './pages/BidderCampaigns'
+import AbTests from './pages/AbTests'
+import AbTestDetail from './pages/AbTestDetail'
 import Profile from './pages/Profile'
 import AdminPlansAndSubscriptions from './pages/AdminPlansAndSubscriptions'
 import AdminWbEvents from './pages/AdminWbEvents'
@@ -65,6 +67,14 @@ function AppRoutes() {
         <Route
           path="/advertising/campaigns"
           element={token ? <AccessGuard><CabinetSectionGuard section="AD_CAMPAIGNS"><AdvertisingCampaigns /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/advertising/ab-test"
+          element={token ? <AccessGuard><CabinetSectionGuard section="AD_CAMPAIGNS"><AbTests /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/advertising/ab-test/:id"
+          element={token ? <AccessGuard><CabinetSectionGuard section="AD_CAMPAIGNS"><AbTestDetail /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/advertising/bidder"

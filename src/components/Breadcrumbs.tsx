@@ -42,6 +42,14 @@ export default function Breadcrumbs() {
     )
   } else if (pathname === '/advertising/bidder') {
     items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Управление РК' })
+  } else if (pathname === '/advertising/ab-test') {
+    items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'А/Б-тест' })
+  } else if (pathname.match(/^\/advertising\/ab-test\/\d+$/) && params.id) {
+    items.push(
+      { label: 'Реклама', path: '/advertising/campaigns' },
+      { label: 'А/Б-тест', path: '/advertising/ab-test' },
+      { label: params.id }
+    )
   } else if (pathname === '/advertising/campaigns') {
     items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Рекламные кампании' })
   } else if (pathname.match(/^\/advertising\/campaigns\/\d+\/manage$/) && params.id) {

@@ -166,6 +166,10 @@ export default function Header({
                 key: 'bidder',
                 label: <NavMenuLink to="/advertising/bidder">Управление РК</NavMenuLink>,
               },
+              {
+                key: 'ab-test',
+                label: <NavMenuLink to="/advertising/ab-test">А/Б-тест</NavMenuLink>,
+              },
             ],
           }}
           trigger={['click']}
