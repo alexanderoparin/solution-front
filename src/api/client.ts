@@ -29,6 +29,16 @@ apiClient.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer ${token}`
     }
   }
+
+  // FormData: нельзя оставлять application/json — boundary выставит браузер/axios сам.
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    if (typeof config.headers?.delete === 'function') {
+      config.headers.delete('Content-Type')
+    } else if (config.headers) {
+      delete (config.headers as Record<string, unknown>)['Content-Type']
+    }
+  }
+
   return config
 })
 

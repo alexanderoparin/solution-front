@@ -36,7 +36,10 @@ export const abTestApi = {
     cabinetId?: number,
   ): Promise<AbTest> => {
     const form = new FormData()
-    form.append('request', JSON.stringify(request))
+    form.append(
+      'request',
+      new Blob([JSON.stringify(request)], { type: 'application/json' }),
+    )
     files.forEach((file) => form.append('files', file))
     const response = await apiClient.post<AbTest>(
       `/advertising/ab-tests${buildParams(sellerId, cabinetId)}`,
@@ -44,7 +47,6 @@ export const abTestApi = {
     )
     return response.data
   },
-
   updateStatus: async (
     id: number,
     status: AbTestStatus,
