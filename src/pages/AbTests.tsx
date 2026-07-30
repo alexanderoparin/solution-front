@@ -33,6 +33,11 @@ function formatCtr(value: number | null | undefined): string {
   return `${Number(value).toFixed(2)}%`
 }
 
+function isWbRateLimitMessage(message: string | null | undefined): boolean {
+  if (!message) return false
+  return message.includes('Лимит WB по endpoint')
+}
+
 function CreateAbTestModal({
   open,
   onClose,
@@ -771,8 +776,13 @@ function AbTestCard({
         {item.insightLabel ? (
           <div style={{ marginTop: 8, fontSize: 13, color: '#64748B' }}>{item.insightLabel}</div>
         ) : null}
-        {item.lastWbError ? (
+        {item.lastWbError && !isWbRateLimitMessage(item.lastWbError) ? (
           <div style={{ marginTop: 6, fontSize: 12, color: '#DC2626' }}>{item.lastWbError}</div>
+        ) : null}
+        {item.status === 'PENDING_START' && item.lastWbError && isWbRateLimitMessage(item.lastWbError) ? (
+          <div style={{ marginTop: 6, fontSize: 12, color: '#64748B' }}>
+            Ожидание лимита WB, повтор запуска…
+          </div>
         ) : null}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
