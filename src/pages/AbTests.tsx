@@ -721,7 +721,8 @@ function AbTestCard({
   onToggle: (enabled: boolean) => void
   toggling: boolean
 }) {
-  const advertLabel = item.advertIds?.[0] != null ? `рк ${item.advertIds[0]}` : 'рк —'
+  const advertLabel =
+    item.advertIds?.length ? `рк ${item.advertIds.join(', ')}` : 'рк —'
   const dateLabel =
     item.status === 'PENDING_START'
       ? `Создан: ${item.startedAt ? dayjs(item.startedAt).format('DD.MM.YYYY HH:mm') : '—'}`
