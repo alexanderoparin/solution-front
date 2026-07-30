@@ -422,11 +422,12 @@ function CreateAbTestModal({
                 style={{ display: 'flex', flexDirection: 'column', width: '100%' }}
                 value={advertIds}
                 onChange={(vals) => {
-                  const next = vals as number[]
+                  const visibleIds = new Set(filteredCampaigns.map((c) => c.id))
+                  const preserved = advertIds.filter((id) => !visibleIds.has(id))
+                  let next = [...new Set([...preserved, ...(vals as number[])])]
                   if (isBasicToken && next.length > 1) {
-                    const added = next.find((id) => !advertIds.includes(id))
-                    setAdvertIds(added != null ? [added] : next.slice(-1))
-                    return
+                    const added = (vals as number[]).find((id) => !advertIds.includes(id))
+                    next = added != null ? [added] : next.slice(-1)
                   }
                   setAdvertIds(next)
                 }}
