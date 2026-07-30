@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Button, Modal, Select, Checkbox, Radio, Upload, message, Spin, Segmented, Switch, Alert, InputNumber, Tooltip, Input } from 'antd'
+import { Button, Modal, Select, Checkbox, Radio, Upload, message, Spin, Segmented, Switch, Alert, InputNumber, Tooltip, Input, Tag } from 'antd'
 import { PlusOutlined, PictureOutlined, CloseOutlined, PauseOutlined, SearchOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
@@ -99,6 +99,16 @@ function CreateAbTestModal({
     )
   }, [campaigns, campaignSearch])
 
+  const selectedCampaigns = useMemo(() => {
+    const byId = new Map(campaigns.map((c) => [c.id, c]))
+    return advertIds
+      .map((id) => byId.get(id))
+      .filter((c): c is (typeof campaigns)[number] => c != null)
+  }, [campaigns, advertIds])
+
+  const removeSelectedCampaign = (id: number) => {
+    setAdvertIds((prev) => prev.filter((x) => x !== id))
+  }
   const selectedArticle = articles.find((a) => a.nmId === nmId)
   const controlPhotoUrl = selectedArticle?.photoC246x328 ?? selectedArticle?.photoTm ?? null
 
@@ -345,6 +355,54 @@ function CreateAbTestModal({
             onChange={(e) => setCampaignSearch(e.target.value)}
             style={{ marginBottom: 8 }}
           />
+          {selectedCampaigns.length > 0 ? (
+            <div
+              style={{
+                marginBottom: 8,
+                padding: '8px 10px',
+                border: `1px solid ${colors.border}`,
+                borderRadius: 8,
+                background: '#F8FAFC',
+              }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {selectedCampaigns.map((c) => (
+                  <Tag
+                    key={c.id}
+                    closable
+                    onClose={(e) => {
+                      e.preventDefault()
+                      removeSelectedCampaign(c.id)
+                    }}
+                    style={{
+                      margin: 0,
+                      maxWidth: '100%',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      background: '#EEF2FF',
+                      borderColor: '#C7D2FE',
+                      color: '#312E81',
+                    }}
+                  >
+                    <span
+                      style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: 220,
+                      }}
+                    >
+                      {c.name}
+                    </span>
+                    <span style={{ color: '#64748B', flexShrink: 0 }}>{c.id}</span>
+                  </Tag>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <Spin spinning={campaignsLoading}>
             <div
               style={{
