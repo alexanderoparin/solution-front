@@ -20,6 +20,7 @@ import type {
 } from '../types/abTest'
 import type { CabinetTokenType } from '../types/api'
 import { colors, borderRadius } from '../styles/analytics'
+import AbTestVariantImage from '../components/AbTestVariantImage'
 
 const accent = '#7C3AED'
 /** Минимальный интервал ротации по времени для базового токена (fullstats ≤ 1/час). */
@@ -716,10 +717,14 @@ function AbTestCard({
   item,
   onToggle,
   toggling,
+  sellerId,
+  cabinetId,
 }: {
   item: AbTest
   onToggle: (enabled: boolean) => void
   toggling: boolean
+  sellerId?: number
+  cabinetId?: number | null
 }) {
   const advertLabel =
     item.advertIds?.length ? `рк ${item.advertIds.join(', ')}` : 'рк —'
@@ -755,9 +760,14 @@ function AbTestCard({
         {item.variants.map((v) => (
           <Link key={v.id} to={`/advertising/ab-test/${item.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ width: 72 }}>
-              <img
-                src={v.photoUrl ?? v.previewUrl ?? ''}
-                alt=""
+              <AbTestVariantImage
+                testId={item.id}
+                variantId={v.id}
+                hasLocalImage={v.hasLocalImage}
+                photoUrl={v.photoUrl}
+                previewUrl={v.previewUrl}
+                sellerId={sellerId}
+                cabinetId={cabinetId}
                 style={{ width: 72, height: 96, objectFit: 'cover', borderRadius: 8, background: '#F1F5F9' }}
               />
               <div style={{ fontSize: 12, marginTop: 4, fontWeight: 600 }}>CTR {formatCtr(v.ctr)}</div>
@@ -915,6 +925,8 @@ export default function AbTests() {
               <AbTestCard
                 key={item.id}
                 item={item}
+                sellerId={selectedSellerId}
+                cabinetId={selectedCabinetId}
                 toggling={statusMutation.isPending && statusMutation.variables?.id === item.id}
                 onToggle={(enabled) => {
                   if (!enabled) {

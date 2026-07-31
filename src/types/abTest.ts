@@ -10,6 +10,7 @@ export interface AbTestVariant {
   control: boolean
   photoUrl: string | null
   previewUrl: string | null
+  hasLocalImage?: boolean
   views: number
   clicks: number
   atbs: number

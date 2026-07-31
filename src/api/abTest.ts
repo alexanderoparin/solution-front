@@ -59,4 +59,17 @@ export const abTestApi = {
     )
     return response.data
   },
+
+  getVariantImageBlob: async (
+    testId: number,
+    variantId: number,
+    sellerId?: number,
+    cabinetId?: number,
+  ): Promise<Blob> => {
+    const response = await apiClient.get<Blob>(
+      `/advertising/ab-tests/${testId}/variants/${variantId}/image${buildParams(sellerId, cabinetId)}`,
+      { responseType: 'blob' },
+    )
+    return response.data
+  },
 }

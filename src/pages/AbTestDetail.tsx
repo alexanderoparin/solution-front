@@ -9,6 +9,7 @@ import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import { abTestApi } from '../api/abTest'
 import { colors, borderRadius } from '../styles/analytics'
+import AbTestVariantImage from '../components/AbTestVariantImage'
 
 function formatPct(value: number | null | undefined): string {
   if (value == null) return '—'
@@ -113,9 +114,14 @@ export default function AbTestDetail() {
                     <div style={{ height: 22 }} />
                   )}
                   <div style={{ position: 'relative' }}>
-                    <img
-                      src={v.photoUrl ?? v.previewUrl ?? ''}
-                      alt=""
+                    <AbTestVariantImage
+                      testId={test.id}
+                      variantId={v.id}
+                      hasLocalImage={v.hasLocalImage}
+                      photoUrl={v.photoUrl}
+                      previewUrl={v.previewUrl}
+                      sellerId={selectedSellerId}
+                      cabinetId={selectedCabinetId}
                       style={{
                         width: '100%',
                         aspectRatio: '3/4',
