@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Spin, message } from 'antd'
+import { Spin, Tooltip, message } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -19,6 +19,13 @@ function formatPct(value: number | null | undefined): string {
 function formatInt(value: number | null | undefined): string {
   if (value == null) return '—'
   return Number(value).toLocaleString('ru-RU')
+}
+
+const METRIC_HINTS: Record<string, string> = {
+  CTR: 'Клики / показы × 100 — кликабельность фото',
+  'Доля показов': 'Доля показов варианта среди всех вариантов теста',
+  CR1: 'Добавления в корзину / клики × 100 — конверсия клика в корзину',
+  CR: 'Заказы / клики × 100 — конверсия клика в заказ',
 }
 
 export default function AbTestDetail() {
@@ -97,7 +104,11 @@ export default function AbTestDetail() {
                 gap: 16,
               }}
             >
-              {test.variants.map((v) => (
+            {(() => {
+              const bestCtr = Math.max(...test.variants.map((x) => Number(x.ctr) || 0))
+              return test.variants.map((v) => {
+                const isCtrLeader = bestCtr > 0 && Number(v.ctr) === bestCtr
+                return (
                 <div
                   key={v.id}
                   style={{
@@ -135,17 +146,30 @@ export default function AbTestDetail() {
                       }}
                     />
                   </div>
-                  <div style={{ marginTop: 10, fontWeight: 700 }}>CTR {formatPct(v.ctr)}</div>
-                  <div style={{ fontSize: 13, color: '#64748B' }}>{formatPct(v.sharePercent)}</div>
-                  <div style={{ fontSize: 12, color: '#94A3B8', marginBottom: 8 }}>Реклама</div>
-                  <MetricRow label="CTR" value={formatPct(v.ctr)} accent />
+                  <div style={{ marginTop: 10, fontWeight: 700, marginBottom: 8 }}>
+                    <Tooltip title={METRIC_HINTS.CTR}>
+                      <span
+                        style={{
+                          cursor: 'help',
+                          borderBottom: '1px dashed #CBD5E1',
+                          color: isCtrLeader ? '#16A34A' : undefined,
+                        }}
+                      >
+                        CTR {formatPct(v.ctr)}
+                      </span>
+                    </Tooltip>
+                  </div>
+                  <MetricRow label="Доля показов" value={formatPct(v.sharePercent)} />
                   <MetricRow label="CR1" value={formatPct(v.cr1)} />
                   <MetricRow label="CR" value={formatPct(v.cr)} />
                   <MetricRow label="Показы" value={formatInt(v.views)} />
                   <MetricRow label="Клики" value={formatInt(v.clicks)} />
                   <MetricRow label="В корзину" value={formatInt(v.atbs)} />
+                  <MetricRow label="Заказы" value={formatInt(v.orders)} />
                 </div>
-              ))}
+                )
+              })
+            })()}
             </div>
           </>
         )}
@@ -155,9 +179,17 @@ export default function AbTestDetail() {
 }
 
 function MetricRow({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  const hint = METRIC_HINTS[label]
+  const labelNode = hint ? (
+    <Tooltip title={hint}>
+      <span style={{ cursor: 'help', borderBottom: '1px dashed #CBD5E1' }}>{label}</span>
+    </Tooltip>
+  ) : (
+    label
+  )
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '2px 0' }}>
-      <span style={{ color: '#64748B' }}>{label}</span>
+      <span style={{ color: '#64748B' }}>{labelNode}</span>
       <span style={{ fontWeight: 600, color: accent ? '#16A34A' : colors.textPrimary }}>{value}</span>
     </div>
   )
