@@ -237,11 +237,10 @@ export default function AbTestDetail() {
                           <Button
                             block
                             size="small"
-                            type={v.paused ? 'primary' : 'default'}
                             style={{
                               marginTop: 10,
                               ...(v.paused
-                                ? { background: '#16A34A', borderColor: '#16A34A' }
+                                ? { background: '#E2E8F0', borderColor: '#CBD5E1', color: '#475569' }
                                 : undefined),
                             }}
                             icon={v.paused ? <PlayCircleOutlined /> : <PauseCircleOutlined />}
