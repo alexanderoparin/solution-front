@@ -142,8 +142,6 @@ export default function AbTestDetail() {
                       <div style={{ height: 22, marginBottom: 6 }}>
                         {v.activeOnWb && !v.paused ? (
                           <span style={{ color: '#16A34A', fontWeight: 600, fontSize: 13 }}>Сейчас на ВБ</span>
-                        ) : v.paused ? (
-                          <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: 13 }}>На паузе</span>
                         ) : null}
                       </div>
                       <div style={{ position: 'relative' }}>
@@ -167,6 +165,46 @@ export default function AbTestDetail() {
                             background: '#F1F5F9',
                           }}
                         />
+                        {v.paused ? (
+                          <div
+                            aria-hidden
+                            style={{
+                              position: 'absolute',
+                              inset: 0,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderRadius: 8,
+                              pointerEvents: 'none',
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                gap: 10,
+                                alignItems: 'stretch',
+                                height: '18%',
+                                minHeight: 36,
+                                maxHeight: 56,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: 14,
+                                  borderRadius: 4,
+                                  background: 'rgba(51, 65, 85, 0.88)',
+                                }}
+                              />
+                              <span
+                                style={{
+                                  width: 14,
+                                  borderRadius: 4,
+                                  background: 'rgba(51, 65, 85, 0.88)',
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                       <div style={{ marginTop: 10, fontWeight: 700, marginBottom: 8 }}>
                         <Tooltip title={METRIC_HINTS.CTR}>
