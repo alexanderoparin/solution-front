@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Spin, Tooltip, message } from 'antd'
-import { useQuery } from '@tanstack/react-query'
+import { Button, Spin, Tooltip, message } from 'antd'
+import { PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useAuthStore } from '../store/authStore'
@@ -31,6 +32,7 @@ const METRIC_HINTS: Record<string, string> = {
 export default function AbTestDetail() {
   const { id } = useParams<{ id: string }>()
   const testId = Number(id)
+  const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role)
   const isAdmin = role === 'ADMIN'
   const workContext = useWorkContextForAdmin(isAdmin)
@@ -64,6 +66,19 @@ export default function AbTestDetail() {
     }
   }, [error])
 
+  const pauseMutation = useMutation({
+    mutationFn: ({ variantId, paused }: { variantId: number; paused: boolean }) =>
+      abTestApi.setVariantPaused(testId, variantId, paused, selectedSellerId, selectedCabinetId ?? undefined),
+    onSuccess: (data, vars) => {
+      queryClient.setQueryData(['abTest', testId, selectedSellerId, selectedCabinetId], data)
+      queryClient.invalidateQueries({ queryKey: ['abTests'] })
+      message.success(vars.paused ? 'Вариант на паузе' : 'Пауза снята')
+    },
+    onError: (err: { response?: { data?: { error?: string; message?: string } } }) => {
+      message.error(err?.response?.data?.error ?? err?.response?.data?.message ?? 'Не удалось изменить паузу')
+    },
+  })
+
   const cabinetSelectProps = useMemo(() => {
     if (isAdmin) return undefined
     return {
@@ -77,6 +92,8 @@ export default function AbTestDetail() {
       loading: false,
     }
   }, [isAdmin, myCabinets, selectedCabinetId])
+
+  const activeUnpausedCount = test?.variants.filter((v) => !v.paused).length ?? 0
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bgGray }}>
@@ -104,72 +121,101 @@ export default function AbTestDetail() {
                 gap: 16,
               }}
             >
-            {(() => {
-              const bestCtr = Math.max(...test.variants.map((x) => Number(x.ctr) || 0))
-              return test.variants.map((v) => {
-                const isCtrLeader = bestCtr > 0 && Number(v.ctr) === bestCtr
-                return (
-                <div
-                  key={v.id}
-                  style={{
-                    background: '#fff',
-                    border: `1px solid ${colors.border}`,
-                    borderRadius: borderRadius.lg,
-                    padding: 12,
-                    opacity: v.activeOnWb ? 1 : 0.85,
-                  }}
-                >
-                  {v.activeOnWb ? (
-                    <div style={{ color: '#16A34A', fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Сейчас на ВБ</div>
-                  ) : (
-                    <div style={{ height: 22 }} />
-                  )}
-                  <div style={{ position: 'relative' }}>
-                    <AbTestVariantImage
-                      testId={test.id}
-                      variantId={v.id}
-                      hasLocalImage={v.hasLocalImage}
-                      photoUrl={v.photoUrl}
-                      previewUrl={v.previewUrl}
-                      sellerId={selectedSellerId}
-                      cabinetId={selectedCabinetId}
+              {(() => {
+                const bestCtr = Math.max(...test.variants.map((x) => Number(x.ctr) || 0))
+                return test.variants.map((v) => {
+                  const isCtrLeader = bestCtr > 0 && Number(v.ctr) === bestCtr
+                  const showInColor = v.activeOnWb && !v.paused
+                  const canPause = test.status === 'ENABLED' && !v.paused && activeUnpausedCount > 1
+                  const canResume = test.status === 'ENABLED' && !!v.paused
+                  return (
+                    <div
+                      key={v.id}
                       style={{
-                        width: '100%',
-                        aspectRatio: '3/4',
-                        objectFit: 'cover',
-                        borderRadius: 8,
-                        filter: v.activeOnWb ? 'none' : 'grayscale(1)',
-                        opacity: v.activeOnWb ? 1 : 0.9,
-                        outline: v.activeOnWb ? `2px solid ${colors.primary}` : 'none',
-                        outlineOffset: 2,
-                        background: '#F1F5F9',
+                        background: '#fff',
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: borderRadius.lg,
+                        padding: 12,
+                        opacity: v.paused ? 0.75 : v.activeOnWb ? 1 : 0.85,
                       }}
-                    />
-                  </div>
-                  <div style={{ marginTop: 10, fontWeight: 700, marginBottom: 8 }}>
-                    <Tooltip title={METRIC_HINTS.CTR}>
-                      <span
-                        style={{
-                          cursor: 'help',
-                          borderBottom: '1px dashed #CBD5E1',
-                          color: isCtrLeader ? '#16A34A' : undefined,
-                        }}
-                      >
-                        CTR {formatPct(v.ctr)}
-                      </span>
-                    </Tooltip>
-                  </div>
-                  <MetricRow label="Доля показов" value={formatPct(v.sharePercent)} />
-                  <MetricRow label="CR1" value={formatPct(v.cr1)} />
-                  <MetricRow label="CR" value={formatPct(v.cr)} />
-                  <MetricRow label="Показы" value={formatInt(v.views)} />
-                  <MetricRow label="Клики" value={formatInt(v.clicks)} />
-                  <MetricRow label="В корзину" value={formatInt(v.atbs)} />
-                  <MetricRow label="Заказы" value={formatInt(v.orders)} />
-                </div>
-                )
-              })
-            })()}
+                    >
+                      <div style={{ height: 22, marginBottom: 6 }}>
+                        {v.activeOnWb && !v.paused ? (
+                          <span style={{ color: '#16A34A', fontWeight: 600, fontSize: 13 }}>Сейчас на ВБ</span>
+                        ) : v.paused ? (
+                          <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: 13 }}>На паузе</span>
+                        ) : null}
+                      </div>
+                      <div style={{ position: 'relative' }}>
+                        <AbTestVariantImage
+                          testId={test.id}
+                          variantId={v.id}
+                          hasLocalImage={v.hasLocalImage}
+                          photoUrl={v.photoUrl}
+                          previewUrl={v.previewUrl}
+                          sellerId={selectedSellerId}
+                          cabinetId={selectedCabinetId}
+                          style={{
+                            width: '100%',
+                            aspectRatio: '3/4',
+                            objectFit: 'cover',
+                            borderRadius: 8,
+                            filter: showInColor ? 'none' : 'grayscale(1)',
+                            opacity: showInColor ? 1 : 0.9,
+                            outline: showInColor ? `2px solid ${colors.primary}` : 'none',
+                            outlineOffset: 2,
+                            background: '#F1F5F9',
+                          }}
+                        />
+                      </div>
+                      <div style={{ marginTop: 10, fontWeight: 700, marginBottom: 8 }}>
+                        <Tooltip title={METRIC_HINTS.CTR}>
+                          <span
+                            style={{
+                              cursor: 'help',
+                              borderBottom: '1px dashed #CBD5E1',
+                              color: isCtrLeader && !v.paused ? '#16A34A' : undefined,
+                            }}
+                          >
+                            CTR {formatPct(v.ctr)}
+                          </span>
+                        </Tooltip>
+                      </div>
+                      <MetricRow label="Доля показов" value={formatPct(v.sharePercent)} />
+                      <MetricRow label="CR1" value={formatPct(v.cr1)} />
+                      <MetricRow label="CR" value={formatPct(v.cr)} />
+                      <MetricRow label="Показы" value={formatInt(v.views)} />
+                      <MetricRow label="Клики" value={formatInt(v.clicks)} />
+                      <MetricRow label="В корзину" value={formatInt(v.atbs)} />
+                      <MetricRow label="Заказы" value={formatInt(v.orders)} />
+                      {(canPause || canResume) && (
+                        <Tooltip
+                          title={
+                            v.paused
+                              ? 'Вернуть вариант в ротацию'
+                              : 'Исключить из ротации (отсечь проигрывающий)'
+                          }
+                        >
+                          <Button
+                            block
+                            size="small"
+                            style={{ marginTop: 10 }}
+                            icon={v.paused ? <PlayCircleOutlined /> : <PauseCircleOutlined />}
+                            loading={
+                              pauseMutation.isPending && pauseMutation.variables?.variantId === v.id
+                            }
+                            onClick={() =>
+                              pauseMutation.mutate({ variantId: v.id, paused: !v.paused })
+                            }
+                          >
+                            {v.paused ? 'Снять паузу' : 'На паузу'}
+                          </Button>
+                        </Tooltip>
+                      )}
+                    </div>
+                  )
+                })
+              })()}
             </div>
           </>
         )}

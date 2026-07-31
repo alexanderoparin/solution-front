@@ -20,6 +20,7 @@ export interface AbTestVariant {
   cr: number
   sharePercent: number
   activeOnWb: boolean
+  paused?: boolean
   ctrDeltaToBest: number | null
   losing: boolean
 }

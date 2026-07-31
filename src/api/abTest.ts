@@ -72,4 +72,18 @@ export const abTestApi = {
     )
     return response.data
   },
+
+  setVariantPaused: async (
+    testId: number,
+    variantId: number,
+    paused: boolean,
+    sellerId?: number,
+    cabinetId?: number,
+  ): Promise<AbTest> => {
+    const response = await apiClient.patch<AbTest>(
+      `/advertising/ab-tests/${testId}/variants/${variantId}/pause${buildParams(sellerId, cabinetId)}`,
+      { paused },
+    )
+    return response.data
+  },
 }
