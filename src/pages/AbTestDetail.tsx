@@ -114,14 +114,16 @@ export default function AbTestDetail() {
                   )}
                   <div style={{ position: 'relative' }}>
                     <img
-                      src={v.previewUrl ?? v.photoUrl ?? ''}
+                      src={v.photoUrl ?? v.previewUrl ?? ''}
                       alt=""
                       style={{
                         width: '100%',
                         aspectRatio: '3/4',
                         objectFit: 'cover',
                         borderRadius: 8,
-                        filter: v.activeOnWb ? 'none' : 'grayscale(0.85)',
+                        opacity: v.activeOnWb ? 1 : 0.72,
+                        outline: v.activeOnWb ? `2px solid ${colors.primary ?? '#7C3AED'}` : 'none',
+                        outlineOffset: 2,
                         background: '#F1F5F9',
                       }}
                     />

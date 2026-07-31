@@ -756,7 +756,7 @@ function AbTestCard({
           <Link key={v.id} to={`/advertising/ab-test/${item.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ width: 72 }}>
               <img
-                src={v.previewUrl ?? v.photoUrl ?? ''}
+                src={v.photoUrl ?? v.previewUrl ?? ''}
                 alt=""
                 style={{ width: 72, height: 96, objectFit: 'cover', borderRadius: 8, background: '#F1F5F9' }}
               />
