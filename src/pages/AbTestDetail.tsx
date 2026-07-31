@@ -136,7 +136,7 @@ export default function AbTestDetail() {
                         border: `1px solid ${colors.border}`,
                         borderRadius: borderRadius.lg,
                         padding: 12,
-                        opacity: v.paused ? 0.75 : v.activeOnWb ? 1 : 0.85,
+                        opacity: v.paused ? 0.7 : v.activeOnWb ? 1 : 0.85,
                       }}
                     >
                       <div style={{ height: 22, marginBottom: 6 }}>
@@ -159,7 +159,7 @@ export default function AbTestDetail() {
                             objectFit: 'cover',
                             borderRadius: 8,
                             filter: showInColor ? 'none' : 'grayscale(1)',
-                            opacity: showInColor ? 1 : 0.9,
+                            opacity: v.paused ? 0.55 : showInColor ? 1 : 0.9,
                             outline: showInColor ? `2px solid ${colors.primary}` : 'none',
                             outlineOffset: 2,
                             background: '#F1F5F9',
@@ -237,7 +237,13 @@ export default function AbTestDetail() {
                           <Button
                             block
                             size="small"
-                            style={{ marginTop: 10 }}
+                            type={v.paused ? 'primary' : 'default'}
+                            style={{
+                              marginTop: 10,
+                              ...(v.paused
+                                ? { background: '#16A34A', borderColor: '#16A34A' }
+                                : undefined),
+                            }}
                             icon={v.paused ? <PlayCircleOutlined /> : <PauseCircleOutlined />}
                             loading={
                               pauseMutation.isPending && pauseMutation.variables?.variantId === v.id
