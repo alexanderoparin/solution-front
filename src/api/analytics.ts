@@ -119,13 +119,15 @@ export const analyticsApi = {
     sellerId?: number,
     cabinetId?: number,
     dateFrom?: string,
-    dateTo?: string
+    dateTo?: string,
+    nmId?: number,
   ): Promise<Campaign[]> => {
     const searchParams = new URLSearchParams()
     if (sellerId != null) searchParams.set('sellerId', String(sellerId))
     if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
     if (dateFrom) searchParams.set('dateFrom', dateFrom)
     if (dateTo) searchParams.set('dateTo', dateTo)
+    if (nmId != null) searchParams.set('nmId', String(nmId))
     const query = searchParams.toString()
     const params = query ? `?${query}` : ''
     const response = await apiClient.get<Campaign[]>(`/advertising/campaigns${params}`)

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Button, Modal, Select, Checkbox, Radio, Upload, message, Spin, Segmented, Switch, Alert, InputNumber, Tooltip, Input, Tag } from 'antd'
-import { PlusOutlined, PictureOutlined, CloseOutlined, PauseOutlined, SearchOutlined } from '@ant-design/icons'
+import { Button, Modal, Select, Checkbox, Radio, Upload, message, Spin, Segmented, Switch, Alert, InputNumber, Tooltip, Tag } from 'antd'
+import { PlusOutlined, PictureOutlined, CloseOutlined, PauseOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import Header from '../components/Header'
@@ -56,7 +56,6 @@ function CreateAbTestModal({
   const isBasicToken = (tokenType ?? 'BASIC') === 'BASIC'
   const [nmId, setNmId] = useState<number | null>(null)
   const [advertIds, setAdvertIds] = useState<number[]>([])
-  const [campaignSearch, setCampaignSearch] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [rotationMode, setRotationMode] = useState<AbTestRotationMode>('ROTATION_BY_INTERVAL')
   const [rotationViewsThreshold, setRotationViewsThreshold] = useState(1000)
@@ -73,13 +72,8 @@ function CreateAbTestModal({
 
   useEffect(() => {
     setFiles([])
+    setAdvertIds([])
   }, [nmId])
-
-  useEffect(() => {
-    if (!open) {
-      setCampaignSearch('')
-    }
-  }, [open])
 
   const { data: articles = [], isLoading: articlesLoading } = useQuery({
     queryKey: ['abTestArticles', sellerId, cabinetId],
@@ -88,22 +82,10 @@ function CreateAbTestModal({
   })
 
   const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
-    queryKey: ['abTestCampaigns', sellerId, cabinetId],
-    queryFn: () => analyticsApi.getCampaigns(sellerId, cabinetId ?? undefined),
-    enabled: open && cabinetId != null,
+    queryKey: ['abTestCampaigns', sellerId, cabinetId, nmId],
+    queryFn: () => analyticsApi.getCampaigns(sellerId, cabinetId ?? undefined, undefined, undefined, nmId ?? undefined),
+    enabled: open && cabinetId != null && nmId != null,
   })
-
-  const filteredCampaigns = useMemo(() => {
-    const q = campaignSearch.trim().toLowerCase()
-    if (!q) {
-      return campaigns
-    }
-    return campaigns.filter(
-      (c) =>
-        (c.name ?? '').toLowerCase().includes(q)
-        || String(c.id).includes(q),
-    )
-  }, [campaigns, campaignSearch])
 
   const selectedCampaigns = useMemo(() => {
     const byId = new Map(campaigns.map((c) => [c.id, c]))
@@ -353,14 +335,21 @@ function CreateAbTestModal({
               Базовый токен: доступна только одна РК
             </div>
           ) : null}
-          <Input
-            allowClear
-            prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
-            placeholder="Поиск по названию или ID"
-            value={campaignSearch}
-            onChange={(e) => setCampaignSearch(e.target.value)}
-            style={{ marginBottom: 8 }}
-          />
+          {nmId == null ? (
+            <div
+              style={{
+                padding: 16,
+                color: '#94A3B8',
+                textAlign: 'center',
+                fontSize: 13,
+                border: `1px solid ${colors.border}`,
+                borderRadius: 8,
+              }}
+            >
+              Сначала выберите карточку товара
+            </div>
+          ) : (
+            <>
           {selectedCampaigns.length > 0 ? (
             <div
               style={{
@@ -418,9 +407,9 @@ function CreateAbTestModal({
                 borderRadius: 8,
               }}
             >
-              {filteredCampaigns.length === 0 ? (
+              {campaigns.length === 0 ? (
                 <div style={{ padding: 16, color: '#94A3B8', textAlign: 'center', fontSize: 13 }}>
-                  {campaigns.length === 0 ? 'Нет рекламных кампаний' : 'Ничего не найдено'}
+                  Нет РК с этим артикулом
                 </div>
               ) : (
               <Checkbox.Group
@@ -428,7 +417,7 @@ function CreateAbTestModal({
                 style={{ display: 'flex', flexDirection: 'column', width: '100%' }}
                 value={advertIds}
                 onChange={(vals) => {
-                  const visibleIds = new Set(filteredCampaigns.map((c) => c.id))
+                  const visibleIds = new Set(campaigns.map((c) => c.id))
                   const preserved = advertIds.filter((id) => !visibleIds.has(id))
                   let next = [...new Set([...preserved, ...(vals as number[])])]
                   if (isBasicToken && next.length > 1) {
@@ -438,7 +427,7 @@ function CreateAbTestModal({
                   setAdvertIds(next)
                 }}
               >
-                {filteredCampaigns.map((c, idx) => {
+                {campaigns.map((c, idx) => {
                   const running = c.status === 9
                   const disabledByBasic =
                     isBasicToken && advertIds.length === 1 && !advertIds.includes(c.id)
@@ -452,7 +441,7 @@ function CreateAbTestModal({
                         margin: 0,
                         width: '100%',
                         padding: '10px 12px',
-                        borderBottom: idx < filteredCampaigns.length - 1 ? `1px solid ${colors.border}` : undefined,
+                        borderBottom: idx < campaigns.length - 1 ? `1px solid ${colors.border}` : undefined,
                         opacity: disabledByBasic ? 0.55 : 1,
                       }}
                     >
@@ -527,6 +516,8 @@ function CreateAbTestModal({
               )}
             </div>
           </Spin>
+            </>
+          )}
         </div>
 
         <div>
