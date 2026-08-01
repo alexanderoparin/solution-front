@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { accessStatusQueryKey, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
+import { getStoredCabinetId } from '../api/cabinets'
 import { useAuthStore } from '../store/authStore'
+import { useWorkContextForAdmin } from './useWorkContextForAdmin'
 
 function resolveSellerIdForAccess(role: string | null, userId: number | null): number | undefined {
   if (role === 'USER' && userId != null) {
@@ -15,24 +17,28 @@ function resolveSellerIdForAccess(role: string | null, userId: number | null): n
   return undefined
 }
 
-export function useCampaignManageAccess(overrideSellerId?: number) {
+export function useCampaignManageAccess(overrideSellerId?: number, overrideCabinetId?: number) {
   const role = useAuthStore((s) => s.role)
   const userId = useAuthStore((s) => s.userId)
+  const isAdmin = role === 'ADMIN'
+  const workContext = useWorkContextForAdmin(isAdmin)
 
   const sellerId = overrideSellerId ?? resolveSellerIdForAccess(role, userId)
+  const cabinetId =
+    overrideCabinetId ??
+    (isAdmin ? workContext.selectedCabinetId ?? undefined : getStoredCabinetId() ?? undefined)
 
   const { data: access, isLoading, refetch } = useQuery({
-    queryKey: accessStatusQueryKey(sellerId),
-    queryFn: () => userApi.getAccessStatus(sellerId),
+    queryKey: accessStatusQueryKey(sellerId, cabinetId),
+    queryFn: () => userApi.getAccessStatus(sellerId, cabinetId),
     staleTime: ACCESS_STATUS_STALE_MS,
   })
 
   const campaignManage = access?.campaignManage
 
   const showBadge = useMemo(() => {
-    // Подписку на Управление РК оформляет владелец; сотрудники наследуют доступ.
     if (role !== 'USER') return false
-    if (campaignManage?.status === 'AGENCY') return false
+    if (campaignManage?.status === 'AGENCY' || campaignManage?.status === 'PRO') return false
     return campaignManage?.enabled === true
   }, [role, campaignManage?.enabled, campaignManage?.status])
 
@@ -44,5 +50,6 @@ export function useCampaignManageAccess(overrideSellerId?: number) {
     isLoading,
     refetchAccess: refetch,
     sellerId,
+    cabinetId,
   }
 }

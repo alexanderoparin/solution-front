@@ -47,8 +47,12 @@ export const adminApi = {
   },
 
   extendSubscription: async (data: ExtendSubscriptionRequest): Promise<SubscriptionDto> => {
-    const body = data.expiresAt ? { ...data, expiresAt: data.expiresAt } : { userId: data.userId, planId: data.planId }
-    const response = await apiClient.post<SubscriptionDto>('/admin/subscription/extend', body)
+    const response = await apiClient.post<SubscriptionDto>('/admin/subscription/extend', data)
+    return response.data
+  },
+
+  getCabinetSubscriptions: async (cabinetId: number): Promise<SubscriptionDto[]> => {
+    const response = await apiClient.get<SubscriptionDto[]>(`/admin/cabinets/${cabinetId}/subscriptions`)
     return response.data
   },
 

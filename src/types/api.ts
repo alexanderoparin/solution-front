@@ -242,6 +242,8 @@ export interface PlanDto {
   isActive?: boolean
   code?: string | null
   periodType?: 'DAYS' | 'CALENDAR_MONTH' | string | null
+  kind?: 'MAIN' | 'CAMPAIGN' | 'AB_PACK' | string | null
+  creditAmount?: number | null
 }
 
 export interface CreatePlanRequest {
@@ -254,6 +256,8 @@ export interface CreatePlanRequest {
   isActive?: boolean
   code?: string
   periodType?: 'DAYS' | 'CALENDAR_MONTH' | string
+  kind?: 'MAIN' | 'CAMPAIGN' | 'AB_PACK' | string
+  creditAmount?: number
 }
 
 export interface UpdatePlanRequest {
@@ -266,13 +270,18 @@ export interface UpdatePlanRequest {
   isActive?: boolean
   code?: string
   periodType?: 'DAYS' | 'CALENDAR_MONTH' | string
+  kind?: 'MAIN' | 'CAMPAIGN' | 'AB_PACK' | string
+  creditAmount?: number
 }
 
 export interface SubscriptionDto {
   id: number
   userId: number
+  cabinetId?: number | null
   planId: number | null
   planName: string | null
+  planCode?: string | null
+  planKind?: string | null
   status: string
   startedAt: string
   expiresAt: string
@@ -280,9 +289,43 @@ export interface SubscriptionDto {
 }
 
 export interface ExtendSubscriptionRequest {
-  userId: number
+  userId?: number
+  cabinetId: number
   planId: number
   expiresAt?: string
+  abCredits?: number
+}
+
+export interface AbTestQuotaDto {
+  remaining: number | null
+  usedStarts: number | null
+  includedFree: number | null
+  unlimited: boolean | null
+  activated: boolean | null
+}
+
+export interface CabinetBillingServiceStatusDto {
+  serviceCode: string
+  name: string
+  connected: boolean
+  planCode?: string | null
+  planName?: string | null
+  expiresAt?: string | null
+  status?: string | null
+}
+
+export interface CabinetBillingStatusDto {
+  cabinetId: number
+  mainTariff: {
+    code: string
+    name: string
+    status: string
+    expiresAt?: string | null
+    unlimitedAccess: boolean
+  }
+  services: CabinetBillingServiceStatusDto[]
+  abTestQuota: AbTestQuotaDto
+  canManageBilling: boolean
 }
 
 /** Статус кулдауна ручного запуска «обновить кабинеты» для админов/менеджеров (не чаще 1 раза в 5 мин). */

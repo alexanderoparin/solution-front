@@ -1,8 +1,13 @@
+import { useNavigate } from 'react-router-dom'
 import { useCampaignManageAccess } from '../../hooks/useCampaignManageAccess'
 import { useCampaignManageSubscriptionUi } from '../../store/campaignManageSubscriptionUi'
 import { campaignManageDaysLabel } from '../../utils/campaignManageSubscription'
 
+/**
+ * Бейдж тарифа в шапке: на FREE предлагает PRO; при активной/истёкшей услуге РК — статус по дням.
+ */
 export default function CampaignManageSubscriptionBadge() {
+  const navigate = useNavigate()
   const { showBadge, campaignManage } = useCampaignManageAccess()
   const openPlans = useCampaignManageSubscriptionUi((s) => s.openPlans)
 
@@ -11,20 +16,21 @@ export default function CampaignManageSubscriptionBadge() {
   }
 
   let line1 = 'Бесплатный доступ'
-  let line2 = 'Подключить Управление РК'
-  let line2Clickable = true
+  let line2 = 'Перейти на PRO'
+  let onLine2Click: () => void = () => navigate('/subscription')
 
   if (campaignManage.status === 'ACTIVE') {
     line1 = 'Управление РК подключено'
     const days = campaignManage.daysRemaining ?? 0
     line2 = days > 0 ? `Осталось ${campaignManageDaysLabel(days)}` : 'Осталось менее дня'
-    line2Clickable = true
+    onLine2Click = openPlans
   } else if (campaignManage.status === 'EXPIRED') {
     line1 = 'Управление РК'
     const ago = campaignManage.daysExpiredAgo ?? 0
     line2 = ago > 0
       ? `Закончилось ${campaignManageDaysLabel(ago)} назад`
       : 'Закончилось сегодня'
+    onLine2Click = () => navigate('/subscription')
   }
 
   return (
@@ -39,27 +45,23 @@ export default function CampaignManageSubscriptionBadge() {
       }}
     >
       <div style={{ fontSize: 12, color: '#E9D5FF', fontWeight: 500 }}>{line1}</div>
-      {line2Clickable ? (
-        <button
-          type="button"
-          onClick={openPlans}
-          style={{
-            margin: 0,
-            padding: 0,
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            fontSize: 12,
-            textAlign: 'left',
-            color: '#C4B5FD',
-            fontWeight: 600,
-          }}
-        >
-          {line2}
-        </button>
-      ) : (
-        <div style={{ fontSize: 12, color: '#A78BFA' }}>{line2}</div>
-      )}
+      <button
+        type="button"
+        onClick={onLine2Click}
+        style={{
+          margin: 0,
+          padding: 0,
+          border: 'none',
+          background: 'none',
+          cursor: 'pointer',
+          fontSize: 12,
+          textAlign: 'left',
+          color: '#C4B5FD',
+          fontWeight: 600,
+        }}
+      >
+        {line2}
+      </button>
     </div>
   )
 }

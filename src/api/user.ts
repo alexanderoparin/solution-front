@@ -29,9 +29,9 @@ const USER_SORT_FIELD_TO_BACKEND: Record<UserSortField, string> = {
   lastDataUpdateRequestedAt: 'LAST_DATA_UPDATE_REQUESTED_AT',
 }
 
-/** React Query: ключ статуса доступа (опционально sellerId для manager/admin). */
-export const accessStatusQueryKey = (sellerId?: number) =>
-  sellerId != null ? (['accessStatus', sellerId] as const) : (['accessStatus'] as const)
+/** React Query: ключ статуса доступа (sellerId + cabinetId). */
+export const accessStatusQueryKey = (sellerId?: number, cabinetId?: number) =>
+  ['accessStatus', sellerId ?? null, cabinetId ?? null] as const
 
 /** @deprecated используйте accessStatusQueryKey() */
 export const ACCESS_STATUS_QUERY_KEY = accessStatusQueryKey()
@@ -63,10 +63,12 @@ export const userApi = {
   },
 
   /** Доступ к функционалу и статус подписки */
-  getAccessStatus: async (sellerId?: number): Promise<AccessStatusResponse> => {
-    const params = sellerId != null ? { sellerId } : undefined
+  getAccessStatus: async (sellerId?: number, cabinetId?: number): Promise<AccessStatusResponse> => {
+    const params: Record<string, number> = {}
+    if (sellerId != null) params.sellerId = sellerId
+    if (cabinetId != null) params.cabinetId = cabinetId
     const response = await apiClient.get<AccessStatusResponse>('/user/access', {
-      params,
+      params: Object.keys(params).length ? params : undefined,
       timeout: 45_000,
     })
     return response.data

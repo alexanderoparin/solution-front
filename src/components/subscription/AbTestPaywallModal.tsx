@@ -1,27 +1,23 @@
 import { Modal, Button } from 'antd'
 import { useNavigate } from 'react-router-dom'
-import { useCampaignManageSubscriptionUi } from '../../store/campaignManageSubscriptionUi'
 
 const accent = '#7C3AED'
 
-interface CampaignManagePaywallModalProps {
+interface AbTestPaywallModalProps {
   open: boolean
   onClose: () => void
+  /** Открыть выбор пакетов А/Б (если передан — иначе ведём на /subscription). */
+  onChooseServiceTariff?: () => void
 }
 
-export default function CampaignManagePaywallModal({ open, onClose }: CampaignManagePaywallModalProps) {
+/**
+ * Paywall А/Б — подключить услугу или сразу перейти на PRO.
+ */
+export default function AbTestPaywallModal({ open, onClose, onChooseServiceTariff }: AbTestPaywallModalProps) {
   const navigate = useNavigate()
-  const openPlans = useCampaignManageSubscriptionUi((s) => s.openPlans)
 
   return (
-    <Modal
-      open={open}
-      onCancel={onClose}
-      footer={null}
-      width={420}
-      centered
-      title="Подписка"
-    >
+    <Modal open={open} onCancel={onClose} footer={null} width={420} centered title="Подписка">
       <p style={{ color: '#475569', fontSize: 15, lineHeight: 1.5, marginBottom: 24 }}>
         Для использования этого раздела нужно подключить услугу. Есть пробные и платные варианты —
         выберите подходящий в подписке. Или перейдите на PRO — полный доступ ко всем разделам.
@@ -44,7 +40,11 @@ export default function CampaignManagePaywallModal({ open, onClose }: CampaignMa
           size="large"
           onClick={() => {
             onClose()
-            openPlans()
+            if (onChooseServiceTariff) {
+              onChooseServiceTariff()
+            } else {
+              navigate('/subscription')
+            }
           }}
         >
           Подключить услугу

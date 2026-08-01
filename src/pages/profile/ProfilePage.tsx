@@ -267,7 +267,7 @@ export default function ProfilePage() {
                   size="large"
                   style={profileAdminActionGridButtonStyle}
                 >
-                  Управление РК — планы
+                  Тарифы и услуги
                 </Button>
                 <Badge count={pendingDeletionCount} overflowCount={99} offset={[-4, 4]}>
                   <Button

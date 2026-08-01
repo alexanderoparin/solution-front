@@ -65,7 +65,7 @@ export default function Breadcrumbs() {
       { label: params.id }
     )
   } else if (pathname === '/admin/plans') {
-    items.push({ label: 'Профиль', path: '/profile' }, { label: 'Управление РК — планы' })
+    items.push({ label: 'Профиль', path: '/profile' }, { label: 'Тарифы и услуги' })
   } else if (pathname === '/admin/wb-events') {
     items.push({ label: 'Профиль', path: '/profile' }, { label: 'WB API события' })
   } else if (pathname.match(/^\/cabinets\/\d+$/) && params.id) {

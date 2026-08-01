@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Button, Modal, Select, Checkbox, Radio, Upload, message, Spin, Segmented, Switch, Alert, InputNumber, Tooltip, Tag } from 'antd'
+import { Button, Modal, Select, Checkbox, Radio, Upload, message, Spin, Segmented, Switch, Alert, InputNumber, Tooltip, Tag, Typography } from 'antd'
 import { PlusOutlined, PictureOutlined, CloseOutlined, PauseOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
@@ -11,6 +11,7 @@ import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import { analyticsApi } from '../api/analytics'
 import { abTestApi } from '../api/abTest'
+import { subscriptionApi } from '../api/subscription'
 import type {
   AbTest,
   AbTestFinishAction,
@@ -21,6 +22,7 @@ import type {
 import type { CabinetTokenType } from '../types/api'
 import { colors, borderRadius } from '../styles/analytics'
 import AbTestVariantImage from '../components/AbTestVariantImage'
+import AbTestPaywallModal from '../components/subscription/AbTestPaywallModal'
 
 const accent = '#7C3AED'
 /** Минимальный интервал ротации по времени для базового токена (fullstats ≤ 1/час). */
@@ -45,12 +47,14 @@ function CreateAbTestModal({
   sellerId,
   cabinetId,
   tokenType,
+  onNeedPaywall,
 }: {
   open: boolean
   onClose: () => void
   sellerId?: number
   cabinetId: number | null
   tokenType?: CabinetTokenType | null
+  onNeedPaywall?: () => void
 }) {
   const queryClient = useQueryClient()
   const isBasicToken = (tokenType ?? 'BASIC') === 'BASIC'
@@ -114,9 +118,17 @@ function CreateAbTestModal({
     onSuccess: () => {
       message.success('А/Б-тест создан, загрузка фото на WB запущена')
       queryClient.invalidateQueries({ queryKey: ['abTests'] })
+      queryClient.invalidateQueries({ queryKey: ['cabinetBilling'] })
       onClose()
     },
     onError: (error: any) => {
+      const status = error?.response?.status
+      const code = error?.response?.data?.code
+      if (status === 402 || code === 'AB_TEST_QUOTA_REQUIRED') {
+        onClose()
+        onNeedPaywall?.()
+        return
+      }
       message.error(error?.response?.data?.error ?? error?.response?.data?.message ?? 'Не удалось создать тест')
     },
   })
@@ -176,6 +188,7 @@ function CreateAbTestModal({
   }
 
   return (
+    <>
     <Modal
       title="Новый А/Б-тест"
       open={open}
@@ -701,6 +714,7 @@ function CreateAbTestModal({
         </div>
       </div>
     </Modal>
+    </>
   )
 }
 
@@ -819,6 +833,7 @@ export default function AbTests() {
   const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
   const [filter, setFilter] = useState<'active' | 'all'>('all')
   const [createOpen, setCreateOpen] = useState(false)
+  const [paywallOpen, setPaywallOpen] = useState(false)
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
   const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
@@ -854,10 +869,43 @@ export default function AbTests() {
     },
   })
 
+  const { data: billing } = useQuery({
+    queryKey: ['cabinetBilling', selectedCabinetId],
+    queryFn: () => subscriptionApi.getCabinetBillingStatus(selectedCabinetId!),
+    enabled: selectedCabinetId != null,
+  })
+
+  const abQuota = billing?.abTestQuota
+  const abServiceReady = Boolean(abQuota?.unlimited || abQuota?.activated)
+  const quotaLabel = useMemo(() => {
+    if (!abQuota || !abServiceReady) return null
+    if (abQuota.unlimited) return 'А/Б безлимит (PRO)'
+    const remaining = abQuota.remaining ?? 0
+    const used = abQuota.usedStarts ?? 0
+    const total = remaining + used
+    return `Доступно тестов: ${remaining} из ${total || (abQuota.includedFree ?? 3)}`
+  }, [abQuota, abServiceReady])
+
+  const openCreate = () => {
+    if (selectedCabinetId == null) return
+    if (!abServiceReady) {
+      setPaywallOpen(true)
+      return
+    }
+    if (!abQuota?.unlimited && (abQuota?.remaining ?? 0) <= 0) {
+      setPaywallOpen(true)
+      return
+    }
+    setCreateOpen(true)
+  }
+
   const statusMutation = useMutation({
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       abTestApi.updateStatus(id, enabled ? 'ENABLED' : 'DISABLED', selectedSellerId, selectedCabinetId ?? undefined),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['abTests'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['abTests'] })
+      queryClient.invalidateQueries({ queryKey: ['cabinetBilling', selectedCabinetId] })
+    },
     onError: (error: any) => {
       message.error(error?.response?.data?.error ?? 'Не удалось изменить статус')
     },
@@ -885,16 +933,23 @@ export default function AbTests() {
       />
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px 48px' }}>
         <Breadcrumbs />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0' }}>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            style={{ background: accent, borderColor: accent }}
-            onClick={() => setCreateOpen(true)}
-            disabled={selectedCabinetId == null}
-          >
-            Создать новый тест
-          </Button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              style={{ background: accent, borderColor: accent }}
+              onClick={openCreate}
+              disabled={selectedCabinetId == null}
+            >
+              Создать новый тест
+            </Button>
+            {quotaLabel ? (
+              <Typography.Text type="secondary" style={{ fontSize: 14 }}>
+                {quotaLabel}
+              </Typography.Text>
+            ) : null}
+          </div>
           <Segmented
             value={filter}
             onChange={(v) => setFilter(v as 'active' | 'all')}
@@ -935,7 +990,9 @@ export default function AbTests() {
         sellerId={selectedSellerId}
         cabinetId={selectedCabinetId}
         tokenType={selectedTokenType}
+        onNeedPaywall={() => setPaywallOpen(true)}
       />
+      <AbTestPaywallModal open={paywallOpen} onClose={() => setPaywallOpen(false)} />
     </div>
   )
 }

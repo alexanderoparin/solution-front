@@ -23,17 +23,18 @@ import { PlusOutlined, EditOutlined, CreditCardOutlined } from '@ant-design/icon
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '../api/admin'
 import { userApi } from '../api/user'
-import type { PlanDto, SubscriptionDto, PaymentDto, UserListItem } from '../types/api'
+import type { PlanDto, SubscriptionDto, PaymentDto } from '../types/api'
 import { getPaymentStatusLabel, getPaymentStatusColor, getSubscriptionStatusLabel } from '../utils/paymentStatus'
 import { useAuthStore } from '../store/authStore'
-import { userRoleLabel } from '../constants/userRoleLabels'
 import dayjs from 'dayjs'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 
 function formatPlanPeriod(plan: PlanDto): string {
+  if (plan.kind === 'AB_PACK') return `${plan.creditAmount ?? 0} тест.`
   if (plan.periodType === 'CALENDAR_MONTH') return '1 месяц'
   const d = plan.periodDays
+  if (d === 0) return 'разово'
   if (d === 1) return '1 день'
   if (d >= 2 && d <= 4) return `${d} дня`
   return `${d} дней`
@@ -56,6 +57,8 @@ export default function AdminPlansAndSubscriptions() {
   const [planModalOpen, setPlanModalOpen] = useState(false)
   const [extendModalOpen, setExtendModalOpen] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
+  const [selectedCabinetId, setSelectedCabinetId] = useState<number | null>(null)
+  const [planKindFilter, setPlanKindFilter] = useState<string>('ALL')
 
   if (role !== 'ADMIN') {
     navigate('/profile', { replace: true })
@@ -69,21 +72,32 @@ export default function AdminPlansAndSubscriptions() {
 
   const sortedPlans = useMemo(() => sortPlans(plans), [plans])
 
+  const filteredPlans = useMemo(() => {
+    if (planKindFilter === 'ALL') return sortedPlans
+    return sortedPlans.filter((p) => (p.kind ?? '') === planKindFilter)
+  }, [sortedPlans, planKindFilter])
+
   const activePlans = useMemo(
     () => sortedPlans.filter((p) => p.isActive !== false),
     [sortedPlans],
   )
 
-  const { data: usersPage } = useQuery({
-    queryKey: ['managedUsers', 0, 500],
-    queryFn: () => userApi.getManagedUsers({ page: 0, size: 500 }),
+  const { data: managedCabinetsPage } = useQuery({
+    queryKey: ['managedCabinets', 0, 500],
+    queryFn: () => userApi.getManagedCabinets({ page: 0, size: 500 }),
   })
-  const users: UserListItem[] = usersPage?.content ?? []
+  const managedCabinets = managedCabinetsPage?.content ?? []
 
   const { data: subscriptions = [], isLoading: subsLoading } = useQuery<SubscriptionDto[]>({
     queryKey: ['adminSubscriptions', selectedUserId],
     queryFn: () => adminApi.getUserSubscriptions(selectedUserId!),
     enabled: selectedUserId != null,
+  })
+
+  const { data: cabinetSubscriptions = [], isLoading: cabinetSubsLoading } = useQuery<SubscriptionDto[]>({
+    queryKey: ['adminCabinetSubscriptions', selectedCabinetId],
+    queryFn: () => adminApi.getCabinetSubscriptions(selectedCabinetId!),
+    enabled: selectedCabinetId != null,
   })
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery<PaymentDto[]>({
@@ -127,6 +141,9 @@ export default function AdminPlansAndSubscriptions() {
       if (selectedUserId != null) {
         queryClient.invalidateQueries({ queryKey: ['adminSubscriptions', selectedUserId] })
       }
+      if (selectedCabinetId != null) {
+        queryClient.invalidateQueries({ queryKey: ['adminCabinetSubscriptions', selectedCabinetId] })
+      }
     },
     onError: (e: { response?: { data?: { message?: string } } }) =>
       message.error(e.response?.data?.message || 'Ошибка продления подписки'),
@@ -137,6 +154,7 @@ export default function AdminPlansAndSubscriptions() {
     planForm.resetFields()
     planForm.setFieldsValue({
       periodType: 'DAYS',
+      kind: 'CAMPAIGN',
       sortOrder: (sortedPlans.length + 1) * 10,
       isActive: true,
     })
@@ -154,6 +172,8 @@ export default function AdminPlansAndSubscriptions() {
       isActive: plan.isActive ?? true,
       code: plan.code ?? '',
       periodType: plan.periodType ?? 'DAYS',
+      kind: plan.kind ?? 'CAMPAIGN',
+      creditAmount: plan.creditAmount ?? undefined,
     })
     setPlanModalOpen(true)
   }
@@ -169,6 +189,8 @@ export default function AdminPlansAndSubscriptions() {
         isActive: values.isActive,
         code: values.code?.trim() || undefined,
         periodType: values.periodType,
+        kind: values.kind,
+        creditAmount: values.creditAmount,
       }
       if (editingPlan) {
         updatePlanMutation.mutate({ id: editingPlan.id, data: payload })
@@ -179,17 +201,22 @@ export default function AdminPlansAndSubscriptions() {
   }
 
   const handleExtendSubmit = () => {
-    if (selectedUserId == null) return
     extendForm.validateFields().then((values) => {
       const expiresAt = values.expiresAt ? dayjs(values.expiresAt).format('YYYY-MM-DDTHH:mm:ss') : undefined
       if (!values.planId) {
         message.error('Выберите план')
         return
       }
+      if (!values.cabinetId) {
+        message.error('Выберите кабинет')
+        return
+      }
       extendMutation.mutate({
-        userId: selectedUserId,
+        userId: selectedUserId ?? undefined,
+        cabinetId: values.cabinetId,
         planId: values.planId,
         expiresAt,
+        abCredits: values.abCredits,
       })
     })
   }
@@ -203,6 +230,20 @@ export default function AdminPlansAndSubscriptions() {
       key: 'code',
       width: 130,
       render: (v: string | null) => v ?? '—',
+    },
+    {
+      title: 'Тип',
+      dataIndex: 'kind',
+      key: 'kind',
+      width: 100,
+      render: (v: string | null | undefined) => v ?? '—',
+    },
+    {
+      title: 'Кредиты',
+      dataIndex: 'creditAmount',
+      key: 'creditAmount',
+      width: 80,
+      render: (v: number | null | undefined) => v ?? '—',
     },
     {
       title: 'Цена, ₽',
@@ -245,19 +286,21 @@ export default function AdminPlansAndSubscriptions() {
 
   const subColumns = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
+    { title: 'Кабинет', dataIndex: 'cabinetId', key: 'cabinetId', width: 90, render: (v: number | null) => v ?? '—' },
     { title: 'План', dataIndex: 'planName', key: 'planName' },
+    { title: 'Kind', dataIndex: 'planKind', key: 'planKind', width: 100, render: (v: string | null) => v ?? '—' },
     { title: 'Статус', dataIndex: 'status', key: 'status', render: (s: string) => <Tag>{getSubscriptionStatusLabel(s)}</Tag> },
     {
       title: 'Начало',
       dataIndex: 'startedAt',
       key: 'startedAt',
-      render: (v: string) => dayjs(v).format('DD.MM.YYYY HH:mm'),
+      render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm') : '—'),
     },
     {
       title: 'Окончание',
       dataIndex: 'expiresAt',
       key: 'expiresAt',
-      render: (v: string) => dayjs(v).format('DD.MM.YYYY HH:mm'),
+      render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm') : 'бессрочно'),
     },
   ]
 
@@ -294,8 +337,6 @@ export default function AdminPlansAndSubscriptions() {
     },
   ]
 
-  const selectedUser = users.find((u: UserListItem) => u.id === selectedUserId)
-
   return (
     <>
       <Header />
@@ -312,10 +353,10 @@ export default function AdminPlansAndSubscriptions() {
       >
         <div style={{ width: '100%', maxWidth: 1200 }}>
           <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 8 }}>
-            Управление РК — планы и подписки
+            Тарифы и услуги
           </Typography.Title>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 24 }}>
-            Тарифы раздела «Управление РК». Остальной функционал сервиса бесплатен.
+            Основной тариф (FREE/PRO), услуга «Управление РК» и пакеты А/Б — на уровне кабинета.
           </Typography.Paragraph>
 
           <Tabs
@@ -329,7 +370,7 @@ export default function AdminPlansAndSubscriptions() {
                       type="info"
                       showIcon
                       style={{ marginBottom: 16 }}
-                      message="Активные планы отображаются пользователям в модалке подписки на Управление РК."
+                      message="Фильтруйте по типу: MAIN (основной), CAMPAIGN (Управление РК), AB_PACK (пакеты А/Б)."
                     />
                     <div
                       style={{
@@ -340,6 +381,17 @@ export default function AdminPlansAndSubscriptions() {
                         alignItems: 'center',
                       }}
                     >
+                      <Select
+                        style={{ width: 200 }}
+                        value={planKindFilter}
+                        onChange={setPlanKindFilter}
+                        options={[
+                          { value: 'ALL', label: 'Все типы' },
+                          { value: 'MAIN', label: 'MAIN' },
+                          { value: 'CAMPAIGN', label: 'CAMPAIGN' },
+                          { value: 'AB_PACK', label: 'AB_PACK' },
+                        ]}
+                      />
                       <Button type="primary" icon={<PlusOutlined />} onClick={openCreatePlan}>
                         Добавить план
                       </Button>
@@ -348,83 +400,99 @@ export default function AdminPlansAndSubscriptions() {
                       rowKey="id"
                       loading={plansLoading}
                       columns={planColumns}
-                      dataSource={sortedPlans}
+                      dataSource={filteredPlans}
                       pagination={false}
                       size="small"
-                      scroll={{ x: 900 }}
+                      scroll={{ x: 1000 }}
                     />
                   </Card>
                 ),
               },
               {
                 key: 'subscriptions',
-                label: 'Подписки по пользователям',
+                label: 'Подписки по кабинетам',
                 children: (
                   <Card>
                     <Space direction="vertical" style={{ width: '100%' }} size="middle">
                       <div>
                         <Typography.Text strong style={{ marginRight: 8 }}>
-                          Пользователь:
+                          Кабинет:
                         </Typography.Text>
                         <Select
-                          placeholder="Выберите пользователя"
-                          style={{ width: 320 }}
-                          value={selectedUserId ?? undefined}
-                          onChange={setSelectedUserId}
+                          placeholder="Выберите кабинет"
+                          style={{ width: 420 }}
+                          showSearch
                           optionFilterProp="label"
-                          options={users.map((u: UserListItem) => ({
-                            value: u.id,
-                            label: `${u.email} (${userRoleLabel(u.role)})`,
+                          value={selectedCabinetId ?? undefined}
+                          onChange={(id) => {
+                            setSelectedCabinetId(id)
+                            const row = managedCabinets.find((c) => c.cabinet?.id === id)
+                            setSelectedUserId(row?.sellerId ?? null)
+                          }}
+                          options={managedCabinets.map((row) => ({
+                            value: row.cabinet.id,
+                            label: `${row.cabinet.name} — ${row.sellerEmail}`,
                           }))}
                         />
                       </div>
-                      {selectedUserId != null && (
+                      {selectedCabinetId != null && (
                         <>
                           <div>
                             <Button
                               type="primary"
                               icon={<CreditCardOutlined />}
                               onClick={() => {
-                                const now = dayjs()
-                                const currentSub =
-                                  subscriptions?.find(
-                                    (s) =>
-                                      (s.status === 'active' || s.status === 'trial')
-                                      && dayjs(s.expiresAt).isAfter(now),
-                                  ) ?? null
                                 extendForm.setFieldsValue({
-                                  planId: currentSub?.planId ?? activePlans[0]?.id,
+                                  cabinetId: selectedCabinetId,
+                                  planId: activePlans[0]?.id,
                                   expiresAt: null,
+                                  abCredits: undefined,
                                 })
                                 setExtendModalOpen(true)
                               }}
                             >
-                              Продлить / назначить подписку
+                              Продлить / назначить / начислить А/Б
                             </Button>
                           </div>
-                          <Typography.Title level={5}>Подписки</Typography.Title>
-                          {subsLoading ? (
+                          <Typography.Title level={5}>Подписки кабинета</Typography.Title>
+                          {cabinetSubsLoading ? (
                             <Spin />
                           ) : (
                             <Table
                               rowKey="id"
                               columns={subColumns}
-                              dataSource={subscriptions}
+                              dataSource={cabinetSubscriptions}
                               pagination={false}
                               size="small"
                             />
                           )}
-                          <Typography.Title level={5}>Платежи</Typography.Title>
-                          {paymentsLoading ? (
-                            <Spin />
-                          ) : (
-                            <Table
-                              rowKey="id"
-                              columns={paymentColumns}
-                              dataSource={payments}
-                              pagination={false}
-                              size="small"
-                            />
+                          {selectedUserId != null && (
+                            <>
+                              <Typography.Title level={5}>Все подписки владельца</Typography.Title>
+                              {subsLoading ? (
+                                <Spin />
+                              ) : (
+                                <Table
+                                  rowKey="id"
+                                  columns={subColumns}
+                                  dataSource={subscriptions}
+                                  pagination={false}
+                                  size="small"
+                                />
+                              )}
+                              <Typography.Title level={5}>Платежи владельца</Typography.Title>
+                              {paymentsLoading ? (
+                                <Spin />
+                              ) : (
+                                <Table
+                                  rowKey="id"
+                                  columns={paymentColumns}
+                                  dataSource={payments}
+                                  pagination={false}
+                                  size="small"
+                                />
+                              )}
+                            </>
                           )}
                         </>
                       )}
@@ -456,7 +524,19 @@ export default function AdminPlansAndSubscriptions() {
             <Input.TextArea rows={2} />
           </Form.Item>
           <Form.Item name="code" label="Код (уникальный)">
-            <Input placeholder="campaign_week" disabled={!!editingPlan?.code} />
+            <Input placeholder="pro_month / campaign_week / ab_pack_5" disabled={!!editingPlan?.code} />
+          </Form.Item>
+          <Form.Item name="kind" label="Тип" rules={[{ required: true }]}>
+            <Select
+              options={[
+                { value: 'MAIN', label: 'MAIN — основной тариф' },
+                { value: 'CAMPAIGN', label: 'CAMPAIGN — Управление РК' },
+                { value: 'AB_PACK', label: 'AB_PACK — пакет А/Б' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item name="creditAmount" label="Кредиты А/Б (для AB_PACK)">
+            <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="priceRub" label="Цена, ₽" rules={[{ required: true }]}>
             <InputNumber min={0} step={1} style={{ width: '100%' }} />
@@ -469,8 +549,8 @@ export default function AdminPlansAndSubscriptions() {
               ]}
             />
           </Form.Item>
-          <Form.Item name="periodDays" label="Период, дней (для отображения)" rules={[{ required: true }]}>
-            <InputNumber min={1} style={{ width: '100%' }} />
+          <Form.Item name="periodDays" label="Период, дней (0 для AB_PACK)" rules={[{ required: true }]}>
+            <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="sortOrder" label="Порядок сортировки">
             <InputNumber min={0} style={{ width: '100%' }} />
@@ -482,41 +562,35 @@ export default function AdminPlansAndSubscriptions() {
       </Modal>
 
       <Modal
-        title={`Продлить подписку: ${selectedUser?.email ?? ''}`}
+        title="Продлить / назначить / начислить А/Б"
         open={extendModalOpen}
         onCancel={() => setExtendModalOpen(false)}
         onOk={handleExtendSubmit}
         confirmLoading={extendMutation.isPending}
       >
         <Form form={extendForm} layout="vertical">
-          {(() => {
-            const now = dayjs()
-            const currentSub =
-              subscriptions?.find(
-                (s) => (s.status === 'active' || s.status === 'trial') && dayjs(s.expiresAt).isAfter(now),
-              ) ?? null
-            const currentExpiresAt = currentSub?.expiresAt
-            return (
-              <Form.Item label="Текущая дата окончания">
-                <Typography.Text type="secondary">
-                  {currentExpiresAt ? dayjs(currentExpiresAt).format('DD.MM.YYYY HH:mm') : '—'}
-                </Typography.Text>
-              </Form.Item>
-            )
-          })()}
+          <Form.Item name="cabinetId" label="Кабинет" rules={[{ required: true }]}>
+            <Select
+              showSearch
+              optionFilterProp="label"
+              options={managedCabinets.map((row) => ({
+                value: row.cabinet.id,
+                label: `${row.cabinet.name} — ${row.sellerEmail}`,
+              }))}
+            />
+          </Form.Item>
           <Form.Item name="planId" label="План" rules={[{ required: true, message: 'Выберите план' }]}>
             <Select
               options={activePlans.map((p) => ({
                 value: p.id,
-                label: `${p.name} (${formatPlanPeriod(p)}, ${p.priceRub} ₽)`,
+                label: `${p.name} [${p.kind ?? '?'}] (${formatPlanPeriod(p)}, ${p.priceRub} ₽)`,
               }))}
             />
           </Form.Item>
-          <Form.Item
-            name="expiresAt"
-            label="Новая дата окончания"
-            rules={[{ required: true, message: 'Укажите новую дату окончания' }]}
-          >
+          <Form.Item name="abCredits" label="Кредиты А/Б (если AB_PACK; пусто = из плана)">
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="expiresAt" label="Дата окончания (MAIN/CAMPAIGN; для AB_PACK не нужна)">
             <DatePicker showTime style={{ width: '100%' }} />
           </Form.Item>
         </Form>

@@ -1,41 +1,59 @@
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { CSSProperties } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Button, Card, Spin, Table, Typography, Tag, Tooltip } from 'antd'
-import { PAYMENT_UNAVAILABLE_PATH } from '../constants/subscriptionRoutes'
-import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
+import { Button, Card, Spin, Table, Typography, Tag, Tooltip, Select, message } from 'antd'
+import { userApi } from '../api/user'
 import { subscriptionApi } from '../api/subscription'
-import type { PaymentDto } from '../types/api'
+import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import type { CabinetDto, PaymentDto, PlanDto } from '../types/api'
 import { getPaymentStatusLabel, getPaymentStatusColor } from '../utils/paymentStatus'
-import { getRequestFailureDescription, isTransientRequestError } from '../utils/requestError'
-import { campaignManageDaysLabel } from '../utils/campaignManageSubscription'
 import { useCampaignManageSubscriptionUi } from '../store/campaignManageSubscriptionUi'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
+import AbTestPacksModal from '../components/subscription/AbTestPacksModal'
 import dayjs from 'dayjs'
 
 const accent = '#7C3AED'
-const textPrimary = '#1E293B'
-const textSecondary = '#64748B'
 const border = '#E2E8F0'
+
+function formatMainPlanPrice(plan: PlanDto): string {
+  const price = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(plan.priceRub)
+  if (plan.priceRub <= 0) {
+    return '0 руб · бессрочно'
+  }
+  if (plan.periodType === 'CALENDAR_MONTH') {
+    return `${price} руб / месяц`
+  }
+  return `${price} руб / ${plan.periodDays} дн.`
+}
 
 export default function Subscription() {
   const navigate = useNavigate()
   const openPlans = useCampaignManageSubscriptionUi((s) => s.openPlans)
+  const [abPacksOpen, setAbPacksOpen] = useState(false)
+  const [cabinetId, setCabinetId] = useState<number | null>(() => getStoredCabinetId())
+  const [payingPlanId, setPayingPlanId] = useState<number | null>(null)
+
+  const { data: cabinets = [], isLoading: cabinetsLoading } = useQuery<CabinetDto[]>({
+    queryKey: ['myCabinets'],
+    queryFn: () => cabinetsApi.list(),
+  })
+
+  const effectiveCabinetId = useMemo(() => {
+    if (cabinetId != null && cabinets.some((c: CabinetDto) => c.id === cabinetId)) {
+      return cabinetId
+    }
+    return cabinets[0]?.id ?? null
+  }, [cabinetId, cabinets])
 
   const {
-    data: access,
-    isPending: accessPending,
-    isError: accessQueryFailed,
-    isFetching: accessFetching,
-    refetch: refetchAccess,
-    error: accessErr,
+    data: billing,
+    isPending: billingPending,
+    refetch: refetchBilling,
   } = useQuery({
-    queryKey: ACCESS_STATUS_QUERY_KEY,
-    queryFn: () => userApi.getAccessStatus(),
-    staleTime: ACCESS_STATUS_STALE_MS,
-    retry: (failureCount, err) => failureCount < 3 && isTransientRequestError(err),
-    retryDelay: (attempt) => Math.min(1200 * 2 ** attempt, 10000),
+    queryKey: ['cabinetBilling', effectiveCabinetId],
+    queryFn: () => subscriptionApi.getCabinetBillingStatus(effectiveCabinetId!),
+    enabled: effectiveCabinetId != null,
   })
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery<PaymentDto[]>({
@@ -43,185 +61,24 @@ export default function Subscription() {
     queryFn: () => userApi.getMyPayments(),
   })
 
-  const { data: plans = [] } = useQuery({
-    queryKey: ['subscriptionPlans'],
-    queryFn: () => subscriptionApi.getPlans(),
+  const { data: mainPlans = [], isLoading: mainPlansLoading } = useQuery({
+    queryKey: ['subscriptionPlans', 'MAIN'],
+    queryFn: () => subscriptionApi.getMainPlans(),
   })
+
+  const sortedMainPlans = useMemo(
+    () => [...mainPlans].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.id - b.id),
+    [mainPlans],
+  )
+
+  const currentMainCode = billing?.mainTariff?.code
+  const onPro =
+    Boolean(billing?.mainTariff?.unlimitedAccess)
+    || currentMainCode === 'pro_month'
+    || billing?.mainTariff?.status === 'AGENCY'
 
   const formatPrice = (amount: number, currency: string) =>
     new Intl.NumberFormat('ru-RU', { style: 'decimal', minimumFractionDigits: 2 }).format(amount) + ' ' + currency
-
-  const formatPriceShort = (rub: number) =>
-    new Intl.NumberFormat('ru-RU', { style: 'decimal', minimumFractionDigits: 0 }).format(rub) + ' ₽'
-
-  const tariffCardStyle = {
-    borderRadius: 16,
-    border: `1px solid ${border}`,
-    backgroundColor: '#FFFFFF',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.06)',
-    cursor: 'pointer',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease',
-  }
-
-  if (accessQueryFailed) {
-    return (
-      <>
-        <Header />
-        <Breadcrumbs />
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 16,
-            padding: 48,
-            backgroundColor: '#F8FAFC',
-            textAlign: 'center',
-          }}
-        >
-          <Typography.Paragraph type="danger" style={{ marginBottom: 0, maxWidth: 420 }}>
-            Не удалось загрузить статус подписки. {getRequestFailureDescription(accessErr)}
-          </Typography.Paragraph>
-          <Button type="primary" loading={accessFetching} onClick={() => refetchAccess()} style={{ backgroundColor: accent, borderColor: accent }}>
-            Повторить
-          </Button>
-        </div>
-      </>
-    )
-  }
-
-  if (accessPending || access === undefined) {
-    return (
-      <>
-        <Header />
-        <Breadcrumbs />
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 48, backgroundColor: '#F8FAFC' }}>
-          <Spin size="large" />
-        </div>
-      </>
-    )
-  }
-
-  const hasAccess = access.hasAccess
-  const billingEnabled = access.billingEnabled ?? true
-  const subscriptionStatus = access.subscriptionStatus ?? null
-  const campaignManage = access.campaignManage
-  const legacyExpiresAt = access.subscriptionExpiresAt ? dayjs(access.subscriptionExpiresAt) : null
-  const isLegacyTrial = subscriptionStatus === 'trial'
-  const isLegacyExpired = legacyExpiresAt ? legacyExpiresAt.isBefore(dayjs()) : true
-
-  const statusContentStyle: CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    gap: 6,
-    flex: 1,
-    minWidth: 240,
-  }
-
-  const statusRowStyle: CSSProperties = {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: '12px 0',
-    borderBottom: `1px solid ${border}`,
-  }
-
-  const renderCampaignManageStatus = () => {
-    if (!campaignManage?.enabled) {
-      if (hasAccess && legacyExpiresAt) {
-        return (
-          <>
-            {isLegacyTrial ? <Tag color="blue">Пробный период</Tag> : <Tag color="green">Активна</Tag>}
-            <Typography.Text>
-              до {legacyExpiresAt.format('DD.MM.YYYY')}
-              {isLegacyExpired && ' (истекла)'}
-            </Typography.Text>
-          </>
-        )
-      }
-      if (hasAccess) {
-        return <Tag color="green">Доступ есть</Tag>
-      }
-      return (
-        <>
-          <Tag color="orange">Нет доступа</Tag>
-          <Button type="link" size="small" style={{ padding: 0, height: 'auto' }} onClick={() => navigate('/subscribe')}>
-            Оформить подписку
-          </Button>
-        </>
-      )
-    }
-
-    const cmExpiresAt = campaignManage.expiresAt ? dayjs(campaignManage.expiresAt) : null
-
-    if (campaignManage.status === 'AGENCY') {
-      return (
-        <div style={statusContentStyle}>
-          <Tag color="purple">Клиент агентства</Tag>
-          <Typography.Text type="secondary">
-            Управление РК доступно без подписки — кабинет ведётся агентством.
-          </Typography.Text>
-        </div>
-      )
-    }
-
-    if (campaignManage.status === 'ACTIVE' && cmExpiresAt) {
-      const days = campaignManage.daysRemaining ?? 0
-      return (
-        <div style={statusContentStyle}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-            <Tag color="green">Подключено</Tag>
-            <Typography.Text>
-              Действует до <Typography.Text strong>{cmExpiresAt.format('DD.MM.YYYY HH:mm')}</Typography.Text>
-            </Typography.Text>
-          </div>
-          <Typography.Text type="secondary">
-            {days > 0 ? `Осталось ${campaignManageDaysLabel(days)}` : 'Осталось менее суток'}
-          </Typography.Text>
-          <Button
-            type="link"
-            size="small"
-            style={{ padding: 0, height: 'auto', alignSelf: 'flex-start', color: accent }}
-            onClick={openPlans}
-          >
-            Продлить или сменить тариф
-          </Button>
-        </div>
-      )
-    }
-
-    if (campaignManage.status === 'EXPIRED' && cmExpiresAt) {
-      const ago = campaignManage.daysExpiredAgo ?? 0
-      return (
-        <div style={statusContentStyle}>
-          <Tag color="orange">Подписка истекла</Tag>
-          <Typography.Text type="secondary">
-            Закончилась {cmExpiresAt.format('DD.MM.YYYY HH:mm')}
-            {ago > 0 ? ` (${campaignManageDaysLabel(ago)} назад)` : ' (сегодня)'}
-          </Typography.Text>
-          <Typography.Text>Раздел «Управление РК» недоступен до продления подписки.</Typography.Text>
-          <Button type="primary" size="small" onClick={openPlans} style={{ alignSelf: 'flex-start', backgroundColor: accent, borderColor: accent }}>
-            Подключить снова
-          </Button>
-        </div>
-      )
-    }
-
-    return (
-      <div style={statusContentStyle}>
-        <Tag color="default">Не подключено</Tag>
-        <Typography.Text type="secondary">
-          Аналитика и реклама доступны бесплатно. Раздел «Управление РК» (расписание, автобюджет и др.) требует подписки.
-        </Typography.Text>
-        <Button type="primary" size="small" onClick={openPlans} style={{ alignSelf: 'flex-start', backgroundColor: accent, borderColor: accent }}>
-          Подключить Управление РК
-        </Button>
-      </div>
-    )
-  }
 
   const paymentColumns = [
     {
@@ -276,6 +133,46 @@ export default function Subscription() {
     },
   ]
 
+  const onConnectService = (serviceCode: string) => {
+    if (serviceCode === 'CAMPAIGN_MANAGE') {
+      openPlans()
+      return
+    }
+    if (serviceCode === 'AB_TESTS') {
+      setAbPacksOpen(true)
+    }
+  }
+
+  const payMainPlan = async (plan: PlanDto) => {
+    if (effectiveCabinetId == null) {
+      message.warning('Выберите кабинет')
+      return
+    }
+    if (plan.priceRub <= 0) {
+      return
+    }
+    setPayingPlanId(plan.id)
+    try {
+      const res = await subscriptionApi.initiatePayment(plan.id, effectiveCabinetId)
+      window.location.href = res.paymentUrl
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { error?: string } } })?.response?.data
+      message.error(data?.error || 'Не удалось перейти к оплате')
+    } finally {
+      setPayingPlanId(null)
+    }
+  }
+
+  const isCurrentMainPlan = (plan: PlanDto) => {
+    if (plan.code === 'pro_month') {
+      return onPro
+    }
+    if (plan.code === 'analytics_free') {
+      return !onPro
+    }
+    return plan.code === currentMainCode
+  }
+
   return (
     <>
       <Header />
@@ -290,124 +187,208 @@ export default function Subscription() {
           justifyContent: 'center',
         }}
       >
-        <div style={{ width: '100%', maxWidth: 1200 }}>
-          <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 24 }}>
+        <div style={{ width: '100%', maxWidth: 960 }}>
+          <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 8 }}>
             Подписка
           </Typography.Title>
-
-          <Card
-            style={{
-              marginBottom: 24,
-              borderRadius: 8,
-            }}
-          >
-            <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 16 }}>
-              Текущий статус
-            </Typography.Title>
-
-            {campaignManage?.enabled ? (
-              <>
-                <div style={statusRowStyle}>
-                  <Typography.Text strong style={{ minWidth: 200 }}>
-                    Аналитика и реклама
-                  </Typography.Text>
-                  <div style={statusContentStyle}>
-                    <Tag color="cyan">Бесплатный доступ</Tag>
-                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0, maxWidth: 520 }}>
-                      Основные разделы сервиса доступны без оплаты.
-                    </Typography.Paragraph>
-                  </div>
-                </div>
-                <div style={{ ...statusRowStyle, borderBottom: 'none', paddingBottom: 0 }}>
-                  <Typography.Text strong style={{ minWidth: 200 }}>
-                    Управление РК
-                  </Typography.Text>
-                  {renderCampaignManageStatus()}
-                </div>
-              </>
-            ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-                <Typography.Text strong>Текущий статус: </Typography.Text>
-                {renderCampaignManageStatus()}
-              </div>
-            )}
-          </Card>
-
-          {billingEnabled && (
-            <Card
-              title="Оплатить или продлить"
-              style={{
-                marginBottom: 24,
-                borderRadius: 8,
+          <div style={{ marginBottom: 20, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Typography.Text type="secondary">Кабинет:</Typography.Text>
+            <Select
+              style={{ minWidth: 260 }}
+              loading={cabinetsLoading}
+              value={effectiveCabinetId ?? undefined}
+              options={cabinets.map((c: CabinetDto) => ({ value: c.id, label: c.name }))}
+              onChange={(id) => {
+                setCabinetId(id)
+                setStoredCabinetId(id)
               }}
-            >
-              {plans.length === 0 ? (
-                <Typography.Text type="secondary">Нет доступных тарифов.</Typography.Text>
-              ) : (
-                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
-                  {plans.map((plan) => (
-                    <Card
-                      key={plan.id}
-                      style={{ width: 280, ...tariffCardStyle }}
-                      bodyStyle={{ padding: '28px 24px' }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)'
-                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(124,58,237,0.12)'
-                        e.currentTarget.style.borderColor = 'rgba(124,58,237,0.35)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = ''
-                        e.currentTarget.style.boxShadow = tariffCardStyle.boxShadow
-                        e.currentTarget.style.borderColor = border
-                      }}
-                      onClick={() => navigate(PAYMENT_UNAVAILABLE_PATH)}
-                    >
-                      <div style={{ fontSize: 16, fontWeight: 600, color: textPrimary, marginBottom: 6 }}>{plan.name}</div>
-                      {plan.description && (
-                        <div style={{ color: textSecondary, marginBottom: 20, fontSize: 14, lineHeight: 1.5 }}>
-                          {plan.description}
-                        </div>
-                      )}
+              placeholder="Выберите кабинет"
+            />
+          </div>
+
+          {effectiveCabinetId == null ? (
+            <Card>
+              <Typography.Text type="secondary">Сначала создайте кабинет.</Typography.Text>
+              <div style={{ marginTop: 12 }}>
+                <Button type="primary" onClick={() => navigate('/profile')} style={{ background: accent, borderColor: accent }}>
+                  К профилю
+                </Button>
+              </div>
+            </Card>
+          ) : billingPending || !billing || mainPlansLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
+              <Spin size="large" />
+            </div>
+          ) : (
+            <>
+              <Card style={{ marginBottom: 24, borderRadius: 8 }}>
+                <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
+                  Основной тариф
+                </Typography.Title>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+                  Выберите основной тариф кабинета. Сейчас активен:{' '}
+                  <Typography.Text strong>{billing.mainTariff.name}</Typography.Text>
+                  {billing.mainTariff.expiresAt
+                    ? ` до ${dayjs(billing.mainTariff.expiresAt).format('DD.MM.YYYY')}`
+                    : ' · бессрочно'}
+                  .
+                </Typography.Paragraph>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                    gap: 16,
+                  }}
+                >
+                  {sortedMainPlans.map((plan) => {
+                    const current = isCurrentMainPlan(plan)
+                    const canBuy =
+                      billing.canManageBilling
+                      && plan.priceRub > 0
+                      && !current
+                      && billing.mainTariff.status !== 'AGENCY'
+
+                    return (
                       <div
+                        key={plan.id}
                         style={{
-                          fontSize: 28,
-                          fontWeight: 700,
-                          color: accent,
-                          letterSpacing: '-0.02em',
+                          background: current ? '#F5F3FF' : '#F8FAFC',
+                          border: current ? `1px solid ${accent}` : `1px solid ${border}`,
+                          borderRadius: 12,
+                          padding: 20,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          minHeight: 240,
                         }}
                       >
-                        {formatPriceShort(plan.priceRub)}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                          <div style={{ fontSize: 18, fontWeight: 700, color: '#1E293B' }}>{plan.name}</div>
+                          {current ? <Tag color="purple">Текущий</Tag> : null}
+                        </div>
+                        <div style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
+                          {plan.description || '—'}
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1E293B' }}>
+                          {formatMainPlanPrice(plan)}
+                        </div>
+                        {current ? (
+                          <Button block disabled>
+                            Подключен
+                          </Button>
+                        ) : canBuy ? (
+                          <Button
+                            type="primary"
+                            block
+                            loading={payingPlanId === plan.id}
+                            onClick={() => void payMainPlan(plan)}
+                            style={{ backgroundColor: accent, borderColor: accent }}
+                          >
+                            Подключить
+                          </Button>
+                        ) : (
+                          <Button block disabled>
+                            {billing.mainTariff.status === 'AGENCY' ? 'Входит в доступ агентства' : 'Недоступно'}
+                          </Button>
+                        )}
                       </div>
-                    </Card>
-                  ))}
+                    )
+                  })}
                 </div>
-              )}
-            </Card>
+              </Card>
+
+              <Card style={{ marginBottom: 24, borderRadius: 8 }}>
+                <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
+                  Дополнительные услуги
+                </Typography.Title>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                  Подключаются отдельно к кабинету. Можно комбинировать с любым основным тарифом
+                  {onPro ? ' (на PRO услуги уже включены без ограничений)' : ''}.
+                </Typography.Paragraph>
+
+                {(billing.services ?? []).map((svc) => {
+                  const includedInPro = onPro && (svc.status === 'INCLUDED' || svc.connected)
+                  return (
+                    <div
+                      key={svc.serviceCode}
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'space-between',
+                        gap: 12,
+                        padding: '14px 0',
+                        borderBottom: `1px solid ${border}`,
+                      }}
+                    >
+                      <div style={{ flex: '1 1 240px' }}>
+                        <Typography.Text strong>{svc.name}</Typography.Text>
+                        <div style={{ marginTop: 6 }}>
+                          <Tag color={svc.connected ? 'green' : 'default'}>
+                            {svc.connected ? 'Подключен' : 'Не подключен'}
+                          </Tag>
+                          {svc.planName && (
+                            <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
+                              {svc.planName}
+                            </Typography.Text>
+                          )}
+                          {svc.expiresAt && (
+                            <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
+                              до {dayjs(svc.expiresAt).format('DD.MM.YYYY')}
+                            </Typography.Text>
+                          )}
+                        </div>
+                        {svc.serviceCode === 'AB_TESTS'
+                          && billing.abTestQuota
+                          && !billing.abTestQuota.unlimited
+                          && billing.abTestQuota.activated && (
+                          <Typography.Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
+                            Использовано: {billing.abTestQuota.usedStarts ?? 0}, доступно:{' '}
+                            {billing.abTestQuota.remaining ?? 0}
+                          </Typography.Text>
+                        )}
+                      </div>
+                      {billing.canManageBilling && (
+                        <Button
+                          type={svc.connected && !includedInPro ? 'default' : includedInPro ? 'default' : 'primary'}
+                          style={!svc.connected && !includedInPro ? { background: accent, borderColor: accent } : undefined}
+                          onClick={() => onConnectService(svc.serviceCode)}
+                          disabled={includedInPro}
+                        >
+                          {includedInPro
+                            ? 'Включено в PRO'
+                            : svc.connected
+                              ? 'Управление'
+                              : 'Подключить'}
+                        </Button>
+                      )}
+                    </div>
+                  )
+                })}
+              </Card>
+            </>
           )}
 
-          <Card
-            title="История платежей"
-            style={{
-              marginBottom: 24,
-              borderRadius: 8,
-            }}
-          >
+          <Card title="История платежей" style={{ marginBottom: 24, borderRadius: 8 }}>
             {paymentsLoading ? (
               <Spin />
             ) : payments.length === 0 ? (
               <Typography.Text type="secondary">Платежей пока нет.</Typography.Text>
             ) : (
-              <Table
-                rowKey="id"
-                columns={paymentColumns}
-                dataSource={payments}
-                pagination={false}
-                size="small"
-              />
+              <Table rowKey="id" columns={paymentColumns} dataSource={payments} pagination={false} size="small" />
             )}
           </Card>
         </div>
       </div>
+
+      <AbTestPacksModal
+        open={abPacksOpen}
+        cabinetId={effectiveCabinetId}
+        freeAlreadyUsed={Boolean(billing?.abTestQuota?.activated)}
+        onClose={() => setAbPacksOpen(false)}
+        onActivated={() => {
+          void refetchBilling()
+        }}
+      />
     </>
   )
 }

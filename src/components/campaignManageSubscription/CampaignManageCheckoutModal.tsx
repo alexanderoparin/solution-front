@@ -39,32 +39,42 @@ export default function CampaignManageCheckoutModal({
 }: CampaignManageCheckoutModalProps) {
   const email = useAuthStore((s) => s.email)
   const queryClient = useQueryClient()
-  const { campaignManage, sellerId } = useCampaignManageAccess()
+  const { campaignManage, sellerId, cabinetId } = useCampaignManageAccess()
   const [promo, setPromo] = useState('')
 
   const isFree = plan != null && plan.priceRub <= 0
 
   const activateMutation = useMutation({
-    mutationFn: (planId: number) => subscriptionApi.activatePlan(planId),
+    mutationFn: (planId: number) => {
+      if (cabinetId == null) {
+        return Promise.reject(new Error('Кабинет не выбран'))
+      }
+      return subscriptionApi.activatePlan(planId, cabinetId)
+    },
     onSuccess: () => {
       message.success('Подписка активирована')
-      void queryClient.invalidateQueries({ queryKey: accessStatusQueryKey(sellerId) })
+      void queryClient.invalidateQueries({ queryKey: accessStatusQueryKey(sellerId, cabinetId) })
       onClose()
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      message.error(msg || 'Не удалось активировать план')
+      const msg = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data
+      message.error(msg?.error || msg?.message || 'Не удалось активировать план')
     },
   })
 
   const payMutation = useMutation({
-    mutationFn: (planId: number) => subscriptionApi.initiatePayment(planId),
+    mutationFn: (planId: number) => {
+      if (cabinetId == null) {
+        return Promise.reject(new Error('Кабинет не выбран'))
+      }
+      return subscriptionApi.initiatePayment(planId, cabinetId)
+    },
     onSuccess: (data) => {
       window.location.href = data.paymentUrl
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      message.error(msg || 'Не удалось перейти к оплате')
+      const msg = (err as { response?: { data?: { message?: string; error?: string } } })?.response?.data
+      message.error(msg?.error || msg?.message || 'Не удалось перейти к оплате')
     },
   })
 

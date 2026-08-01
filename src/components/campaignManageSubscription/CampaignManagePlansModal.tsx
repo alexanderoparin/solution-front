@@ -55,22 +55,6 @@ export default function CampaignManagePlansModal({ open, onClose }: CampaignMana
         title="Подписка на Управление РК"
         destroyOnClose
       >
-        <div
-          style={{
-            background: '#F5F3FF',
-            border: `1px solid ${accent}`,
-            borderRadius: 10,
-            padding: '12px 16px',
-            marginBottom: 20,
-            fontSize: 14,
-            color: '#1E293B',
-            lineHeight: 1.5,
-          }}
-        >
-          Подписка открывает доступ только к разделу «Управление РК». Остальные возможности сервиса
-          доступны бесплатно.
-        </div>
-
         {needsEmailConfirmation ? (
           <Alert
             type="warning"
