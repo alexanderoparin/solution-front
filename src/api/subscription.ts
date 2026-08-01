@@ -36,7 +36,7 @@ export const subscriptionApi = {
     return response.data
   },
 
-  /** Явно подключает 3 бесплатных А/Б теста кабинета */
+  /** Явно подключает бесплатный пакет А/Б тестов кабинета (план ab_pack_free) */
   activateAbFreeQuota: async (cabinetId: number): Promise<AbTestQuotaDto> => {
     const response = await apiClient.post<AbTestQuotaDto>(
       `/subscription/cabinet/${cabinetId}/ab-tests/activate-free`,

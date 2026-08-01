@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Alert,
   Card,
   Table,
   Button,
@@ -30,6 +29,24 @@ import dayjs from 'dayjs'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 
+const PLAN_KIND_LABELS: Record<string, string> = {
+  MAIN: 'Основной',
+  CAMPAIGN: 'Управление РК',
+  AB_PACK: 'Пакеты А/Б',
+}
+
+/** Порядок типов в списке: Основной → Управление РК → Пакеты А/Б. */
+const PLAN_KIND_SORT_ORDER: Record<string, number> = {
+  MAIN: 0,
+  CAMPAIGN: 1,
+  AB_PACK: 2,
+}
+
+function formatPlanKind(kind: string | null | undefined): string {
+  if (!kind) return '—'
+  return PLAN_KIND_LABELS[kind] ?? kind
+}
+
 function formatPlanPeriod(plan: PlanDto): string {
   if (plan.kind === 'AB_PACK') return `${plan.creditAmount ?? 0} тест.`
   if (plan.periodType === 'CALENDAR_MONTH') return '1 месяц'
@@ -42,8 +59,12 @@ function formatPlanPeriod(plan: PlanDto): string {
 
 function sortPlans(list: PlanDto[]): PlanDto[] {
   return [...list].sort((a, b) => {
-    const order = (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
-    return order !== 0 ? order : a.id - b.id
+    const kindA = PLAN_KIND_SORT_ORDER[a.kind ?? ''] ?? 99
+    const kindB = PLAN_KIND_SORT_ORDER[b.kind ?? ''] ?? 99
+    if (kindA !== kindB) return kindA - kindB
+    const priceDiff = (a.priceRub ?? 0) - (b.priceRub ?? 0)
+    if (priceDiff !== 0) return priceDiff
+    return a.id - b.id
   })
 }
 
@@ -235,8 +256,8 @@ export default function AdminPlansAndSubscriptions() {
       title: 'Тип',
       dataIndex: 'kind',
       key: 'kind',
-      width: 100,
-      render: (v: string | null | undefined) => v ?? '—',
+      width: 130,
+      render: (v: string | null | undefined) => formatPlanKind(v),
     },
     {
       title: 'Кредиты',
@@ -366,12 +387,6 @@ export default function AdminPlansAndSubscriptions() {
                 label: 'Планы',
                 children: (
                   <Card>
-                    <Alert
-                      type="info"
-                      showIcon
-                      style={{ marginBottom: 16 }}
-                      message="Фильтруйте по типу: MAIN (основной), CAMPAIGN (Управление РК), AB_PACK (пакеты А/Б)."
-                    />
                     <div
                       style={{
                         marginBottom: 16,
@@ -387,9 +402,9 @@ export default function AdminPlansAndSubscriptions() {
                         onChange={setPlanKindFilter}
                         options={[
                           { value: 'ALL', label: 'Все типы' },
-                          { value: 'MAIN', label: 'MAIN' },
-                          { value: 'CAMPAIGN', label: 'CAMPAIGN' },
-                          { value: 'AB_PACK', label: 'AB_PACK' },
+                          { value: 'MAIN', label: PLAN_KIND_LABELS.MAIN },
+                          { value: 'CAMPAIGN', label: PLAN_KIND_LABELS.CAMPAIGN },
+                          { value: 'AB_PACK', label: PLAN_KIND_LABELS.AB_PACK },
                         ]}
                       />
                       <Button type="primary" icon={<PlusOutlined />} onClick={openCreatePlan}>
@@ -524,18 +539,18 @@ export default function AdminPlansAndSubscriptions() {
             <Input.TextArea rows={2} />
           </Form.Item>
           <Form.Item name="code" label="Код (уникальный)">
-            <Input placeholder="pro_month / campaign_week / ab_pack_5" disabled={!!editingPlan?.code} />
+            <Input placeholder="ab_pack_free / ab_pack_5 / pro_month" disabled={!!editingPlan?.code} />
           </Form.Item>
           <Form.Item name="kind" label="Тип" rules={[{ required: true }]}>
             <Select
               options={[
-                { value: 'MAIN', label: 'MAIN — основной тариф' },
-                { value: 'CAMPAIGN', label: 'CAMPAIGN — Управление РК' },
-                { value: 'AB_PACK', label: 'AB_PACK — пакет А/Б' },
+                { value: 'MAIN', label: PLAN_KIND_LABELS.MAIN },
+                { value: 'CAMPAIGN', label: PLAN_KIND_LABELS.CAMPAIGN },
+                { value: 'AB_PACK', label: PLAN_KIND_LABELS.AB_PACK },
               ]}
             />
           </Form.Item>
-          <Form.Item name="creditAmount" label="Кредиты А/Б (для AB_PACK)">
+          <Form.Item name="creditAmount" label="Кредиты А/Б (для пакетов А/Б)">
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="priceRub" label="Цена, ₽" rules={[{ required: true }]}>
@@ -549,7 +564,7 @@ export default function AdminPlansAndSubscriptions() {
               ]}
             />
           </Form.Item>
-          <Form.Item name="periodDays" label="Период, дней (0 для AB_PACK)" rules={[{ required: true }]}>
+          <Form.Item name="periodDays" label="Период, дней (0 для пакетов А/Б)" rules={[{ required: true }]}>
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="sortOrder" label="Порядок сортировки">
@@ -583,14 +598,17 @@ export default function AdminPlansAndSubscriptions() {
             <Select
               options={activePlans.map((p) => ({
                 value: p.id,
-                label: `${p.name} [${p.kind ?? '?'}] (${formatPlanPeriod(p)}, ${p.priceRub} ₽)`,
+                label: `${p.name} [${formatPlanKind(p.kind)}] (${formatPlanPeriod(p)}, ${p.priceRub} ₽)`,
               }))}
             />
           </Form.Item>
-          <Form.Item name="abCredits" label="Кредиты А/Б (если AB_PACK; пусто = из плана)">
+          <Form.Item name="abCredits" label="Кредиты А/Б (если пакет А/Б; пусто = из плана)">
             <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="expiresAt" label="Дата окончания (MAIN/CAMPAIGN; для AB_PACK не нужна)">
+          <Form.Item
+            name="expiresAt"
+            label="Дата окончания (основной / Управление РК; для пакетов А/Б не нужна)"
+          >
             <DatePicker showTime style={{ width: '100%' }} />
           </Form.Item>
         </Form>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Modal, Button, Spin, message } from 'antd'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { subscriptionApi } from '../../api/subscription'
@@ -6,10 +6,9 @@ import type { PlanDto } from '../../types/api'
 
 const accent = '#7C3AED'
 const UNIT_PRICE = 500
+const AB_PACK_FREE_CODE = 'ab_pack_free'
 
-const FREE_COPY = '3 бесплатных А/Б теста для знакомства с возможностями сервиса'
-
-const PACK_COPY: Record<string, string> = {
+const FALLBACK_PACK_COPY: Record<string, string> = {
   ab_pack_1: 'Для одного А/Б теста',
   ab_pack_5: 'Для регулярного А/Б тестирования и поиска лучшего CTR',
   ab_pack_10: 'Самый выгодный пакет для постоянной работы с АБ тестами и роста конверсии',
@@ -28,15 +27,31 @@ function formatRub(n: number): string {
   return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n) + ' руб'
 }
 
+function isFreeAbPack(plan: PlanDto): boolean {
+  return plan.code === AB_PACK_FREE_CODE || (plan.priceRub ?? 0) <= 0
+}
+
 function packTitle(plan: PlanDto): string {
+  if (isFreeAbPack(plan)) {
+    return plan.name || 'FREE'
+  }
   const credits = plan.creditAmount ?? 0
   if (credits === 1) return '1 тест'
   if (credits > 1) return `${credits} тестов`
   return plan.name
 }
 
+function packDescription(plan: PlanDto): string {
+  return plan.description || FALLBACK_PACK_COPY[plan.code ?? ''] || ''
+}
+
 function packPriceLabel(plan: PlanDto): string {
   const credits = plan.creditAmount ?? 0
+  if (isFreeAbPack(plan)) {
+    const testsLabel =
+      credits === 1 ? '1 тест' : credits >= 2 && credits <= 4 ? `${credits} теста` : `${credits} тестов`
+    return `0 руб / ${testsLabel}`
+  }
   const price = formatRub(plan.priceRub)
   if (credits <= 1) return price
   const perTest = Math.round(plan.priceRub / credits)
@@ -46,7 +61,7 @@ function packPriceLabel(plan: PlanDto): string {
 }
 
 /**
- * Модалка пакетов А/Б в стиле «Подписка на Управление РК»: FREE + платные карточки с «Подключить».
+ * Модалка пакетов А/Б: FREE (ab_pack_free) + платные карточки из каталога.
  */
 export default function AbTestPacksModal({
   open,
@@ -64,6 +79,15 @@ export default function AbTestPacksModal({
     enabled: open,
   })
 
+  const { freePlan, paidPacks } = useMemo(() => {
+    const free = packs.find(isFreeAbPack) ?? null
+    const paid = packs
+      .filter((p) => !isFreeAbPack(p))
+      .slice()
+      .sort((a, b) => (a.priceRub ?? 0) - (b.priceRub ?? 0) || a.id - b.id)
+    return { freePlan: free, paidPacks: paid }
+  }, [packs])
+
   const activateFreeMutation = useMutation({
     mutationFn: () => {
       if (cabinetId == null) {
@@ -72,7 +96,18 @@ export default function AbTestPacksModal({
       return subscriptionApi.activateAbFreeQuota(cabinetId)
     },
     onSuccess: () => {
-      message.success('Подключены 3 бесплатных А/Б теста')
+      const credits = freePlan?.creditAmount ?? 3
+      const testsWord =
+        credits % 10 === 1 && credits % 100 !== 11
+          ? 'тест'
+          : credits % 10 >= 2 && credits % 10 <= 4 && (credits % 100 < 10 || credits % 100 >= 20)
+            ? 'теста'
+            : 'тестов'
+      message.success(
+        credits === 1
+          ? 'Подключён 1 бесплатный А/Б тест'
+          : `Подключены ${credits} бесплатных А/Б ${testsWord}`,
+      )
       void queryClient.invalidateQueries({ queryKey: ['cabinetBilling'] })
       onActivated?.()
       onClose()
@@ -138,40 +173,44 @@ export default function AbTestPacksModal({
             gap: 16,
           }}
         >
-          <div
-            style={{
-              background: '#F8FAFC',
-              borderRadius: 12,
-              padding: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              minHeight: 280,
-            }}
-          >
-            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>FREE</div>
-            <div style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
-              {FREE_COPY}
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1E293B' }}>
-              0 руб / 3 теста
-            </div>
-            <Button
-              type="primary"
-              block
-              disabled={freeAlreadyUsed || cabinetId == null}
-              title={freeAlreadyUsed ? 'Бесплатные тесты уже были подключены' : undefined}
-              loading={busyPlanKey === 'free'}
-              onClick={() => {
-                setBusyPlanKey('free')
-                activateFreeMutation.mutate()
+          {freePlan && (
+            <div
+              style={{
+                background: '#F8FAFC',
+                borderRadius: 12,
+                padding: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: 280,
               }}
-              style={{ backgroundColor: accent, borderColor: accent }}
             >
-              Подключить
-            </Button>
-          </div>
+              <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
+                {packTitle(freePlan)}
+              </div>
+              <div style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
+                {packDescription(freePlan)}
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1E293B' }}>
+                {packPriceLabel(freePlan)}
+              </div>
+              <Button
+                type="primary"
+                block
+                disabled={freeAlreadyUsed || cabinetId == null}
+                title={freeAlreadyUsed ? 'Бесплатные тесты уже были подключены' : undefined}
+                loading={busyPlanKey === 'free'}
+                onClick={() => {
+                  setBusyPlanKey('free')
+                  activateFreeMutation.mutate()
+                }}
+                style={{ backgroundColor: accent, borderColor: accent }}
+              >
+                Подключить
+              </Button>
+            </div>
+          )}
 
-          {packs.map((plan) => {
+          {paidPacks.map((plan) => {
             const key = plan.code ?? String(plan.id)
             return (
               <div
@@ -189,7 +228,7 @@ export default function AbTestPacksModal({
                   {packTitle(plan)}
                 </div>
                 <div style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
-                  {PACK_COPY[plan.code ?? ''] || plan.description}
+                  {packDescription(plan)}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1E293B' }}>
                   {packPriceLabel(plan)}
