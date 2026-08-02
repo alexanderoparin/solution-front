@@ -338,6 +338,12 @@ export default function AdminPlansAndSubscriptions() {
 
   const billingColumns = [
     {
+      title: 'ID',
+      dataIndex: 'cabinetId',
+      key: 'cabinetId',
+      width: 72,
+    },
+    {
       title: 'Кабинет',
       dataIndex: 'cabinetName',
       key: 'cabinetName',
