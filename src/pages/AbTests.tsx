@@ -765,17 +765,67 @@ function AbTestCard({
         {item.variants.map((v) => (
           <Link key={v.id} to={`/advertising/ab-test/${item.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ width: 72 }}>
-              <AbTestVariantImage
-                testId={item.id}
-                variantId={v.id}
-                hasLocalImage={v.hasLocalImage}
-                photoUrl={v.photoUrl}
-                previewUrl={v.previewUrl}
-                sellerId={sellerId}
-                cabinetId={cabinetId}
-                style={{ width: 72, height: 96, objectFit: 'cover', borderRadius: 8, background: '#F1F5F9' }}
-              />
+              <div style={{ position: 'relative', width: 72, height: 96 }}>
+                <AbTestVariantImage
+                  testId={item.id}
+                  variantId={v.id}
+                  hasLocalImage={v.hasLocalImage}
+                  photoUrl={v.photoUrl}
+                  previewUrl={v.previewUrl}
+                  sellerId={sellerId}
+                  cabinetId={cabinetId}
+                  style={{
+                    width: 72,
+                    height: 96,
+                    objectFit: 'cover',
+                    borderRadius: 8,
+                    background: '#F1F5F9',
+                    filter: v.paused ? 'grayscale(1)' : 'none',
+                    opacity: v.paused ? 0.55 : 1,
+                    display: 'block',
+                  }}
+                />
+                {v.paused ? (
+                  <div
+                    aria-hidden
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 8,
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: 5,
+                        alignItems: 'stretch',
+                        height: 22,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 6,
+                          borderRadius: 2,
+                          background: 'rgba(51, 65, 85, 0.88)',
+                        }}
+                      />
+                      <span
+                        style={{
+                          width: 6,
+                          borderRadius: 2,
+                          background: 'rgba(51, 65, 85, 0.88)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
               <div style={{ fontSize: 12, marginTop: 4, fontWeight: 600 }}>CTR {formatCtr(v.ctr)}</div>
+              {v.paused ? <div style={{ fontSize: 11, color: '#64748B' }}>на паузе</div> : null}
               {v.losing ? <div style={{ fontSize: 11, color: '#DC2626' }}>проигрывает</div> : null}
             </div>
           </Link>
