@@ -15,14 +15,13 @@ import {
   Space,
   message,
   Tag,
-  Spin,
   Typography,
+  Drawer,
 } from 'antd'
 import { PlusOutlined, EditOutlined, CreditCardOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '../api/admin'
-import { userApi } from '../api/user'
-import type { PlanDto, SubscriptionDto, PaymentDto } from '../types/api'
+import type { PlanDto, SubscriptionDto, PaymentDto, CabinetBillingOverviewDto } from '../types/api'
 import { getPaymentStatusLabel, getPaymentStatusColor, getSubscriptionStatusLabel } from '../utils/paymentStatus'
 import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
@@ -68,6 +67,35 @@ function sortPlans(list: PlanDto[]): PlanDto[] {
   })
 }
 
+function formatExpires(v: string | null | undefined): string {
+  if (!v) return 'бессрочно'
+  return dayjs(v).format('DD.MM.YYYY')
+}
+
+function formatMainCell(row: CabinetBillingOverviewDto): string {
+  const t = row.mainTariff
+  if (!t) return '—'
+  const exp = t.expiresAt ? ` · до ${formatExpires(t.expiresAt)}` : ''
+  return `${t.name}${exp}`
+}
+
+function formatCampaignCell(row: CabinetBillingOverviewDto): string {
+  const c = row.campaign
+  if (!c || !c.connected) return 'нет'
+  if (c.status === 'INCLUDED') return c.planName ?? 'Входит в PRO'
+  const exp = c.expiresAt ? ` · до ${formatExpires(c.expiresAt)}` : ''
+  return `${c.planName ?? 'Подключено'}${exp}`
+}
+
+function formatAbCell(row: CabinetBillingOverviewDto): string {
+  const a = row.abTests
+  if (!a) return '—'
+  if (a.unlimited) return 'безлимит'
+  if (!a.connected && !a.activated) return 'не подключено'
+  if (a.remaining != null) return `${a.remaining} тест.`
+  return a.activated ? 'подключено' : 'не подключено'
+}
+
 export default function AdminPlansAndSubscriptions() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -77,9 +105,13 @@ export default function AdminPlansAndSubscriptions() {
   const [editingPlan, setEditingPlan] = useState<PlanDto | null>(null)
   const [planModalOpen, setPlanModalOpen] = useState(false)
   const [extendModalOpen, setExtendModalOpen] = useState(false)
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
-  const [selectedCabinetId, setSelectedCabinetId] = useState<number | null>(null)
   const [planKindFilter, setPlanKindFilter] = useState<string>('ALL')
+  const [billingPage, setBillingPage] = useState(0)
+  const [billingPageSize, setBillingPageSize] = useState(20)
+  const [billingSearchInput, setBillingSearchInput] = useState('')
+  const [billingSearch, setBillingSearch] = useState('')
+  const [detailRow, setDetailRow] = useState<CabinetBillingOverviewDto | null>(null)
+  const [extendCabinetLabel, setExtendCabinetLabel] = useState('')
 
   if (role !== 'ADMIN') {
     navigate('/profile', { replace: true })
@@ -103,28 +135,28 @@ export default function AdminPlansAndSubscriptions() {
     [sortedPlans],
   )
 
-  const { data: managedCabinetsPage } = useQuery({
-    queryKey: ['managedCabinets', 0, 500],
-    queryFn: () => userApi.getManagedCabinets({ page: 0, size: 500 }),
+  const { data: billingPageData, isLoading: billingLoading, isFetching: billingFetching } = useQuery({
+    queryKey: ['adminCabinetsBilling', billingPage, billingPageSize, billingSearch],
+    queryFn: () =>
+      adminApi.getCabinetsBilling({
+        page: billingPage,
+        size: billingPageSize,
+        search: billingSearch || undefined,
+      }),
   })
-  const managedCabinets = managedCabinetsPage?.content ?? []
 
-  const { data: subscriptions = [], isLoading: subsLoading } = useQuery<SubscriptionDto[]>({
-    queryKey: ['adminSubscriptions', selectedUserId],
-    queryFn: () => adminApi.getUserSubscriptions(selectedUserId!),
-    enabled: selectedUserId != null,
-  })
+  const billingRows = billingPageData?.content ?? []
 
   const { data: cabinetSubscriptions = [], isLoading: cabinetSubsLoading } = useQuery<SubscriptionDto[]>({
-    queryKey: ['adminCabinetSubscriptions', selectedCabinetId],
-    queryFn: () => adminApi.getCabinetSubscriptions(selectedCabinetId!),
-    enabled: selectedCabinetId != null,
+    queryKey: ['adminCabinetSubscriptions', detailRow?.cabinetId],
+    queryFn: () => adminApi.getCabinetSubscriptions(detailRow!.cabinetId),
+    enabled: detailRow != null,
   })
 
   const { data: payments = [], isLoading: paymentsLoading } = useQuery<PaymentDto[]>({
-    queryKey: ['adminPayments', selectedUserId],
-    queryFn: () => adminApi.getUserPayments(selectedUserId!),
-    enabled: selectedUserId != null,
+    queryKey: ['adminPayments', detailRow?.sellerId],
+    queryFn: () => adminApi.getUserPayments(detailRow!.sellerId!),
+    enabled: detailRow?.sellerId != null,
   })
 
   const createPlanMutation = useMutation({
@@ -159,12 +191,9 @@ export default function AdminPlansAndSubscriptions() {
       message.success('Подписка назначена/продлена')
       setExtendModalOpen(false)
       extendForm.resetFields()
-      if (selectedUserId != null) {
-        queryClient.invalidateQueries({ queryKey: ['adminSubscriptions', selectedUserId] })
-      }
-      if (selectedCabinetId != null) {
-        queryClient.invalidateQueries({ queryKey: ['adminCabinetSubscriptions', selectedCabinetId] })
-      }
+      queryClient.invalidateQueries({ queryKey: ['adminCabinetsBilling'] })
+      queryClient.invalidateQueries({ queryKey: ['adminCabinetSubscriptions'] })
+      queryClient.invalidateQueries({ queryKey: ['adminPayments'] })
     },
     onError: (e: { response?: { data?: { message?: string } } }) =>
       message.error(e.response?.data?.message || 'Ошибка продления подписки'),
@@ -197,6 +226,17 @@ export default function AdminPlansAndSubscriptions() {
       creditAmount: plan.creditAmount ?? undefined,
     })
     setPlanModalOpen(true)
+  }
+
+  const openAssign = (row: CabinetBillingOverviewDto) => {
+    setExtendCabinetLabel(`${row.cabinetName} — ${row.sellerEmail ?? '—'}`)
+    extendForm.setFieldsValue({
+      cabinetId: row.cabinetId,
+      planId: activePlans[0]?.id,
+      expiresAt: null,
+      abCredits: undefined,
+    })
+    setExtendModalOpen(true)
   }
 
   const handlePlanSubmit = () => {
@@ -233,7 +273,6 @@ export default function AdminPlansAndSubscriptions() {
         return
       }
       extendMutation.mutate({
-        userId: selectedUserId ?? undefined,
         cabinetId: values.cabinetId,
         planId: values.planId,
         expiresAt,
@@ -297,12 +336,74 @@ export default function AdminPlansAndSubscriptions() {
     },
   ]
 
+  const billingColumns = [
+    {
+      title: 'Кабинет',
+      dataIndex: 'cabinetName',
+      key: 'cabinetName',
+      width: 180,
+      ellipsis: true,
+    },
+    {
+      title: 'Владелец',
+      dataIndex: 'sellerEmail',
+      key: 'sellerEmail',
+      width: 200,
+      ellipsis: true,
+      render: (v: string | null) => v ?? '—',
+    },
+    {
+      title: 'Основной',
+      key: 'main',
+      width: 180,
+      render: (_: unknown, row: CabinetBillingOverviewDto) => formatMainCell(row),
+    },
+    {
+      title: 'Управление РК',
+      key: 'campaign',
+      width: 160,
+      render: (_: unknown, row: CabinetBillingOverviewDto) => formatCampaignCell(row),
+    },
+    {
+      title: 'А/Б',
+      key: 'ab',
+      width: 120,
+      render: (_: unknown, row: CabinetBillingOverviewDto) => formatAbCell(row),
+    },
+    {
+      title: '',
+      key: 'actions',
+      width: 220,
+      fixed: 'right' as const,
+      render: (_: unknown, row: CabinetBillingOverviewDto) => (
+        <Space size={0}>
+          <Button type="link" size="small" icon={<CreditCardOutlined />} onClick={() => openAssign(row)}>
+            Назначить
+          </Button>
+          <Button type="link" size="small" onClick={() => setDetailRow(row)}>
+            Подробнее
+          </Button>
+        </Space>
+      ),
+    },
+  ]
+
   const subColumns = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
-    { title: 'Кабинет', dataIndex: 'cabinetId', key: 'cabinetId', width: 90, render: (v: number | null) => v ?? '—' },
+    {
+      title: 'Тип',
+      dataIndex: 'planKind',
+      key: 'planKind',
+      width: 120,
+      render: (v: string | null) => formatPlanKind(v),
+    },
     { title: 'План', dataIndex: 'planName', key: 'planName' },
-    { title: 'Kind', dataIndex: 'planKind', key: 'planKind', width: 100, render: (v: string | null) => v ?? '—' },
-    { title: 'Статус', dataIndex: 'status', key: 'status', render: (s: string) => <Tag>{getSubscriptionStatusLabel(s)}</Tag> },
+    {
+      title: 'Статус',
+      dataIndex: 'status',
+      key: 'status',
+      render: (s: string) => <Tag>{getSubscriptionStatusLabel(s)}</Tag>,
+    },
     {
       title: 'Начало',
       dataIndex: 'startedAt',
@@ -418,88 +519,36 @@ export default function AdminPlansAndSubscriptions() {
                 children: (
                   <Card>
                     <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                      <div>
-                        <Typography.Text strong style={{ marginRight: 8 }}>
-                          Кабинет:
-                        </Typography.Text>
-                        <Select
-                          placeholder="Выберите кабинет"
-                          style={{ width: 420 }}
-                          showSearch
-                          optionFilterProp="label"
-                          value={selectedCabinetId ?? undefined}
-                          onChange={(id) => {
-                            setSelectedCabinetId(id)
-                            const row = managedCabinets.find((c) => c.cabinet?.id === id)
-                            setSelectedUserId(row?.sellerId ?? null)
-                          }}
-                          options={managedCabinets.map((row) => ({
-                            value: row.cabinet.id,
-                            label: `${row.cabinet.name} — ${row.sellerEmail}`,
-                          }))}
-                        />
-                      </div>
-                      {selectedCabinetId != null && (
-                        <>
-                          <div>
-                            <Button
-                              type="primary"
-                              icon={<CreditCardOutlined />}
-                              onClick={() => {
-                                extendForm.setFieldsValue({
-                                  cabinetId: selectedCabinetId,
-                                  planId: activePlans[0]?.id,
-                                  expiresAt: null,
-                                  abCredits: undefined,
-                                })
-                                setExtendModalOpen(true)
-                              }}
-                            >
-                              Продлить / назначить / начислить А/Б
-                            </Button>
-                          </div>
-                          <Typography.Title level={5}>Подписки кабинета</Typography.Title>
-                          {cabinetSubsLoading ? (
-                            <Spin />
-                          ) : (
-                            <Table
-                              rowKey="id"
-                              columns={subColumns}
-                              dataSource={cabinetSubscriptions}
-                              pagination={false}
-                              size="small"
-                            />
-                          )}
-                          {selectedUserId != null && (
-                            <>
-                              <Typography.Title level={5}>Все подписки владельца</Typography.Title>
-                              {subsLoading ? (
-                                <Spin />
-                              ) : (
-                                <Table
-                                  rowKey="id"
-                                  columns={subColumns}
-                                  dataSource={subscriptions}
-                                  pagination={false}
-                                  size="small"
-                                />
-                              )}
-                              <Typography.Title level={5}>Платежи владельца</Typography.Title>
-                              {paymentsLoading ? (
-                                <Spin />
-                              ) : (
-                                <Table
-                                  rowKey="id"
-                                  columns={paymentColumns}
-                                  dataSource={payments}
-                                  pagination={false}
-                                  size="small"
-                                />
-                              )}
-                            </>
-                          )}
-                        </>
-                      )}
+                      <Input.Search
+                        placeholder="Поиск по кабинету или email"
+                        allowClear
+                        value={billingSearchInput}
+                        onChange={(e) => setBillingSearchInput(e.target.value)}
+                        onSearch={(value) => {
+                          setBillingSearch(value.trim())
+                          setBillingPage(0)
+                        }}
+                        style={{ maxWidth: 420 }}
+                      />
+                      <Table
+                        rowKey="cabinetId"
+                        loading={billingLoading || billingFetching}
+                        columns={billingColumns}
+                        dataSource={billingRows}
+                        size="small"
+                        scroll={{ x: 1000 }}
+                        pagination={{
+                          current: billingPage + 1,
+                          pageSize: billingPageSize,
+                          total: billingPageData?.totalElements ?? 0,
+                          showSizeChanger: true,
+                          pageSizeOptions: ['10', '20', '50'],
+                          onChange: (page, pageSize) => {
+                            setBillingPage(page - 1)
+                            setBillingPageSize(pageSize)
+                          },
+                        }}
+                      />
                     </Space>
                   </Card>
                 ),
@@ -508,6 +557,55 @@ export default function AdminPlansAndSubscriptions() {
           />
         </div>
       </div>
+
+      <Drawer
+        title={
+          detailRow
+            ? `${detailRow.cabinetName} — ${detailRow.sellerEmail ?? ''}`
+            : 'Детали'
+        }
+        open={detailRow != null}
+        onClose={() => setDetailRow(null)}
+        width={720}
+        destroyOnClose
+      >
+        {detailRow && (
+          <Space direction="vertical" style={{ width: '100%' }} size="large">
+            <div>
+              <Button
+                type="primary"
+                icon={<CreditCardOutlined />}
+                onClick={() => openAssign(detailRow)}
+                style={{ marginBottom: 16 }}
+              >
+                Назначить
+              </Button>
+            </div>
+            <div>
+              <Typography.Title level={5}>Подписки кабинета</Typography.Title>
+              <Table
+                rowKey="id"
+                loading={cabinetSubsLoading}
+                columns={subColumns}
+                dataSource={cabinetSubscriptions}
+                pagination={false}
+                size="small"
+              />
+            </div>
+            <div>
+              <Typography.Title level={5}>Платежи владельца</Typography.Title>
+              <Table
+                rowKey="id"
+                loading={paymentsLoading}
+                columns={paymentColumns}
+                dataSource={payments}
+                pagination={false}
+                size="small"
+              />
+            </div>
+          </Space>
+        )}
+      </Drawer>
 
       <Modal
         title={editingPlan ? 'Редактировать план' : 'Новый план'}
@@ -573,15 +671,11 @@ export default function AdminPlansAndSubscriptions() {
         confirmLoading={extendMutation.isPending}
       >
         <Form form={extendForm} layout="vertical">
-          <Form.Item name="cabinetId" label="Кабинет" rules={[{ required: true }]}>
-            <Select
-              showSearch
-              optionFilterProp="label"
-              options={managedCabinets.map((row) => ({
-                value: row.cabinet.id,
-                label: `${row.cabinet.name} — ${row.sellerEmail}`,
-              }))}
-            />
+          <Form.Item name="cabinetId" hidden rules={[{ required: true }]}>
+            <InputNumber />
+          </Form.Item>
+          <Form.Item label="Кабинет">
+            <Input value={extendCabinetLabel} disabled />
           </Form.Item>
           <Form.Item name="planId" label="План" rules={[{ required: true, message: 'Выберите план' }]}>
             <Select

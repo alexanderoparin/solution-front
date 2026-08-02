@@ -23,6 +23,11 @@ import type { CabinetTokenType } from '../types/api'
 import { colors, borderRadius } from '../styles/analytics'
 import AbTestVariantImage from '../components/AbTestVariantImage'
 import AbTestPaywallModal from '../components/subscription/AbTestPaywallModal'
+import {
+  formatFinishLabel,
+  formatRotationLabel,
+  formatStopLabel,
+} from '../utils/abTestLabels'
 
 const accent = '#7C3AED'
 /** Минимальный интервал ротации по времени для базового токена (fullstats ≤ 1/час). */
@@ -839,6 +844,9 @@ function AbTestCard({
           {item.nmId} · {advertLabel}
         </div>
         <div style={{ color: '#64748B', fontSize: 13, marginTop: 4 }}>{dateLabel}</div>
+        <div style={{ color: '#64748B', fontSize: 13, marginTop: 4 }}>{formatRotationLabel(item)}</div>
+        <div style={{ color: '#64748B', fontSize: 13, marginTop: 2 }}>{formatStopLabel(item)}</div>
+        <div style={{ color: '#64748B', fontSize: 13, marginTop: 2 }}>{formatFinishLabel(item)}</div>
         {item.insightLabel ? (
           <div style={{ marginTop: 8, fontSize: 13, color: '#64748B' }}>{item.insightLabel}</div>
         ) : null}

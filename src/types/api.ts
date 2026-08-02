@@ -328,6 +328,35 @@ export interface CabinetBillingStatusDto {
   canManageBilling: boolean
 }
 
+/** Сводка биллинга кабинета для админ-таблицы. */
+export interface CabinetBillingOverviewDto {
+  cabinetId: number
+  cabinetName: string
+  sellerId: number | null
+  sellerEmail: string | null
+  agencyManaged: boolean | null
+  mainTariff: {
+    code: string
+    name: string
+    status: string
+    expiresAt?: string | null
+    unlimitedAccess: boolean
+  }
+  campaign: {
+    connected: boolean
+    planCode?: string | null
+    planName?: string | null
+    expiresAt?: string | null
+    status?: string | null
+  }
+  abTests: {
+    connected: boolean
+    activated: boolean | null
+    remaining: number | null
+    unlimited: boolean | null
+  }
+}
+
 /** Статус кулдауна ручного запуска «обновить кабинеты» для админов/менеджеров (не чаще 1 раза в 5 мин). */
 export interface TriggerCooldownResponse {
   lastTriggeredAtMs: number

@@ -11,6 +11,11 @@ import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabi
 import { abTestApi } from '../api/abTest'
 import { colors, borderRadius } from '../styles/analytics'
 import AbTestVariantImage from '../components/AbTestVariantImage'
+import {
+  formatFinishSummary,
+  formatRotationSummary,
+  formatStopSummary,
+} from '../utils/abTestLabels'
 
 function formatPct(value: number | null | undefined): string {
   if (value == null) return '—'
@@ -110,9 +115,32 @@ export default function AbTestDetail() {
         ) : (
           <>
             <h1 style={{ fontSize: 22, fontWeight: 700, margin: '16px 0 8px' }}>{test.title ?? `Артикул ${test.nmId}`}</h1>
-            <div style={{ color: '#64748B', marginBottom: 24 }}>
+            <div style={{ color: '#64748B', marginBottom: 8 }}>
               {test.nmId}
               {test.advertIds?.length ? ` · рк ${test.advertIds.join(', ')}` : ''}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px 24px',
+                color: '#64748B',
+                fontSize: 14,
+                marginBottom: 24,
+              }}
+            >
+              <div>
+                <span style={{ color: '#94A3B8' }}>Периодичность ротации: </span>
+                {formatRotationSummary(test)}
+              </div>
+              <div>
+                <span style={{ color: '#94A3B8' }}>Когда остановить тест: </span>
+                {formatStopSummary(test)}
+              </div>
+              <div>
+                <span style={{ color: '#94A3B8' }}>По завершении: </span>
+                {formatFinishSummary(test)}
+              </div>
             </div>
             <div
               style={{
@@ -122,9 +150,10 @@ export default function AbTestDetail() {
               }}
             >
               {(() => {
-                const bestCtr = Math.max(...test.variants.map((x) => Number(x.ctr) || 0))
+                const activeCtrs = test.variants.filter((x) => !x.paused).map((x) => Number(x.ctr) || 0)
+                const bestCtr = activeCtrs.length > 0 ? Math.max(...activeCtrs) : 0
                 return test.variants.map((v) => {
-                  const isCtrLeader = bestCtr > 0 && Number(v.ctr) === bestCtr
+                  const isCtrLeader = !v.paused && bestCtr > 0 && Number(v.ctr) === bestCtr
                   const showInColor = v.activeOnWb && !v.paused
                   const canPause = test.status === 'ENABLED' && !v.paused && activeUnpausedCount > 1
                   const canResume = test.status === 'ENABLED' && !!v.paused

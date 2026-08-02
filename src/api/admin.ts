@@ -18,6 +18,7 @@ import type {
   WbApiEventCabinetStatsDto,
   AccountDeletionRequestAdminDto,
   MessageResponse,
+  CabinetBillingOverviewDto,
 } from '../types/api'
 
 export const adminApi = {
@@ -53,6 +54,21 @@ export const adminApi = {
 
   getCabinetSubscriptions: async (cabinetId: number): Promise<SubscriptionDto[]> => {
     const response = await apiClient.get<SubscriptionDto[]>(`/admin/cabinets/${cabinetId}/subscriptions`)
+    return response.data
+  },
+
+  getCabinetsBilling: async (params: {
+    page: number
+    size: number
+    search?: string
+  }): Promise<PageResponse<CabinetBillingOverviewDto>> => {
+    const response = await apiClient.get<PageResponse<CabinetBillingOverviewDto>>('/admin/cabinets/billing', {
+      params: {
+        page: params.page,
+        size: params.size,
+        search: params.search || undefined,
+      },
+    })
     return response.data
   },
 
