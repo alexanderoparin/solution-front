@@ -1,5 +1,5 @@
 import apiClient from './client'
-import type { AbTest, AbTestStatus, CreateAbTestRequest } from '../types/abTest'
+import type { AbTest, AbTestStatus, CreateAbTestRequest, UpdateAbTestSettingsRequest } from '../types/abTest'
 
 function buildParams(sellerId?: number, cabinetId?: number, extra?: Record<string, string | boolean>): string {
   const searchParams = new URLSearchParams()
@@ -56,6 +56,19 @@ export const abTestApi = {
     const response = await apiClient.patch<AbTest>(
       `/advertising/ab-tests/${id}/status${buildParams(sellerId, cabinetId)}`,
       { status },
+    )
+    return response.data
+  },
+
+  updateSettings: async (
+    id: number,
+    request: UpdateAbTestSettingsRequest,
+    sellerId?: number,
+    cabinetId?: number,
+  ): Promise<AbTest> => {
+    const response = await apiClient.patch<AbTest>(
+      `/advertising/ab-tests/${id}/settings${buildParams(sellerId, cabinetId)}`,
+      request,
     )
     return response.data
   },

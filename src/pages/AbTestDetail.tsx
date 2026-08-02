@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Button, Spin, Tooltip, message } from 'antd'
-import { PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons'
+import { Button, InputNumber, Modal, Radio, Select, Spin, Tooltip, message } from 'antd'
+import { EditOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
@@ -16,6 +16,17 @@ import {
   formatRotationSummary,
   formatStopSummary,
 } from '../utils/abTestLabels'
+import type {
+  AbTest,
+  AbTestFinishAction,
+  AbTestRotationMode,
+  AbTestStopMode,
+  UpdateAbTestSettingsRequest,
+} from '../types/abTest'
+import type { CabinetTokenType } from '../types/api'
+
+/** Минимальный интервал ротации по времени для базового токена (fullstats ≤ 1/час). */
+const BASIC_TOKEN_MIN_INTERVAL_MINUTES = 60
 
 function formatPct(value: number | null | undefined): string {
   if (value == null) return '—'
@@ -42,6 +53,7 @@ export default function AbTestDetail() {
   const isAdmin = role === 'ADMIN'
   const workContext = useWorkContextForAdmin(isAdmin)
   const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
+  const [editOpen, setEditOpen] = useState(false)
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
   const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
@@ -58,6 +70,14 @@ export default function AbTestDetail() {
       setStoredCabinetId(myCabinets[0].id)
     }
   }, [isAdmin, myCabinets, sellerSelectedCabinetId])
+
+  const selectedTokenType: CabinetTokenType | null | undefined = useMemo(() => {
+    if (selectedCabinetId == null) return null
+    if (isAdmin) {
+      return workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)?.tokenType ?? null
+    }
+    return myCabinets.find((c) => c.id === selectedCabinetId)?.apiKey?.tokenType ?? null
+  }, [isAdmin, selectedCabinetId, workContext.workContextOptions, myCabinets])
 
   const { data: test, isLoading, error } = useQuery({
     queryKey: ['abTest', testId, selectedSellerId, selectedCabinetId],
@@ -99,6 +119,7 @@ export default function AbTestDetail() {
   }, [isAdmin, myCabinets, selectedCabinetId])
 
   const activeUnpausedCount = test?.variants.filter((v) => !v.paused).length ?? 0
+  const canEditSettings = test != null && (test.status === 'ENABLED' || test.status === 'PENDING_START')
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bgGray }}>
@@ -123,6 +144,7 @@ export default function AbTestDetail() {
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
+                alignItems: 'center',
                 gap: '8px 24px',
                 color: '#64748B',
                 fontSize: 14,
@@ -141,6 +163,11 @@ export default function AbTestDetail() {
                 <span style={{ color: '#94A3B8' }}>По завершении: </span>
                 {formatFinishSummary(test)}
               </div>
+              {canEditSettings ? (
+                <Button type="link" icon={<EditOutlined />} onClick={() => setEditOpen(true)} style={{ padding: 0 }}>
+                  Изменить
+                </Button>
+              ) : null}
             </div>
             <div
               style={{
@@ -289,10 +316,183 @@ export default function AbTestDetail() {
                 })
               })()}
             </div>
+            <EditAbTestSettingsModal
+              open={editOpen}
+              test={test}
+              tokenType={selectedTokenType}
+              sellerId={selectedSellerId}
+              cabinetId={selectedCabinetId}
+              onClose={() => setEditOpen(false)}
+            />
           </>
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Модалка изменения настроек запущенного (или запускающегося) А/Б-теста.
+ */
+function EditAbTestSettingsModal({
+  open,
+  test,
+  tokenType,
+  sellerId,
+  cabinetId,
+  onClose,
+}: {
+  open: boolean
+  test: AbTest
+  tokenType?: CabinetTokenType | null
+  sellerId?: number
+  cabinetId?: number | null
+  onClose: () => void
+}) {
+  const queryClient = useQueryClient()
+  const isBasicToken = (tokenType ?? 'BASIC') === 'BASIC'
+  const [rotationMode, setRotationMode] = useState<AbTestRotationMode>(test.rotationMode)
+  const [rotationViewsThreshold, setRotationViewsThreshold] = useState(test.rotationViewsThreshold ?? 1000)
+  const [rotationIntervalMinutes, setRotationIntervalMinutes] = useState(test.rotationIntervalMinutes ?? 60)
+  const [stopMode, setStopMode] = useState<AbTestStopMode>(test.stopMode)
+  const [durationDays, setDurationDays] = useState(test.durationDays ?? 7)
+  const [finishAction, setFinishAction] = useState<AbTestFinishAction>(test.finishAction)
+
+  useEffect(() => {
+    if (!open) return
+    setRotationMode(test.rotationMode)
+    setRotationViewsThreshold(test.rotationViewsThreshold ?? 1000)
+    setRotationIntervalMinutes(test.rotationIntervalMinutes ?? 60)
+    setStopMode(test.stopMode)
+    setDurationDays(test.durationDays ?? 7)
+    setFinishAction(test.finishAction)
+  }, [open, test])
+
+  useEffect(() => {
+    if (isBasicToken && rotationIntervalMinutes < BASIC_TOKEN_MIN_INTERVAL_MINUTES) {
+      setRotationIntervalMinutes(BASIC_TOKEN_MIN_INTERVAL_MINUTES)
+    }
+  }, [isBasicToken, rotationIntervalMinutes])
+
+  const intervalOptions = [30, 60, 120, 180, 360, 720, 1440].map((v) => ({
+    value: v,
+    label: v < 60 ? `${v} мин` : `${v / 60} ч`,
+    disabled: isBasicToken && v < BASIC_TOKEN_MIN_INTERVAL_MINUTES,
+  }))
+
+  const mutation = useMutation({
+    mutationFn: (request: UpdateAbTestSettingsRequest) =>
+      abTestApi.updateSettings(test.id, request, sellerId, cabinetId ?? undefined),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['abTest', test.id, sellerId, cabinetId], data)
+      queryClient.invalidateQueries({ queryKey: ['abTests'] })
+      message.success('Настройки теста обновлены')
+      onClose()
+    },
+    onError: (err: { response?: { data?: { error?: string; message?: string } } }) => {
+      message.error(err?.response?.data?.error ?? err?.response?.data?.message ?? 'Не удалось сохранить настройки')
+    },
+  })
+
+  const submit = () => {
+    if (rotationMode === 'ROTATION_BY_VIEWS' && (rotationViewsThreshold == null || rotationViewsThreshold < 1)) {
+      message.warning('Укажите порог показов')
+      return
+    }
+    if (
+      isBasicToken
+      && rotationMode === 'ROTATION_BY_INTERVAL'
+      && rotationIntervalMinutes < BASIC_TOKEN_MIN_INTERVAL_MINUTES
+    ) {
+      message.warning('Для базового токена интервал ротации не меньше 1 часа')
+      return
+    }
+    const request: UpdateAbTestSettingsRequest = {
+      rotationMode,
+      rotationViewsThreshold: rotationMode === 'ROTATION_BY_VIEWS' ? rotationViewsThreshold : null,
+      rotationIntervalMinutes: rotationMode === 'ROTATION_BY_INTERVAL' ? rotationIntervalMinutes : null,
+      stopMode,
+      durationDays: stopMode === 'BY_DURATION' ? durationDays : null,
+      finishAction,
+    }
+    mutation.mutate(request)
+  }
+
+  return (
+    <Modal
+      title="Изменить настройки теста"
+      open={open}
+      onCancel={onClose}
+      onOk={submit}
+      okText="Сохранить"
+      cancelText="Отмена"
+      confirmLoading={mutation.isPending}
+      destroyOnClose
+      width={480}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>Периодичность ротации</div>
+          <Radio.Group
+            value={rotationMode}
+            onChange={(e) => setRotationMode(e.target.value)}
+            style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+          >
+            <Radio value="ROTATION_BY_VIEWS">По набору показов</Radio>
+            <Radio value="ROTATION_BY_INTERVAL">По времени</Radio>
+          </Radio.Group>
+          {rotationMode === 'ROTATION_BY_VIEWS' ? (
+            <InputNumber
+              style={{ width: 220, marginTop: 8 }}
+              min={1}
+              step={100}
+              value={rotationViewsThreshold}
+              onChange={(v) => setRotationViewsThreshold(typeof v === 'number' ? v : 1000)}
+              addonAfter="показов"
+            />
+          ) : (
+            <Select
+              style={{ width: 220, marginTop: 8 }}
+              value={rotationIntervalMinutes}
+              onChange={setRotationIntervalMinutes}
+              options={intervalOptions}
+            />
+          )}
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>Когда остановить тест</div>
+          <Radio.Group
+            value={stopMode}
+            onChange={(e) => setStopMode(e.target.value)}
+            style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+          >
+            <Radio value="TRUST_US">Доверить Clicki (достаточно данных / есть лидер)</Radio>
+            <Radio value="BY_DURATION">По истечении срока</Radio>
+          </Radio.Group>
+          {stopMode === 'BY_DURATION' ? (
+            <Select
+              style={{ width: 220, marginTop: 8 }}
+              value={durationDays}
+              onChange={setDurationDays}
+              options={[1, 3, 7, 14].map((d) => ({ value: d, label: `${d} дн.` }))}
+            />
+          ) : null}
+        </div>
+
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>По завершении</div>
+          <Radio.Group
+            value={finishAction}
+            onChange={(e) => setFinishAction(e.target.value)}
+            style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+          >
+            <Radio value="KEEP_WINNER">Оставить фото-победитель</Radio>
+            <Radio value="RESTORE_ORIGINAL">Просто провести тест (вернуть исходное)</Radio>
+          </Radio.Group>
+        </div>
+      </div>
+    </Modal>
   )
 }
 

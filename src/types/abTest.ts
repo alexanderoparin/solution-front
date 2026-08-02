@@ -58,3 +58,13 @@ export interface CreateAbTestRequest {
   durationDays?: number | null
   finishAction: AbTestFinishAction
 }
+
+/** Изменение настроек уже созданного теста (без карточки / РК / фото). */
+export interface UpdateAbTestSettingsRequest {
+  rotationMode: AbTestRotationMode
+  rotationViewsThreshold?: number | null
+  rotationIntervalMinutes?: number | null
+  stopMode: AbTestStopMode
+  durationDays?: number | null
+  finishAction: AbTestFinishAction
+}
