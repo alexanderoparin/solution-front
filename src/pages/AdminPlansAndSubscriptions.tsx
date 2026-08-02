@@ -343,6 +343,9 @@ export default function AdminPlansAndSubscriptions() {
   const billingSortOrder = (apiField: string): 'ascend' | 'descend' | undefined =>
     billingSortBy === apiField ? (billingSortDir === 'ASC' ? 'ascend' : 'descend') : undefined
 
+  /** Без третьего клика «сбросить» — только ASC ↔ DESC (иначе ID DESC → сброс → снова ID DESC). */
+  const sortDirections: ('ascend' | 'descend')[] = ['ascend', 'descend']
+
   const billingColumns = [
     {
       title: 'ID',
@@ -350,6 +353,7 @@ export default function AdminPlansAndSubscriptions() {
       key: 'cabinetId',
       width: 72,
       sorter: true,
+      sortDirections,
       sortOrder: billingSortOrder('CABINET_ID'),
     },
     {
@@ -359,6 +363,7 @@ export default function AdminPlansAndSubscriptions() {
       width: 180,
       ellipsis: true,
       sorter: true,
+      sortDirections,
       sortOrder: billingSortOrder('CABINET_NAME'),
     },
     {
@@ -368,6 +373,7 @@ export default function AdminPlansAndSubscriptions() {
       width: 200,
       ellipsis: true,
       sorter: true,
+      sortDirections,
       sortOrder: billingSortOrder('SELLER_EMAIL'),
       render: (v: string | null) => v ?? '—',
     },
@@ -376,6 +382,7 @@ export default function AdminPlansAndSubscriptions() {
       key: 'main',
       width: 180,
       sorter: true,
+      sortDirections,
       sortOrder: billingSortOrder('MAIN'),
       render: (_: unknown, row: CabinetBillingOverviewDto) => formatMainCell(row),
     },
@@ -384,6 +391,7 @@ export default function AdminPlansAndSubscriptions() {
       key: 'campaign',
       width: 160,
       sorter: true,
+      sortDirections,
       sortOrder: billingSortOrder('CAMPAIGN'),
       render: (_: unknown, row: CabinetBillingOverviewDto) => formatCampaignCell(row),
     },
@@ -392,6 +400,7 @@ export default function AdminPlansAndSubscriptions() {
       key: 'ab',
       width: 120,
       sorter: true,
+      sortDirections,
       sortOrder: billingSortOrder('AB'),
       render: (_: unknown, row: CabinetBillingOverviewDto) => formatAbCell(row),
     },
@@ -573,11 +582,18 @@ export default function AdminPlansAndSubscriptions() {
                             campaign: 'CAMPAIGN',
                             ab: 'AB',
                           }
-                          let nextSortBy = 'CABINET_ID'
-                          let nextSortDir: 'ASC' | 'DESC' = 'DESC'
-                          if (s?.order && keyToApi[key]) {
-                            nextSortBy = keyToApi[key]
+                          const apiField = keyToApi[key]
+                          let nextSortBy = billingSortBy
+                          let nextSortDir = billingSortDir
+                          if (apiField && s?.order) {
+                            nextSortBy = apiField
                             nextSortDir = s.order === 'ascend' ? 'ASC' : 'DESC'
+                          } else if (apiField && billingSortBy === apiField) {
+                            // «Отмена» сортировки → переключаем направление (не сбрасываем на ID DESC)
+                            nextSortDir = billingSortDir === 'ASC' ? 'DESC' : 'ASC'
+                          } else if (!apiField) {
+                            nextSortBy = 'CABINET_ID'
+                            nextSortDir = 'DESC'
                           }
                           const sortChanged =
                             nextSortBy !== billingSortBy || nextSortDir !== billingSortDir
