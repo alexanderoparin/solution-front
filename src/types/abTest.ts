@@ -23,6 +23,8 @@ export interface AbTestVariant {
   paused?: boolean
   ctrDeltaToBest: number | null
   losing: boolean
+  /** Лидер CTR, когда есть проигрывающий вариант. */
+  winning?: boolean
 }
 
 export interface AbTest {

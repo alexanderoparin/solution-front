@@ -180,7 +180,7 @@ export default function AbTestDetail() {
                 const activeCtrs = test.variants.filter((x) => !x.paused).map((x) => Number(x.ctr) || 0)
                 const bestCtr = activeCtrs.length > 0 ? Math.max(...activeCtrs) : 0
                 return test.variants.map((v) => {
-                  const isCtrLeader = !v.paused && bestCtr > 0 && Number(v.ctr) === bestCtr
+                  const isCtrLeader = !!v.winning || (!v.paused && bestCtr > 0 && Number(v.ctr) === bestCtr)
                   const showInColor = v.activeOnWb && !v.paused
                   const canPause = test.status === 'ENABLED' && !v.paused && activeUnpausedCount > 1
                   const canResume = test.status === 'ENABLED' && !!v.paused
@@ -274,6 +274,12 @@ export default function AbTestDetail() {
                             CTR {formatPct(v.ctr)}
                           </span>
                         </Tooltip>
+                        {v.winning ? (
+                          <div style={{ fontSize: 12, fontWeight: 600, color: '#16A34A', marginTop: 2 }}>выигрывает</div>
+                        ) : null}
+                        {v.losing ? (
+                          <div style={{ fontSize: 12, fontWeight: 600, color: '#DC2626', marginTop: 2 }}>проигрывает</div>
+                        ) : null}
                       </div>
                       <MetricRow label="Доля показов" value={formatPct(v.sharePercent)} />
                       <MetricRow label="CR1" value={formatPct(v.cr1)} />

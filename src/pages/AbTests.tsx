@@ -831,6 +831,7 @@ function AbTestCard({
               </div>
               <div style={{ fontSize: 12, marginTop: 4, fontWeight: 600 }}>CTR {formatCtr(v.ctr)}</div>
               {v.paused ? <div style={{ fontSize: 11, color: '#64748B' }}>на паузе</div> : null}
+              {v.winning ? <div style={{ fontSize: 11, color: '#16A34A' }}>выигрывает</div> : null}
               {v.losing ? <div style={{ fontSize: 11, color: '#DC2626' }}>проигрывает</div> : null}
             </div>
           </Link>
