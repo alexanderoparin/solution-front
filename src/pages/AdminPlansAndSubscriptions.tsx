@@ -110,6 +110,8 @@ export default function AdminPlansAndSubscriptions() {
   const [billingPageSize, setBillingPageSize] = useState(20)
   const [billingSearchInput, setBillingSearchInput] = useState('')
   const [billingSearch, setBillingSearch] = useState('')
+  const [billingSortBy, setBillingSortBy] = useState('CABINET_ID')
+  const [billingSortDir, setBillingSortDir] = useState<'ASC' | 'DESC'>('DESC')
   const [detailRow, setDetailRow] = useState<CabinetBillingOverviewDto | null>(null)
   const [extendCabinetLabel, setExtendCabinetLabel] = useState('')
 
@@ -136,12 +138,14 @@ export default function AdminPlansAndSubscriptions() {
   )
 
   const { data: billingPageData, isLoading: billingLoading, isFetching: billingFetching } = useQuery({
-    queryKey: ['adminCabinetsBilling', billingPage, billingPageSize, billingSearch],
+    queryKey: ['adminCabinetsBilling', billingPage, billingPageSize, billingSearch, billingSortBy, billingSortDir],
     queryFn: () =>
       adminApi.getCabinetsBilling({
         page: billingPage,
         size: billingPageSize,
         search: billingSearch || undefined,
+        sortBy: billingSortBy,
+        sortDir: billingSortDir,
       }),
   })
 
@@ -336,12 +340,17 @@ export default function AdminPlansAndSubscriptions() {
     },
   ]
 
+  const billingSortOrder = (apiField: string) =>
+    billingSortBy === apiField ? (billingSortDir === 'ASC' ? 'ascend' : 'descend') : undefined
+
   const billingColumns = [
     {
       title: 'ID',
       dataIndex: 'cabinetId',
       key: 'cabinetId',
       width: 72,
+      sorter: true,
+      sortOrder: billingSortOrder('CABINET_ID'),
     },
     {
       title: 'Кабинет',
@@ -349,6 +358,8 @@ export default function AdminPlansAndSubscriptions() {
       key: 'cabinetName',
       width: 180,
       ellipsis: true,
+      sorter: true,
+      sortOrder: billingSortOrder('CABINET_NAME'),
     },
     {
       title: 'Владелец',
@@ -356,24 +367,32 @@ export default function AdminPlansAndSubscriptions() {
       key: 'sellerEmail',
       width: 200,
       ellipsis: true,
+      sorter: true,
+      sortOrder: billingSortOrder('SELLER_EMAIL'),
       render: (v: string | null) => v ?? '—',
     },
     {
       title: 'Основной',
       key: 'main',
       width: 180,
+      sorter: true,
+      sortOrder: billingSortOrder('MAIN'),
       render: (_: unknown, row: CabinetBillingOverviewDto) => formatMainCell(row),
     },
     {
       title: 'Управление РК',
       key: 'campaign',
       width: 160,
+      sorter: true,
+      sortOrder: billingSortOrder('CAMPAIGN'),
       render: (_: unknown, row: CabinetBillingOverviewDto) => formatCampaignCell(row),
     },
     {
       title: 'А/Б',
       key: 'ab',
       width: 120,
+      sorter: true,
+      sortOrder: billingSortOrder('AB'),
       render: (_: unknown, row: CabinetBillingOverviewDto) => formatAbCell(row),
     },
     {
@@ -543,16 +562,36 @@ export default function AdminPlansAndSubscriptions() {
                         dataSource={billingRows}
                         size="small"
                         scroll={{ x: 1000 }}
+                        onChange={(pagination, _filters, sorter) => {
+                          const s = Array.isArray(sorter) ? sorter[0] : sorter
+                          const key = String(s?.columnKey ?? s?.field ?? '')
+                          const keyToApi: Record<string, string> = {
+                            cabinetId: 'CABINET_ID',
+                            cabinetName: 'CABINET_NAME',
+                            sellerEmail: 'SELLER_EMAIL',
+                            main: 'MAIN',
+                            campaign: 'CAMPAIGN',
+                            ab: 'AB',
+                          }
+                          let nextSortBy = 'CABINET_ID'
+                          let nextSortDir: 'ASC' | 'DESC' = 'DESC'
+                          if (s?.order && keyToApi[key]) {
+                            nextSortBy = keyToApi[key]
+                            nextSortDir = s.order === 'ascend' ? 'ASC' : 'DESC'
+                          }
+                          const sortChanged =
+                            nextSortBy !== billingSortBy || nextSortDir !== billingSortDir
+                          setBillingSortBy(nextSortBy)
+                          setBillingSortDir(nextSortDir)
+                          setBillingPageSize(pagination.pageSize ?? billingPageSize)
+                          setBillingPage(sortChanged ? 0 : (pagination.current ?? 1) - 1)
+                        }}
                         pagination={{
                           current: billingPage + 1,
                           pageSize: billingPageSize,
                           total: billingPageData?.totalElements ?? 0,
                           showSizeChanger: true,
                           pageSizeOptions: ['10', '20', '50'],
-                          onChange: (page, pageSize) => {
-                            setBillingPage(page - 1)
-                            setBillingPageSize(pageSize)
-                          },
                         }}
                       />
                     </Space>

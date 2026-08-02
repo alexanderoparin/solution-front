@@ -61,12 +61,16 @@ export const adminApi = {
     page: number
     size: number
     search?: string
+    sortBy?: string
+    sortDir?: 'ASC' | 'DESC'
   }): Promise<PageResponse<CabinetBillingOverviewDto>> => {
     const response = await apiClient.get<PageResponse<CabinetBillingOverviewDto>>('/admin/cabinets/billing', {
       params: {
         page: params.page,
         size: params.size,
         search: params.search || undefined,
+        sortBy: params.sortBy,
+        sortDir: params.sortDir,
       },
     })
     return response.data
