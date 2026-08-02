@@ -340,7 +340,7 @@ export default function AdminPlansAndSubscriptions() {
     },
   ]
 
-  const billingSortOrder = (apiField: string) =>
+  const billingSortOrder = (apiField: string): 'ascend' | 'descend' | undefined =>
     billingSortBy === apiField ? (billingSortDir === 'ASC' ? 'ascend' : 'descend') : undefined
 
   const billingColumns = [
