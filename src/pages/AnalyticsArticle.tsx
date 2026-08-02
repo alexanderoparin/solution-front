@@ -3160,7 +3160,7 @@ export default function AnalyticsArticle() {
                             <RightOutlined style={{ fontSize: '12px', color: colors.textSecondary }} />
                           )}
                           {stock.onFire ? (
-                            <Tooltip title="Склад пострадал от ЧС">
+                            <Tooltip title="Склад пострадал">
                               <FireFilled style={{ fontSize: 13, color: '#EA580C' }} />
                             </Tooltip>
                           ) : null}

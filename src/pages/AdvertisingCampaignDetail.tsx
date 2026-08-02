@@ -1953,7 +1953,7 @@ export default function AdvertisingCampaignDetail() {
                                 <td style={{ padding: spacing.md, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 12, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
                                   {isExpanded ? <DownOutlined style={{ fontSize: 12, color: colors.primary }} /> : <RightOutlined style={{ fontSize: 12, color: colors.textSecondary }} />}
                                   {s.onFire ? (
-                                    <Tooltip title="Склад пострадал от ЧС">
+                                    <Tooltip title="Склад пострадал">
                                       <FireFilled style={{ fontSize: 12, color: '#EA580C' }} />
                                     </Tooltip>
                                   ) : null}
