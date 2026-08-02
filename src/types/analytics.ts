@@ -225,6 +225,8 @@ export interface NormQueryClustersResponse {
 
 export interface Stock {
   warehouseName: string
+  /** Склад помечен как пострадавший — показывать огонёк. */
+  onFire?: boolean
   amount: number
   updatedAt: string | null
 }

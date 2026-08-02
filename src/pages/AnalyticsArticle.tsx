@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox, Switch, Tooltip } from 'antd'
-import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons'
+import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined, ReloadOutlined, FireFilled } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -3159,6 +3159,11 @@ export default function AnalyticsArticle() {
                           ) : (
                             <RightOutlined style={{ fontSize: '12px', color: colors.textSecondary }} />
                           )}
+                          {stock.onFire ? (
+                            <Tooltip title="Склад пострадал от ЧС">
+                              <FireFilled style={{ fontSize: 13, color: '#EA580C' }} />
+                            </Tooltip>
+                          ) : null}
                           {stock.warehouseName}
                         </td>
                         <td style={{

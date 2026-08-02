@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef, Fragment, type CSSProperties } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Spin, DatePicker, Checkbox, Switch, Button, Select, message, Input, Modal, Tooltip, Upload } from 'antd'
-import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, RightOutlined, DownOutlined, ReloadOutlined, PaperClipOutlined, EyeOutlined } from '@ant-design/icons'
+import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, RightOutlined, DownOutlined, ReloadOutlined, PaperClipOutlined, EyeOutlined, FireFilled } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -1952,6 +1952,11 @@ export default function AdvertisingCampaignDetail() {
                               >
                                 <td style={{ padding: spacing.md, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 12, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
                                   {isExpanded ? <DownOutlined style={{ fontSize: 12, color: colors.primary }} /> : <RightOutlined style={{ fontSize: 12, color: colors.textSecondary }} />}
+                                  {s.onFire ? (
+                                    <Tooltip title="Склад пострадал от ЧС">
+                                      <FireFilled style={{ fontSize: 12, color: '#EA580C' }} />
+                                    </Tooltip>
+                                  ) : null}
                                   {s.warehouseName}
                                 </td>
                                 <td style={{ textAlign: 'center', padding: spacing.md, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 12, fontWeight: 600, color: isZeroStock ? colors.error : isLowStock ? colors.error : colors.textPrimary }}>{formatValue(s.amount)}</td>
