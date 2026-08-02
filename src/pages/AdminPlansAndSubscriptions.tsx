@@ -243,7 +243,6 @@ export default function AdminPlansAndSubscriptions() {
   }
 
   const planColumns = [
-    { title: 'ID', dataIndex: 'id', key: 'id', width: 56 },
     { title: 'Название', dataIndex: 'name', key: 'name', width: 120 },
     {
       title: 'Код',
@@ -278,13 +277,6 @@ export default function AdminPlansAndSubscriptions() {
       key: 'period',
       width: 100,
       render: (_: unknown, record: PlanDto) => formatPlanPeriod(record),
-    },
-    {
-      title: 'Порядок',
-      dataIndex: 'sortOrder',
-      key: 'sortOrder',
-      width: 72,
-      render: (v: number | undefined) => v ?? 0,
     },
     {
       title: 'Активен',
@@ -373,12 +365,9 @@ export default function AdminPlansAndSubscriptions() {
         }}
       >
         <div style={{ width: '100%', maxWidth: 1200 }}>
-          <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 8 }}>
+          <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 24 }}>
             Тарифы и услуги
           </Typography.Title>
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 24 }}>
-            Основной тариф (FREE/PRO), услуга «Управление РК» и пакеты А/Б — на уровне кабинета.
-          </Typography.Paragraph>
 
           <Tabs
             items={[
