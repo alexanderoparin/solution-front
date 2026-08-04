@@ -46,6 +46,28 @@ function isWbRateLimitMessage(message: string | null | undefined): boolean {
   return message.includes('Лимит WB по endpoint')
 }
 
+/**
+ * Короткий текст ошибки для UI. Сырой ответ WB API пользователю не показываем.
+ */
+function formatAbTestUserFacingError(
+  status: AbTest['status'],
+  lastWbError: string | null | undefined,
+): { text: string; tone: 'muted' | 'error' } | null {
+  if (!lastWbError) return null
+  if (isWbRateLimitMessage(lastWbError)) {
+    if (status !== 'PENDING_START') return null
+    return { text: 'Ожидание лимита WB, повтор запуска…', tone: 'muted' }
+  }
+  if (status === 'PENDING_START') {
+    return { text: 'Не удалось выполнить шаг запуска, повторяем…', tone: 'muted' }
+  }
+  if (status === 'ENABLED') {
+    return { text: 'Временная ошибка Wildberries, повторим автоматически', tone: 'muted' }
+  }
+  // DISABLED: failStart или сбой media на финише — без технического дампа
+  return { text: 'Не удалось обновить фото на Wildberries', tone: 'error' }
+}
+
 function CreateAbTestModal({
   open,
   onClose,
@@ -851,14 +873,21 @@ function AbTestCard({
         {item.insightLabel ? (
           <div style={{ marginTop: 8, fontSize: 13, color: '#64748B' }}>{item.insightLabel}</div>
         ) : null}
-        {item.lastWbError && !isWbRateLimitMessage(item.lastWbError) ? (
-          <div style={{ marginTop: 6, fontSize: 12, color: '#DC2626' }}>{item.lastWbError}</div>
-        ) : null}
-        {item.status === 'PENDING_START' && item.lastWbError && isWbRateLimitMessage(item.lastWbError) ? (
-          <div style={{ marginTop: 6, fontSize: 12, color: '#64748B' }}>
-            Ожидание лимита WB, повтор запуска…
-          </div>
-        ) : null}
+        {(() => {
+          const err = formatAbTestUserFacingError(item.status, item.lastWbError)
+          if (!err) return null
+          return (
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: err.tone === 'error' ? '#DC2626' : '#64748B',
+              }}
+            >
+              {err.text}
+            </div>
+          )
+        })()}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span
