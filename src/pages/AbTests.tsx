@@ -64,8 +64,8 @@ function formatAbTestUserFacingError(
   if (status === 'ENABLED') {
     return { text: 'Временная ошибка Wildberries, повторим автоматически', tone: 'muted' }
   }
-  // DISABLED: failStart или сбой media на финише — без технического дампа
-  return { text: 'Не удалось обновить фото на Wildberries', tone: 'error' }
+  // DISABLED (ручное отключение или завершение) — ошибку в карточке не показываем
+  return null
 }
 
 function CreateAbTestModal({
