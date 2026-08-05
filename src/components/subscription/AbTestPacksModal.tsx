@@ -24,7 +24,7 @@ interface AbTestPacksModalProps {
 }
 
 function formatRub(n: number): string {
-  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n) + ' руб'
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n) + ' ₽'
 }
 
 function isFreeAbPack(plan: PlanDto): boolean {
@@ -45,19 +45,46 @@ function packDescription(plan: PlanDto): string {
   return plan.description || FALLBACK_PACK_COPY[plan.code ?? ''] || ''
 }
 
-function packPriceLabel(plan: PlanDto): string {
+/** Блок цены пакета: для мультипаков — цена / за тест / экономия отдельными строками. */
+function PackPriceBlock({ plan }: { plan: PlanDto }) {
   const credits = plan.creditAmount ?? 0
+
   if (isFreeAbPack(plan)) {
     const testsLabel =
       credits === 1 ? '1 тест' : credits >= 2 && credits <= 4 ? `${credits} теста` : `${credits} тестов`
-    return `0 руб / ${testsLabel}`
+    return (
+      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
+        0 ₽ / {testsLabel}
+      </div>
+    )
   }
-  const price = formatRub(plan.priceRub)
-  if (credits <= 1) return price
+
+  if (credits <= 1) {
+    return (
+      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
+        {formatRub(plan.priceRub)}
+      </div>
+    )
+  }
+
   const perTest = Math.round(plan.priceRub / credits)
   const save = UNIT_PRICE * credits - plan.priceRub
-  const savePart = save > 0 ? ` · экономия ${formatRub(save)}` : ''
-  return `${price} (${perTest} руб/тест${savePart})`
+
+  return (
+    <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: '#1E293B', lineHeight: 1.3 }}>
+        {formatRub(plan.priceRub)}
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: accent, lineHeight: 1.3 }}>
+        {formatRub(perTest)} за тест
+      </div>
+      {save > 0 ? (
+        <div style={{ fontSize: 14, color: '#64748B', lineHeight: 1.3 }}>
+          Экономия {formatRub(save)}
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 /**
@@ -190,9 +217,7 @@ export default function AbTestPacksModal({
               <div style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
                 {packDescription(freePlan)}
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1E293B' }}>
-                {packPriceLabel(freePlan)}
-              </div>
+              <PackPriceBlock plan={freePlan} />
               <Button
                 type="primary"
                 block
@@ -230,9 +255,7 @@ export default function AbTestPacksModal({
                 <div style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
                   {packDescription(plan)}
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1E293B' }}>
-                  {packPriceLabel(plan)}
-                </div>
+                <PackPriceBlock plan={plan} />
                 <Button
                   type="primary"
                   block
