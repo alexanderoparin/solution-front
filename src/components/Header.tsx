@@ -128,7 +128,7 @@ export default function Header({
       }}
     >
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <SiteLogo variant="wordmark" size={32} to="/" />
+        <SiteLogo variant="wordmark" size={32} to="/analytics/products" title="Аналитика — Товары" />
 
         {/* Аналитика */}
         <Dropdown
