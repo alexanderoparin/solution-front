@@ -67,7 +67,7 @@ function formatAbTestUserFacingError(
   if (!lastWbError) return null
   if (isWbTokenErrorMessage(lastWbError)) {
     return {
-      text: 'Токен кабинета не подходит: нужен доступ на запись к «Контент» (не только чтение). Обновите ключ в кабинете.',
+      text: 'Токен кабинета не подходит: нужен доступ на чтение и запись к «Контент». Обновите ключ в кабинете.',
       tone: 'error',
     }
   }
