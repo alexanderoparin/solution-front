@@ -46,6 +46,8 @@ export interface AbTest {
   insightCode: AbTestInsightCode | null
   insightLabel: string | null
   lastWbError?: string | null
+  /** Упал/отменён на старте — можно перезапустить после смены токена. */
+  canRestart?: boolean
   advertIds: number[]
   variants: AbTestVariant[]
 }

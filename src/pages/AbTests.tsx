@@ -46,6 +46,17 @@ function isWbRateLimitMessage(message: string | null | undefined): boolean {
   return message.includes('Лимит WB по endpoint')
 }
 
+function isWbTokenErrorMessage(message: string | null | undefined): boolean {
+  if (!message) return false
+  const lower = message.toLowerCase()
+  return (
+    lower.includes('токен')
+    || lower.includes('401')
+    || lower.includes('unauthorized')
+    || message.includes('Контент')
+  )
+}
+
 /**
  * Короткий текст ошибки для UI. Сырой ответ WB API пользователю не показываем.
  */
@@ -54,6 +65,12 @@ function formatAbTestUserFacingError(
   lastWbError: string | null | undefined,
 ): { text: string; tone: 'muted' | 'error' } | null {
   if (!lastWbError) return null
+  if (isWbTokenErrorMessage(lastWbError)) {
+    return {
+      text: 'Токен кабинета не подходит: нужен доступ на запись к «Контент» (не только чтение). Обновите ключ в кабинете.',
+      tone: 'error',
+    }
+  }
   if (isWbRateLimitMessage(lastWbError)) {
     if (status !== 'PENDING_START') return null
     return { text: 'Ожидание лимита WB, повтор запуска…', tone: 'muted' }
@@ -64,7 +81,7 @@ function formatAbTestUserFacingError(
   if (status === 'ENABLED') {
     return { text: 'Временная ошибка Wildberries, повторим автоматически', tone: 'muted' }
   }
-  // DISABLED (ручное отключение или завершение) — ошибку в карточке не показываем
+  // DISABLED без токен-ошибки — в карточке не шумим
   return null
 }
 
@@ -748,13 +765,17 @@ function CreateAbTestModal({
 function AbTestCard({
   item,
   onToggle,
+  onRestart,
   toggling,
+  restarting,
   sellerId,
   cabinetId,
 }: {
   item: AbTest
   onToggle: (enabled: boolean) => void
+  onRestart: () => void
   toggling: boolean
+  restarting: boolean
   sellerId?: number
   cabinetId?: number | null
 }) {
@@ -889,7 +910,7 @@ function AbTestCard({
           )
         })()}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <span
           style={{
             padding: '4px 10px',
@@ -902,12 +923,24 @@ function AbTestCard({
         >
           {statusBadge.text}
         </span>
-        <Switch
-          checked={item.status === 'ENABLED' || item.status === 'PENDING_START'}
-          loading={toggling}
-          onChange={onToggle}
-          disabled={item.status === 'DISABLED' || item.status === 'PENDING_START'}
-        />
+        {item.canRestart ? (
+          <Button
+            size="small"
+            type="primary"
+            loading={restarting}
+            onClick={onRestart}
+            style={{ background: accent, borderColor: accent, borderRadius: 8, fontWeight: 600 }}
+          >
+            Перезапустить
+          </Button>
+        ) : (
+          <Switch
+            checked={item.status === 'ENABLED' || item.status === 'PENDING_START'}
+            loading={toggling}
+            onChange={onToggle}
+            disabled={item.status === 'DISABLED' || item.status === 'PENDING_START'}
+          />
+        )}
       </div>
     </div>
   )
@@ -990,9 +1023,12 @@ export default function AbTests() {
   const statusMutation = useMutation({
     mutationFn: ({ id, enabled }: { id: number; enabled: boolean }) =>
       abTestApi.updateStatus(id, enabled ? 'ENABLED' : 'DISABLED', selectedSellerId, selectedCabinetId ?? undefined),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ['abTests'] })
       queryClient.invalidateQueries({ queryKey: ['cabinetBilling', selectedCabinetId] })
+      if (vars.enabled) {
+        message.success('Запуск теста повторно поставлен в очередь')
+      }
     },
     onError: (error: any) => {
       message.error(error?.response?.data?.error ?? 'Не удалось изменить статус')
@@ -1061,12 +1097,14 @@ export default function AbTests() {
                 item={item}
                 sellerId={selectedSellerId}
                 cabinetId={selectedCabinetId}
-                toggling={statusMutation.isPending && statusMutation.variables?.id === item.id}
+                toggling={statusMutation.isPending && statusMutation.variables?.id === item.id && !statusMutation.variables?.enabled}
+                restarting={statusMutation.isPending && statusMutation.variables?.id === item.id && !!statusMutation.variables?.enabled}
                 onToggle={(enabled) => {
                   if (!enabled) {
                     statusMutation.mutate({ id: item.id, enabled: false })
                   }
                 }}
+                onRestart={() => statusMutation.mutate({ id: item.id, enabled: true })}
               />
             ))}
           </div>
