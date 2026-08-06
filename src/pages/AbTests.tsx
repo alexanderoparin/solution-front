@@ -910,7 +910,7 @@ function AbTestCard({
           )
         })()}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
         <span
           style={{
             padding: '4px 10px',
