@@ -83,6 +83,8 @@ const TYPE_LABELS: Record<WbApiEventType, string> = {
   PROMOTION_CALENDAR_SYNC_CABINET: 'Календарь акций: кабинет',
   WAREHOUSES_SYNC_CABINET: 'Склады WB: кабинет',
   STOCKS_BY_NMID: 'Остатки: nmID',
+  FBS_WAREHOUSES_SYNC_CABINET: 'Склады продавца FBS: кабинет',
+  FBS_STOCKS_CABINET: 'Остатки FBS: кабинет',
 }
 
 const TYPE_COLORS: Record<WbApiEventType, string> = {
@@ -99,6 +101,8 @@ const TYPE_COLORS: Record<WbApiEventType, string> = {
   PROMOTION_CALENDAR_SYNC_CABINET: 'magenta',
   WAREHOUSES_SYNC_CABINET: 'lime',
   STOCKS_BY_NMID: 'blue',
+  FBS_WAREHOUSES_SYNC_CABINET: 'green',
+  FBS_STOCKS_CABINET: 'cyan',
 }
 
 const COLUMN_SORT_FIELDS = {
@@ -510,6 +514,8 @@ export default function AdminWbEvents() {
                   { value: 'PROMOTION_CALENDAR_SYNC_CABINET', label: TYPE_LABELS.PROMOTION_CALENDAR_SYNC_CABINET },
                   { value: 'WAREHOUSES_SYNC_CABINET', label: TYPE_LABELS.WAREHOUSES_SYNC_CABINET },
                   { value: 'STOCKS_BY_NMID', label: TYPE_LABELS.STOCKS_BY_NMID },
+                  { value: 'FBS_WAREHOUSES_SYNC_CABINET', label: TYPE_LABELS.FBS_WAREHOUSES_SYNC_CABINET },
+                  { value: 'FBS_STOCKS_CABINET', label: TYPE_LABELS.FBS_STOCKS_CABINET },
                 ]}
               />
               <Input

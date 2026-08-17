@@ -225,6 +225,8 @@ export interface NormQueryClustersResponse {
 
 export interface Stock {
   warehouseName: string
+  /** ID склада WB (FBO) или склада продавца (FBS). */
+  warehouseId?: number
   /** Склад помечен как пострадавший — показывать огонёк. */
   onFire?: boolean
   amount: number
@@ -291,6 +293,8 @@ export interface ArticleResponse {
   /** Типы акций в том же порядке: "regular", "auto" и т.д. */
   wbPromotionTypes?: string[] | null
   stocks: Stock[]
+  /** Остатки FBS на складах продавца */
+  fbsStocks?: Stock[]
   /** Товары «в связке» для отображения справа от шапки артикула */
   bundleProducts?: ArticleSummary[]
   /** Дата-время последнего запуска обновления остатков по кабинету (для кнопки «Обновить остатки») */

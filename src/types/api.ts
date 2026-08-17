@@ -388,6 +388,8 @@ export type WbApiEventType =
   | 'PROMOTION_CALENDAR_SYNC_CABINET'
   | 'WAREHOUSES_SYNC_CABINET'
   | 'STOCKS_BY_NMID'
+  | 'FBS_WAREHOUSES_SYNC_CABINET'
+  | 'FBS_STOCKS_CABINET'
 
 export type WbApiEventSortField =
   | 'ID'

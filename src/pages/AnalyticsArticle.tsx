@@ -31,6 +31,7 @@ import * as XLSX from 'xlsx'
 import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
 import { linkifyNoteText } from '../utils/linkifyNoteText'
 import { NoteImagePreviewModal } from '../components/NoteImagePreviewModal'
+import FboFbsStocksSwitch, { type StocksFulfillment, stockRowKey } from '../components/FboFbsStocksSwitch'
 
 type NoteFileEntry = { uid: string; file: File }
 
@@ -268,6 +269,7 @@ export default function AnalyticsArticle() {
   const [expandedStocks, setExpandedStocks] = useState<Set<string>>(new Set())
   const [stockSizes, setStockSizes] = useState<Record<string, import('../types/analytics').StockSize[]>>({})
   const [loadingSizes, setLoadingSizes] = useState<Record<string, boolean>>({})
+  const [stocksFulfillment, setStocksFulfillment] = useState<StocksFulfillment>('FBO')
   
   // Состояние для заметок
   const [notes, setNotes] = useState<ArticleNote[]>([])
@@ -1827,7 +1829,7 @@ export default function AnalyticsArticle() {
 
       {/* Сравнение периодов и остатки */}
       {article && period1Data && period2Data && (() => {
-        const allStocks = article?.stocks ?? []
+        const allStocks = stocksFulfillment === 'FBS' ? (article?.fbsStocks ?? []) : (article?.stocks ?? [])
         return (
           <div style={{
             backgroundColor: colors.bgWhite,
@@ -2973,6 +2975,15 @@ export default function AnalyticsArticle() {
                       : 'Запустить обновление остатков'
                   return (
                     <>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: spacing.xs }}>
+                        <FboFbsStocksSwitch
+                          value={stocksFulfillment}
+                          onChange={(next) => {
+                            setStocksFulfillment(next)
+                            setExpandedStocks(new Set())
+                          }}
+                        />
+                      </div>
                       <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -3093,33 +3104,41 @@ export default function AnalyticsArticle() {
                 {allStocks.map((stock, index) => {
                   const isZeroStock = stock.amount === 0
                   const isLowStock = stock.amount > 0 && stock.amount <= 1
-                  const isExpanded = expandedStocks.has(stock.warehouseName)
-                  const sizes = stockSizes[stock.warehouseName] || []
-                  const isLoading = loadingSizes[stock.warehouseName] || false
+                  const rowKey = stockRowKey(stocksFulfillment, stock.warehouseId, stock.warehouseName)
+                  const isExpanded = expandedStocks.has(rowKey)
+                  const sizes = stockSizes[rowKey] || []
+                  const isLoading = loadingSizes[rowKey] || false
                   
                   const handleRowClick = async () => {
                     if (isExpanded) {
                       // Сворачиваем строку
                       setExpandedStocks(prev => {
                         const newSet = new Set(prev)
-                        newSet.delete(stock.warehouseName)
+                        newSet.delete(rowKey)
                         return newSet
                       })
                     } else {
                       // Разворачиваем строку
-                      setExpandedStocks(prev => new Set(prev).add(stock.warehouseName))
+                      setExpandedStocks(prev => new Set(prev).add(rowKey))
                       
                       // Загружаем данные по размерам, если еще не загружены
-                      if (!stockSizes[stock.warehouseName] && !loadingSizes[stock.warehouseName]) {
-                        setLoadingSizes(prev => ({ ...prev, [stock.warehouseName]: true }))
+                      if (!stockSizes[rowKey] && !loadingSizes[rowKey]) {
+                        setLoadingSizes(prev => ({ ...prev, [rowKey]: true }))
                         try {
                           const sellerId = getSelectedSellerId()
-                          const sizesData = await analyticsApi.getStockSizes(Number(nmId), stock.warehouseName, sellerId, getSelectedCabinetId())
-                          setStockSizes(prev => ({ ...prev, [stock.warehouseName]: sizesData }))
+                          const sizesData = await analyticsApi.getStockSizes(
+                            Number(nmId),
+                            stock.warehouseName,
+                            sellerId,
+                            getSelectedCabinetId(),
+                            stocksFulfillment,
+                            stock.warehouseId
+                          )
+                          setStockSizes(prev => ({ ...prev, [rowKey]: sizesData }))
                         } catch (err) {
                           console.error('Ошибка при загрузке размеров:', err)
                         } finally {
-                          setLoadingSizes(prev => ({ ...prev, [stock.warehouseName]: false }))
+                          setLoadingSizes(prev => ({ ...prev, [rowKey]: false }))
                         }
                       }
                     }
@@ -3128,7 +3147,7 @@ export default function AnalyticsArticle() {
                   return (
                     <>
                       <tr 
-                        key={stock.warehouseName} 
+                        key={rowKey} 
                         onClick={handleRowClick}
                         style={{
                           backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight,
@@ -3179,7 +3198,7 @@ export default function AnalyticsArticle() {
                         </td>
                       </tr>
                       {isExpanded && (
-                        <tr key={`${stock.warehouseName}-expanded`}>
+                        <tr key={`${rowKey}-expanded`}>
                           <td colSpan={2} style={{
                             padding: spacing.md,
                             backgroundColor: colors.bgGrayLight,

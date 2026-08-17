@@ -35,6 +35,7 @@ import { linkifyNoteText } from '../utils/linkifyNoteText'
 import { NoteImagePreviewModal } from '../components/NoteImagePreviewModal'
 import CampaignDetailViewSwitch, { type CampaignDetailViewMode } from '../components/CampaignDetailViewSwitch'
 import CampaignNormQueryClustersTable from '../components/CampaignNormQueryClustersTable'
+import FboFbsStocksSwitch, { type StocksFulfillment, stockRowKey } from '../components/FboFbsStocksSwitch'
 
 dayjs.locale('ru')
 
@@ -326,6 +327,7 @@ export default function AdvertisingCampaignDetail() {
   const [expandedStocks, setExpandedStocks] = useState<Set<string>>(new Set())
   const [stockSizes, setStockSizes] = useState<Record<string, StockSize[]>>({})
   const [loadingSizes, setLoadingSizes] = useState<Record<string, boolean>>({})
+  const [stocksFulfillment, setStocksFulfillment] = useState<StocksFulfillment>('FBO')
   const [stocksUpdateLoading, setStocksUpdateLoading] = useState(false)
   const queryClient = useQueryClient()
 
@@ -1785,6 +1787,15 @@ export default function AdvertisingCampaignDetail() {
                   «не вмещающиеся» элементы (в первую очередь бейдж «Всего N» и селект артикула)
                   естественным образом переносятся на следующую строку и не теряются. */}
               <div style={{ flex: '1 1 280px', minWidth: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: spacing.xs }}>
+                  <FboFbsStocksSwitch
+                    value={stocksFulfillment}
+                    onChange={(next) => {
+                      setStocksFulfillment(next)
+                      setExpandedStocks(new Set())
+                    }}
+                  />
+                </div>
                 <div
                   style={{
                     display: 'flex',
@@ -1797,7 +1808,7 @@ export default function AdvertisingCampaignDetail() {
                   }}
                 >
                   {(() => {
-                    const stocks = stockArticle?.stocks ?? []
+                    const stocks = stocksFulfillment === 'FBS' ? (stockArticle?.fbsStocks ?? []) : (stockArticle?.stocks ?? [])
                     const latestStocksUpdate = stocks.length > 0
                       ? stocks.map((s: Stock) => s.updatedAt).filter((d): d is string => d != null).sort().reverse()[0]
                       : null
@@ -1872,7 +1883,7 @@ export default function AdvertisingCampaignDetail() {
                     placeholder="Артикул"
                   />
                   {(() => {
-                    const stocks = stockArticle?.stocks ?? []
+                    const stocks = stocksFulfillment === 'FBS' ? (stockArticle?.fbsStocks ?? []) : (stockArticle?.stocks ?? [])
                     if (stocks.length === 0) return null
                     const latestStocksUpdate = stocks
                       .map((s: Stock) => s.updatedAt)
@@ -1904,7 +1915,9 @@ export default function AdvertisingCampaignDetail() {
                     )
                   })()}
                 </div>
-                {stockArticle?.stocks && stockArticle.stocks.length > 0 ? (
+                {(() => {
+                  const stocks = stocksFulfillment === 'FBS' ? (stockArticle?.fbsStocks ?? []) : (stockArticle?.stocks ?? [])
+                  return stocks.length > 0 ? (
                   <div style={{ flex: '1 1 0', overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead>
@@ -1914,28 +1927,36 @@ export default function AdvertisingCampaignDetail() {
                         </tr>
                       </thead>
                       <tbody>
-                        {stockArticle.stocks.map((s: Stock, index: number) => {
-                          const isExpanded = expandedStocks.has(s.warehouseName)
-                          const sizes = stockSizes[s.warehouseName] ?? []
-                          const isLoading = loadingSizes[s.warehouseName] ?? false
+                        {stocks.map((s: Stock, index: number) => {
+                          const rowKey = stockRowKey(stocksFulfillment, s.warehouseId, s.warehouseName)
+                          const isExpanded = expandedStocks.has(rowKey)
+                          const sizes = stockSizes[rowKey] ?? []
+                          const isLoading = loadingSizes[rowKey] ?? false
                           const handleRowClick = async () => {
                             if (isExpanded) {
                               setExpandedStocks((prev) => {
                                 const next = new Set(prev)
-                                next.delete(s.warehouseName)
+                                next.delete(rowKey)
                                 return next
                               })
                             } else {
-                              setExpandedStocks((prev) => new Set(prev).add(s.warehouseName))
-                              if (selectedStockNmId != null && !stockSizes[s.warehouseName] && !loadingSizes[s.warehouseName]) {
-                                setLoadingSizes((prev) => ({ ...prev, [s.warehouseName]: true }))
+                              setExpandedStocks((prev) => new Set(prev).add(rowKey))
+                              if (selectedStockNmId != null && !stockSizes[rowKey] && !loadingSizes[rowKey]) {
+                                setLoadingSizes((prev) => ({ ...prev, [rowKey]: true }))
                                 try {
-                                  const sizesData = await analyticsApi.getStockSizes(selectedStockNmId, s.warehouseName, getSelectedSellerId() ?? undefined, cabinetIdForRequest ?? undefined)
-                                  setStockSizes((prev) => ({ ...prev, [s.warehouseName]: sizesData }))
+                                  const sizesData = await analyticsApi.getStockSizes(
+                                    selectedStockNmId,
+                                    s.warehouseName,
+                                    getSelectedSellerId() ?? undefined,
+                                    cabinetIdForRequest ?? undefined,
+                                    stocksFulfillment,
+                                    s.warehouseId
+                                  )
+                                  setStockSizes((prev) => ({ ...prev, [rowKey]: sizesData }))
                                 } catch (err) {
                                   console.error('Ошибка при загрузке размеров:', err)
                                 } finally {
-                                  setLoadingSizes((prev) => ({ ...prev, [s.warehouseName]: false }))
+                                  setLoadingSizes((prev) => ({ ...prev, [rowKey]: false }))
                                 }
                               }
                             }
@@ -1943,7 +1964,7 @@ export default function AdvertisingCampaignDetail() {
                           const isZeroStock = s.amount === 0
                           const isLowStock = s.amount > 0 && s.amount <= 1
                           return (
-                            <Fragment key={s.warehouseName}>
+                            <Fragment key={rowKey}>
                               <tr
                                 onClick={handleRowClick}
                                 style={{ backgroundColor: index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight, transition: transitions.fast, cursor: 'pointer' }}
@@ -2005,7 +2026,8 @@ export default function AdvertisingCampaignDetail() {
                   </div>
                 ) : (
                   <div style={{ color: colors.textSecondary, padding: spacing.md }}>Нет данных по остаткам</div>
-                )}
+                )
+                })()}
               </div>
             </div>
 

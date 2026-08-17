@@ -425,11 +425,20 @@ export const analyticsApi = {
   /**
    * Получает детализацию остатков по размерам для товара на конкретном складе.
    */
-  getStockSizes: async (nmId: number, warehouseName: string, sellerId?: number, cabinetId?: number): Promise<StockSize[]> => {
+  getStockSizes: async (
+    nmId: number,
+    warehouseName: string,
+    sellerId?: number,
+    cabinetId?: number,
+    fulfillment?: 'FBO' | 'FBS',
+    warehouseId?: number
+  ): Promise<StockSize[]> => {
     const encodedWarehouseName = encodeURIComponent(warehouseName)
     const searchParams = new URLSearchParams()
     if (sellerId != null) searchParams.set('sellerId', String(sellerId))
     if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    if (fulfillment) searchParams.set('fulfillment', fulfillment)
+    if (warehouseId != null) searchParams.set('warehouseId', String(warehouseId))
     const query = searchParams.toString()
     const params = query ? `?${query}` : ''
     const response = await apiClient.get<StockSize[]>(
