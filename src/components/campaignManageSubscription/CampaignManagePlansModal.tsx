@@ -11,6 +11,12 @@ import CampaignManageCheckoutModal from './CampaignManageCheckoutModal'
 
 const accent = '#7C3AED'
 
+const connectedButtonStyle = {
+  background: '#F8FAFC',
+  borderColor: '#E2E8F0',
+  color: '#94A3B8',
+} as const
+
 interface CampaignManagePlansModalProps {
   open: boolean
   onClose: () => void
@@ -39,6 +45,19 @@ export default function CampaignManagePlansModal({ open, onClose }: CampaignMana
     queryFn: () => subscriptionApi.getCampaignManagePlans(),
     enabled: open && emailConfirmed,
   })
+
+  const { data: billing, isPending: billingPending } = useQuery({
+    queryKey: ['cabinetBilling', cabinetId],
+    queryFn: () => subscriptionApi.getCabinetBillingStatus(cabinetId!),
+    enabled: open && cabinetId != null && emailConfirmed,
+  })
+
+  const campaignService = billing?.services?.find((s) => s.serviceCode === 'CAMPAIGN_MANAGE')
+  const campaignIncluded =
+    campaignManage?.status === 'PRO'
+    || campaignManage?.status === 'AGENCY'
+    || campaignService?.status === 'INCLUDED'
+  const activeCampaignPlanCode = campaignService?.connected ? campaignService.planCode : null
 
   const checkoutOpen = checkoutPlan != null
 
@@ -71,7 +90,7 @@ export default function CampaignManagePlansModal({ open, onClose }: CampaignMana
             }
             style={{ marginBottom: 8 }}
           />
-        ) : accessLoading || plansLoading ? (
+        ) : accessLoading || plansLoading || (cabinetId != null && billingPending) ? (
           <div style={{ textAlign: 'center', padding: 40 }}>
             <Spin />
           </div>
@@ -85,7 +104,15 @@ export default function CampaignManagePlansModal({ open, onClose }: CampaignMana
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
             {plans.map((plan) => {
-              const freeUsed = plan.code === 'campaign_free' && trialStatusReady && campaignManage?.canActivateFree === false
+              const connected =
+                campaignIncluded
+                || (Boolean(activeCampaignPlanCode) && plan.code === activeCampaignPlanCode)
+              const freeUsed =
+                !connected
+                && plan.code === 'campaign_free'
+                && trialStatusReady
+                && campaignManage?.canActivateFree === false
+              const inactive = connected || freeUsed
               return (
               <div
                 key={plan.id}
@@ -106,14 +133,20 @@ export default function CampaignManagePlansModal({ open, onClose }: CampaignMana
                   {formatPriceLabel(plan)}
                 </div>
                 <Button
-                  type="primary"
+                  type={inactive ? 'default' : 'primary'}
                   block
-                  disabled={freeUsed}
-                  title={freeUsed ? 'Бесплатный период уже был использован' : undefined}
-                  onClick={() => setCheckoutPlan(plan)}
-                  style={{ backgroundColor: accent, borderColor: accent }}
+                  disabled={inactive}
+                  title={
+                    connected
+                      ? 'Тариф уже подключен'
+                      : freeUsed
+                        ? 'Бесплатный период уже был использован'
+                        : undefined
+                  }
+                  onClick={inactive ? undefined : () => setCheckoutPlan(plan)}
+                  style={inactive ? connectedButtonStyle : { backgroundColor: accent, borderColor: accent }}
                 >
-                  Подключить
+                  {connected ? 'Подключено' : 'Подключить'}
                 </Button>
               </div>
             )})}

@@ -8,6 +8,12 @@ const accent = '#7C3AED'
 const UNIT_PRICE = 500
 const AB_PACK_FREE_CODE = 'ab_pack_free'
 
+const connectedButtonStyle = {
+  background: '#F8FAFC',
+  borderColor: '#E2E8F0',
+  color: '#94A3B8',
+} as const
+
 const FALLBACK_PACK_COPY: Record<string, string> = {
   ab_pack_1: 'Для одного А/Б теста',
   ab_pack_5: 'Для регулярного А/Б тестирования и поиска лучшего CTR',
@@ -219,18 +225,22 @@ export default function AbTestPacksModal({
               </div>
               <PackPriceBlock plan={freePlan} />
               <Button
-                type="primary"
+                type={freeAlreadyUsed ? 'default' : 'primary'}
                 block
                 disabled={freeAlreadyUsed || cabinetId == null}
-                title={freeAlreadyUsed ? 'Бесплатные тесты уже были подключены' : undefined}
-                loading={busyPlanKey === 'free'}
-                onClick={() => {
-                  setBusyPlanKey('free')
-                  activateFreeMutation.mutate()
-                }}
-                style={{ backgroundColor: accent, borderColor: accent }}
+                title={freeAlreadyUsed ? 'Бесплатные тесты уже подключены' : undefined}
+                loading={!freeAlreadyUsed && busyPlanKey === 'free'}
+                onClick={
+                  freeAlreadyUsed
+                    ? undefined
+                    : () => {
+                        setBusyPlanKey('free')
+                        activateFreeMutation.mutate()
+                      }
+                }
+                style={freeAlreadyUsed ? connectedButtonStyle : { backgroundColor: accent, borderColor: accent }}
               >
-                Подключить
+                {freeAlreadyUsed ? 'Подключено' : 'Подключить'}
               </Button>
             </div>
           )}

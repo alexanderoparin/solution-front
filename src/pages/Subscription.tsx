@@ -404,7 +404,7 @@ export default function Subscription() {
       <AbTestPacksModal
         open={abPacksOpen}
         cabinetId={effectiveCabinetId}
-        freeAlreadyUsed={Boolean(billing?.abTestQuota?.activated)}
+        freeAlreadyUsed={Boolean(billing?.abTestQuota?.activated || billing?.abTestQuota?.unlimited || onPro)}
         onClose={() => setAbPacksOpen(false)}
         onActivated={() => {
           void refetchBilling()
