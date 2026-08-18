@@ -959,15 +959,16 @@ const thBase = { borderBottom: `2px solid ${colors.border}`, ...typography.body,
 /** Индекс колонки после «Приоритет» с учётом скрытия рейтинга для базового токена. */
 function productsDataColIndex(
   showRating: boolean,
-  slot: 'stock' | 'sizes' | 'date' | 'dynamics',
+  slot: 'stock' | 'fbsStock' | 'sizes' | 'date' | 'dynamics',
   dateColsCount: number,
   dateIndex = 0,
 ): number {
   const stockCol = showRating ? 6 : 5
   if (slot === 'stock') return stockCol
-  if (slot === 'sizes') return stockCol + 1
-  if (slot === 'date') return stockCol + 2 + dateIndex
-  return stockCol + 2 + dateColsCount
+  if (slot === 'fbsStock') return stockCol + 1
+  if (slot === 'sizes') return stockCol + 2
+  if (slot === 'date') return stockCol + 3 + dateIndex
+  return stockCol + 3 + dateColsCount
 }
 
 function WbCreatedAtCell({ value }: { value: string | null | undefined }) {
@@ -997,7 +998,8 @@ const COL_WIDTHS = {
   priority: 72,
   wbCreatedAt: 76,
   rating: 88,
-  stock: 72,
+  stock: 96,
+  fbsStock: 96,
   sizes: 100,
   date: 44,
   dynamics: 80,
@@ -1173,13 +1175,14 @@ function ProductsTable({
       `}</style>
       {/* Шапка таблицы — отступ справа под ширину скроллбара тела (измеряется под текущую ОС/браузер) */}
       <div style={{ flexShrink: 0, borderBottom: `2px solid ${colors.border}`, paddingRight: scrollbarWidth }}>
-        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1032 }}>
+        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1128 }}>
           <colgroup>
             <col style={{ width: COL_WIDTHS.drag }} />
             <col style={{ width: COL_WIDTHS.photo }} />
             <col style={{ width: COL_WIDTHS.name }} />
             <col style={{ width: COL_WIDTHS.priority }} />
             <col style={{ width: COL_WIDTHS.wbCreatedAt }} />
+            <col />
             <col />
             <col />
             <col />
@@ -1218,7 +1221,8 @@ function ProductsTable({
               {showRatingColumn && (
                 <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length) }}>Рейтинг</th>
               )}
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length) }}>Остаток</th>
+              <th style={{ ...thBase, textAlign: 'left', whiteSpace: 'nowrap', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length) }}>Остатки FBO</th>
+              <th style={{ ...thBase, textAlign: 'left', whiteSpace: 'nowrap', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length) }}>Остатки FBS</th>
               <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length) }}>Размеры</th>
               {last7Dates.map((d, i) => (
                 <th
@@ -1247,13 +1251,14 @@ function ProductsTable({
         onScroll={onScroll}
         style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, minHeight: 0 }}
       >
-        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1032 }}>
+        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1128 }}>
           <colgroup>
             <col style={{ width: COL_WIDTHS.drag }} />
             <col style={{ width: COL_WIDTHS.photo }} />
             <col style={{ width: COL_WIDTHS.name }} />
             <col style={{ width: COL_WIDTHS.priority }} />
             <col style={{ width: COL_WIDTHS.wbCreatedAt }} />
+            <col />
             <col />
             <col />
             <col />
@@ -1363,6 +1368,10 @@ function ProductRow({
   const stocksTotal = useMemo(
     () => (articleDetail?.stocks ?? []).reduce((s, st) => s + (st.amount ?? 0), 0),
     [articleDetail?.stocks]
+  )
+  const fbsStocksTotal = useMemo(
+    () => (articleDetail?.fbsStocks ?? []).reduce((s, st) => s + (st.amount ?? 0), 0),
+    [articleDetail?.fbsStocks]
   )
   const dailyByDate = useMemo(() => {
     const map = new Map<string, number>()
@@ -1597,6 +1606,9 @@ function ProductRow({
       )}
       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         {isLoading ? '-' : stocksTotal.toLocaleString('ru-RU')}
+      </td>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+        {isLoading ? '-' : fbsStocksTotal.toLocaleString('ru-RU')}
       </td>
       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         {!firstStockWarehouse ? '-' : sizesLabel}
