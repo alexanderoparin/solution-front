@@ -118,9 +118,32 @@ function DataUpdateCell({ at }: { at: string | null | undefined }) {
   )
 }
 
-function ApiTokenCell({ masked }: { masked: string | null | undefined }) {
+function isMaskedApiKey(value: string | null | undefined): boolean {
+  return !value || value.includes('...')
+}
+
+function ApiTokenCell({ cabinetId, masked }: { cabinetId: number; masked: string | null | undefined }) {
+  const [copying, setCopying] = useState(false)
+
   if (!masked) {
     return <ColumnValue>—</ColumnValue>
+  }
+
+  const copyFullToken = async () => {
+    setCopying(true)
+    try {
+      const cabinet = await cabinetsApi.getById(cabinetId)
+      const token = cabinet.apiKey?.apiKey?.trim() ?? ''
+      if (isMaskedApiKey(token)) {
+        message.error('Не удалось получить полный токен')
+        return
+      }
+      await copyToClipboard(token, 'API-токен скопирован')
+    } catch {
+      message.error('Не удалось скопировать')
+    } finally {
+      setCopying(false)
+    }
   }
 
   return (
@@ -135,6 +158,7 @@ function ApiTokenCell({ masked }: { masked: string | null | undefined }) {
             background: '#F8FAFC',
             border: `1px solid ${border}`,
             margin: 0,
+            userSelect: 'none',
           }}
         >
           {masked}
@@ -142,9 +166,10 @@ function ApiTokenCell({ masked }: { masked: string | null | undefined }) {
         <Button
           type="text"
           size="small"
+          loading={copying}
           icon={<CopyOutlined style={{ color: '#3B82F6' }} />}
           aria-label="Скопировать API-токен"
-          onClick={() => void copyToClipboard(masked, 'API-токен скопирован')}
+          onClick={() => void copyFullToken()}
           style={{ flexShrink: 0 }}
         />
       </span>
@@ -272,7 +297,7 @@ function OwnedCabinetRow({ row }: { row: OwnedCabinetRowDto }) {
         <ColumnValue>{formatDateShort(row.createdAt)}</ColumnValue>
         <ValidationCell at={row.lastValidatedAt} valid={row.apiKeyValid} />
         <DataUpdateCell at={row.lastDataUpdateAt} />
-        <ApiTokenCell masked={row.apiKeyMasked} />
+        <ApiTokenCell cabinetId={row.id} masked={row.apiKeyMasked} />
         <RowActionsMenu items={menuItems} />
       </div>
     </div>
