@@ -1205,7 +1205,7 @@ function ProductsTable({
               <th
                 style={{
                   ...sortableThStyle,
-                  textAlign: 'left',
+                  textAlign: 'center',
                   borderRight: getCellBorderRightForTable(showRatingColumn, 4, last7Dates.length),
                   width: COL_WIDTHS.wbCreatedAt,
                   maxWidth: COL_WIDTHS.wbCreatedAt,
@@ -1213,17 +1213,17 @@ function ProductsTable({
                 }}
                 onClick={() => onSort('wbCreatedAt')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   Создан
                   <SortIcon field="wbCreatedAt" />
                 </span>
               </th>
               {showRatingColumn && (
-                <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length) }}>Рейтинг</th>
+                <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length) }}>Рейтинг</th>
               )}
-              <th style={{ ...thBase, textAlign: 'left', whiteSpace: 'nowrap', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length) }}>Остатки FBO</th>
-              <th style={{ ...thBase, textAlign: 'left', whiteSpace: 'nowrap', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length) }}>Остатки FBS</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length) }}>Размеры</th>
+              <th style={{ ...thBase, textAlign: 'center', whiteSpace: 'nowrap', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length) }}>Остатки FBO</th>
+              <th style={{ ...thBase, textAlign: 'center', whiteSpace: 'nowrap', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length) }}>Остатки FBS</th>
+              <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length) }}>Размеры</th>
               {last7Dates.map((d, i) => (
                 <th
                   key={d}
@@ -1588,29 +1588,30 @@ function ProductRow({
           ...typography.body,
           ...FONT_PAGE_SMALL,
           verticalAlign: 'top',
+          textAlign: 'center',
         }}
       >
         <WbCreatedAtCell value={article.wbCreatedAt} />
       </td>
       {showRatingColumn && (
-        <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+        <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
           {isLoading && !hasMeaningfulArticleRating(rating) ? (
             <Spin size="small" />
           ) : hasMeaningfulArticleRating(rating) ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
               <StarFilled style={{ color: '#FBBF24', fontSize: 12 }} />
               <span>{formatArticleRating(rating)}</span>
             </span>
           ) : null}
         </td>
       )}
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
         {isLoading ? '-' : stocksTotal.toLocaleString('ru-RU')}
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
         {isLoading ? '-' : fbsStocksTotal.toLocaleString('ru-RU')}
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
         {!firstStockWarehouse ? '-' : sizesLabel}
       </td>
       {last7Dates.map((d, i) => (
