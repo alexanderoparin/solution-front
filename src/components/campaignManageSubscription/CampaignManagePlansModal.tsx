@@ -27,10 +27,12 @@ function formatPriceLabel(plan: PlanDto): string {
 export default function CampaignManagePlansModal({ open, onClose }: CampaignManagePlansModalProps) {
   const navigate = useNavigate()
   const [checkoutPlan, setCheckoutPlan] = useState<PlanDto | null>(null)
-  const { campaignManage, access, isLoading: accessLoading } = useCampaignManageAccess()
+  const { campaignManage, access, cabinetId, isLoading: accessLoading } = useCampaignManageAccess()
 
   const emailConfirmed = access?.emailConfirmed === true
   const needsEmailConfirmation = access != null && !emailConfirmed
+  /** Без кабинета бэкенд всегда отдаёт canActivateFree=false — это не «триал уже использован». */
+  const trialStatusReady = cabinetId != null && !accessLoading
 
   const { data: plans = [], isLoading: plansLoading, isError, error } = useQuery({
     queryKey: ['campaignManagePlans'],
@@ -83,7 +85,7 @@ export default function CampaignManagePlansModal({ open, onClose }: CampaignMana
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
             {plans.map((plan) => {
-              const freeUsed = plan.code === 'campaign_free' && campaignManage?.canActivateFree === false
+              const freeUsed = plan.code === 'campaign_free' && trialStatusReady && campaignManage?.canActivateFree === false
               return (
               <div
                 key={plan.id}

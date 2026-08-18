@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button, Typography, message } from 'antd'
 import { PlusOutlined, AppstoreOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { cabinetsApi } from '../api/cabinets'
+import { cabinetsApi, setStoredCabinetId } from '../api/cabinets'
 import type { CreateCabinetRequest } from '../types/api'
 import { getRequestFailureDescription } from '../utils/requestError'
 import AddCabinetModal from '../pages/profile/modals/AddCabinetModal'
@@ -41,11 +41,14 @@ export default function NoCabinetsPlaceholder({
 
   const createMutation = useMutation({
     mutationFn: cabinetsApi.create,
-    onSuccess: () => {
+    onSuccess: (created) => {
       message.success('Кабинет создан')
+      setStoredCabinetId(created.id)
       setModalOpen(false)
       void queryClient.invalidateQueries({ queryKey: ['cabinetsOverview'] })
       void queryClient.invalidateQueries({ queryKey: ['cabinets'] })
+      void queryClient.invalidateQueries({ queryKey: ['myCabinets'] })
+      void queryClient.invalidateQueries({ queryKey: ['accessStatus'] })
       onCreated?.()
     },
     onError: (err: unknown) => {

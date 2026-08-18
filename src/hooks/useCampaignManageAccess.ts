@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { accessStatusQueryKey, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
-import { getStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import { useAuthStore } from '../store/authStore'
 import { useWorkContextForAdmin } from './useWorkContextForAdmin'
 
@@ -24,17 +24,49 @@ export function useCampaignManageAccess(overrideSellerId?: number, overrideCabin
   const workContext = useWorkContextForAdmin(isAdmin)
 
   const sellerId = overrideSellerId ?? resolveSellerIdForAccess(role, userId)
-  const cabinetId =
-    overrideCabinetId ??
-    (isAdmin ? workContext.selectedCabinetId ?? undefined : getStoredCabinetId() ?? undefined)
 
-  const { data: access, isLoading, refetch } = useQuery({
+  const { data: overview, isPending: overviewPending } = useQuery({
+    queryKey: ['cabinetsOverview'],
+    queryFn: () => cabinetsApi.getOverview(),
+    enabled: !isAdmin && overrideCabinetId == null,
+    staleTime: 30_000,
+  })
+
+  const cabinetId = useMemo(() => {
+    if (overrideCabinetId != null) {
+      return overrideCabinetId
+    }
+    if (isAdmin) {
+      return workContext.selectedCabinetId ?? undefined
+    }
+    const ownedIds = (overview?.owned ?? []).map((c) => c.id)
+    const stored = getStoredCabinetId()
+    if (stored != null && ownedIds.includes(stored)) {
+      return stored
+    }
+    return ownedIds[0]
+  }, [overrideCabinetId, isAdmin, workContext.selectedCabinetId, overview])
+
+  useEffect(() => {
+    if (isAdmin || overrideCabinetId != null || cabinetId == null) {
+      return
+    }
+    if (getStoredCabinetId() !== cabinetId) {
+      setStoredCabinetId(cabinetId)
+    }
+  }, [isAdmin, overrideCabinetId, cabinetId])
+
+  const accessEnabled = isAdmin || overrideCabinetId != null || cabinetId != null || overview !== undefined
+
+  const { data: access, isLoading: accessLoading, refetch } = useQuery({
     queryKey: accessStatusQueryKey(sellerId, cabinetId),
     queryFn: () => userApi.getAccessStatus(sellerId, cabinetId),
+    enabled: accessEnabled,
     staleTime: ACCESS_STATUS_STALE_MS,
   })
 
   const campaignManage = access?.campaignManage
+  const cabinetsLoading = !isAdmin && overrideCabinetId == null && overviewPending
 
   const showBadge = useMemo(() => {
     if (role !== 'USER') return false
@@ -47,7 +79,7 @@ export function useCampaignManageAccess(overrideSellerId?: number, overrideCabin
     campaignManage,
     hasCampaignManageAccess: campaignManage?.hasAccess === true,
     showBadge,
-    isLoading,
+    isLoading: cabinetsLoading || accessLoading,
     refetchAccess: refetch,
     sellerId,
     cabinetId,
