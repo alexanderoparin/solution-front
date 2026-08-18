@@ -997,13 +997,85 @@ const COL_WIDTHS = {
   name: 200, /* название и детали */
   priority: 72,
   wbCreatedAt: 76,
-  rating: 88,
-  stock: 96,
-  fbsStock: 96,
+  rating: 56,
+  stock: 72,
+  fbsStock: 72,
   sizes: 100,
   date: 44,
   dynamics: 80,
 } as const
+
+function productsTableMinWidth(showRating: boolean, dateCols: number): number {
+  return (
+    COL_WIDTHS.drag +
+    COL_WIDTHS.photo +
+    COL_WIDTHS.name +
+    COL_WIDTHS.priority +
+    COL_WIDTHS.wbCreatedAt +
+    (showRating ? COL_WIDTHS.rating : 0) +
+    COL_WIDTHS.stock +
+    COL_WIDTHS.fbsStock +
+    COL_WIDTHS.sizes +
+    COL_WIDTHS.date * dateCols +
+    COL_WIDTHS.dynamics
+  )
+}
+
+function ProductsTableColgroup({
+  showRatingColumn,
+  last7Dates,
+}: {
+  showRatingColumn: boolean
+  last7Dates: string[]
+}) {
+  return (
+    <colgroup>
+      <col style={{ width: COL_WIDTHS.drag }} />
+      <col style={{ width: COL_WIDTHS.photo }} />
+      <col style={{ width: COL_WIDTHS.name }} />
+      <col style={{ width: COL_WIDTHS.priority }} />
+      <col style={{ width: COL_WIDTHS.wbCreatedAt }} />
+      {showRatingColumn && <col style={{ width: COL_WIDTHS.rating }} />}
+      <col style={{ width: COL_WIDTHS.stock }} />
+      <col style={{ width: COL_WIDTHS.fbsStock }} />
+      <col style={{ width: COL_WIDTHS.sizes }} />
+      {last7Dates.map((d) => (
+        <col key={d} style={{ width: COL_WIDTHS.date }} />
+      ))}
+      <col style={{ width: COL_WIDTHS.dynamics }} />
+    </colgroup>
+  )
+}
+
+/** Двустрочный заголовок «Остатки / FBO|FBS», чтобы подпись была по центру колонки. */
+function StocksColumnHeader({
+  fulfillment,
+  borderRight,
+}: {
+  fulfillment: 'FBO' | 'FBS'
+  borderRight: string
+}) {
+  const width = fulfillment === 'FBO' ? COL_WIDTHS.stock : COL_WIDTHS.fbsStock
+  return (
+    <th
+      style={{
+        ...thBase,
+        textAlign: 'center',
+        width,
+        maxWidth: width,
+        boxSizing: 'border-box',
+        padding: '6px 4px',
+        lineHeight: 1.2,
+        borderRight,
+      }}
+    >
+      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <span>Остатки</span>
+        <span>{fulfillment}</span>
+      </span>
+    </th>
+  )
+}
 
 interface ProductsTableProps {
   visibleArticles: ArticleSummary[]
@@ -1172,25 +1244,54 @@ function ProductsTable({
           max-width: ${COL_WIDTHS.wbCreatedAt}px !important;
           box-sizing: border-box !important;
         }
+        ${showRatingColumn ? `
+        .products-table-wrapper table.products-table colgroup col:nth-child(6),
+        .products-table-wrapper table.products-table thead th:nth-child(6),
+        .products-table-wrapper table.products-table tbody td:nth-child(6) {
+          width: ${COL_WIDTHS.rating}px !important;
+          min-width: ${COL_WIDTHS.rating}px !important;
+          max-width: ${COL_WIDTHS.rating}px !important;
+          box-sizing: border-box !important;
+        }
+        .products-table-wrapper table.products-table colgroup col:nth-child(7),
+        .products-table-wrapper table.products-table thead th:nth-child(7),
+        .products-table-wrapper table.products-table tbody td:nth-child(7) {
+          width: ${COL_WIDTHS.stock}px !important;
+          min-width: ${COL_WIDTHS.stock}px !important;
+          max-width: ${COL_WIDTHS.stock}px !important;
+          box-sizing: border-box !important;
+        }
+        .products-table-wrapper table.products-table colgroup col:nth-child(8),
+        .products-table-wrapper table.products-table thead th:nth-child(8),
+        .products-table-wrapper table.products-table tbody td:nth-child(8) {
+          width: ${COL_WIDTHS.fbsStock}px !important;
+          min-width: ${COL_WIDTHS.fbsStock}px !important;
+          max-width: ${COL_WIDTHS.fbsStock}px !important;
+          box-sizing: border-box !important;
+        }
+        ` : `
+        .products-table-wrapper table.products-table colgroup col:nth-child(6),
+        .products-table-wrapper table.products-table thead th:nth-child(6),
+        .products-table-wrapper table.products-table tbody td:nth-child(6) {
+          width: ${COL_WIDTHS.stock}px !important;
+          min-width: ${COL_WIDTHS.stock}px !important;
+          max-width: ${COL_WIDTHS.stock}px !important;
+          box-sizing: border-box !important;
+        }
+        .products-table-wrapper table.products-table colgroup col:nth-child(7),
+        .products-table-wrapper table.products-table thead th:nth-child(7),
+        .products-table-wrapper table.products-table tbody td:nth-child(7) {
+          width: ${COL_WIDTHS.fbsStock}px !important;
+          min-width: ${COL_WIDTHS.fbsStock}px !important;
+          max-width: ${COL_WIDTHS.fbsStock}px !important;
+          box-sizing: border-box !important;
+        }
+        `}
       `}</style>
       {/* Шапка таблицы — отступ справа под ширину скроллбара тела (измеряется под текущую ОС/браузер) */}
       <div style={{ flexShrink: 0, borderBottom: `2px solid ${colors.border}`, paddingRight: scrollbarWidth }}>
-        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1128 }}>
-          <colgroup>
-            <col style={{ width: COL_WIDTHS.drag }} />
-            <col style={{ width: COL_WIDTHS.photo }} />
-            <col style={{ width: COL_WIDTHS.name }} />
-            <col style={{ width: COL_WIDTHS.priority }} />
-            <col style={{ width: COL_WIDTHS.wbCreatedAt }} />
-            <col />
-            <col />
-            <col />
-            <col />
-            {last7Dates.map((d) => (
-              <col key={d} />
-            ))}
-            <col />
-          </colgroup>
+        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: productsTableMinWidth(showRatingColumn, last7Dates.length) }}>
+          <ProductsTableColgroup showRatingColumn={showRatingColumn} last7Dates={last7Dates} />
           <thead>
             <tr style={{ backgroundColor: colors.bgGray }}>
               <th
@@ -1219,10 +1320,16 @@ function ProductsTable({
                 </span>
               </th>
               {showRatingColumn && (
-                <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length) }}>Рейтинг</th>
+                <th style={{ ...thBase, textAlign: 'center', width: COL_WIDTHS.rating, maxWidth: COL_WIDTHS.rating, boxSizing: 'border-box', borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length) }}>Рейтинг</th>
               )}
-              <th style={{ ...thBase, textAlign: 'center', whiteSpace: 'nowrap', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length) }}>Остатки FBO</th>
-              <th style={{ ...thBase, textAlign: 'center', whiteSpace: 'nowrap', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length) }}>Остатки FBS</th>
+              <StocksColumnHeader
+                fulfillment="FBO"
+                borderRight={getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length)}
+              />
+              <StocksColumnHeader
+                fulfillment="FBS"
+                borderRight={getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length)}
+              />
               <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length) }}>Размеры</th>
               {last7Dates.map((d, i) => (
                 <th
@@ -1251,22 +1358,8 @@ function ProductsTable({
         onScroll={onScroll}
         style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, minHeight: 0 }}
       >
-        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1128 }}>
-          <colgroup>
-            <col style={{ width: COL_WIDTHS.drag }} />
-            <col style={{ width: COL_WIDTHS.photo }} />
-            <col style={{ width: COL_WIDTHS.name }} />
-            <col style={{ width: COL_WIDTHS.priority }} />
-            <col style={{ width: COL_WIDTHS.wbCreatedAt }} />
-            <col />
-            <col />
-            <col />
-            <col />
-            {last7Dates.map((d) => (
-              <col key={d} />
-            ))}
-            <col />
-          </colgroup>
+        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: productsTableMinWidth(showRatingColumn, last7Dates.length) }}>
+          <ProductsTableColgroup showRatingColumn={showRatingColumn} last7Dates={last7Dates} />
           <tbody>
             {visibleArticles.map((article, idx) => (
               <ProductRow
@@ -1594,7 +1687,7 @@ function ProductRow({
         <WbCreatedAtCell value={article.wbCreatedAt} />
       </td>
       {showRatingColumn && (
-        <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
+        <td style={{ padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length), width: COL_WIDTHS.rating, maxWidth: COL_WIDTHS.rating, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
           {isLoading && !hasMeaningfulArticleRating(rating) ? (
             <Spin size="small" />
           ) : hasMeaningfulArticleRating(rating) ? (
@@ -1602,13 +1695,15 @@ function ProductRow({
               <StarFilled style={{ color: '#FBBF24', fontSize: 12 }} />
               <span>{formatArticleRating(rating)}</span>
             </span>
-          ) : null}
+          ) : (
+            '—'
+          )}
         </td>
       )}
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
+      <td style={{ padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length), width: COL_WIDTHS.stock, maxWidth: COL_WIDTHS.stock, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
         {isLoading ? '-' : stocksTotal.toLocaleString('ru-RU')}
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
+      <td style={{ padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length), width: COL_WIDTHS.fbsStock, maxWidth: COL_WIDTHS.fbsStock, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
         {isLoading ? '-' : fbsStocksTotal.toLocaleString('ru-RU')}
       </td>
       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
