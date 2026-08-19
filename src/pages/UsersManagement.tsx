@@ -181,6 +181,14 @@ export default function UsersManagement() {
         dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix(),
     },
     {
+      title: 'Последний визит',
+      dataIndex: 'lastSeenAt',
+      key: 'lastSeenAt',
+      render: (date?: string | null) => (date ? dayjs(date).format('DD.MM.YYYY HH:mm') : '—'),
+      sorter: (a: UserListItem, b: UserListItem) =>
+        dayjs(a.lastSeenAt ?? 0).unix() - dayjs(b.lastSeenAt ?? 0).unix(),
+    },
+    {
       title: 'Действия',
       key: 'actions',
       render: (_: any, record: UserListItem) => (

@@ -624,6 +624,13 @@ export default function UsersManagementSection({
         : null,
     },
     {
+      title: 'Последний визит',
+      dataIndex: 'lastSeenAt',
+      key: 'lastSeenAt',
+      width: 140,
+      render: (date?: string | null) => (date ? dayjs(date).format('DD.MM.YYYY HH:mm') : '—'),
+    },
+    {
       title: 'Действия',
       key: 'actions',
       width: 140,

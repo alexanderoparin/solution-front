@@ -137,6 +137,7 @@ export interface UserListItem {
   role: UserRole
   isActive: boolean
   createdAt: string
+  lastSeenAt?: string | null
   ownerEmail: string | null
   /** Email менеджеров с активным доступом (для SELLER) */
   managerEmails?: string[] | null
