@@ -22,7 +22,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { UserListItem, CreateUserRequest, UpdateUserRequest, UserRole } from '../types/api'
-import { USER_ROLE_LABELS, USER_ROLE_TAG_COLORS } from '../constants/userRoleLabels'
+import { USER_ROLE_LABELS } from '../constants/userRoleLabels'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import dayjs from 'dayjs'
@@ -129,14 +129,6 @@ export default function UsersManagement() {
       dataIndex: 'email',
       key: 'email',
       sorter: (a: UserListItem, b: UserListItem) => a.email.localeCompare(b.email),
-    },
-    {
-      title: 'Роль',
-      dataIndex: 'role',
-      key: 'role',
-      render: (role: UserRole) => (
-        <Tag color={USER_ROLE_TAG_COLORS[role]}>{USER_ROLE_LABELS[role]}</Tag>
-      ),
     },
     {
       title: 'Селлер',
