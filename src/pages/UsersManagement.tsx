@@ -131,22 +131,6 @@ export default function UsersManagement() {
       sorter: (a: UserListItem, b: UserListItem) => a.email.localeCompare(b.email),
     },
     {
-      title: 'Менеджеры',
-      key: 'managerEmails',
-      render: (_: unknown, record: UserListItem) => {
-        if (record.role !== 'USER') return '—'
-        const emails = record.managerEmails ?? []
-        if (emails.length === 0) return '—'
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {emails.map((email) => (
-              <span key={email}>{email}</span>
-            ))}
-          </div>
-        )
-      },
-    },
-    {
       title: 'Роль',
       dataIndex: 'role',
       key: 'role',

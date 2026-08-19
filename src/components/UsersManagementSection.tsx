@@ -58,11 +58,6 @@ dayjs.locale('ru')
 
 const { Text } = Typography
 
-const formatOwnerEmail = (email?: string | null): string => {
-  const trimmed = email?.trim()
-  return trimmed ? trimmed : '—'
-}
-
 const renderEmailListCell = (emails?: string[] | null): React.ReactNode => {
   const list = emails ?? []
   if (list.length === 0) {
@@ -75,13 +70,6 @@ const renderEmailListCell = (emails?: string[] | null): React.ReactNode => {
       ))}
     </div>
   )
-}
-
-const renderManagerEmailsCell = (record: UserListItem): React.ReactNode => {
-  if (record.role !== 'USER') {
-    return '—'
-  }
-  return renderEmailListCell(record.managerEmails)
 }
 
 const DEFAULT_USER_SORT_BY = USER_SORT_FIELDS.EMAIL
@@ -193,7 +181,6 @@ export default function UsersManagementSection({
   const [searchReadOnly, setSearchReadOnly] = useState(true)
   const [createEmailReadOnly, setCreateEmailReadOnly] = useState(true)
   const [createPasswordReadOnly, setCreatePasswordReadOnly] = useState(true)
-  const [onlySellers, setOnlySellers] = useState(true)
   const [onlyActiveCabinets, setOnlyActiveCabinets] = useState(true)
   const [cabinetPage, setCabinetPage] = useState(1)
   const [cabinetPageSize, setCabinetPageSize] = useState(20)
@@ -208,14 +195,13 @@ export default function UsersManagementSection({
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role) as UserRole
   const isAdmin = role === 'ADMIN'
-  const effectiveOnlySellers = onlySellers
   const isManagementControlled =
     isAdmin && managementViewProp !== undefined && onManagementViewChange !== undefined
   const managementView = isManagementControlled ? managementViewProp! : internalManagementView
 
   useEffect(() => {
     setPage(1)
-  }, [searchEmail, effectiveOnlySellers])
+  }, [searchEmail])
 
   useEffect(() => {
     setCabinetPage(1)
@@ -228,12 +214,12 @@ export default function UsersManagementSection({
   const canCreateUsers = getCreatableRoles().length > 0 && !isManagementControlled
 
   const { data, isLoading } = useQuery({
-    queryKey: ['managedUsers', page, pageSize, searchEmail, effectiveOnlySellers, sortBy, sortDir],
+    queryKey: ['managedUsers', page, pageSize, searchEmail, sortBy, sortDir],
     queryFn: () => userApi.getManagedUsers({
       page: page - 1,
       size: pageSize,
       email: searchEmail.trim() || undefined,
-      onlySellers: effectiveOnlySellers,
+      onlySellers: false,
       sortBy,
       sortDir,
     }),
@@ -537,14 +523,6 @@ export default function UsersManagementSection({
         : null,
     },
     {
-      title: 'Менеджеры',
-      key: 'managerEmails',
-      width: 224,
-      ellipsis: false,
-      align: 'left' as const,
-      render: (_: unknown, record: UserListItem) => renderManagerEmailsCell(record),
-    },
-    {
       title: 'Роль',
       dataIndex: 'role',
       key: 'role',
@@ -581,22 +559,6 @@ export default function UsersManagementSection({
                   }}
                 />
               ) : null,
-          },
-        ]
-      : []),
-    ...(!effectiveOnlySellers
-      ? [
-          {
-            title: 'Селлер',
-            key: USER_SORT_FIELDS.OWNER_EMAIL,
-            width: 224,
-            ellipsis: true,
-            align: 'left' as const,
-            sorter: true,
-            sortOrder: sortBy === USER_SORT_FIELDS.OWNER_EMAIL
-              ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
-              : null,
-            render: (_: unknown, record: UserListItem) => formatOwnerEmail(record.ownerEmail),
           },
         ]
       : []),
@@ -748,7 +710,6 @@ export default function UsersManagementSection({
     next_5: 'След. 5',
   }
 
-  const showUsersTable = !isAdmin || managementView === USER_MANAGEMENT_VIEW.USERS
   const showCabinetsTable = isAdmin && managementView === USER_MANAGEMENT_VIEW.CABINETS
 
   return (
@@ -775,11 +736,6 @@ export default function UsersManagementSection({
             allowClear
             style={{ width: 280 }}
           />
-          {showUsersTable && role !== 'USER' && (
-            <Checkbox checked={onlySellers} onChange={(e) => setOnlySellers(e.target.checked)}>
-              Только селлеры
-            </Checkbox>
-          )}
           {showCabinetsTable && (
             <Checkbox checked={onlyActiveCabinets} onChange={(e) => setOnlyActiveCabinets(e.target.checked)}>
               Только активные
