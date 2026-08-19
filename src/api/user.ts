@@ -20,6 +20,7 @@ import type { SortDirection, UserSortField } from '../constants/userSorting'
 import type { CabinetSortField } from '../constants/cabinetSorting'
 
 const USER_SORT_FIELD_TO_BACKEND: Record<UserSortField, string> = {
+  id: 'ID',
   email: 'EMAIL',
   role: 'ROLE',
   isActive: 'IS_ACTIVE',

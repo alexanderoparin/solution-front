@@ -72,8 +72,8 @@ const renderEmailListCell = (emails?: string[] | null): React.ReactNode => {
   )
 }
 
-const DEFAULT_USER_SORT_BY = USER_SORT_FIELDS.EMAIL
-const DEFAULT_USER_SORT_DIR = SORT_DIRECTIONS.ASC
+const DEFAULT_USER_SORT_BY = USER_SORT_FIELDS.ID
+const DEFAULT_USER_SORT_DIR = SORT_DIRECTIONS.DESC
 const DEFAULT_CABINET_SORT_BY = CABINET_SORT_FIELDS.CABINET_ID
 const DEFAULT_CABINET_SORT_DIR = SORT_DIRECTIONS.DESC
 
@@ -186,8 +186,8 @@ export default function UsersManagementSection({
   const [cabinetPageSize, setCabinetPageSize] = useState(20)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [sortBy, setSortBy] = useState<UserSortField>(USER_SORT_FIELDS.EMAIL)
-  const [sortDir, setSortDir] = useState<SortDirection>(SORT_DIRECTIONS.ASC)
+  const [sortBy, setSortBy] = useState<UserSortField>(USER_SORT_FIELDS.ID)
+  const [sortDir, setSortDir] = useState<SortDirection>(SORT_DIRECTIONS.DESC)
   const [cabinetSortBy, setCabinetSortBy] = useState<CabinetSortField>(CABINET_SORT_FIELDS.CABINET_ID)
   const [cabinetSortDir, setCabinetSortDir] = useState<SortDirection>(SORT_DIRECTIONS.DESC)
   const [createForm] = Form.useForm()
@@ -513,6 +513,18 @@ export default function UsersManagementSection({
   }
 
   const columns = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 80,
+      align: 'right' as const,
+      sorter: true,
+      sortDirections: ['ascend', 'descend'] as SortOrder[],
+      sortOrder: sortBy === USER_SORT_FIELDS.ID
+        ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
+        : null,
+    },
     {
       title: 'Email',
       dataIndex: 'email',

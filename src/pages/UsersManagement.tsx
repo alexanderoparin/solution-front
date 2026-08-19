@@ -21,6 +21,7 @@ import {
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { userApi } from '../api/user'
+import { SORT_DIRECTIONS, USER_SORT_FIELDS } from '../constants/userSorting'
 import { UserListItem, CreateUserRequest, UpdateUserRequest, UserRole } from '../types/api'
 import { USER_ROLE_LABELS } from '../constants/userRoleLabels'
 import { useAuthStore } from '../store/authStore'
@@ -52,7 +53,13 @@ export default function UsersManagement() {
   // Получение списка пользователей (постранично)
   const { data, isLoading } = useQuery({
     queryKey: ['managedUsers', page, pageSize],
-    queryFn: () => userApi.getManagedUsers({ page: page - 1, size: pageSize }),
+    queryFn: () => userApi.getManagedUsers({
+      page: page - 1,
+      size: pageSize,
+      onlySellers: false,
+      sortBy: USER_SORT_FIELDS.ID,
+      sortDir: SORT_DIRECTIONS.DESC,
+    }),
   })
   const users: UserListItem[] = data?.content ?? []
   const totalElements = data?.totalElements ?? 0
@@ -124,6 +131,13 @@ export default function UsersManagement() {
   }
 
   const columns = [
+    {
+      title: 'ID',
+      dataIndex: 'id',
+      key: 'id',
+      width: 80,
+      align: 'right' as const,
+    },
     {
       title: 'Email',
       dataIndex: 'email',

@@ -1,4 +1,5 @@
 export const USER_SORT_FIELDS = {
+  ID: 'id',
   EMAIL: 'email',
   ROLE: 'role',
   IS_ACTIVE: 'isActive',
