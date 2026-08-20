@@ -11,7 +11,7 @@ export default function CampaignManageSubscriptionModals() {
 
   return (
     <>
-      <CampaignManagePlansModal open={plansOpen} onClose={closePlans} />
+      {plansOpen ? <CampaignManagePlansModal open={plansOpen} onClose={closePlans} /> : null}
       <CampaignManagePaywallModal open={paywallOpen} onClose={closePaywall} />
     </>
   )
