@@ -371,6 +371,10 @@ export interface BalanceSourceOption {
   type: number
   label: string
   availableRub: number | null
+  /** Промо-бонусы (cashbacks), для type 0/1 */
+  cashbackRub?: number | null
+  /** Лимит доли промо от суммы пополнения, % */
+  cashbackPercent?: number | null
 }
 
 export interface BalanceSourcesResponse {

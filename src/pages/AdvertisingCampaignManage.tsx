@@ -45,6 +45,22 @@ function formatControlError(err: unknown): string {
   return ax.response?.data?.error || ax.response?.data?.message || 'Не удалось выполнить действие'
 }
 
+/** Подпись источника пополнения: сумма + опционально промо-бонусы с лимитом %. */
+function formatBalanceSourceLabel(s: {
+  label: string
+  availableRub?: number | null
+  cashbackRub?: number | null
+  cashbackPercent?: number | null
+}): string {
+  const amount = s.availableRub != null ? s.availableRub : 0
+  let label = `${s.label} (${amount} ₽)`
+  if (s.cashbackRub != null && s.cashbackRub > 0) {
+    const pct = s.cashbackPercent != null && s.cashbackPercent > 0 ? ` до ${s.cashbackPercent}%` : ''
+    label += `, промо ${s.cashbackRub} ₽${pct}`
+  }
+  return label
+}
+
 const cardStyle = {
   backgroundColor: colors.bgWhite,
   border: `1px solid ${colors.borderLight}`,
@@ -545,7 +561,7 @@ export default function AdvertisingCampaignManage() {
                         onChange={setSourceType}
                         options={(balanceSources?.sources ?? []).map((s) => ({
                           value: s.type,
-                          label: `${s.label}${s.availableRub != null ? ` (${s.availableRub} ₽)` : ''}`,
+                          label: formatBalanceSourceLabel(s),
                         }))}
                       />
                     </div>
@@ -771,7 +787,7 @@ export default function AdvertisingCampaignManage() {
               onChange={setManualSourceType}
               options={(balanceSources?.sources ?? []).map((s) => ({
                 value: s.type,
-                label: `${s.label}${s.availableRub != null ? ` (${s.availableRub} ₽)` : ''}`,
+                label: formatBalanceSourceLabel(s),
               }))}
             />
           </div>
