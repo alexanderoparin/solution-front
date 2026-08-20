@@ -23,6 +23,7 @@ export interface CampaignAutoBudgetRequest {
   enabled: boolean
   topUpAmount?: number | null
   sourceType?: number | null
+  usePromoCashback?: boolean
   thresholdRub?: number | null
   maxTopUpsPerDay?: number | null
 }
@@ -45,6 +46,7 @@ export interface CampaignScheduleSlotUpdate {
 export interface CampaignManualTopUpRequest {
   topUpAmount: number
   sourceType: number
+  usePromoCashback?: boolean
 }
 
 export interface CampaignManualTopUpResponse {

@@ -61,6 +61,17 @@ function formatBalanceSourceLabel(s: {
   return label
 }
 
+/** Промо доступно для источника счёт/баланс. */
+function sourceAllowsPromo(s: {
+  type: number
+  cashbackRub?: number | null
+  cashbackPercent?: number | null
+} | undefined): boolean {
+  if (s == null) return false
+  if (s.type !== 0 && s.type !== 1) return false
+  return (s.cashbackRub ?? 0) > 0 && (s.cashbackPercent ?? 0) > 0
+}
+
 const cardStyle = {
   backgroundColor: colors.bgWhite,
   border: `1px solid ${colors.borderLight}`,
@@ -211,12 +222,14 @@ export default function AdvertisingCampaignManage() {
   const [autoEnabled, setAutoEnabled] = useState(false)
   const [topUpAmount, setTopUpAmount] = useState<number | null>(null)
   const [sourceType, setSourceType] = useState<number | null>(1)
+  const [usePromoCashback, setUsePromoCashback] = useState(true)
   const [thresholdRub, setThresholdRub] = useState<number | null>(null)
   const [maxTopUps, setMaxTopUps] = useState<number | null>(null)
   const [autoLocked, setAutoLocked] = useState(false)
   const [manualTopUpOpen, setManualTopUpOpen] = useState(false)
   const [manualTopUpAmount, setManualTopUpAmount] = useState<number | null>(MIN_AUTO_TOP_UP_AMOUNT_RUB)
   const [manualSourceType, setManualSourceType] = useState<number | null>(1)
+  const [manualUsePromoCashback, setManualUsePromoCashback] = useState(true)
 
   useEffect(() => {
     if (!manage?.autoBudget) return
@@ -224,6 +237,7 @@ export default function AdvertisingCampaignManage() {
     setAutoEnabled(a.enabled)
     setTopUpAmount(a.topUpAmount)
     setSourceType(a.sourceType ?? 1)
+    setUsePromoCashback(a.usePromoCashback !== false)
     setThresholdRub(a.thresholdRub)
     setMaxTopUps(a.maxTopUpsPerDay)
     setAutoLocked(a.locked)
@@ -283,7 +297,7 @@ export default function AdvertisingCampaignManage() {
   })
 
   const manualTopUpMutation = useMutation({
-    mutationFn: (body: { topUpAmount: number; sourceType: number }) =>
+    mutationFn: (body: { topUpAmount: number; sourceType: number; usePromoCashback?: boolean }) =>
       campaignManageApi.manualTopUp(advertId, body, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
     onSuccess: (result) => {
       message.success(result.message || 'Бюджет пополнен')
@@ -297,8 +311,9 @@ export default function AdvertisingCampaignManage() {
   const openManualTopUp = useCallback(() => {
     setManualTopUpAmount(topUpAmount ?? MIN_AUTO_TOP_UP_AMOUNT_RUB)
     setManualSourceType(sourceType ?? balanceSources?.sources?.[0]?.type ?? 1)
+    setManualUsePromoCashback(usePromoCashback)
     setManualTopUpOpen(true)
-  }, [topUpAmount, sourceType, balanceSources?.sources])
+  }, [topUpAmount, sourceType, usePromoCashback, balanceSources?.sources])
 
   const createSlotsMutation = useMutation({
     mutationFn: (body: CampaignScheduleSlotRequest) =>
@@ -565,6 +580,17 @@ export default function AdvertisingCampaignManage() {
                         }))}
                       />
                     </div>
+                    {sourceAllowsPromo((balanceSources?.sources ?? []).find((s) => s.type === sourceType)) && (
+                      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                        <Checkbox
+                          checked={usePromoCashback}
+                          disabled={autoBudgetFieldsDisabled}
+                          onChange={(e) => setUsePromoCashback(e.target.checked)}
+                        >
+                          Использовать промо-бонусы
+                        </Checkbox>
+                      </div>
+                    )}
                     <div>
                       <div style={{ fontSize: 12, color: colors.textSecondary }}>Пополнить если ниже, ₽</div>
                       <InputNumber style={{ width: '100%' }} min={0} disabled={autoBudgetFieldsDisabled} value={thresholdRub} onChange={setThresholdRub} />
@@ -641,6 +667,7 @@ export default function AdvertisingCampaignManage() {
                           enabled: autoEnabled,
                           topUpAmount,
                           sourceType,
+                          usePromoCashback,
                           thresholdRub,
                           maxTopUpsPerDay: maxTopUps,
                         })
@@ -791,6 +818,14 @@ export default function AdvertisingCampaignManage() {
               }))}
             />
           </div>
+          {sourceAllowsPromo((balanceSources?.sources ?? []).find((s) => s.type === manualSourceType)) && (
+            <Checkbox
+              checked={manualUsePromoCashback}
+              onChange={(e) => setManualUsePromoCashback(e.target.checked)}
+            >
+              Использовать промо-бонусы
+            </Checkbox>
+          )}
           <Button
             type="primary"
             block
@@ -807,6 +842,7 @@ export default function AdvertisingCampaignManage() {
               manualTopUpMutation.mutate({
                 topUpAmount: manualTopUpAmount,
                 sourceType: manualSourceType,
+                usePromoCashback: manualUsePromoCashback,
               })
             }}
           >
