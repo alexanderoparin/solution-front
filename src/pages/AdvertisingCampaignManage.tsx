@@ -45,20 +45,13 @@ function formatControlError(err: unknown): string {
   return ax.response?.data?.error || ax.response?.data?.message || 'Не удалось выполнить действие'
 }
 
-/** Подпись источника пополнения: сумма + опционально промо-бонусы с лимитом %. */
+/** Подпись источника пополнения (без промо — оно в чекбоксе). */
 function formatBalanceSourceLabel(s: {
   label: string
   availableRub?: number | null
-  cashbackRub?: number | null
-  cashbackPercent?: number | null
 }): string {
   const amount = s.availableRub != null ? s.availableRub : 0
-  let label = `${s.label} (${amount} ₽)`
-  if (s.cashbackRub != null && s.cashbackRub > 0) {
-    const pct = s.cashbackPercent != null && s.cashbackPercent > 0 ? ` до ${s.cashbackPercent}%` : ''
-    label += `, промо ${s.cashbackRub} ₽${pct}`
-  }
-  return label
+  return `${s.label} (${amount} ₽)`
 }
 
 /** Промо доступно для источника счёт/баланс. */
@@ -70,6 +63,16 @@ function sourceAllowsPromo(s: {
   if (s == null) return false
   if (s.type !== 0 && s.type !== 1) return false
   return (s.cashbackRub ?? 0) > 0 && (s.cashbackPercent ?? 0) > 0
+}
+
+/** Текст чекбокса промо: «Использовать промо-бонусы 163000 ₽ до 50%». */
+function formatUsePromoCheckboxLabel(s: {
+  cashbackRub?: number | null
+  cashbackPercent?: number | null
+}): string {
+  const rub = s.cashbackRub ?? 0
+  const pct = s.cashbackPercent ?? 0
+  return `Использовать промо-бонусы ${rub} ₽ до ${pct}%`
 }
 
 const cardStyle = {
@@ -587,7 +590,9 @@ export default function AdvertisingCampaignManage() {
                           disabled={autoBudgetFieldsDisabled}
                           onChange={(e) => setUsePromoCashback(e.target.checked)}
                         >
-                          Использовать промо-бонусы
+                          {formatUsePromoCheckboxLabel(
+                            (balanceSources?.sources ?? []).find((s) => s.type === sourceType)!,
+                          )}
                         </Checkbox>
                       </div>
                     )}
@@ -823,7 +828,9 @@ export default function AdvertisingCampaignManage() {
               checked={manualUsePromoCashback}
               onChange={(e) => setManualUsePromoCashback(e.target.checked)}
             >
-              Использовать промо-бонусы
+              {formatUsePromoCheckboxLabel(
+                (balanceSources?.sources ?? []).find((s) => s.type === manualSourceType)!,
+              )}
             </Checkbox>
           )}
           <Button
