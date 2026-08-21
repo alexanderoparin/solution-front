@@ -102,7 +102,7 @@ export default function AdvertisingCampaignManage() {
 
   const cabinets = useMemo(() => {
     if (isAdmin) {
-      return workContext.workContextOptions.map((o) => ({ id: o.cabinetId, name: o.cabinetName }))
+      return workContext.workContextOptions.map((o) => ({ id: o.cabinetId, name: o.cabinetName, marketplaceType: o.marketplaceType }))
     }
     return myCabinets
   }, [isAdmin, workContext.workContextOptions, myCabinets])

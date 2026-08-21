@@ -192,6 +192,7 @@ export default function AnalyticsSummary() {
       return workContext.workContextOptions.map((o) => ({
         id: o.cabinetId,
         name: o.cabinetName,
+        marketplaceType: o.marketplaceType,
         createdAt: '',
         updatedAt: '',
         lastDataUpdateAt: o.lastDataUpdateAt,
