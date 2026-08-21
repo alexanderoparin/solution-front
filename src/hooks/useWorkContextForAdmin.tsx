@@ -1,15 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { getStoredCabinetIdForSeller, setStoredCabinetIdForSeller } from '../api/cabinets'
 import type { WorkContextCabinetDto } from '../types/api'
-import { marketplaceTypeLabel } from '../utils/marketplace'
+import MarketplaceTypeTag from '../components/MarketplaceTypeTag'
 
 export const WORK_CONTEXT_CABINETS_QUERY_KEY = ['workContextCabinets'] as const
 
-export function workContextCabinetLabel(row: WorkContextCabinetDto): string {
-  const mp = marketplaceTypeLabel(row.marketplaceType)
-  return `${row.cabinetName} · ${mp} (${row.sellerEmail})`
+export function workContextCabinetLabel(row: WorkContextCabinetDto): ReactNode {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <MarketplaceTypeTag type={row.marketplaceType} size={16} />
+      <span>
+        {row.cabinetName} ({row.sellerEmail})
+      </span>
+    </span>
+  )
 }
 
 /**
@@ -83,6 +89,9 @@ export function useWorkContextForAdmin(isAdmin: boolean) {
         options: options.map((o) => ({
           value: o.cabinetId,
           label: workContextCabinetLabel(o),
+          cabinetName: o.cabinetName,
+          marketplaceType: o.marketplaceType ?? undefined,
+          searchText: `${o.cabinetName} ${o.sellerEmail}`,
         })),
         value: selectedCabinetId ?? undefined,
         onChange: applyWorkContextCabinet,

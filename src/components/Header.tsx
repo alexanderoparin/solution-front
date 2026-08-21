@@ -23,7 +23,13 @@ export interface SellerSelectProps {
 }
 
 export interface WorkContextCabinetSelectProps {
-  options: { value: number; label: string }[]
+  options: {
+    value: number
+    label: React.ReactNode
+    cabinetName?: string
+    marketplaceType?: MarketplaceType | null
+    searchText?: string
+  }[]
   value?: number
   onChange: (cabinetId: number) => void
   loading?: boolean
@@ -40,11 +46,6 @@ interface HeaderProps {
   workContextCabinetSelect?: WorkContextCabinetSelectProps
   /** Доп. контент справа (кнопка синхронизации и т.п.), показывается рядом с выбором продавца. */
   headerRightExtra?: React.ReactNode
-}
-
-function cabinetNameFromWorkContextLabel(label: string): string {
-  const i = label.lastIndexOf(' (')
-  return i >= 0 ? label.slice(0, i) : label
 }
 
 function NavMenuLink({ to, children }: { to: string; children: React.ReactNode }) {
@@ -65,11 +66,11 @@ export default function Header({
 
   const selectedCabinetName = useMemo(() => {
     if (workContextCabinetSelect?.options.length) {
-      if (workContextCabinetSelect.value != null) {
-        const opt = workContextCabinetSelect.options.find((o) => o.value === workContextCabinetSelect.value)
-        if (opt) return cabinetNameFromWorkContextLabel(opt.label)
-      }
-      return cabinetNameFromWorkContextLabel(workContextCabinetSelect.options[0].label)
+      const selected =
+        workContextCabinetSelect.value != null
+          ? workContextCabinetSelect.options.find((o) => o.value === workContextCabinetSelect.value)
+          : workContextCabinetSelect.options[0]
+      return selected?.cabinetName ?? undefined
     }
     if (!cabinetSelectProps?.cabinets.length) return undefined
     if (cabinetSelectProps.selectedCabinetId == null) {
@@ -85,6 +86,13 @@ export default function Header({
   ])
 
   const selectedCabinetMarketplace = useMemo(() => {
+    if (workContextCabinetSelect?.options.length) {
+      const selected =
+        workContextCabinetSelect.value != null
+          ? workContextCabinetSelect.options.find((o) => o.value === workContextCabinetSelect.value)
+          : workContextCabinetSelect.options[0]
+      return selected?.marketplaceType ?? undefined
+    }
     if (!cabinetSelectProps?.cabinets.length) return undefined
     const id = cabinetSelectProps.selectedCabinetId
     const cab =
@@ -92,7 +100,12 @@ export default function Header({
         ? cabinetSelectProps.cabinets.find((c) => c.id === id)
         : cabinetSelectProps.cabinets[0]
     return cab?.marketplaceType
-  }, [cabinetSelectProps?.cabinets, cabinetSelectProps?.selectedCabinetId])
+  }, [
+    workContextCabinetSelect?.value,
+    workContextCabinetSelect?.options,
+    cabinetSelectProps?.cabinets,
+    cabinetSelectProps?.selectedCabinetId,
+  ])
 
   const isAnalyticsActive =
     location.pathname === '/analytics' ||
@@ -208,7 +221,7 @@ export default function Header({
             <Select
               className="header-select-field header-select-field--dark"
               showSearch
-              optionFilterProp="label"
+              optionFilterProp="searchText"
               value={workContextCabinetSelect.value}
               onChange={(v) => workContextCabinetSelect.onChange(Number(v))}
               style={{ minWidth: 280, maxWidth: 420 }}

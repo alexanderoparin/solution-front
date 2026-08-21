@@ -1,36 +1,41 @@
 import type { CSSProperties } from 'react'
 import type { MarketplaceType } from '../types/api'
-import { marketplaceTypeLabel, marketplaceTypeTagColors } from '../utils/marketplace'
+import { marketplaceTypeLabel } from '../utils/marketplace'
 
 interface MarketplaceTypeTagProps {
   type?: MarketplaceType | null
-  /** Компактный вид для шапки на тёмном фоне */
+  /** Размер иконки в px (по умолчанию 18). */
+  size?: number
+  /** @deprecated иконки-фавиконы одинаковы на любом фоне */
   onDark?: boolean
   style?: CSSProperties
 }
 
+function iconSrc(type: MarketplaceType | null | undefined): string {
+  return type === 'OZON' ? '/marketplace/ozon.svg' : '/marketplace/wb.svg'
+}
+
 /**
- * Бейдж маркетплейса кабинета (WB / Ozon).
+ * Значок маркетплейса кабинета (фавикон-стиль WB / Ozon).
  */
-export default function MarketplaceTypeTag({ type, onDark = false, style }: MarketplaceTypeTagProps) {
-  const colors = marketplaceTypeTagColors(type)
+export default function MarketplaceTypeTag({ type, size = 18, style }: MarketplaceTypeTagProps) {
+  const label = marketplaceTypeLabel(type)
   return (
-    <span
+    <img
+      src={iconSrc(type)}
+      alt={label}
+      title={label}
+      width={size}
+      height={size}
+      draggable={false}
       style={{
-        display: 'inline-block',
-        padding: onDark ? '1px 6px' : '2px 8px',
-        borderRadius: 6,
-        fontSize: onDark ? 11 : 12,
-        fontWeight: 600,
-        lineHeight: onDark ? '16px' : '16px',
-        color: onDark ? '#fff' : colors.color,
-        background: onDark ? 'rgba(255,255,255,0.14)' : colors.background,
-        border: onDark ? '1px solid rgba(255,255,255,0.22)' : `1px solid ${colors.border}`,
+        display: 'block',
+        width: size,
+        height: size,
+        borderRadius: Math.round(size * 0.25),
         flexShrink: 0,
         ...style,
       }}
-    >
-      {marketplaceTypeLabel(type)}
-    </span>
+    />
   )
 }

@@ -30,6 +30,7 @@ import { cabinetsApi } from '../../api/cabinets'
 import { userApi } from '../../api/user'
 import Header from '../../components/Header'
 import Breadcrumbs from '../../components/Breadcrumbs'
+import MarketplaceTypeTag from '../../components/MarketplaceTypeTag'
 import { useAuthStore } from '../../store/authStore'
 import CabinetAccessPanel from './CabinetAccessPanel'
 import { getRequestFailureDescription } from '../../utils/requestError'
@@ -312,7 +313,8 @@ export default function CabinetDetailPage() {
                 <Title level={3} style={{ margin: 0 }}>
                   Управление кабинетом
                 </Title>
-                <Text type="secondary">
+                <Text type="secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <MarketplaceTypeTag type={cabinet.marketplaceType} size={16} />
                   {cabinet.name} · ID {cabinet.id}
                 </Text>
               </div>

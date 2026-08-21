@@ -13,6 +13,7 @@ import {
   maskApiKeyPreview,
   STOCKS_UPDATE_COOLDOWN_MINUTES,
 } from '../utils/cabinetAdminUtils'
+import MarketplaceTypeTag from './MarketplaceTypeTag'
 
 const { Text } = Typography
 
@@ -53,8 +54,13 @@ export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetD
       }}
     >
       <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-        <Text strong>{cab.name}</Text>
-        <Text type="secondary" style={{ fontSize: 12 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <MarketplaceTypeTag type={cab.marketplaceType} size={16} />
+          <Text strong ellipsis>
+            {cab.name}
+          </Text>
+        </span>
+        <Text type="secondary" style={{ fontSize: 12, flexShrink: 0 }}>
           ID кабинета: {cab.id}
         </Text>
       </div>

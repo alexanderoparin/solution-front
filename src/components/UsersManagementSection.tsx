@@ -37,6 +37,7 @@ import { CabinetTableKeyColumn } from './CabinetTableKeyColumn'
 import { CabinetTableScopesColumn } from './CabinetTableScopesColumn'
 import { CabinetTableMainUpdateColumn } from './CabinetTableMainUpdateColumn'
 import { CabinetTableStocksUpdateColumn } from './CabinetTableStocksUpdateColumn'
+import MarketplaceTypeTag from './MarketplaceTypeTag'
 import {
   UserListItem,
   CreateUserRequest,
@@ -300,7 +301,12 @@ export default function UsersManagementSection({
           cabinetSortBy === CABINET_SORT_FIELDS.CABINET_NAME
             ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
             : null,
-        render: (_: unknown, r: ManagedCabinetRowDto) => r.cabinet.name,
+        render: (_: unknown, r: ManagedCabinetRowDto) => (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <MarketplaceTypeTag type={r.cabinet.marketplaceType} size={16} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.cabinet.name}</span>
+          </span>
+        ),
       },
       {
         title: 'Email селлера',
