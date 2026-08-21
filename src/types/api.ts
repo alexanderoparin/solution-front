@@ -193,9 +193,13 @@ export interface ScopeStatusDto {
   writeReadOnly?: boolean
 }
 
+export type MarketplaceType = 'WB' | 'OZON'
+
 export interface CabinetDto {
   id: number
   name: string
+  /** Маркетплейс кабинета (WB | OZON). */
+  marketplaceType?: MarketplaceType
   createdAt: string
   updatedAt: string
   /** Дата последнего обновления данных по кабинету (всегда в ответе). */
@@ -227,6 +231,7 @@ export interface WorkContextCabinetDto {
   sellerId: number
   cabinetName: string
   sellerEmail: string
+  marketplaceType?: MarketplaceType
   lastDataUpdateAt: string | null
   lastDataUpdateRequestedAt: string | null
   tokenType?: CabinetTokenType | null
@@ -536,6 +541,7 @@ export type CabinetAccessInvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' |
 export interface OwnedCabinetRowDto {
   id: number
   name: string
+  marketplaceType?: MarketplaceType
   createdAt: string
   lastValidatedAt: string | null
   apiKeyValid: boolean | null
@@ -546,6 +552,7 @@ export interface OwnedCabinetRowDto {
 export interface GrantedCabinetRowDto {
   id: number
   name: string
+  marketplaceType?: MarketplaceType
   accessFrom: string
   accessUntil: string | null
   lastValidatedAt: string | null
