@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Modal, Form, Input, Select, Button, Typography } from 'antd'
+import { Modal, Form, Input, Select, Button, Typography, Space } from 'antd'
 import { KeyOutlined } from '@ant-design/icons'
-import type { CabinetTokenType, CreateCabinetRequest } from '../../../types/api'
+import type { CabinetTokenType, CreateCabinetRequest, MarketplaceType } from '../../../types/api'
 import TokenCreationGuideModal from './TokenCreationGuideModal'
+import MarketplaceTypeTag from '../../../components/MarketplaceTypeTag'
 
 const { Text } = Typography
 const accent = '#7C3AED'
@@ -12,6 +13,9 @@ const WB_TOKEN_HINT =
 
 const WB_TOKEN_TYPE_HINT = 'Важно указать правильный тип токена — от этого зависит корректная работа сервиса.'
 
+const OZON_HINT =
+  'Укажите Client-Id и Api-Key из личного кабинета Ozon (Seller API). Синхронизация данных Ozon подключится позже.'
+
 interface AddCabinetModalProps {
   open: boolean
   loading: boolean
@@ -19,9 +23,19 @@ interface AddCabinetModalProps {
   onSubmit: (values: CreateCabinetRequest) => void
 }
 
+type FormValues = {
+  marketplaceType: MarketplaceType
+  name?: string
+  apiKey?: string
+  tokenType?: CabinetTokenType
+  ozonClientId?: string
+}
+
 export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: AddCabinetModalProps) {
-  const [form] = Form.useForm<{ name?: string; apiKey: string; tokenType?: CabinetTokenType }>()
+  const [form] = Form.useForm<FormValues>()
   const [guideOpen, setGuideOpen] = useState(false)
+  const marketplaceType = Form.useWatch('marketplaceType', form) ?? 'WB'
+  const isOzon = marketplaceType === 'OZON'
 
   const handleCancel = () => {
     setGuideOpen(false)
@@ -51,21 +65,38 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
       ]}
     >
       <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-        Укажите API-токен WB и его тип. Если не ввести название кабинета, оно подставится из ответа WB.
+        {isOzon
+          ? 'Создайте кабинет Ozon. Данные маркетплейса пока не синхронизируются — только подключение ключей.'
+          : 'Укажите API-токен WB и его тип. Если не ввести название кабинета, оно подставится из ответа WB.'}
       </Text>
       <Form
         form={form}
         layout="vertical"
         autoComplete="off"
-        onFinish={({ apiKey, tokenType, name }) => {
-          if (!tokenType) {
+        initialValues={{ marketplaceType: 'WB' }}
+        onFinish={(values) => {
+          if (values.marketplaceType === 'OZON') {
+            const body: CreateCabinetRequest = {
+              marketplaceType: 'OZON',
+              apiKey: values.apiKey!.trim(),
+              ozonClientId: values.ozonClientId!.trim(),
+            }
+            const trimmedName = values.name?.trim()
+            if (trimmedName) {
+              body.name = trimmedName
+            }
+            onSubmit(body)
+            return
+          }
+          if (!values.tokenType || !values.apiKey) {
             return
           }
           const body: CreateCabinetRequest = {
-            tokenType,
-            apiKey: apiKey.trim(),
+            marketplaceType: 'WB',
+            tokenType: values.tokenType,
+            apiKey: values.apiKey.trim(),
           }
-          const trimmedName = name?.trim()
+          const trimmedName = values.name?.trim()
           if (trimmedName) {
             body.name = trimmedName
           }
@@ -73,47 +104,101 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
         }}
       >
         <Form.Item
-          name="apiKey"
-          label="WB API-токен"
-          extra={(
-            <div>
-              <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
-                {WB_TOKEN_HINT}
-              </Text>
-              <Button
-                type="link"
-                size="small"
-                onClick={() => setGuideOpen(true)}
-                style={{ height: 'auto', padding: '4px 0 0', fontSize: 12 }}
-              >
-                Как создать токен
-              </Button>
-            </div>
-          )}
-          rules={[{ required: true, whitespace: true, message: 'Введите API-токен WB' }]}
-        >
-          <Input.Password prefix={<KeyOutlined />} placeholder="Введите токен" autoComplete="off" />
-        </Form.Item>
-
-        <Form.Item
-          name="tokenType"
-          label="Тип токена WB"
-          extra={<Text type="secondary" style={{ fontSize: 12 }}>{WB_TOKEN_TYPE_HINT}</Text>}
-          rules={[{ required: true, message: 'Выберите тип токена' }]}
+          name="marketplaceType"
+          label="Маркетплейс"
+          rules={[{ required: true, message: 'Выберите маркетплейс' }]}
         >
           <Select
-            allowClear
-            placeholder="Выберите тип токена"
             options={[
-              { value: 'BASIC', label: 'Базовый' },
-              { value: 'PERSONAL', label: 'Персональный' },
+              {
+                value: 'WB',
+                label: (
+                  <Space size={8}>
+                    <MarketplaceTypeTag type="WB" size={16} />
+                    <span>Wildberries</span>
+                  </Space>
+                ),
+              },
+              {
+                value: 'OZON',
+                label: (
+                  <Space size={8}>
+                    <MarketplaceTypeTag type="OZON" size={16} />
+                    <span>Ozon</span>
+                  </Space>
+                ),
+              },
             ]}
           />
         </Form.Item>
 
-        <Form.Item name="name" label="Название кабинета">
-          <Input placeholder="Необязательно — подставится из WB" />
-        </Form.Item>
+        {isOzon ? (
+          <>
+            <Form.Item
+              name="ozonClientId"
+              label="Client-Id"
+              extra={<Text type="secondary" style={{ fontSize: 12 }}>{OZON_HINT}</Text>}
+              rules={[{ required: true, whitespace: true, message: 'Введите Client-Id' }]}
+            >
+              <Input placeholder="Client-Id из кабинета продавца Ozon" autoComplete="off" />
+            </Form.Item>
+            <Form.Item
+              name="apiKey"
+              label="Api-Key"
+              rules={[{ required: true, whitespace: true, message: 'Введите Api-Key' }]}
+            >
+              <Input.Password prefix={<KeyOutlined />} placeholder="Api-Key Seller API" autoComplete="off" />
+            </Form.Item>
+            <Form.Item name="name" label="Название кабинета">
+              <Input placeholder="Необязательно — по умолчанию «Ozon»" />
+            </Form.Item>
+          </>
+        ) : (
+          <>
+            <Form.Item
+              name="apiKey"
+              label="WB API-токен"
+              extra={(
+                <div>
+                  <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+                    {WB_TOKEN_HINT}
+                  </Text>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => setGuideOpen(true)}
+                    style={{ height: 'auto', padding: '4px 0 0', fontSize: 12 }}
+                  >
+                    Как создать токен
+                  </Button>
+                </div>
+              )}
+              rules={[{ required: true, whitespace: true, message: 'Введите API-токен WB' }]}
+            >
+              <Input.Password prefix={<KeyOutlined />} placeholder="Введите токен" autoComplete="off" />
+            </Form.Item>
+
+            <Form.Item
+              name="tokenType"
+              label="Тип токена WB"
+              extra={<Text type="secondary" style={{ fontSize: 12 }}>{WB_TOKEN_TYPE_HINT}</Text>}
+              rules={[{ required: true, message: 'Выберите тип токена' }]}
+            >
+              <Select
+                allowClear
+                placeholder="Выберите тип токена"
+                options={[
+                  { value: 'BASIC', label: 'Базовый' },
+                  { value: 'PERSONAL', label: 'Персональный' },
+                ]}
+              />
+            </Form.Item>
+
+            <Form.Item name="name" label="Название кабинета">
+              <Input placeholder="Необязательно — подставится из WB" />
+            </Form.Item>
+          </>
+        )}
       </Form>
       <TokenCreationGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </Modal>

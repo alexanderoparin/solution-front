@@ -173,6 +173,8 @@ export interface UpdateUserRequest {
 export interface CabinetApiKeyInfo {
   apiKey: string | null
   tokenType?: CabinetTokenType | null
+  /** Ozon Seller Client-Id (только для OZON). */
+  ozonClientId?: string | null
   isValid: boolean | null
   lastValidatedAt: string | null
   validationError: string | null
@@ -513,10 +515,15 @@ export interface PaymentDto {
 }
 
 export interface CreateCabinetRequest {
-  /** Необязательно: если не указано — берётся из WB seller-info. */
+  marketplaceType?: MarketplaceType
+  /** Необязательно: для WB без имени — из seller-info; для Ozon без имени — «Ozon». */
   name?: string
+  /** WB API-токен или Ozon Seller Api-Key. */
   apiKey: string
-  tokenType: CabinetTokenType
+  /** Обязателен для WB. */
+  tokenType?: CabinetTokenType
+  /** Обязателен для OZON. */
+  ozonClientId?: string
 }
 
 /** Ответ API с ошибкой (часто 4xx/429). */
