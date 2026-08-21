@@ -20,6 +20,7 @@ import Breadcrumbs from '../../components/Breadcrumbs'
 import NoCabinetsPlaceholder from '../../components/NoCabinetsPlaceholder'
 import { formatCabinetAccessSections } from '../../constants/cabinetAccessSections'
 import type { GrantedCabinetRowDto, OwnedCabinetRowDto } from '../../types/api'
+import MarketplaceTypeTag from '../../components/MarketplaceTypeTag'
 
 dayjs.locale('ru')
 
@@ -60,9 +61,12 @@ export default function CabinetsPage() {
         dataIndex: 'name',
         key: 'name',
         render: (name: string, row: OwnedCabinetRowDto) => (
-          <Link to={`/cabinets/${row.id}`} style={{ color: '#7C3AED', fontWeight: 500 }}>
-            {name}
-          </Link>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <Link to={`/cabinets/${row.id}`} style={{ color: '#7C3AED', fontWeight: 500 }}>
+              {name}
+            </Link>
+            <MarketplaceTypeTag type={row.marketplaceType} />
+          </span>
         ),
       },
       {
@@ -103,7 +107,12 @@ export default function CabinetsPage() {
         title: 'Название',
         dataIndex: 'name',
         key: 'name',
-        render: (name: string) => <Text strong>{name}</Text>,
+        render: (name: string, row: GrantedCabinetRowDto) => (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <Text strong>{name}</Text>
+            <MarketplaceTypeTag type={row.marketplaceType} />
+          </span>
+        ),
       },
       {
         title: 'Разделы',

@@ -307,7 +307,7 @@ export default function BidderCampaigns() {
   const cabinetSelectProps =
     !isAdmin && cabinets.length > 0
       ? {
-          cabinets: cabinets.map((c) => ({ id: c.id, name: c.name })),
+          cabinets: cabinets.map((c) => ({ id: c.id, name: c.name, marketplaceType: c.marketplaceType })),
           selectedCabinetId,
           onCabinetChange: setSelectedCabinetId,
           loading: cabinetsLoadingState,

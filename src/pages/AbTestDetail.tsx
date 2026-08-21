@@ -130,7 +130,7 @@ export default function AbTestDetail() {
   const cabinetSelectProps = useMemo(() => {
     if (isAdmin) return undefined
     return {
-      cabinets: myCabinets.map((c: { id: number; name: string }) => ({ id: c.id, name: c.name })),
+      cabinets: myCabinets.map((c) => ({ id: c.id, name: c.name, marketplaceType: c.marketplaceType })),
       selectedCabinetId,
       onCabinetChange: (cid: number | null) => {
         if (cid == null) return

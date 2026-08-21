@@ -4,10 +4,12 @@ import { Button, Space, Dropdown, Select } from 'antd'
 import { UserOutlined, BarChartOutlined, RiseOutlined, DownOutlined } from '@ant-design/icons'
 import SiteLogo from './SiteLogo'
 import CampaignManageSubscriptionBadge from './campaignManageSubscription/CampaignManageSubscriptionBadge'
+import MarketplaceTypeTag from './MarketplaceTypeTag'
 import { landingColors } from '../styles/landing'
+import type { MarketplaceType } from '../types/api'
 
 interface CabinetSelectProps {
-  cabinets: { id: number; name: string }[]
+  cabinets: { id: number; name: string; marketplaceType?: MarketplaceType | null }[]
   selectedCabinetId: number | null
   onCabinetChange: (cabinetId: number | null) => void
   loading?: boolean
@@ -81,6 +83,16 @@ export default function Header({
     cabinetSelectProps?.selectedCabinetId,
     cabinetSelectProps?.cabinets,
   ])
+
+  const selectedCabinetMarketplace = useMemo(() => {
+    if (!cabinetSelectProps?.cabinets.length) return undefined
+    const id = cabinetSelectProps.selectedCabinetId
+    const cab =
+      id != null
+        ? cabinetSelectProps.cabinets.find((c) => c.id === id)
+        : cabinetSelectProps.cabinets[0]
+    return cab?.marketplaceType
+  }, [cabinetSelectProps?.cabinets, cabinetSelectProps?.selectedCabinetId])
 
   const isAnalyticsActive =
     location.pathname === '/analytics' ||
@@ -228,7 +240,12 @@ export default function Header({
               menu={{
                 items: cabinetSelectProps.cabinets.map((c) => ({
                   key: String(c.id),
-                  label: c.name,
+                  label: (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <span>{c.name}</span>
+                      <MarketplaceTypeTag type={c.marketplaceType} />
+                    </span>
+                  ),
                   onClick: () => cabinetSelectProps.onCabinetChange(c.id),
                 })),
               }}
@@ -247,7 +264,9 @@ export default function Header({
                   cursor: 'pointer',
                 }}
               >
-                {selectedCabinetName ?? '—'} ({cabinetSelectProps.cabinets.length})
+                {selectedCabinetName ?? '—'}
+                <MarketplaceTypeTag type={selectedCabinetMarketplace} onDark />
+                <span style={{ color: muted, fontWeight: 400 }}>({cabinetSelectProps.cabinets.length})</span>
                 <DownOutlined style={{ fontSize: 10, color: muted }} />
               </span>
             </Dropdown>
@@ -257,12 +276,14 @@ export default function Header({
                 ...fieldBorderStyle,
                 display: 'inline-flex',
                 alignItems: 'center',
+                gap: 8,
                 fontSize: '14px',
                 color: onDark,
                 fontWeight: 500,
               }}
             >
               {selectedCabinetName ?? '—'}
+              <MarketplaceTypeTag type={selectedCabinetMarketplace} onDark />
             </span>
           )
         )}

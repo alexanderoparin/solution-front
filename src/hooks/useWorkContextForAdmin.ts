@@ -3,11 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import { userApi } from '../api/user'
 import { getStoredCabinetIdForSeller, setStoredCabinetIdForSeller } from '../api/cabinets'
 import type { WorkContextCabinetDto } from '../types/api'
+import { marketplaceTypeLabel } from '../utils/marketplace'
 
 export const WORK_CONTEXT_CABINETS_QUERY_KEY = ['workContextCabinets'] as const
 
 export function workContextCabinetLabel(row: WorkContextCabinetDto): string {
-  return `${row.cabinetName} (${row.sellerEmail})`
+  const mp = marketplaceTypeLabel(row.marketplaceType)
+  return `${row.cabinetName} · ${mp} (${row.sellerEmail})`
 }
 
 /**

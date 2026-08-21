@@ -1038,7 +1038,7 @@ export default function AbTests() {
   const cabinetSelectProps = useMemo(() => {
     if (isAdmin) return undefined
     return {
-      cabinets: myCabinets.map((c) => ({ id: c.id, name: c.name })),
+      cabinets: myCabinets.map((c) => ({ id: c.id, name: c.name, marketplaceType: c.marketplaceType })),
       selectedCabinetId,
       onCabinetChange: (id: number | null) => {
         if (id == null) return

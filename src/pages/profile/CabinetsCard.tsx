@@ -31,7 +31,8 @@ import { cabinetsApi } from '../../api/cabinets'
 import { ACCESS_STATUS_QUERY_KEY } from '../../api/user'
 import NoCabinetsPlaceholder from '../../components/NoCabinetsPlaceholder'
 import { formatCabinetAccessSections } from '../../constants/cabinetAccessSections'
-import type { GrantedCabinetRowDto, OwnedCabinetRowDto, PendingCabinetInvitationRowDto } from '../../types/api'
+import type { GrantedCabinetRowDto, OwnedCabinetRowDto, PendingCabinetInvitationRowDto, MarketplaceType } from '../../types/api'
+import MarketplaceTypeTag from '../../components/MarketplaceTypeTag'
 import { invitationsApi } from '../../api/invitations'
 import { getRequestFailureDescription } from '../../utils/requestError'
 
@@ -202,6 +203,7 @@ const grantedRowGrid: CSSProperties = {
 
 function CabinetIdentity({
   name,
+  marketplaceType,
   badgeLabel,
   badgeColor,
   badgeBg,
@@ -211,6 +213,7 @@ function CabinetIdentity({
   to,
 }: {
   name: string
+  marketplaceType?: MarketplaceType | null
   badgeLabel: string
   badgeColor: string
   badgeBg: string
@@ -246,7 +249,10 @@ function CabinetIdentity({
         {icon}
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ marginBottom: 6 }}>{nameNode}</div>
+        <div style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {nameNode}
+          <MarketplaceTypeTag type={marketplaceType} />
+        </div>
         <span
           style={{
             display: 'inline-block',
@@ -286,6 +292,7 @@ function OwnedCabinetRow({ row }: { row: OwnedCabinetRowDto }) {
       <div style={ownedRowGrid}>
         <CabinetIdentity
           name={row.name}
+          marketplaceType={row.marketplaceType}
           badgeLabel="Создан вами"
           badgeColor="#15803D"
           badgeBg="#DCFCE7"
@@ -317,6 +324,7 @@ function GrantedCabinetRow({ row }: { row: GrantedCabinetRowDto }) {
       <div style={grantedRowGrid}>
         <CabinetIdentity
           name={row.name}
+          marketplaceType={row.marketplaceType}
           badgeLabel="Доступ предоставлен"
           badgeColor={accent}
           badgeBg="#EDE9FE"
