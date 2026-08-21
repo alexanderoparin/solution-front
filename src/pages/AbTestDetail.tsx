@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Button, InputNumber, Modal, Radio, Select, Spin, Tooltip, message } from 'antd'
 import { EditOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -27,6 +27,7 @@ import type { CabinetTokenType } from '../types/api'
 
 /** Минимальный интервал ротации по времени для базового токена (fullstats ≤ 1/час). */
 const BASIC_TOKEN_MIN_INTERVAL_MINUTES = 60
+const AB_TESTS_LIST_PATH = '/advertising/ab-test'
 
 function formatPct(value: number | null | undefined): string {
   if (value == null) return '—'
@@ -48,12 +49,14 @@ const METRIC_HINTS: Record<string, string> = {
 export default function AbTestDetail() {
   const { id } = useParams<{ id: string }>()
   const testId = Number(id)
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role)
   const isAdmin = role === 'ADMIN'
   const workContext = useWorkContextForAdmin(isAdmin)
   const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
   const [editOpen, setEditOpen] = useState(false)
+  const prevAdminCabinetRef = useRef<number | null>(null)
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
   const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
@@ -71,6 +74,23 @@ export default function AbTestDetail() {
     }
   }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 
+  /** Смена кабинета на деталке чужого А/Б → список (как на деталке РК / артикула). */
+  useEffect(() => {
+    if (!isAdmin) {
+      prevAdminCabinetRef.current = null
+      return
+    }
+    const cur = workContext.selectedCabinetId
+    if (cur == null) {
+      prevAdminCabinetRef.current = null
+      return
+    }
+    if (prevAdminCabinetRef.current != null && prevAdminCabinetRef.current !== cur) {
+      navigate(AB_TESTS_LIST_PATH)
+    }
+    prevAdminCabinetRef.current = cur
+  }, [isAdmin, workContext.selectedCabinetId, navigate])
+
   const selectedTokenType: CabinetTokenType | null | undefined = useMemo(() => {
     if (selectedCabinetId == null) return null
     if (isAdmin) {
@@ -86,10 +106,13 @@ export default function AbTestDetail() {
   })
 
   useEffect(() => {
-    if (error) {
-      message.error('Не удалось загрузить А/Б-тест')
+    if (!error) return
+    const status = (error as { response?: { status?: number } })?.response?.status
+    message.error('Не удалось загрузить А/Б-тест')
+    if (status === 403 || status === 404) {
+      navigate(AB_TESTS_LIST_PATH, { replace: true })
     }
-  }, [error])
+  }, [error, navigate])
 
   const pauseMutation = useMutation({
     mutationFn: ({ variantId, paused }: { variantId: number; paused: boolean }) =>
@@ -113,10 +136,11 @@ export default function AbTestDetail() {
         if (cid == null) return
         setSellerSelectedCabinetId(cid)
         setStoredCabinetId(cid)
+        navigate(AB_TESTS_LIST_PATH)
       },
       loading: false,
     }
-  }, [isAdmin, myCabinets, selectedCabinetId])
+  }, [isAdmin, myCabinets, selectedCabinetId, navigate])
 
   const activeUnpausedCount = test?.variants.filter((v) => !v.paused).length ?? 0
   const canEditSettings = test != null && (test.status === 'ENABLED' || test.status === 'PENDING_START')
