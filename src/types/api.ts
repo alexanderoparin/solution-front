@@ -516,7 +516,7 @@ export interface PaymentDto {
 
 export interface CreateCabinetRequest {
   marketplaceType?: MarketplaceType
-  /** Необязательно: для WB без имени — из seller-info; для Ozon без имени — «Ozon». */
+  /** Обязательно для Ozon; для WB без имени — из seller-info. */
   name?: string
   /** WB API-токен или Ozon Seller Api-Key. */
   apiKey: string

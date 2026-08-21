@@ -76,14 +76,15 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
         initialValues={{ marketplaceType: 'WB' }}
         onFinish={(values) => {
           if (values.marketplaceType === 'OZON') {
+            const trimmedName = values.name?.trim()
+            if (!trimmedName) {
+              return
+            }
             const body: CreateCabinetRequest = {
               marketplaceType: 'OZON',
               apiKey: values.apiKey!.trim(),
               ozonClientId: values.ozonClientId!.trim(),
-            }
-            const trimmedName = values.name?.trim()
-            if (trimmedName) {
-              body.name = trimmedName
+              name: trimmedName,
             }
             onSubmit(body)
             return
@@ -103,6 +104,28 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
           onSubmit(body)
         }}
       >
+        {/* Ловушки автозаполнения (Chrome/Yandex подставляют email/пароль в Client-Id и Api-Key). */}
+        <input
+          type="text"
+          autoComplete="username"
+          name="cabinet-create-username-trap"
+          tabIndex={-1}
+          aria-hidden="true"
+          style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+          readOnly
+          value=""
+        />
+        <input
+          type="password"
+          autoComplete="current-password"
+          name="cabinet-create-password-trap"
+          tabIndex={-1}
+          aria-hidden="true"
+          style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+          readOnly
+          value=""
+        />
+
         <Form.Item
           name="marketplaceType"
           label="Маркетплейс"
@@ -140,17 +163,45 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
               extra={<Text type="secondary" style={{ fontSize: 12 }}>{OZON_HINT}</Text>}
               rules={[{ required: true, whitespace: true, message: 'Введите Client-Id' }]}
             >
-              <Input placeholder="Client-Id из кабинета продавца Ozon" autoComplete="off" />
+              <Input
+                placeholder="Client-Id из кабинета продавца Ozon"
+                autoComplete="off"
+                name="ozon-seller-client-id"
+                id="ozon-seller-client-id"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-form-type="other"
+              />
             </Form.Item>
             <Form.Item
               name="apiKey"
               label="Api-Key"
               rules={[{ required: true, whitespace: true, message: 'Введите Api-Key' }]}
             >
-              <Input.Password prefix={<KeyOutlined />} placeholder="Api-Key Seller API" autoComplete="off" />
+              <Input.Password
+                prefix={<KeyOutlined />}
+                placeholder="Api-Key Seller API"
+                autoComplete="new-password"
+                name="ozon-seller-api-key"
+                id="ozon-seller-api-key"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-form-type="other"
+              />
             </Form.Item>
-            <Form.Item name="name" label="Название кабинета">
-              <Input placeholder="Необязательно — по умолчанию «Ozon»" />
+            <Form.Item
+              name="name"
+              label="Название кабинета"
+              rules={[{ required: true, whitespace: true, message: 'Введите название кабинета' }]}
+            >
+              <Input
+                placeholder="Например, Ozon основной"
+                autoComplete="off"
+                name="ozon-cabinet-display-name"
+                data-form-type="other"
+              />
             </Form.Item>
           </>
         ) : (
@@ -175,7 +226,17 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
               )}
               rules={[{ required: true, whitespace: true, message: 'Введите API-токен WB' }]}
             >
-              <Input.Password prefix={<KeyOutlined />} placeholder="Введите токен" autoComplete="off" />
+              <Input.Password
+                prefix={<KeyOutlined />}
+                placeholder="Введите токен"
+                autoComplete="new-password"
+                name="wb-api-token-create"
+                id="wb-api-token-create"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                data-bwignore="true"
+                data-form-type="other"
+              />
             </Form.Item>
 
             <Form.Item
@@ -195,7 +256,12 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
             </Form.Item>
 
             <Form.Item name="name" label="Название кабинета">
-              <Input placeholder="Необязательно — подставится из WB" />
+              <Input
+                placeholder="Необязательно — подставится из WB"
+                autoComplete="off"
+                name="wb-cabinet-display-name"
+                data-form-type="other"
+              />
             </Form.Item>
           </>
         )}
