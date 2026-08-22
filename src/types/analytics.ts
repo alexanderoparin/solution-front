@@ -47,6 +47,10 @@ export interface ArticleSummary {
   stockFbo?: number | null
   /** Остаток FBS present (Ozon). */
   stockFbs?: number | null
+  /** Заказано единиц за период аналитики (Ozon, ~14 дней). */
+  orderedUnits?: number | null
+  /** Выручка за период аналитики (Ozon, ~14 дней). */
+  revenue?: number | null
 }
 
 export interface AggregatedMetrics {

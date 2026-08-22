@@ -468,6 +468,7 @@ export type OzonApiEventType =
   | 'PRODUCT_LIST_PAGE'
   | 'PRICES_CABINET'
   | 'STOCKS_CABINET'
+  | 'ANALYTICS_DATA_CABINET'
 
 export type OzonApiEventSortField =
   | 'ID'

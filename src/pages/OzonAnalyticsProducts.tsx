@@ -137,8 +137,8 @@ export default function OzonAnalyticsProducts({
             message="Каталог Ozon"
             description={
               priceDateLabel
-                ? `Карточки, цены (снимок ${priceDateLabel}) и остатки после синхронизации. Метрики продаж и реклама — позже.`
-                : 'Карточки, цены и остатки после синхронизации. Метрики продаж и реклама — позже.'
+                ? `Карточки, цены (снимок ${priceDateLabel}), остатки и заказы/выручка за ~14 дней. Сводная и реклама — позже.`
+                : 'Карточки, цены, остатки и заказы/выручка после синхронизации. Сводная и реклама — позже.'
             }
             style={{ marginBottom: spacing.md }}
           />
@@ -196,6 +196,8 @@ export default function OzonAnalyticsProducts({
                     <th style={{ ...thBase, width: 100, textAlign: 'right' }}>Старая</th>
                     <th style={{ ...thBase, width: 72, textAlign: 'center' }}>FBO</th>
                     <th style={{ ...thBase, width: 72, textAlign: 'center' }}>FBS</th>
+                    <th style={{ ...thBase, width: 80, textAlign: 'center' }}>Заказы</th>
+                    <th style={{ ...thBase, width: 100, textAlign: 'right' }}>Выручка</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -237,6 +239,16 @@ export default function OzonAnalyticsProducts({
                       </td>
                       <td style={{ ...tdBase, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                         {formatStock(a.stockFbs)}
+                      </td>
+                      <td style={{ ...tdBase, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                        <Tooltip title="Сумма ordered_units за ~14 дней">
+                          <span>{formatStock(a.orderedUnits)}</span>
+                        </Tooltip>
+                      </td>
+                      <td style={{ ...tdBase, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        <Tooltip title="Сумма revenue за ~14 дней">
+                          <span>{formatMoney(a.revenue)}</span>
+                        </Tooltip>
                       </td>
                     </tr>
                   ))}
