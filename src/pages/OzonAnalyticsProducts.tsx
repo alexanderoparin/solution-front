@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Input, Spin, Alert } from 'antd'
+import { Input, Spin, Alert, Tooltip } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
+import dayjs from 'dayjs'
 import { analyticsApi } from '../api/analytics'
 import type { ArticleSummary } from '../types/analytics'
 import Header, { type CabinetSelectProps, type WorkContextCabinetSelectProps } from '../components/Header'
@@ -25,6 +26,12 @@ const thBase = {
   color: colors.textPrimary,
   padding: '8px 10px' as const,
 }
+const tdBase = {
+  padding: '8px 10px' as const,
+  borderBottom: `1px solid ${colors.borderLight}`,
+  ...typography.body,
+  fontSize: 12,
+}
 
 export interface OzonAnalyticsProductsProps {
   selectedCabinetId: number | null
@@ -44,6 +51,19 @@ function filterArticles(articles: ArticleSummary[], query: string): ArticleSumma
       a.vendorCode?.toLowerCase().includes(q) ||
       a.title?.toLowerCase().includes(q),
   )
+}
+
+function formatMoney(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(Number(value))) return '—'
+  return new Intl.NumberFormat('ru-RU', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(Number(value))
+}
+
+function formatStock(value: number | null | undefined): string {
+  if (value == null) return '—'
+  return String(value)
 }
 
 export default function OzonAnalyticsProducts({
@@ -72,6 +92,12 @@ export default function OzonAnalyticsProducts({
     () => filterArticles(articles, searchQuery),
     [articles, searchQuery],
   )
+
+  const priceDateLabel = useMemo(() => {
+    const withDate = articles.find((a) => a.priceDate)
+    if (!withDate?.priceDate) return null
+    return dayjs(withDate.priceDate).format('DD.MM.YYYY')
+  }, [articles])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -109,7 +135,11 @@ export default function OzonAnalyticsProducts({
             type="info"
             showIcon
             message="Каталог Ozon"
-            description="Показаны синхронизированные карточки товаров. Метрики продаж и реклама для Ozon будут добавлены позже."
+            description={
+              priceDateLabel
+                ? `Карточки, цены (снимок ${priceDateLabel}) и остатки после синхронизации. Метрики продаж и реклама — позже.`
+                : 'Карточки, цены и остатки после синхронизации. Метрики продаж и реклама — позже.'
+            }
             style={{ marginBottom: spacing.md }}
           />
           <div
@@ -159,15 +189,19 @@ export default function OzonAnalyticsProducts({
                 <thead>
                   <tr>
                     <th style={{ ...thBase, width: PRODUCT_PHOTO_WIDTH + 20 }}>Фото</th>
-                    <th style={{ ...thBase, width: 120 }}>Product ID</th>
-                    <th style={{ ...thBase, width: 160 }}>Offer ID</th>
+                    <th style={{ ...thBase, width: 110 }}>Product ID</th>
+                    <th style={{ ...thBase, width: 150 }}>Offer ID</th>
                     <th style={thBase}>Название</th>
+                    <th style={{ ...thBase, width: 100, textAlign: 'right' }}>Цена</th>
+                    <th style={{ ...thBase, width: 100, textAlign: 'right' }}>Старая</th>
+                    <th style={{ ...thBase, width: 72, textAlign: 'center' }}>FBO</th>
+                    <th style={{ ...thBase, width: 72, textAlign: 'center' }}>FBS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredArticles.map((a) => (
                     <tr key={a.productId ?? a.nmId}>
-                      <td style={{ padding: '8px 10px', borderBottom: `1px solid ${colors.borderLight}` }}>
+                      <td style={tdBase}>
                         {a.photoTm ? (
                           <img
                             src={a.photoTm}
@@ -180,35 +214,29 @@ export default function OzonAnalyticsProducts({
                           <span style={{ color: colors.textMuted }}>—</span>
                         )}
                       </td>
-                      <td
-                        style={{
-                          padding: '8px 10px',
-                          borderBottom: `1px solid ${colors.borderLight}`,
-                          ...typography.body,
-                          fontSize: 12,
-                        }}
-                      >
-                        {a.productId ?? a.nmId}
+                      <td style={tdBase}>{a.productId ?? a.nmId}</td>
+                      <td style={tdBase}>{a.offerId ?? a.vendorCode ?? '—'}</td>
+                      <td style={tdBase}>{a.title || '—'}</td>
+                      <td style={{ ...tdBase, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                        <Tooltip title={a.priceDate ? `Снимок: ${dayjs(a.priceDate).format('DD.MM.YYYY')}` : undefined}>
+                          <span>{formatMoney(a.price)}</span>
+                        </Tooltip>
                       </td>
                       <td
                         style={{
-                          padding: '8px 10px',
-                          borderBottom: `1px solid ${colors.borderLight}`,
-                          ...typography.body,
-                          fontSize: 12,
+                          ...tdBase,
+                          textAlign: 'right',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: colors.textSecondary,
                         }}
                       >
-                        {a.offerId ?? a.vendorCode ?? '—'}
+                        {formatMoney(a.oldPrice)}
                       </td>
-                      <td
-                        style={{
-                          padding: '8px 10px',
-                          borderBottom: `1px solid ${colors.borderLight}`,
-                          ...typography.body,
-                          fontSize: 12,
-                        }}
-                      >
-                        {a.title || '—'}
+                      <td style={{ ...tdBase, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                        {formatStock(a.stockFbo)}
+                      </td>
+                      <td style={{ ...tdBase, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                        {formatStock(a.stockFbs)}
                       </td>
                     </tr>
                   ))}

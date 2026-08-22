@@ -37,6 +37,16 @@ export interface ArticleSummary {
   rating?: number | null
   /** Дата и время появления карточки на Wildberries. */
   wbCreatedAt?: string | null
+  /** Цена продавца (Ozon, последний снимок). */
+  price?: number | null
+  /** Старая цена (Ozon). */
+  oldPrice?: number | null
+  /** Дата снимка цены (Ozon), YYYY-MM-DD. */
+  priceDate?: string | null
+  /** Остаток FBO present (Ozon). */
+  stockFbo?: number | null
+  /** Остаток FBS present (Ozon). */
+  stockFbs?: number | null
 }
 
 export interface AggregatedMetrics {
