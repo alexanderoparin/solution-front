@@ -21,6 +21,12 @@ export interface ArticleSummary {
   title: string
   brand: string
   subjectName: string
+  /** Ozon product_id (для WB совпадает с nmId через маппинг на бэке). */
+  productId?: number | null
+  /** Ozon offer_id / артикул продавца. */
+  offerId?: string | null
+  /** Маркетплейс карточки (WB | OZON). */
+  marketplaceType?: 'WB' | 'OZON' | null
   photoTm: string | null // URL миниатюры первой фотографии товара (tm, ~75×100)
   /** Превью 246×328 из WB; для шапки артикула предпочтительнее, чем tm */
   photoC246x328?: string | null

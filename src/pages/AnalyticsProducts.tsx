@@ -29,6 +29,7 @@ import {
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
+import OzonAnalyticsProducts from './OzonAnalyticsProducts'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { hasMeaningfulArticleRating, formatArticleRating } from '../utils/articleRating'
 
@@ -571,6 +572,26 @@ export default function AnalyticsProducts() {
     const cab = myCabinets.find((c) => c.id === selectedCabinetId)
     return cabinetSupportsItemRating(cab?.apiKey?.tokenType)
   }, [selectedCabinetId, isAdmin, workContext.workContextOptions, myCabinets])
+
+  const isOzonCabinet = useMemo(() => {
+    if (selectedCabinetId == null) return false
+    if (isAdmin) {
+      return workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)?.marketplaceType === 'OZON'
+    }
+    return myCabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
+  }, [selectedCabinetId, isAdmin, workContext.workContextOptions, myCabinets])
+
+  if (isOzonCabinet) {
+    return (
+      <OzonAnalyticsProducts
+        selectedCabinetId={selectedCabinetId}
+        selectedSellerId={selectedSellerId}
+        isAdmin={isAdmin}
+        workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
+        cabinetSelectProps={cabinetSelectProps}
+      />
+    )
+  }
 
   return (
     <>

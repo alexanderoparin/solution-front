@@ -259,7 +259,7 @@ export default function ProfilePage() {
                   size="large"
                   style={profileAdminActionGridButtonStyle}
                 >
-                  WB API события
+                  API события
                 </Button>
                 <Button
                   icon={<CreditCardOutlined />}

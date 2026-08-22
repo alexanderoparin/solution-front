@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Card, Checkbox, Drawer, Grid, Input, Pagination, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd'
+import { Button, Card, Checkbox, Drawer, Grid, Input, Pagination, Segmented, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { FilterValue, SorterResult, TableCurrentDataSource, TablePaginationConfig } from 'antd/es/table/interface'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -10,9 +10,31 @@ import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useAuthStore } from '../store/authStore'
 import { adminApi } from '../api/admin'
-import type { SortDirection, WbApiEventDto, WbApiEventSortField, WbApiEventStatus, WbApiEventType } from '../types/api'
+import type { SortDirection, WbApiEventDto, WbApiEventSortField, WbApiEventStatus, WbApiEventType, OzonApiEventDto, OzonApiEventSortField, OzonApiEventStatus, OzonApiEventType, PageResponse } from '../types/api'
 
-const STATUS_COLORS: Record<WbApiEventStatus, string> = {
+type Marketplace = 'WB' | 'OZON'
+type ApiEventDto = WbApiEventDto | OzonApiEventDto
+type ApiEventSortField = WbApiEventSortField | OzonApiEventSortField
+
+interface ApiEventStatsDto {
+  total: number
+  byStatus: Record<string, number>
+}
+
+interface ApiEventTypeStatsDto {
+  baseStatus: string | null
+  total: number
+  byType: Record<string, number>
+}
+
+interface ApiEventCabinetStatsDto {
+  baseStatus: string | null
+  baseEventType: string | null
+  total: number
+  byCabinet: Array<{ cabinetId: number; cabinetName: string; count: number }>
+}
+
+const WB_STATUS_COLORS: Record<WbApiEventStatus, string> = {
   CREATED: 'blue',
   RUNNING: 'processing',
   SUCCESS: 'green',
@@ -23,7 +45,7 @@ const STATUS_COLORS: Record<WbApiEventStatus, string> = {
   CANCELLED: 'default',
 }
 
-const STATUS_LABELS: Record<WbApiEventStatus, string> = {
+const WB_STATUS_LABELS: Record<WbApiEventStatus, string> = {
   CREATED: 'Создано',
   RUNNING: 'Выполняется',
   SUCCESS: 'Успешно',
@@ -32,6 +54,40 @@ const STATUS_LABELS: Record<WbApiEventStatus, string> = {
   FAILED_WITH_FALLBACK: 'Успех с fallback',
   DEFERRED_RATE_LIMIT: 'Отложено (лимит)',
   CANCELLED: 'Отменено',
+}
+
+const OZON_STATUS_COLORS: Record<OzonApiEventStatus, string> = {
+  CREATED: 'blue',
+  RUNNING: 'processing',
+  SUCCESS: 'green',
+  FAILED_RETRYABLE: 'orange',
+  FAILED_FINAL: 'red',
+  DEFERRED_RATE_LIMIT: 'purple',
+  CANCELLED: 'default',
+}
+
+const OZON_STATUS_LABELS: Record<OzonApiEventStatus, string> = {
+  CREATED: 'Создано',
+  RUNNING: 'Выполняется',
+  SUCCESS: 'Успешно',
+  FAILED_RETRYABLE: 'Ошибка (retry)',
+  FAILED_FINAL: 'Ошибка (финальная)',
+  DEFERRED_RATE_LIMIT: 'Отложено (лимит)',
+  CANCELLED: 'Отменено',
+}
+
+function getStatusColor(marketplace: Marketplace, status: string): string {
+  if (marketplace === 'OZON') {
+    return OZON_STATUS_COLORS[status as OzonApiEventStatus] ?? 'default'
+  }
+  return WB_STATUS_COLORS[status as WbApiEventStatus] ?? 'default'
+}
+
+function getStatusLabel(marketplace: Marketplace, status: string): string {
+  if (marketplace === 'OZON') {
+    return OZON_STATUS_LABELS[status as OzonApiEventStatus] ?? status
+  }
+  return WB_STATUS_LABELS[status as WbApiEventStatus] ?? status
 }
 
 function renderStatusLabel(label: string) {
@@ -58,18 +114,18 @@ function renderStatusLabel(label: string) {
   return label
 }
 
-function StatusTag({ status }: { status: WbApiEventStatus }) {
+function StatusTag({ marketplace, status }: { marketplace: Marketplace; status: string }) {
   return (
     <Tag
-      color={STATUS_COLORS[status]}
+      color={getStatusColor(marketplace, status)}
       style={{ whiteSpace: 'normal', textAlign: 'center', lineHeight: 1.2, margin: 0 }}
     >
-      {renderStatusLabel(STATUS_LABELS[status])}
+      {renderStatusLabel(getStatusLabel(marketplace, status))}
     </Tag>
   )
 }
 
-const TYPE_LABELS: Record<WbApiEventType, string> = {
+const WB_TYPE_LABELS: Record<WbApiEventType, string> = {
   CONTENT_CARDS_LIST_PAGE: 'Контент: страница карточек',
   ANALYTICS_SALES_FUNNEL_NMID: 'Аналитика: воронка по nmID',
   PRICES_CABINET_WITH_SPP: 'Цены + СПП (кабинет)',
@@ -87,7 +143,20 @@ const TYPE_LABELS: Record<WbApiEventType, string> = {
   FBS_STOCKS_CABINET: 'Остатки FBS: кабинет',
 }
 
-const TYPE_COLORS: Record<WbApiEventType, string> = {
+const OZON_TYPE_LABELS: Record<OzonApiEventType, string> = {
+  PRODUCT_LIST_PAGE: 'Каталог: страница товаров',
+  PRICES_CABINET: 'Цены (кабинет)',
+  STOCKS_CABINET: 'Остатки (кабинет)',
+}
+
+function getTypeLabel(marketplace: Marketplace, eventType: string): string {
+  if (marketplace === 'OZON') {
+    return OZON_TYPE_LABELS[eventType as OzonApiEventType] ?? eventType
+  }
+  return WB_TYPE_LABELS[eventType as WbApiEventType] ?? eventType
+}
+
+const WB_TYPE_COLORS: Record<WbApiEventType, string> = {
   CONTENT_CARDS_LIST_PAGE: 'geekblue',
   ANALYTICS_SALES_FUNNEL_NMID: 'cyan',
   PRICES_CABINET_WITH_SPP: 'gold',
@@ -105,6 +174,19 @@ const TYPE_COLORS: Record<WbApiEventType, string> = {
   FBS_STOCKS_CABINET: 'cyan',
 }
 
+const OZON_TYPE_COLORS: Record<OzonApiEventType, string> = {
+  PRODUCT_LIST_PAGE: 'geekblue',
+  PRICES_CABINET: 'gold',
+  STOCKS_CABINET: 'blue',
+}
+
+function getTypeColor(marketplace: Marketplace, eventType: string): string {
+  if (marketplace === 'OZON') {
+    return OZON_TYPE_COLORS[eventType as OzonApiEventType] ?? 'default'
+  }
+  return WB_TYPE_COLORS[eventType as WbApiEventType] ?? 'default'
+}
+
 const COLUMN_SORT_FIELDS = {
   id: 'ID',
   eventType: 'EVENT_TYPE',
@@ -118,7 +200,7 @@ const COLUMN_SORT_FIELDS = {
   nextAttemptAt: 'NEXT_ATTEMPT_AT',
   createdAt: 'CREATED_AT',
   finishedAt: 'FINISHED_AT',
-} as const satisfies Record<string, WbApiEventSortField>
+} as const satisfies Record<string, ApiEventSortField>
 function formatCabinetLabel(cabinetId: number, cabinetName?: string | null): string {
   if (cabinetName) {
     return `${cabinetId} (${cabinetName})`
@@ -126,7 +208,7 @@ function formatCabinetLabel(cabinetId: number, cabinetName?: string | null): str
   return String(cabinetId)
 }
 
-const MOBILE_SORT_OPTIONS: { value: WbApiEventSortField; label: string }[] = [
+const MOBILE_SORT_OPTIONS: { value: ApiEventSortField; label: string }[] = [
   { value: 'ID', label: 'ID' },
   { value: 'EVENT_TYPE', label: 'Тип события' },
   { value: 'STATUS', label: 'Статус' },
@@ -139,8 +221,9 @@ const MOBILE_SORT_OPTIONS: { value: WbApiEventSortField; label: string }[] = [
 ]
 
 type SortableColumnKey = keyof typeof COLUMN_SORT_FIELDS
-const GROUP_BY_TYPE_STORAGE_KEY = 'admin_wb_events_group_by_type'
-const GROUP_BY_CABINET_STORAGE_KEY = 'admin_wb_events_group_by_cabinet'
+const GROUP_BY_TYPE_STORAGE_KEY = 'admin_api_events_group_by_type'
+const GROUP_BY_CABINET_STORAGE_KEY = 'admin_api_events_group_by_cabinet'
+const MARKETPLACE_STORAGE_KEY = 'admin_api_events_marketplace'
 const { useBreakpoint } = Grid
 
 export default function AdminWbEvents() {
@@ -148,10 +231,16 @@ export default function AdminWbEvents() {
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role)
 
+  const [marketplace, setMarketplace] = useState<Marketplace>(() => {
+    const raw = localStorage.getItem(MARKETPLACE_STORAGE_KEY)
+    return raw === 'OZON' ? 'OZON' : 'WB'
+  })
+  const isOzon = marketplace === 'OZON'
+
   const [page, setPage] = useState(0)
   const [size, setSize] = useState(50)
-  const [status, setStatus] = useState<WbApiEventStatus | undefined>(undefined)
-  const [eventType, setEventType] = useState<WbApiEventType | undefined>(undefined)
+  const [status, setStatus] = useState<string | undefined>(undefined)
+  const [eventType, setEventType] = useState<string | undefined>(undefined)
   const [cabinetIdInput, setCabinetIdInput] = useState('')
   const [groupByType, setGroupByType] = useState<boolean>(() => {
     const raw = localStorage.getItem(GROUP_BY_TYPE_STORAGE_KEY)
@@ -161,12 +250,15 @@ export default function AdminWbEvents() {
     const raw = localStorage.getItem(GROUP_BY_CABINET_STORAGE_KEY)
     return raw == null ? false : raw === 'true'
   })
-  const [sortBy, setSortBy] = useState<WbApiEventSortField>('ID')
+  const [sortBy, setSortBy] = useState<ApiEventSortField>('ID')
   const [sortDir, setSortDir] = useState<SortDirection>('DESC')
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
   const screens = useBreakpoint()
   const isMobile = !screens.md
 
+  useEffect(() => {
+    localStorage.setItem(MARKETPLACE_STORAGE_KEY, marketplace)
+  }, [marketplace])
   useEffect(() => {
     localStorage.setItem(GROUP_BY_TYPE_STORAGE_KEY, String(groupByType))
   }, [groupByType])
@@ -184,68 +276,117 @@ export default function AdminWbEvents() {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
   }, [cabinetIdInput])
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['adminWbEvents', page, size, status, eventType, cabinetId, sortBy, sortDir],
-    queryFn: () => adminApi.getWbEvents({ page, size, status, eventType, cabinetId, sortBy, sortDir }),
+  const eventsQueryKey = isOzon ? 'adminOzonEvents' : 'adminWbEvents'
+  const eventsStatsQueryKey = isOzon ? 'adminOzonEventsStats' : 'adminWbEventsStats'
+  const eventsTypeStatsQueryKey = isOzon ? 'adminOzonEventsTypeStats' : 'adminWbEventsTypeStats'
+  const eventsCabinetStatsQueryKey = isOzon ? 'adminOzonEventsCabinetStats' : 'adminWbEventsCabinetStats'
+  const eventDetailQueryKey = isOzon ? 'adminOzonEvent' : 'adminWbEvent'
+
+  const { data, isLoading } = useQuery<PageResponse<ApiEventDto>>({
+    queryKey: [eventsQueryKey, page, size, status, eventType, cabinetId, sortBy, sortDir],
+    queryFn: async () =>
+      isOzon
+        ? adminApi.getOzonEvents({
+            page,
+            size,
+            status: status as OzonApiEventStatus | undefined,
+            eventType: eventType as OzonApiEventType | undefined,
+            cabinetId,
+            sortBy: sortBy as OzonApiEventSortField,
+            sortDir,
+          })
+        : adminApi.getWbEvents({
+            page,
+            size,
+            status: status as WbApiEventStatus | undefined,
+            eventType: eventType as WbApiEventType | undefined,
+            cabinetId,
+            sortBy: sortBy as WbApiEventSortField,
+            sortDir,
+          }),
     refetchInterval: 5000,
   })
-  const { data: stats } = useQuery({
-    queryKey: ['adminWbEventsStats'],
-    queryFn: () => adminApi.getWbEventsStats(),
+  const { data: stats } = useQuery<ApiEventStatsDto>({
+    queryKey: [eventsStatsQueryKey],
+    queryFn: async () => (isOzon ? adminApi.getOzonEventsStats() : adminApi.getWbEventsStats()),
     refetchInterval: 5000,
   })
-  const { data: typeStats } = useQuery({
-    queryKey: ['adminWbEventsTypeStats', status],
-    queryFn: () => adminApi.getWbEventsStatsByType(status),
+  const { data: typeStats } = useQuery<ApiEventTypeStatsDto>({
+    queryKey: [eventsTypeStatsQueryKey, status],
+    queryFn: async () =>
+      isOzon
+        ? adminApi.getOzonEventsStatsByType(status as OzonApiEventStatus | undefined)
+        : adminApi.getWbEventsStatsByType(status as WbApiEventStatus | undefined),
     enabled: groupByType,
     refetchInterval: 5000,
   })
-  const { data: cabinetStats } = useQuery({
-    queryKey: ['adminWbEventsCabinetStats', status, eventType],
-    queryFn: () => adminApi.getWbEventsStatsByCabinet(status, eventType),
+  const { data: cabinetStats } = useQuery<ApiEventCabinetStatsDto>({
+    queryKey: [eventsCabinetStatsQueryKey, status, eventType],
+    queryFn: async () =>
+      isOzon
+        ? adminApi.getOzonEventsStatsByCabinet(status as OzonApiEventStatus | undefined, eventType as OzonApiEventType | undefined)
+        : adminApi.getWbEventsStatsByCabinet(status as WbApiEventStatus | undefined, eventType as WbApiEventType | undefined),
     enabled: groupByCabinet,
     refetchInterval: 5000,
   })
   const failedFinalCount = stats?.byStatus?.FAILED_FINAL ?? 0
 
-  const { data: selectedEvent, isLoading: selectedLoading } = useQuery({
-    queryKey: ['adminWbEvent', selectedEventId],
-    queryFn: () => adminApi.getWbEvent(selectedEventId!),
+  const { data: selectedEvent, isLoading: selectedLoading } = useQuery<ApiEventDto>({
+    queryKey: [eventDetailQueryKey, selectedEventId],
+    queryFn: async () => (isOzon ? adminApi.getOzonEvent(selectedEventId!) : adminApi.getWbEvent(selectedEventId!)),
     enabled: selectedEventId != null,
   })
 
+  const invalidateEvents = () => {
+    queryClient.invalidateQueries({ queryKey: [eventsQueryKey] })
+    queryClient.invalidateQueries({ queryKey: [eventsStatsQueryKey] })
+    queryClient.invalidateQueries({ queryKey: [eventDetailQueryKey, selectedEventId] })
+  }
+
   const retryMutation = useMutation({
-    mutationFn: (eventId: number) => adminApi.retryWbEvent(eventId),
+    mutationFn: (eventId: number) => (isOzon ? adminApi.retryOzonEvent(eventId) : adminApi.retryWbEvent(eventId)),
     onSuccess: () => {
       message.success('Событие отправлено на повторное выполнение')
-      queryClient.invalidateQueries({ queryKey: ['adminWbEvents'] })
-      queryClient.invalidateQueries({ queryKey: ['adminWbEvent', selectedEventId] })
+      invalidateEvents()
     },
     onError: (e: any) => message.error(e.response?.data?.message || 'Ошибка retry'),
   })
 
   const retryAllFailedFinalMutation = useMutation({
-    mutationFn: () => adminApi.retryAllFailedFinalWbEvents(),
+    mutationFn: () => (isOzon ? adminApi.retryAllFailedFinalOzonEvents() : adminApi.retryAllFailedFinalWbEvents()),
     onSuccess: (result) => {
       message.success(`${result.message}. Кол-во: ${result.updatedCount}`)
-      queryClient.invalidateQueries({ queryKey: ['adminWbEvents'] })
-      queryClient.invalidateQueries({ queryKey: ['adminWbEventsStats'] })
-      queryClient.invalidateQueries({ queryKey: ['adminWbEvent', selectedEventId] })
+      invalidateEvents()
     },
     onError: (e: any) => message.error(e.response?.data?.message || 'Ошибка массового retry'),
   })
 
   const cancelMutation = useMutation({
-    mutationFn: (eventId: number) => adminApi.cancelWbEvent(eventId),
+    mutationFn: (eventId: number) => (isOzon ? adminApi.cancelOzonEvent(eventId) : adminApi.cancelWbEvent(eventId)),
     onSuccess: () => {
       message.success('Событие отменено')
-      queryClient.invalidateQueries({ queryKey: ['adminWbEvents'] })
-      queryClient.invalidateQueries({ queryKey: ['adminWbEvent', selectedEventId] })
+      invalidateEvents()
     },
     onError: (e: any) => message.error(e.response?.data?.message || 'Ошибка отмены'),
   })
 
-  const columns: ColumnsType<WbApiEventDto> = [
+  const statusOptions = isOzon
+    ? (Object.keys(OZON_STATUS_LABELS) as OzonApiEventStatus[])
+    : (Object.keys(WB_STATUS_LABELS) as WbApiEventStatus[])
+
+  const typeOptions: { value: string; label: string }[] = isOzon
+    ? (Object.keys(OZON_TYPE_LABELS) as OzonApiEventType[]).map((t) => ({ value: t, label: OZON_TYPE_LABELS[t] }))
+    : (Object.keys(WB_TYPE_LABELS) as WbApiEventType[]).map((t) => ({ value: t, label: WB_TYPE_LABELS[t] }))
+
+  const handleMarketplaceChange = (value: Marketplace) => {
+    setMarketplace(value)
+    setPage(0)
+    setStatus(undefined)
+    setEventType(undefined)
+    setSelectedEventId(null)
+  }
+
+  const columns: ColumnsType<ApiEventDto> = [
     { title: 'ID', dataIndex: 'id', width: 90, sorter: true, sortOrder: sortBy === 'ID' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null },
     {
       title: 'Тип',
@@ -253,7 +394,7 @@ export default function AdminWbEvents() {
       width: 250,
       sorter: true,
       sortOrder: sortBy === 'EVENT_TYPE' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
-      render: (value: WbApiEventType) => TYPE_LABELS[value] ?? value,
+      render: (value: string) => getTypeLabel(marketplace, value),
     },
     {
       title: 'Статус',
@@ -261,7 +402,7 @@ export default function AdminWbEvents() {
       width: 105,
       sorter: true,
       sortOrder: sortBy === 'STATUS' ? (sortDir === 'ASC' ? 'ascend' : 'descend') : null,
-      render: (value: WbApiEventStatus) => <StatusTag status={value} />,
+      render: (value: string) => <StatusTag marketplace={marketplace} status={value} />,
     },
     {
       title: 'Кабинет',
@@ -348,8 +489,8 @@ export default function AdminWbEvents() {
   const handleTableChange = (
     pagination: TablePaginationConfig,
     _filters: Record<string, FilterValue | null>,
-    sorter: SorterResult<WbApiEventDto> | SorterResult<WbApiEventDto>[],
-    _extra: TableCurrentDataSource<WbApiEventDto>
+    sorter: SorterResult<ApiEventDto> | SorterResult<ApiEventDto>[],
+    _extra: TableCurrentDataSource<ApiEventDto>
   ) => {
     const singleSorter = Array.isArray(sorter) ? sorter[0] : sorter
     const columnKey = (singleSorter?.field ?? singleSorter?.columnKey) as SortableColumnKey | undefined
@@ -367,7 +508,7 @@ export default function AdminWbEvents() {
     setSize(pagination.pageSize ?? size)
   }
 
-  const renderRowActions = (row: WbApiEventDto) => (
+  const renderRowActions = (row: ApiEventDto) => (
     <Space wrap>
       <Button size="small" onClick={() => setSelectedEventId(row.id)}>Детали</Button>
       <Button size="small" onClick={() => retryMutation.mutate(row.id)} loading={retryMutation.isPending}>Повтор</Button>
@@ -381,9 +522,19 @@ export default function AdminWbEvents() {
       <Breadcrumbs />
       <div style={{ width: '100%', padding: isMobile ? 12 : 24, minHeight: '100vh', backgroundColor: '#F8FAFC', display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: 1400 }}>
-          <Typography.Title level={isMobile ? 5 : 4} style={{ marginTop: 16, marginBottom: isMobile ? 16 : 24 }}>
-            Администрирование. WB API события
-          </Typography.Title>
+          <div style={{ marginTop: 16, marginBottom: isMobile ? 16 : 24, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+            <Typography.Title level={isMobile ? 5 : 4} style={{ margin: 0 }}>
+              Администрирование. API события
+            </Typography.Title>
+            <Segmented
+              value={marketplace}
+              onChange={(value) => handleMarketplaceChange(value as Marketplace)}
+              options={[
+                { label: 'WB', value: 'WB' },
+                { label: 'Ozon', value: 'OZON' },
+              ]}
+            />
+          </div>
 
           <Card>
             <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
@@ -402,10 +553,10 @@ export default function AdminWbEvents() {
                 >
                   Всего: {stats?.total ?? 0}
                 </Tag>
-                {(Object.keys(STATUS_LABELS) as WbApiEventStatus[]).map((s) => (
+                {statusOptions.map((s) => (
                   <Tag
                     key={s}
-                    color={STATUS_COLORS[s]}
+                    color={getStatusColor(marketplace, s)}
                     style={{
                       cursor: 'pointer',
                       fontWeight: status === s ? 600 : undefined,
@@ -416,7 +567,7 @@ export default function AdminWbEvents() {
                       setStatus((prev) => (prev === s ? undefined : s))
                     }}
                   >
-                    {STATUS_LABELS[s]}: {stats?.byStatus?.[s] ?? 0}
+                    {getStatusLabel(marketplace, s)}: {stats?.byStatus[s] ?? 0}
                   </Tag>
                 ))}
               </Space>
@@ -432,12 +583,12 @@ export default function AdminWbEvents() {
             {groupByType && (
               <div style={{ marginTop: 8, marginBottom: 12 }}>
                 <Space wrap>
-                {(Object.keys(TYPE_LABELS) as WbApiEventType[])
-                  .filter((t) => (typeStats?.byType?.[t] ?? 0) > 0)
+                {(isOzon ? (Object.keys(OZON_TYPE_LABELS) as OzonApiEventType[]) : (Object.keys(WB_TYPE_LABELS) as WbApiEventType[]))
+                  .filter((t) => (typeStats?.byType[t] ?? 0) > 0)
                   .map((t) => (
                     <Tag
                       key={t}
-                      color={TYPE_COLORS[t]}
+                      color={getTypeColor(marketplace, t)}
                       style={{
                         cursor: 'pointer',
                         fontWeight: eventType === t ? 600 : undefined,
@@ -448,7 +599,7 @@ export default function AdminWbEvents() {
                         setEventType((prev) => (prev === t ? undefined : t))
                       }}
                     >
-                      {TYPE_LABELS[t]}: {typeStats?.byType?.[t] ?? 0}
+                      {getTypeLabel(marketplace, t)}: {typeStats?.byType[t] ?? 0}
                     </Tag>
                   ))}
                 </Space>
@@ -494,7 +645,7 @@ export default function AdminWbEvents() {
                   setPage(0)
                   setStatus(value)
                 }}
-                options={(Object.keys(STATUS_COLORS) as WbApiEventStatus[]).map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
+                options={statusOptions.map((s) => ({ value: s, label: getStatusLabel(marketplace, s) }))}
               />
               <Select
                 allowClear
@@ -502,21 +653,7 @@ export default function AdminWbEvents() {
                 style={{ width: isMobile ? '100%' : 260 }}
                 value={eventType}
                 onChange={(value) => { setPage(0); setEventType(value) }}
-                options={[
-                  { value: 'CONTENT_CARDS_LIST_PAGE', label: TYPE_LABELS.CONTENT_CARDS_LIST_PAGE },
-                  { value: 'ANALYTICS_SALES_FUNNEL_NMID', label: TYPE_LABELS.ANALYTICS_SALES_FUNNEL_NMID },
-                  { value: 'PRICES_CABINET_WITH_SPP', label: TYPE_LABELS.PRICES_CABINET_WITH_SPP },
-                  { value: 'PROMOTION_COUNT', label: TYPE_LABELS.PROMOTION_COUNT },
-                  { value: 'PROMOTION_ADVERTS_BATCH', label: TYPE_LABELS.PROMOTION_ADVERTS_BATCH },
-                  { value: 'PROMOTION_STATS_BATCH', label: TYPE_LABELS.PROMOTION_STATS_BATCH },
-                  { value: 'PROMOTION_NORMQUERY_STATS_BATCH', label: TYPE_LABELS.PROMOTION_NORMQUERY_STATS_BATCH },
-                  { value: 'ANALYTICS_ITEM_RATING_CABINET', label: TYPE_LABELS.ANALYTICS_ITEM_RATING_CABINET },
-                  { value: 'PROMOTION_CALENDAR_SYNC_CABINET', label: TYPE_LABELS.PROMOTION_CALENDAR_SYNC_CABINET },
-                  { value: 'WAREHOUSES_SYNC_CABINET', label: TYPE_LABELS.WAREHOUSES_SYNC_CABINET },
-                  { value: 'STOCKS_BY_NMID', label: TYPE_LABELS.STOCKS_BY_NMID },
-                  { value: 'FBS_WAREHOUSES_SYNC_CABINET', label: TYPE_LABELS.FBS_WAREHOUSES_SYNC_CABINET },
-                  { value: 'FBS_STOCKS_CABINET', label: TYPE_LABELS.FBS_STOCKS_CABINET },
-                ]}
+                options={typeOptions}
               />
               <Input
                 placeholder="Cabinet ID"
@@ -525,7 +662,7 @@ export default function AdminWbEvents() {
                 onChange={(e) => setCabinetIdInput(e.target.value)}
                 onPressEnter={() => setPage(0)}
               />
-              <Button style={{ width: isMobile ? '100%' : undefined }} onClick={() => { setPage(0); queryClient.invalidateQueries({ queryKey: ['adminWbEvents'] }) }}>
+              <Button style={{ width: isMobile ? '100%' : undefined }} onClick={() => { setPage(0); queryClient.invalidateQueries({ queryKey: [eventsQueryKey] }) }}>
                 Применить
               </Button>
             </Space>
@@ -565,8 +702,8 @@ export default function AdminWbEvents() {
                       <Space direction="vertical" size={6} style={{ width: '100%' }}>
                         <Space wrap size={[6, 6]}>
                           <Tag color="blue">#{row.id}</Tag>
-                          <Tag color={TYPE_COLORS[row.eventType] ?? 'default'}>{TYPE_LABELS[row.eventType] ?? row.eventType}</Tag>
-                          <StatusTag status={row.status} />
+                          <Tag color={getTypeColor(marketplace, row.eventType)}>{getTypeLabel(marketplace, row.eventType)}</Tag>
+                          <StatusTag marketplace={marketplace} status={row.status} />
                         </Space>
                         <Typography.Text type="secondary">
                           Кабинет: {formatCabinetLabel(row.cabinetId, row.cabinetName)} · Попытки: {row.attemptCount}/{row.maxAttempts}
@@ -594,7 +731,7 @@ export default function AdminWbEvents() {
                 </div>
               </>
             ) : (
-              <Table<WbApiEventDto>
+              <Table<ApiEventDto>
                 rowKey="id"
                 loading={isLoading}
                 columns={columns.map((c) => (c.key === 'actions' ? { ...c, render: (_, row) => renderRowActions(row) } : c))}
@@ -632,9 +769,9 @@ export default function AdminWbEvents() {
         ) : (
           <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <Typography.Text><b>Тип:</b> {selectedEvent.eventType}</Typography.Text>
-            <Typography.Text><b>Тип (читаемо):</b> {TYPE_LABELS[selectedEvent.eventType] ?? selectedEvent.eventType}</Typography.Text>
+            <Typography.Text><b>Тип (читаемо):</b> {getTypeLabel(marketplace, selectedEvent.eventType)}</Typography.Text>
             <Typography.Text><b>Статус:</b> {selectedEvent.status}</Typography.Text>
-            <Typography.Text><b>Статус (читаемо):</b> {STATUS_LABELS[selectedEvent.status]}</Typography.Text>
+            <Typography.Text><b>Статус (читаемо):</b> {getStatusLabel(marketplace, selectedEvent.status)}</Typography.Text>
             <Typography.Text><b>Исполнитель:</b> {selectedEvent.executorBeanName}</Typography.Text>
             <Typography.Text><b>Кабинет:</b> {formatCabinetLabel(selectedEvent.cabinetId, selectedEvent.cabinetName)}</Typography.Text>
             <Typography.Text><b>Ключ дедупликации:</b> {selectedEvent.dedupKey}</Typography.Text>

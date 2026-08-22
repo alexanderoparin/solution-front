@@ -455,6 +455,74 @@ export interface WbApiEventCabinetStatsDto {
   }>
 }
 
+export type OzonApiEventStatus =
+  | 'CREATED'
+  | 'RUNNING'
+  | 'SUCCESS'
+  | 'FAILED_RETRYABLE'
+  | 'FAILED_FINAL'
+  | 'DEFERRED_RATE_LIMIT'
+  | 'CANCELLED'
+
+export type OzonApiEventType =
+  | 'PRODUCT_LIST_PAGE'
+  | 'PRICES_CABINET'
+  | 'STOCKS_CABINET'
+
+export type OzonApiEventSortField =
+  | 'ID'
+  | 'EVENT_TYPE'
+  | 'STATUS'
+  | 'CABINET_ID'
+  | 'ATTEMPT_COUNT'
+  | 'MAX_ATTEMPTS'
+  | 'STARTED_AT'
+  | 'NEXT_ATTEMPT_AT'
+  | 'CREATED_AT'
+  | 'FINISHED_AT'
+
+export interface OzonApiEventDto {
+  id: number
+  eventType: OzonApiEventType
+  status: OzonApiEventStatus
+  executorBeanName: string
+  cabinetId: number
+  cabinetName: string | null
+  dedupKey: string
+  attemptCount: number
+  maxAttempts: number
+  nextAttemptAt: string
+  lastError: string | null
+  priority: number
+  triggerSource: string
+  createdAt: string
+  startedAt: string | null
+  finishedAt: string | null
+  updatedAt: string
+}
+
+export interface OzonApiEventStatsDto {
+  total: number
+  byStatus: Record<OzonApiEventStatus, number>
+}
+
+export interface OzonApiEventTypeStatsDto {
+  baseStatus: OzonApiEventStatus | null
+  total: number
+  byType: Record<OzonApiEventType, number>
+}
+
+export interface OzonApiEventCabinetStatsDto {
+  baseStatus: OzonApiEventStatus | null
+  baseEventType: OzonApiEventType | null
+  total: number
+  byCabinet: Array<{
+    cabinetId: number
+    cabinetName: string
+    count: number
+  }>
+}
+
 /** Статус подписки на «Управление РК». */
 export interface CampaignManageAccessDto {
   enabled: boolean

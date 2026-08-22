@@ -16,6 +16,13 @@ import type {
   WbApiEventStatsDto,
   WbApiEventTypeStatsDto,
   WbApiEventCabinetStatsDto,
+  OzonApiEventDto,
+  OzonApiEventStatus,
+  OzonApiEventType,
+  OzonApiEventSortField,
+  OzonApiEventStatsDto,
+  OzonApiEventTypeStatsDto,
+  OzonApiEventCabinetStatsDto,
   AccountDeletionRequestAdminDto,
   MessageResponse,
   CabinetBillingOverviewDto,
@@ -131,6 +138,61 @@ export const adminApi = {
 
   cancelWbEvent: async (eventId: number): Promise<{ message: string }> => {
     const response = await apiClient.post<{ message: string }>(`/admin/wb-events/${eventId}/cancel`)
+    return response.data
+  },
+
+  getOzonEvents: async (params: {
+    page: number
+    size: number
+    status?: OzonApiEventStatus
+    eventType?: OzonApiEventType
+    cabinetId?: number
+    sortBy?: OzonApiEventSortField
+    sortDir?: SortDirection
+  }): Promise<PageResponse<OzonApiEventDto>> => {
+    const response = await apiClient.get<PageResponse<OzonApiEventDto>>('/admin/ozon-events', { params })
+    return response.data
+  },
+
+  getOzonEvent: async (eventId: number): Promise<OzonApiEventDto> => {
+    const response = await apiClient.get<OzonApiEventDto>(`/admin/ozon-events/${eventId}`)
+    return response.data
+  },
+
+  getOzonEventsStats: async (): Promise<OzonApiEventStatsDto> => {
+    const response = await apiClient.get<OzonApiEventStatsDto>('/admin/ozon-events/stats')
+    return response.data
+  },
+
+  getOzonEventsStatsByType: async (status?: OzonApiEventStatus): Promise<OzonApiEventTypeStatsDto> => {
+    const response = await apiClient.get<OzonApiEventTypeStatsDto>('/admin/ozon-events/stats-by-type', {
+      params: { status },
+    })
+    return response.data
+  },
+
+  getOzonEventsStatsByCabinet: async (
+    status?: OzonApiEventStatus,
+    eventType?: OzonApiEventType
+  ): Promise<OzonApiEventCabinetStatsDto> => {
+    const response = await apiClient.get<OzonApiEventCabinetStatsDto>('/admin/ozon-events/stats-by-cabinet', {
+      params: { status, eventType },
+    })
+    return response.data
+  },
+
+  retryOzonEvent: async (eventId: number): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>(`/admin/ozon-events/${eventId}/retry`)
+    return response.data
+  },
+
+  retryAllFailedFinalOzonEvents: async (): Promise<{ message: string; updatedCount: string }> => {
+    const response = await apiClient.post<{ message: string; updatedCount: string }>('/admin/ozon-events/retry-failed-final')
+    return response.data
+  },
+
+  cancelOzonEvent: async (eventId: number): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>(`/admin/ozon-events/${eventId}/cancel`)
     return response.data
   },
 
