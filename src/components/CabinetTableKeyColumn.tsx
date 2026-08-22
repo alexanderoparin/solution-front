@@ -30,6 +30,8 @@ export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
     updateKeyMutation,
   } = useCabinetTableRowAdmin()
 
+  const isOzon = cab.marketplaceType === 'OZON'
+
   const validTag =
     cab.apiKey?.isValid === true ? (
       <Tag color="success" style={tagStyle}>
@@ -47,23 +49,25 @@ export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', minWidth: 0, maxWidth: '100%' }}>
         <Input.Password
-          placeholder="Новый ключ"
+          placeholder={isOzon ? 'Новый Api-Key' : 'Новый ключ'}
           value={editKeyValue}
           onChange={(e) => setEditKeyValue(e.target.value)}
           style={{ width: '100%', maxWidth: 200, fontFamily: 'monospace', fontSize: 11 }}
           autoComplete="off"
           size="small"
         />
-        <Select
-          size="small"
-          value={editTokenType}
-          onChange={(value) => setEditTokenType(value)}
-          style={{ width: 130 }}
-          options={[
-            { value: 'BASIC', label: 'Базовый' },
-            { value: 'PERSONAL', label: 'Персональный' },
-          ]}
-        />
+        {!isOzon && (
+          <Select
+            size="small"
+            value={editTokenType}
+            onChange={(value) => setEditTokenType(value)}
+            style={{ width: 130 }}
+            options={[
+              { value: 'BASIC', label: 'Базовый' },
+              { value: 'PERSONAL', label: 'Персональный' },
+            ]}
+          />
+        )}
         <Space size={4}>
           <Button
             type="primary"
@@ -72,7 +76,7 @@ export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
               const key = editKeyValue.trim()
               const currentTokenType = cab.apiKey?.tokenType ?? 'BASIC'
               const hasKeyChange = key.length > 0
-              const hasTypeChange = editTokenType !== currentTokenType
+              const hasTypeChange = !isOzon && editTokenType !== currentTokenType
               if (!hasKeyChange && !hasTypeChange) {
                 message.warning('Нет изменений для сохранения')
                 return
@@ -114,14 +118,21 @@ export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
             </Text>
           )}
         </div>
-        <Tag color={tokenTypeColor(cab.apiKey?.tokenType ?? null)} style={tagStyle}>
-          {tokenTypeLabel(cab.apiKey?.tokenType ?? null)}
-        </Tag>
+        {!isOzon && (
+          <Tag color={tokenTypeColor(cab.apiKey?.tokenType ?? null)} style={tagStyle}>
+            {tokenTypeLabel(cab.apiKey?.tokenType ?? null)}
+          </Tag>
+        )}
+        {isOzon && (
+          <Tag color="blue" style={tagStyle}>
+            Ozon
+          </Tag>
+        )}
         <Tooltip
           title={
             validateCooldown > 0
               ? `Через ${validateCooldown} сек`
-              : 'Проверить ключ'
+              : isOzon ? 'Проверить Api-Key Ozon' : 'Проверить ключ'
           }
         >
           <Button
