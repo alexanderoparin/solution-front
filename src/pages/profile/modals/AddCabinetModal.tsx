@@ -14,7 +14,7 @@ const WB_TOKEN_HINT =
 const WB_TOKEN_TYPE_HINT = 'Важно указать правильный тип токена — от этого зависит корректная работа сервиса.'
 
 const OZON_HINT =
-  'Укажите Client-Id и Api-Key из личного кабинета Ozon (Seller API). Синхронизация данных Ozon подключится позже.'
+  'Укажите Client-Id и Api-Key из личного кабинета Ozon (Seller API). После создания кабинета можно запустить синхронизацию каталога.'
 
 interface AddCabinetModalProps {
   open: boolean
@@ -66,7 +66,7 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
     >
       <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
         {isOzon
-          ? 'Создайте кабинет Ozon. Данные маркетплейса пока не синхронизируются — только подключение ключей.'
+          ? 'Создайте кабинет Ozon. После создания запустите «Обновить данные» — загрузится каталог товаров.'
           : 'Укажите API-токен WB и его тип. Если не ввести название кабинета, оно подставится из ответа WB.'}
       </Text>
       <Form
