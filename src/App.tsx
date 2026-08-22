@@ -117,9 +117,10 @@ function AppRoutes() {
           element={token ? <AdminDeletionRequests /> : <Navigate to="/login" replace />}
         />
         <Route
-          path="/admin/wb-events"
+          path="/admin/api-events"
           element={token ? <AdminWbEvents /> : <Navigate to="/login" replace />}
         />
+        <Route path="/admin/wb-events" element={<Navigate to="/admin/api-events" replace />} />
         <Route
           path="/subscription/payment-unavailable"
           element={token ? <PaymentUnavailable /> : <Navigate to="/login" replace />}

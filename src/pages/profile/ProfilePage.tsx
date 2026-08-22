@@ -255,7 +255,7 @@ export default function ProfilePage() {
               >
                 <Button
                   icon={<ApiOutlined />}
-                  onClick={() => navigate('/admin/wb-events')}
+                  onClick={() => navigate('/admin/api-events')}
                   size="large"
                   style={profileAdminActionGridButtonStyle}
                 >
