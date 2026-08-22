@@ -8,7 +8,7 @@ import MarketplaceTypeTag from './MarketplaceTypeTag'
 import { landingColors } from '../styles/landing'
 import type { MarketplaceType } from '../types/api'
 
-interface CabinetSelectProps {
+export interface CabinetSelectProps {
   cabinets: { id: number; name: string; marketplaceType?: MarketplaceType | null }[]
   selectedCabinetId: number | null
   onCabinetChange: (cabinetId: number | null) => void

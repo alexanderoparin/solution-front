@@ -1,10 +1,10 @@
-import { useMemo, useState, type ComponentProps } from 'react'
+import { useMemo, useState } from 'react'
 import { Input, Spin, Alert } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import type { ArticleSummary } from '../types/analytics'
-import Header from '../components/Header'
+import Header, { type CabinetSelectProps, type WorkContextCabinetSelectProps } from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import {
   colors,
@@ -30,8 +30,8 @@ export interface OzonAnalyticsProductsProps {
   selectedCabinetId: number | null
   selectedSellerId?: number
   isAdmin: boolean
-  workContextCabinetSelect?: ComponentProps<typeof Header>['workContextCabinetSelect']
-  cabinetSelectProps?: ComponentProps<typeof Header>['cabinetSelectProps']
+  workContextCabinetSelect?: WorkContextCabinetSelectProps
+  cabinetSelectProps?: CabinetSelectProps
 }
 
 function filterArticles(articles: ArticleSummary[], query: string): ArticleSummary[] {
