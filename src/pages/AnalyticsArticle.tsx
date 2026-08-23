@@ -31,6 +31,7 @@ import * as XLSX from 'xlsx'
 import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
 import { linkifyNoteText } from '../utils/linkifyNoteText'
 import { NoteImagePreviewModal } from '../components/NoteImagePreviewModal'
+import OzonAnalyticsArticle from './OzonAnalyticsArticle'
 import FboFbsStocksSwitch, { type StocksFulfillment, stockRowKey } from '../components/FboFbsStocksSwitch'
 
 type NoteFileEntry = { uid: string; file: File }
@@ -217,6 +218,11 @@ export default function AnalyticsArticle() {
           loading: cabinetsLoading,
         }
       : undefined
+
+  const isOzonCabinet = useMemo(() => {
+    if (selectedCabinetId == null) return false
+    return cabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
+  }, [selectedCabinetId, cabinets])
 
   const getSelectedSellerId = useCallback((): number | undefined => {
     if (isAdmin) return selectedSellerId ?? undefined
@@ -866,6 +872,18 @@ export default function AnalyticsArticle() {
 
   const period1Data = aggregatePeriodData(period1[0], period1[1])
   const period2Data = aggregatePeriodData(period2[0], period2[1])
+
+  if (isOzonCabinet) {
+    return (
+      <OzonAnalyticsArticle
+        selectedCabinetId={selectedCabinetId}
+        selectedSellerId={selectedSellerId}
+        isAdmin={isAdmin}
+        workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
+        cabinetSelectProps={cabinetSelectProps}
+      />
+    )
+  }
 
   if (loading) {
     return (

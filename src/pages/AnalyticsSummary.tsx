@@ -563,25 +563,42 @@ export default function AnalyticsSummary() {
   // Синхронизация с «Товарами»: общий список включённых nmId или режим «ничего не выбрано»
   useEffect(() => {
     if (selectedCabinetId == null || originalArticles.length === 0) return
+    const exKey = excludedNmIdsStorageKey(selectedCabinetId, selectedSellerId)
+    const cabinetExcludedRaw = exKey ? localStorage.getItem(exKey) : null
+    const cabinetExcludedEmpty =
+      cabinetExcludedRaw == null || cabinetExcludedRaw === '' || cabinetExcludedRaw === '[]'
+
     if (readSharedFilterToNone(selectedCabinetId)) {
+      if (cabinetExcludedEmpty) {
+        writeSharedFilterToNone(selectedCabinetId, false)
+        setExcludedNmIds(new Set())
+        return
+      }
       setExcludedNmIds(new Set(originalArticles.map((a) => a.nmId)))
       return
     }
     try {
       const raw = localStorage.getItem(analyticsSharedKeys.selectedNmIds(selectedCabinetId))
-      if (raw == null) return
+      if (raw == null) {
+        setExcludedNmIds(new Set())
+        return
+      }
       const included = JSON.parse(raw) as number[]
       if (!Array.isArray(included)) return
       if (included.length === 0) {
-        if (!readSharedFilterToNone(selectedCabinetId)) {
-          setExcludedNmIds(new Set())
-        }
+        setExcludedNmIds(new Set())
+        return
+      }
+      const articleIdSet = new Set(originalArticles.map((a) => a.nmId))
+      const hasOverlap = included.some((id) => articleIdSet.has(id))
+      if (!hasOverlap) {
+        setExcludedNmIds(new Set())
         return
       }
       const excluded = new Set(originalArticles.filter((a) => !included.includes(a.nmId)).map((a) => a.nmId))
       setExcludedNmIds(excluded)
     } catch {
-      // игнорируем невалидные данные
+      setExcludedNmIds(new Set())
     }
   }, [selectedCabinetId, originalArticles])
 

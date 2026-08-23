@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Input, Spin, Alert, Tooltip } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
@@ -216,9 +217,23 @@ export default function OzonAnalyticsProducts({
                           <span style={{ color: colors.textMuted }}>—</span>
                         )}
                       </td>
-                      <td style={tdBase}>{a.productId ?? a.nmId}</td>
+                      <td style={tdBase}>
+                        <Link
+                          to={`/analytics/article/${a.productId ?? a.nmId}`}
+                          style={{ color: colors.primary, textDecoration: 'none' }}
+                        >
+                          {a.productId ?? a.nmId}
+                        </Link>
+                      </td>
                       <td style={tdBase}>{a.offerId ?? a.vendorCode ?? '—'}</td>
-                      <td style={tdBase}>{a.title || '—'}</td>
+                      <td style={tdBase}>
+                        <Link
+                          to={`/analytics/article/${a.productId ?? a.nmId}`}
+                          style={{ color: colors.textPrimary, textDecoration: 'none' }}
+                        >
+                          {a.title || '—'}
+                        </Link>
+                      </td>
                       <td style={{ ...tdBase, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                         <Tooltip title={a.priceDate ? `Снимок: ${dayjs(a.priceDate).format('DD.MM.YYYY')}` : undefined}>
                           <span>{formatMoney(a.price)}</span>

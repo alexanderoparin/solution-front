@@ -130,9 +130,9 @@ export function writeSharedProductsSort(cabinetId: number | null, sort: Products
   }
 }
 
-/** Ключ для списка исключённых nmId в Сводной: у админа/менеджера — по sellerId, у продавца/работника — по кабинету. */
+/** Ключ списка исключённых nmId: по кабинету (если выбран), иначе по sellerId. */
 export function excludedNmIdsStorageKey(cabinetId: number | null, sellerId: number | undefined): string | null {
+  if (cabinetId != null) return `analytics_excluded_nm_ids_cabinet_${cabinetId}`
   if (sellerId != null) return `analytics_excluded_nm_ids_${sellerId}`
-  if (cabinetId == null) return null
-  return `analytics_excluded_nm_ids_cabinet_${cabinetId}`
+  return null
 }
