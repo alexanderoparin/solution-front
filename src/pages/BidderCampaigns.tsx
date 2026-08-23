@@ -16,6 +16,7 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useCampaignManagePaywall } from '../hooks/useCampaignManagePaywall'
 import { bidderStatusColor, bidderStatusIcon, bidderStatusLabel, parseBidderStatus } from '../utils/bidderStatus'
+import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 type BidderStatusFilter = 'all' | 'running' | 'waiting' | 'off'
 
@@ -649,6 +650,7 @@ export default function BidderCampaigns() {
                             <Link
                               to={`/advertising/campaigns/${c.id}/manage`}
                               onClick={guardClick}
+                              data-tour-id={idx === 0 ? ONBOARDING_TARGETS.BIDDER_CAMPAIGN_NAME : undefined}
                               style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}
                             >
                               {c.name}
@@ -669,7 +671,10 @@ export default function BidderCampaigns() {
                           <td style={{ textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...FONT_PAGE_SMALL }}>
                             {formatNum(c.articlesCount)}
                           </td>
-                          <td style={{ textAlign: 'center', padding: '8px 10px', borderBottom: `1px solid ${colors.border}` }}>
+                          <td
+                            data-tour-id={idx === 0 ? ONBOARDING_TARGETS.BIDDER_STATUS : undefined}
+                            style={{ textAlign: 'center', padding: '8px 10px', borderBottom: `1px solid ${colors.border}` }}
+                          >
                             {renderStatusCell(c)}
                           </td>
                         </tr>

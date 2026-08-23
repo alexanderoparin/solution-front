@@ -3,6 +3,7 @@ import { analyticsProductsTour } from './analyticsProductsTour'
 import { analyticsSummaryTour } from './analyticsSummaryTour'
 import { advertisingCampaignsTour } from './advertisingCampaignsTour'
 import { advertisingCampaignDetailTour } from './advertisingCampaignDetailTour'
+import { advertisingBidderTour } from './advertisingBidderTour'
 import type { OnboardingTourDefinition, OnboardingTourId } from '../types'
 
 export const ONBOARDING_TOURS: Record<OnboardingTourId, OnboardingTourDefinition> = {
@@ -11,6 +12,7 @@ export const ONBOARDING_TOURS: Record<OnboardingTourId, OnboardingTourDefinition
   analyticsSummary: analyticsSummaryTour,
   advertisingCampaigns: advertisingCampaignsTour,
   advertisingCampaignDetail: advertisingCampaignDetailTour,
+  advertisingBidder: advertisingBidderTour,
 }
 
 export function getTour(tourId: OnboardingTourId): OnboardingTourDefinition {

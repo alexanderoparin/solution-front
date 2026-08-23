@@ -4,6 +4,7 @@ export type OnboardingTourId =
   | 'analyticsSummary'
   | 'advertisingCampaigns'
   | 'advertisingCampaignDetail'
+  | 'advertisingBidder'
 
 export type OnboardingPlacement = 'top' | 'bottom' | 'left' | 'right'
 

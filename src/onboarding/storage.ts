@@ -52,6 +52,7 @@ export function consumePendingTour(): OnboardingTourId | null {
       || value === 'analyticsSummary'
       || value === 'advertisingCampaigns'
       || value === 'advertisingCampaignDetail'
+      || value === 'advertisingBidder'
     ) {
       return value
     }

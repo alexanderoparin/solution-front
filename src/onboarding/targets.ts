@@ -44,4 +44,8 @@ export const ONBOARDING_TARGETS = {
   CAMPAIGN_DETAIL_STOCK_FULFILLMENT: 'onboarding-campaign-detail-stock-fulfillment',
   /** Треугольник раскрытия размеров склада */
   CAMPAIGN_DETAIL_STOCK_EXPAND: 'onboarding-campaign-detail-stock-expand',
+  /** Статус и переключатель автозапуска на /advertising/bidder */
+  BIDDER_STATUS: 'onboarding-bidder-status',
+  /** Название кампании (ссылка в настройки) */
+  BIDDER_CAMPAIGN_NAME: 'onboarding-bidder-campaign-name',
 } as const
