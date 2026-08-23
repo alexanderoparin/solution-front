@@ -5,6 +5,8 @@ export type StocksFulfillment = 'FBO' | 'FBS'
 interface FboFbsStocksSwitchProps {
   value: StocksFulfillment
   onChange: (value: StocksFulfillment) => void
+  /** data-tour-id для обучалки */
+  tourTargetId?: string
 }
 
 const OPTIONS: { id: StocksFulfillment; label: string }[] = [
@@ -15,11 +17,12 @@ const OPTIONS: { id: StocksFulfillment; label: string }[] = [
 /**
  * Компактный переключатель остатков FBO / FBS в шапке блока складов.
  */
-export default function FboFbsStocksSwitch({ value, onChange }: FboFbsStocksSwitchProps) {
+export default function FboFbsStocksSwitch({ value, onChange, tourTargetId }: FboFbsStocksSwitchProps) {
   return (
     <div
       role="group"
       aria-label="Тип остатков"
+      data-tour-id={tourTargetId}
       style={{
         display: 'inline-flex',
         flexShrink: 0,

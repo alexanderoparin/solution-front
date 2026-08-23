@@ -26,4 +26,22 @@ export const ONBOARDING_TARGETS = {
   CAMPAIGNS_PERIOD: 'onboarding-campaigns-period',
   /** Название кампании (ссылка в деталку) */
   CAMPAIGNS_NAME: 'onboarding-campaigns-name',
+  /** Артикулы в кампании */
+  CAMPAIGN_DETAIL_ARTICLES: 'onboarding-campaign-detail-articles',
+  /** Чекбоксы показателей (Общая / Реклама / Цены) */
+  CAMPAIGN_DETAIL_METRICS: 'onboarding-campaign-detail-metrics',
+  /** Переключатель «График» */
+  CAMPAIGN_DETAIL_CHART: 'onboarding-campaign-detail-chart',
+  /** Кнопка «Выгрузить» */
+  CAMPAIGN_DETAIL_EXPORT: 'onboarding-campaign-detail-export',
+  /** Ссылка «Управление →» */
+  CAMPAIGN_DETAIL_MANAGE: 'onboarding-campaign-detail-manage',
+  /** DatePicker периодов сравнения */
+  CAMPAIGN_DETAIL_COMPARE_PERIODS: 'onboarding-campaign-detail-compare-periods',
+  /** Select артикула для остатков */
+  CAMPAIGN_DETAIL_STOCK_ARTICLE: 'onboarding-campaign-detail-stock-article',
+  /** Переключатель FBO / FBS */
+  CAMPAIGN_DETAIL_STOCK_FULFILLMENT: 'onboarding-campaign-detail-stock-fulfillment',
+  /** Треугольник раскрытия размеров склада */
+  CAMPAIGN_DETAIL_STOCK_EXPAND: 'onboarding-campaign-detail-stock-expand',
 } as const

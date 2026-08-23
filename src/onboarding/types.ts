@@ -3,6 +3,7 @@ export type OnboardingTourId =
   | 'analyticsProducts'
   | 'analyticsSummary'
   | 'advertisingCampaigns'
+  | 'advertisingCampaignDetail'
 
 export type OnboardingPlacement = 'top' | 'bottom' | 'left' | 'right'
 
@@ -21,5 +22,7 @@ export interface OnboardingTourDefinition {
   pathPrefix: string
   /** Точное совпадение pathname (для /analytics без /analytics/products) */
   exactPath?: boolean
+  /** Регулярка pathname (приоритетнее pathPrefix/exactPath) */
+  pathPattern?: RegExp
   steps: OnboardingStep[]
 }

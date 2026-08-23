@@ -36,6 +36,7 @@ import { NoteImagePreviewModal } from '../components/NoteImagePreviewModal'
 import CampaignDetailViewSwitch, { type CampaignDetailViewMode } from '../components/CampaignDetailViewSwitch'
 import CampaignNormQueryClustersTable from '../components/CampaignNormQueryClustersTable'
 import FboFbsStocksSwitch, { type StocksFulfillment, stockRowKey } from '../components/FboFbsStocksSwitch'
+import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 dayjs.locale('ru')
 
@@ -1118,6 +1119,7 @@ export default function AdvertisingCampaignDetail() {
                 </span>
                 <Link
                   to={`/advertising/campaigns/${campaign.id}/manage`}
+                  data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_MANAGE}
                   style={{ marginLeft: 'auto', color: colors.primary, fontSize: 13, textDecoration: 'none' }}
                 >
                   Управление →
@@ -1176,9 +1178,14 @@ export default function AdvertisingCampaignDetail() {
                       <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Сохранение…</div>
                     )}
                   </div>
-                  {(campaign.articles ?? []).map((art) => (
-                    <ComboProductItem key={art.nmId} article={art} photoSize={COMBO_PHOTO_SIZE} />
-                  ))}
+                  <div
+                    data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_ARTICLES}
+                    style={{ display: 'flex', gap: spacing.lg, alignItems: 'flex-start' }}
+                  >
+                    {(campaign.articles ?? []).map((art) => (
+                      <ComboProductItem key={art.nmId} article={art} photoSize={COMBO_PHOTO_SIZE} />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1301,16 +1308,18 @@ export default function AdvertisingCampaignDetail() {
                       separator="→"
                       style={{ width: 220 }}
                     />
+                    <span data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_METRICS} style={{ display: 'inline-flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
                     <Checkbox checked={selectedFunnelKeys.includes('general')} onChange={() => toggleFunnel('general')}>Общая</Checkbox>
                     <Checkbox checked={selectedFunnelKeys.includes('advertising')} onChange={() => toggleFunnel('advertising')}>Реклама</Checkbox>
                     <Checkbox checked={selectedFunnelKeys.includes('pricing')} onChange={() => toggleFunnel('pricing')}>Цены</Checkbox>
+                    </span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, ...typography.body }}>
+                    <span data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_CHART} style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, ...typography.body }}>
                       <Switch checked={showChart} onChange={setShowChart} size="small" />
                       <span>График</span>
                     </span>
-                    <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportFunnelsExcel} disabled={!funnelDailyData?.length}>
+                    <Button type="primary" icon={<DownloadOutlined />} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_EXPORT} onClick={handleExportFunnelsExcel} disabled={!funnelDailyData?.length}>
                       Выгрузить
                     </Button>
                   </div>
@@ -1586,6 +1595,7 @@ export default function AdvertisingCampaignDetail() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}>
                     <span style={{ ...typography.body, fontWeight: 600, color: colors.textPrimary }}>Период {period}</span>
                     <DatePicker.RangePicker
+                      data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_COMPARE_PERIODS}
                       locale={locale.DatePicker}
                       value={periodDates}
                       onChange={(dates) => dates?.[0] && dates?.[1] && setPeriod([dates[0], dates[1]])}
@@ -1789,6 +1799,7 @@ export default function AdvertisingCampaignDetail() {
               <div style={{ flex: '1 1 280px', minWidth: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: spacing.xs }}>
                   <FboFbsStocksSwitch
+                    tourTargetId={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_STOCK_FULFILLMENT}
                     value={stocksFulfillment}
                     onChange={(next) => {
                       setStocksFulfillment(next)
@@ -1876,6 +1887,7 @@ export default function AdvertisingCampaignDetail() {
                   )
                   })()}
                   <Select
+                    data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_STOCK_ARTICLE}
                     value={selectedStockNmId ?? undefined}
                     onChange={(v) => setSelectedStockNmId(v ?? null)}
                     style={{ ...STOCKS_NM_SELECT_STYLE, marginLeft: 'auto' }}
@@ -1972,7 +1984,9 @@ export default function AdvertisingCampaignDetail() {
                                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = index % 2 === 0 ? colors.bgWhite : colors.bgGrayLight }}
                               >
                                 <td style={{ padding: spacing.md, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 12, display: 'flex', alignItems: 'center', gap: spacing.xs }}>
+                                  <span data-tour-id={index === 0 ? ONBOARDING_TARGETS.CAMPAIGN_DETAIL_STOCK_EXPAND : undefined} style={{ display: 'inline-flex', alignItems: 'center' }}>
                                   {isExpanded ? <DownOutlined style={{ fontSize: 12, color: colors.primary }} /> : <RightOutlined style={{ fontSize: 12, color: colors.textSecondary }} />}
+                                  </span>
                                   {s.onFire ? (
                                     <Tooltip title="Склад пострадал">
                                       <FireFilled style={{ fontSize: 12, color: '#EA580C' }} />

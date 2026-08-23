@@ -1,10 +1,17 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Spin, Input, Select, DatePicker, Button, Tooltip, message } from 'antd'
-import { SearchOutlined, CaretUpOutlined, CaretDownOutlined, SyncOutlined } from '@ant-design/icons'
+import { Spin, Input, Select, DatePicker, Button, Tooltip, message, Space } from 'antd'
+import {
+  SearchOutlined,
+  CaretUpOutlined,
+  CaretDownOutlined,
+  SyncOutlined,
+  PlayCircleOutlined,
+  PauseCircleOutlined,
+} from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 import type { Campaign } from '../types/analytics'
@@ -58,18 +65,37 @@ const COL_WIDTHS_PCT = {
   name: 11,
   id: 6,
   type: 8,
+  articlesCount: 7,
+  status: 8,
+  actions: 7,
+  views: 6,
+  clicks: 6,
+  ctr: 5,
+  cpc: 6,
+  costs: 6,
+  cart: 5,
+  orders: 5,
+} as const
+
+const OZON_COL_WIDTHS_PCT = {
+  createdAt: 8,
+  updatedAt: 8,
+  name: 14,
+  id: 7,
+  type: 9,
   articlesCount: 8,
   status: 9,
+  actions: 10,
   views: 7,
   clicks: 7,
   ctr: 6,
   cpc: 7,
   costs: 7,
-  cart: 6,
-  orders: 5,
+  orders: 6,
 } as const
 
 export default function AdvertisingCampaigns() {
+  const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role)
   const isAdmin = role === 'ADMIN'
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
@@ -136,6 +162,29 @@ export default function AdvertisingCampaigns() {
         ax.response?.data?.message ||
         'Не удалось поставить задачу обновления РК'
       message.error(msg)
+    },
+  })
+
+  const controlMutation = useMutation({
+    mutationFn: ({ campaignId, start }: { campaignId: number; start: boolean }) =>
+      start
+        ? analyticsApi.startCampaign(
+            campaignId,
+            isAdmin ? selectedSellerId ?? undefined : undefined,
+            selectedCabinetId ?? undefined,
+          )
+        : analyticsApi.pauseCampaign(
+            campaignId,
+            isAdmin ? selectedSellerId ?? undefined : undefined,
+            selectedCabinetId ?? undefined,
+          ),
+    onSuccess: (data, vars) => {
+      message.success(data.message ?? (vars.start ? 'Кампания запущена' : 'Кампания остановлена'))
+      void queryClient.invalidateQueries({ queryKey: ['advertising-campaigns'] })
+    },
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { error?: string; message?: string } } }
+      message.error(ax.response?.data?.error || ax.response?.data?.message || 'Не удалось изменить статус РК')
     },
   })
 
@@ -463,26 +512,35 @@ export default function AdvertisingCampaigns() {
           ) : (
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto', width: '100%' }}>
               <p style={{ fontSize: 11, color: colors.textSecondary, margin: `0 0 ${spacing.sm}px 0` }}>
-                Положили в корзину и заказали товаров — по рекламной статистике WB (fullstats) по артикулам РК.
+                {isOzonCabinet
+                  ? 'Метрики — дневная статистика Ozon Performance по кампании. Запуск/пауза — через Performance API.'
+                  : 'Положили в корзину и заказали товаров — по рекламной статистике WB (fullstats) по артикулам РК.'}
               </p>
               <div style={{ overflowX: 'auto', width: '100%' }}>
-              <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 980 }}>
+              <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: isOzonCabinet ? 900 : 980 }}>
                 <thead>
                   <tr style={{ backgroundColor: colors.bgGray }}>
-                    <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.createdAt}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('createdAt')}>Дата создания <SortIcon field="createdAt" /></th>
-                    <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.updatedAt}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('updatedAt')}>Дата обновления <SortIcon field="updatedAt" /></th>
-                    <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.name}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('name')}>Кампания <SortIcon field="name" /></th>
-                    <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.id}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('id')}>ID <SortIcon field="id" /></th>
-                    <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.type}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('type')}>Тип <SortIcon field="type" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.articlesCount}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('articlesCount')}>Количество артикулов <SortIcon field="articlesCount" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.status}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('status')}>Статус <SortIcon field="status" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.views}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('views')}>Просмотры <SortIcon field="views" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.clicks}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('clicks')}>Клики <SortIcon field="clicks" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.costs}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('costs')}>Затраты <SortIcon field="costs" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.cpc}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('cpc')}>CPC <SortIcon field="cpc" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.ctr}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('ctr')}>CTR <SortIcon field="ctr" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.cart}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('cart')}>Положили в корзину <SortIcon field="cart" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.orders}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('orders')}>Заказали товаров <SortIcon field="orders" /></th>
+                    <th style={{ ...thStyle, width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).createdAt}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('createdAt')}>Дата создания <SortIcon field="createdAt" /></th>
+                    <th style={{ ...thStyle, width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).updatedAt}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('updatedAt')}>Дата обновления <SortIcon field="updatedAt" /></th>
+                    <th style={{ ...thStyle, width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).name}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('name')}>Кампания <SortIcon field="name" /></th>
+                    <th style={{ ...thStyle, width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).id}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('id')}>ID <SortIcon field="id" /></th>
+                    <th style={{ ...thStyle, width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).type}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('type')}>Тип <SortIcon field="type" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).articlesCount}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('articlesCount')}>Количество артикулов <SortIcon field="articlesCount" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).status}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('status')}>Статус <SortIcon field="status" /></th>
+                    {isOzonCabinet && (
+                      <th style={{ ...thStyle, textAlign: 'center', width: `${OZON_COL_WIDTHS_PCT.actions}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }}>
+                        Управление
+                      </th>
+                    )}
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).views}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('views')}>Просмотры <SortIcon field="views" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).clicks}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('clicks')}>Клики <SortIcon field="clicks" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).costs}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('costs')}>Затраты <SortIcon field="costs" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).cpc}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('cpc')}>CPC <SortIcon field="cpc" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).ctr}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('ctr')}>CTR <SortIcon field="ctr" /></th>
+                    {!isOzonCabinet && (
+                      <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.cart}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('cart')}>Положили в корзину <SortIcon field="cart" /></th>
+                    )}
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).orders}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('orders')}>Заказали товаров <SortIcon field="orders" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -500,23 +558,31 @@ export default function AdvertisingCampaigns() {
                         e.currentTarget.style.backgroundColor = idx % 2 === 0 ? colors.bgWhite : colors.bgGrayLight
                       }}
                     >
-                      <td style={{ width: `${COL_WIDTHS_PCT.createdAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDate(c.createdAt)}</td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.updatedAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDateTime(c.updatedAt)}</td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.name}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>
-                        <Link
-                          to={`/advertising/campaigns/${c.id}`}
-                          data-tour-id={idx === 0 ? ONBOARDING_TARGETS.CAMPAIGNS_NAME : undefined}
-                          style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}
-                        >
-                          {c.name}
-                        </Link>
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).createdAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDate(c.createdAt)}</td>
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).updatedAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDateTime(c.updatedAt)}</td>
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).name}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>
+                        {isOzonCabinet ? (
+                          <span style={{ fontWeight: 500 }}>{c.name}</span>
+                        ) : (
+                          <Link
+                            to={`/advertising/campaigns/${c.id}`}
+                            data-tour-id={idx === 0 ? ONBOARDING_TARGETS.CAMPAIGNS_NAME : undefined}
+                            style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}
+                          >
+                            {c.name}
+                          </Link>
+                        )}
                       </td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.id}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL, color: colors.textSecondary }}>
-                        <Link to={`/advertising/campaigns/${c.id}`} style={{ color: colors.textSecondary, textDecoration: 'none' }}>{c.id}</Link>
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).id}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL, color: colors.textSecondary }}>
+                        {isOzonCabinet ? (
+                          c.id
+                        ) : (
+                          <Link to={`/advertising/campaigns/${c.id}`} style={{ color: colors.textSecondary, textDecoration: 'none' }}>{c.id}</Link>
+                        )}
                       </td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.type}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.type || '-'}</td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.articlesCount}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.articlesCount)}</td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.status}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle }}>
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).type}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.type || '-'}</td>
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).articlesCount}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.articlesCount)}</td>
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).status}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle }}>
                         <span
                           style={{
                             display: 'inline-block',
@@ -532,13 +598,45 @@ export default function AdvertisingCampaigns() {
                           {statusLabel(c)}
                         </span>
                       </td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.views}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.views)}</td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.clicks}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.clicks)}</td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.costs}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.costs != null ? formatCur(c.costs) : '-'}</td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.cpc}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.cpc != null ? formatCur(c.cpc) : '-'}</td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.ctr}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.ctr != null ? formatPct(c.ctr) : '-'}</td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.cart}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.cart)}</td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.orders}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.orders)}</td>
+                      {isOzonCabinet && (
+                        <td style={{ width: `${OZON_COL_WIDTHS_PCT.actions}%`, textAlign: 'center', padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle }}>
+                          <Space size={4}>
+                            {!isActive(c) && (
+                              <Tooltip title="Запустить кампанию">
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<PlayCircleOutlined style={{ color: colors.success }} />}
+                                  loading={controlMutation.isPending && controlMutation.variables?.campaignId === c.id}
+                                  disabled={controlMutation.isPending}
+                                  onClick={() => controlMutation.mutate({ campaignId: c.id, start: true })}
+                                />
+                              </Tooltip>
+                            )}
+                            {isActive(c) && (
+                              <Tooltip title="Остановить кампанию">
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<PauseCircleOutlined style={{ color: colors.error }} />}
+                                  loading={controlMutation.isPending && controlMutation.variables?.campaignId === c.id}
+                                  disabled={controlMutation.isPending}
+                                  onClick={() => controlMutation.mutate({ campaignId: c.id, start: false })}
+                                />
+                              </Tooltip>
+                            )}
+                          </Space>
+                        </td>
+                      )}
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).views}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.views)}</td>
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).clicks}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.clicks)}</td>
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).costs}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.costs != null ? formatCur(c.costs) : '-'}</td>
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).cpc}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.cpc != null ? formatCur(c.cpc) : '-'}</td>
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).ctr}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{c.ctr != null ? formatPct(c.ctr) : '-'}</td>
+                      {!isOzonCabinet && (
+                        <td style={{ width: `${COL_WIDTHS_PCT.cart}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.cart)}</td>
+                      )}
+                      <td style={{ width: `${(isOzonCabinet ? OZON_COL_WIDTHS_PCT : COL_WIDTHS_PCT).orders}%`, textAlign: 'center', padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatNum(c.orders)}</td>
                     </tr>
                   ))}
                 </tbody>

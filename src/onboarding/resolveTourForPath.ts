@@ -3,6 +3,9 @@ import type { OnboardingTourDefinition, OnboardingTourId } from './types'
 
 /** Проверяет, что текущий pathname подходит для тура. */
 export function matchesTourPath(pathname: string, tour: OnboardingTourDefinition): boolean {
+  if (tour.pathPattern != null) {
+    return tour.pathPattern.test(pathname)
+  }
   if (tour.exactPath) {
     return pathname === tour.pathPrefix
   }
@@ -19,6 +22,9 @@ export function resolveTourIdForPath(pathname: string): OnboardingTourId {
   }
   if (pathname === '/advertising/campaigns') {
     return 'advertisingCampaigns'
+  }
+  if (/^\/advertising\/campaigns\/[^/]+$/.test(pathname)) {
+    return 'advertisingCampaignDetail'
   }
   if (pathname.startsWith('/profile')) {
     return 'profile'
