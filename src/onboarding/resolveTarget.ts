@@ -59,6 +59,6 @@ export function scrollTargetsIntoView(elements: HTMLElement[]): void {
   const centerY = rect.top + rect.height / 2
   const viewportH = window.innerHeight
   if (centerY < 80 || centerY > viewportH - 80) {
-    elements[0].scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
+    elements[0].scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' })
   }
 }

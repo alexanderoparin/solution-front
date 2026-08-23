@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from 'antd'
 import { getTour } from '../../onboarding/tours'
@@ -8,6 +8,8 @@ import type { OnboardingPlacement } from '../../onboarding/types'
 import { useOnboardingStore } from '../../store/onboardingStore'
 
 const OVERLAY_Z = 10050
+/** После смены шага блокируем клик по оверлею — иначе «Далее» после scrollIntoView попадает в skipTour. */
+const OVERLAY_CLICK_GUARD_MS = 450
 
 interface Rect extends TargetRect {}
 
@@ -81,6 +83,10 @@ export default function OnboardingTour() {
   const stepIndex = useOnboardingStore((s) => s.stepIndex)
   const nextStep = useOnboardingStore((s) => s.nextStep)
   const skipTour = useOnboardingStore((s) => s.skipTour)
+  const completeTour = useOnboardingStore((s) => s.completeTour)
+
+  const overlayGuardUntilRef = useRef(0)
+  const [overlayClickBlocked, setOverlayClickBlocked] = useState(false)
 
   const [targetRect, setTargetRect] = useState<Rect | null>(null)
   const [tooltipLayout, setTooltipLayout] = useState<TooltipLayout | null>(null)
@@ -124,17 +130,27 @@ export default function OnboardingTour() {
     const tour = getTour(activeTourId)
     const step = tour.steps[stepIndex]
     if (!step) {
-      skipTour()
+      if (stepIndex >= tour.steps.length) {
+        completeTour()
+      }
       return
     }
+    overlayGuardUntilRef.current = Date.now() + OVERLAY_CLICK_GUARD_MS
+    setOverlayClickBlocked(true)
+    const unblockTimer = window.setTimeout(() => {
+      setOverlayClickBlocked(false)
+    }, OVERLAY_CLICK_GUARD_MS)
     const el = resolveTourTargetElements(step)
     if (el.length > 0) {
       scrollTargetsIntoView(el)
     }
     const timer = window.setTimeout(remeasure, 280)
     remeasure()
-    return () => window.clearTimeout(timer)
-  }, [activeTourId, stepIndex, remeasure, skipTour])
+    return () => {
+      window.clearTimeout(timer)
+      window.clearTimeout(unblockTimer)
+    }
+  }, [activeTourId, stepIndex, remeasure, completeTour])
 
   useEffect(() => {
     if (activeTourId == null) {
@@ -149,6 +165,13 @@ export default function OnboardingTour() {
     }
   }, [activeTourId, remeasure])
 
+  const handleOverlayClick = useCallback(() => {
+    if (overlayClickBlocked || Date.now() < overlayGuardUntilRef.current) {
+      return
+    }
+    skipTour()
+  }, [overlayClickBlocked, skipTour])
+
   if (activeTourId == null || typeof document === 'undefined') {
     return null
   }
@@ -161,12 +184,13 @@ export default function OnboardingTour() {
     <>
       <div
         role="presentation"
-        onClick={skipTour}
+        onClick={handleOverlayClick}
         style={{
           position: 'fixed',
           inset: 0,
           zIndex: OVERLAY_Z,
           background: targetRect ? 'transparent' : 'rgba(15, 23, 42, 0.45)',
+          pointerEvents: overlayClickBlocked ? 'none' : 'auto',
         }}
       />
       {targetRect && (
@@ -234,7 +258,16 @@ export default function OnboardingTour() {
               >
                 пропустить
               </button>
-              <Button type="primary" size="small" onClick={nextStep} style={{ background: '#7C3AED', borderColor: '#7C3AED' }}>
+              <Button
+                type="primary"
+                size="small"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  nextStep()
+                }}
+                style={{ background: '#7C3AED', borderColor: '#7C3AED' }}
+              >
                 {isLast ? 'Готово' : 'Далее'}
               </Button>
             </div>
