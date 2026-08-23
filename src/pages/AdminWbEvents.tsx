@@ -149,6 +149,7 @@ const OZON_TYPE_LABELS: Record<OzonApiEventType, string> = {
   STOCKS_CABINET: 'Остатки (кабинет)',
   ANALYTICS_DATA_CABINET: 'Аналитика продаж (кабинет)',
   CAMPAIGNS_CABINET: 'Реклама: список РК (Performance)',
+  CAMPAIGN_STATS_CABINET: 'Реклама: статистика РК (Performance)',
 }
 
 function getTypeLabel(marketplace: Marketplace, eventType: string): string {
@@ -182,6 +183,7 @@ const OZON_TYPE_COLORS: Record<OzonApiEventType, string> = {
   STOCKS_CABINET: 'blue',
   ANALYTICS_DATA_CABINET: 'cyan',
   CAMPAIGNS_CABINET: 'purple',
+  CAMPAIGN_STATS_CABINET: 'magenta',
 }
 
 function getTypeColor(marketplace: Marketplace, eventType: string): string {

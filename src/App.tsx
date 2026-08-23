@@ -34,6 +34,7 @@ import InviteAccept from './pages/InviteAccept'
 import Footer from './components/Footer'
 import AccessStatusPrefetch from './components/AccessStatusPrefetch'
 import CampaignManageSubscriptionModals from './components/campaignManageSubscription/CampaignManageSubscriptionModals'
+import OnboardingProvider from './components/onboarding/OnboardingProvider'
 import { useAuthStore } from './store/authStore'
 
 function AppRoutes() {
@@ -152,6 +153,7 @@ function App() {
     <BrowserRouter>
       <AccessStatusPrefetch />
       {token ? <CampaignManageSubscriptionModals /> : null}
+      {token ? <OnboardingProvider /> : null}
       <AppRoutes />
     </BrowserRouter>
   )

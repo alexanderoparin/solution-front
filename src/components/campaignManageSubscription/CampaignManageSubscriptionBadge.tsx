@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useCampaignManageAccess } from '../../hooks/useCampaignManageAccess'
 import { useCampaignManageSubscriptionUi } from '../../store/campaignManageSubscriptionUi'
+import { ONBOARDING_TARGETS } from '../../onboarding/targets'
 import { campaignManageDaysLabel } from '../../utils/campaignManageSubscription'
 
 /**
@@ -35,6 +36,7 @@ export default function CampaignManageSubscriptionBadge() {
 
   return (
     <div
+      data-tour-id={ONBOARDING_TARGETS.SUBSCRIPTION_BADGE}
       style={{
         background: 'rgba(124, 58, 237, 0.22)',
         border: '1px solid rgba(167, 139, 250, 0.4)',

@@ -35,6 +35,7 @@ import type { GrantedCabinetRowDto, OwnedCabinetRowDto, PendingCabinetInvitation
 import MarketplaceTypeTag from '../../components/MarketplaceTypeTag'
 import { invitationsApi } from '../../api/invitations'
 import { getRequestFailureDescription } from '../../utils/requestError'
+import { ONBOARDING_TARGETS } from '../../onboarding/targets'
 
 dayjs.locale('ru')
 
@@ -529,7 +530,7 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
         />
       </div>
 
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 24 }} data-tour-id={ONBOARDING_TARGETS.ADD_CABINET}>
         <NoCabinetsPlaceholder
           variant="button"
           withModal={false}
@@ -575,7 +576,7 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
             )}
           </section>
 
-          <section>
+          <section data-tour-id={ONBOARDING_TARGETS.GRANTED_ACCESS}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <Title level={5} style={{ margin: 0 }}>
                 Доступ предоставлен

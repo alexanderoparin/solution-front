@@ -6,6 +6,8 @@ import SiteLogo from './SiteLogo'
 import CampaignManageSubscriptionBadge from './campaignManageSubscription/CampaignManageSubscriptionBadge'
 import MarketplaceTypeTag from './MarketplaceTypeTag'
 import { landingColors } from '../styles/landing'
+import OnboardingHelpButton from './onboarding/OnboardingHelpButton'
+import { ONBOARDING_TARGETS } from '../onboarding/targets'
 import type { MarketplaceType } from '../types/api'
 
 export interface CabinetSelectProps {
@@ -152,7 +154,7 @@ export default function Header({
         zIndex: 100,
       }}
     >
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }} data-tour-id={ONBOARDING_TARGETS.MAIN_NAV}>
         <SiteLogo variant="wordmark" size={32} to="/analytics/products" title="Аналитика — Товары" />
 
         {/* Аналитика */}
@@ -301,6 +303,7 @@ export default function Header({
           )
         )}
         <CampaignManageSubscriptionBadge />
+        <OnboardingHelpButton />
         <Link
           to="/profile"
           className="ant-btn ant-btn-text ant-btn-color-default ant-btn-variant-text"

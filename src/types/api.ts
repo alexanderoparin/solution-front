@@ -479,6 +479,7 @@ export type OzonApiEventType =
   | 'STOCKS_CABINET'
   | 'ANALYTICS_DATA_CABINET'
   | 'CAMPAIGNS_CABINET'
+  | 'CAMPAIGN_STATS_CABINET'
 
 export type OzonApiEventSortField =
   | 'ID'

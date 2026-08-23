@@ -15,6 +15,7 @@ import { cabinetsApi, getStoredCabinetId } from '../../api/cabinets'
 import { subscriptionApi } from '../../api/subscription'
 import { useCampaignManageSubscriptionUi } from '../../store/campaignManageSubscriptionUi'
 import AbTestPacksModal from '../../components/subscription/AbTestPacksModal'
+import { ONBOARDING_TARGETS } from '../../onboarding/targets'
 import type { CabinetBillingServiceStatusDto, ProfileSubscriptionSummary } from '../../types/api'
 
 dayjs.locale('ru')
@@ -108,6 +109,7 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
   return (
     <>
       <Card
+        data-tour-id={ONBOARDING_TARGETS.SUBSCRIPTION_CARD}
         style={{
           borderRadius: 16,
           border: `1px solid ${border}`,
