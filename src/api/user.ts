@@ -200,6 +200,13 @@ export const userApi = {
     return response.data
   },
 
+  triggerOzonAnalyticsUpdate: async (cabinetId: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(
+      `/users/cabinets/${cabinetId}/trigger-ozon-analytics-update`,
+    )
+    return response.data
+  },
+
   /**
    * Кабинеты с API-ключом в зоне видимости (шапка: админ/менеджер), по алфавиту названия.
    */

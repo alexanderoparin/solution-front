@@ -1,12 +1,15 @@
 import { useMemo, useState, useCallback, type CSSProperties } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { Spin, Alert, DatePicker } from 'antd'
+import { Spin, Alert, DatePicker, Button, message } from 'antd'
+import { ReloadOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import type { ArticleResponse, Period } from '../types/analytics'
 import Header, { type CabinetSelectProps, type WorkContextCabinetSelectProps } from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
+import OzonAnalyticsChart from '../components/OzonAnalyticsChart'
+import { userApi } from '../api/user'
 import {
   colors,
   typography,
@@ -82,6 +85,7 @@ export default function OzonAnalyticsArticle({
   }, [])
 
   const [dailyRange, setDailyRange] = useState<[Dayjs, Dayjs]>(defaultDailyRange)
+  const [analyticsRefreshLoading, setAnalyticsRefreshLoading] = useState(false)
 
   const dailyFrom = dailyRange[0].format('YYYY-MM-DD')
   const dailyTo = dailyRange[1].format('YYYY-MM-DD')
@@ -125,6 +129,22 @@ export default function OzonAnalyticsArticle({
     },
     [],
   )
+
+  const handleRefreshAnalytics = useCallback(async () => {
+    if (selectedCabinetId == null) return
+    setAnalyticsRefreshLoading(true)
+    try {
+      const res = await userApi.triggerOzonAnalyticsUpdate(selectedCabinetId)
+      message.success(res.message ?? 'Синхронизация аналитики поставлена в очередь')
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        'Не удалось запустить синхронизацию'
+      message.error(msg)
+    } finally {
+      setAnalyticsRefreshLoading(false)
+    }
+  }, [selectedCabinetId])
 
   if (selectedCabinetId == null) {
     return (
@@ -251,14 +271,24 @@ export default function OzonAnalyticsArticle({
                 }}
               >
                 <h2 style={{ ...typography.h3, margin: 0 }}>По дням</h2>
-                <RangePicker
-                  value={dailyRange}
-                  onChange={handleDailyRangeChange}
-                  format="DD.MM.YYYY"
-                  allowClear={false}
-                  maxDate={dayjs().subtract(1, 'day')}
-                />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' }}>
+                  <RangePicker
+                    value={dailyRange}
+                    onChange={handleDailyRangeChange}
+                    format="DD.MM.YYYY"
+                    allowClear={false}
+                    maxDate={dayjs().subtract(1, 'day')}
+                  />
+                  <Button
+                    icon={<ReloadOutlined />}
+                    loading={analyticsRefreshLoading}
+                    onClick={() => void handleRefreshAnalytics()}
+                  >
+                    Синхронизировать аналитику
+                  </Button>
+                </div>
               </div>
+              <OzonAnalyticsChart dailyData={data.dailyData ?? []} dateRange={dailyRange} />
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
                   <thead>
