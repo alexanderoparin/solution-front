@@ -104,9 +104,11 @@ export default function CabinetDetailPage() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [tokenEditOpen, setTokenEditOpen] = useState(false)
+  const [performanceEditOpen, setPerformanceEditOpen] = useState(false)
   const [validateCooldown, setValidateCooldown] = useState(0)
   const [editForm] = Form.useForm<{ name: string }>()
   const [tokenForm] = Form.useForm<{ apiKey: string; tokenType: CabinetTokenType }>()
+  const [performanceForm] = Form.useForm<{ ozonPerformanceClientId: string; ozonPerformanceClientSecret: string }>()
 
   useEffect(() => {
     if (validateCooldown <= 0) return
@@ -142,6 +144,7 @@ export default function CabinetDetailPage() {
       invalidateCabinet()
       setEditOpen(false)
       setTokenEditOpen(false)
+      setPerformanceEditOpen(false)
     },
     onError: (err: unknown) => {
       const ax = err as { response?: { data?: { error?: string; message?: string } } }
@@ -172,6 +175,20 @@ export default function CabinetDetailPage() {
     onError: (err: unknown) => {
       const ax = err as { response?: { data?: { error?: string; message?: string } } }
       message.error(ax.response?.data?.error ?? ax.response?.data?.message ?? 'Ошибка проверки ключа')
+      invalidateCabinet()
+    },
+  })
+
+  const validatePerformanceMutation = useMutation({
+    mutationFn: () => cabinetsApi.validateOzonPerformance(cabinetId),
+    onMutate: () => setValidateCooldown(30),
+    onSuccess: (data) => {
+      message.success(data.message || 'Performance credentials проверены')
+      invalidateCabinet()
+    },
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { error?: string; message?: string } } }
+      message.error(ax.response?.data?.error ?? ax.response?.data?.message ?? 'Ошибка проверки Performance')
       invalidateCabinet()
     },
   })
@@ -216,6 +233,14 @@ export default function CabinetDetailPage() {
       tokenType: cab.apiKey?.tokenType ?? 'BASIC',
     })
     setTokenEditOpen(true)
+  }
+
+  const openEditPerformance = (cab: CabinetDto) => {
+    performanceForm.setFieldsValue({
+      ozonPerformanceClientId: cab.apiKey?.ozonPerformanceClientId ?? '',
+      ozonPerformanceClientSecret: '',
+    })
+    setPerformanceEditOpen(true)
   }
 
   const confirmDelete = (cab: CabinetDto) => {
@@ -480,6 +505,56 @@ export default function CabinetDetailPage() {
                   <SyncOutlined style={{ color: accent, fontSize: 16 }} />
                 </div>
               </InfoBlock>
+
+              {cabinet.marketplaceType === 'OZON' && (
+                <InfoBlock
+                  label="Performance API (реклама)"
+                  action={
+                    <Button block icon={<EditOutlined />} onClick={() => openEditPerformance(cabinet)}>
+                      Изменить credentials
+                    </Button>
+                  }
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <Text>
+                      client_id:{' '}
+                      <Text code>{cabinet.apiKey?.ozonPerformanceClientId ?? 'не задан'}</Text>
+                    </Text>
+                    <Text type="secondary">
+                      client_secret: {cabinet.apiKey?.ozonPerformanceConfigured ? 'задан' : 'не задан'}
+                    </Text>
+                    {cabinet.apiKey?.ozonPerformanceValidationError && (
+                      <Text type="danger" style={{ fontSize: 12 }}>
+                        {cabinet.apiKey.ozonPerformanceValidationError}
+                      </Text>
+                    )}
+                    <Tooltip
+                      title={
+                        validateCooldown > 0
+                          ? `Следующая проверка через ${validateCooldown} сек`
+                          : 'Проверка client_id и client_secret через Ozon Performance API'
+                      }
+                    >
+                      <Button
+                        block
+                        icon={<SearchOutlined />}
+                        loading={validatePerformanceMutation.isPending}
+                        disabled={validateCooldown > 0}
+                        onClick={() => validatePerformanceMutation.mutate()}
+                      >
+                        Проверить Performance
+                      </Button>
+                    </Tooltip>
+                    {cabinet.apiKey?.ozonPerformanceIsValid === true ? (
+                      <Tag color="success" style={{ width: 'fit-content', margin: 0 }}>Валидны</Tag>
+                    ) : cabinet.apiKey?.ozonPerformanceIsValid === false ? (
+                      <Tag color="error" style={{ width: 'fit-content', margin: 0 }}>Невалидны</Tag>
+                    ) : (
+                      <Tag style={{ width: 'fit-content', margin: 0 }}>Не проверены</Tag>
+                    )}
+                  </div>
+                </InfoBlock>
+              )}
             </div>
 
             {cabinet.scopeStatuses && cabinet.scopeStatuses.length > 0 && (
@@ -601,6 +676,53 @@ export default function CabinetDetailPage() {
                 { value: 'PERSONAL', label: 'Персональный' },
               ]}
             />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="Performance API credentials"
+        open={performanceEditOpen}
+        destroyOnClose
+        onCancel={() => setPerformanceEditOpen(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setPerformanceEditOpen(false)}>
+            Отмена
+          </Button>,
+          <Button
+            key="save"
+            type="primary"
+            loading={updateMutation.isPending}
+            style={{ backgroundColor: accent, borderColor: accent }}
+            onClick={() => performanceForm.submit()}
+          >
+            Сохранить
+          </Button>,
+        ]}
+      >
+        <Form
+          form={performanceForm}
+          layout="vertical"
+          onFinish={(values) => {
+            updateMutation.mutate({
+              ...(values.ozonPerformanceClientId?.trim()
+                ? { ozonPerformanceClientId: values.ozonPerformanceClientId.trim() }
+                : {}),
+              ...(values.ozonPerformanceClientSecret?.trim()
+                ? { ozonPerformanceClientSecret: values.ozonPerformanceClientSecret.trim() }
+                : {}),
+            })
+          }}
+        >
+          <Form.Item name="ozonPerformanceClientId" label="client_id">
+            <Input placeholder="Performance client_id" autoComplete="off" />
+          </Form.Item>
+          <Form.Item
+            name="ozonPerformanceClientSecret"
+            label="client_secret"
+            extra="Оставьте пустым, если меняете только client_id"
+          >
+            <Input.Password placeholder="Performance client_secret" autoComplete="new-password" />
           </Form.Item>
         </Form>
       </Modal>

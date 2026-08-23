@@ -39,6 +39,11 @@ export const cabinetsApi = {
     return response.data
   },
 
+  validateOzonPerformance: async (id: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(`/cabinets/${id}/ozon-performance/validate`)
+    return response.data
+  },
+
   delete: async (id: number): Promise<void> => {
     await apiClient.delete(`/cabinets/${id}`)
   },

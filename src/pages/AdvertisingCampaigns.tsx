@@ -104,6 +104,12 @@ export default function AdvertisingCampaigns() {
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
 
+  const selectedCabinetMarketplace = useMemo(() => {
+    const cab = cabinets.find((c) => c.id === selectedCabinetId)
+    return cab?.marketplaceType ?? 'WB'
+  }, [cabinets, selectedCabinetId])
+  const isOzonCabinet = selectedCabinetMarketplace === 'OZON'
+
   const dateFromStr = dateRange[0].format('YYYY-MM-DD')
   const dateToStr = dateRange[1].format('YYYY-MM-DD')
 
@@ -152,7 +158,9 @@ export default function AdvertisingCampaigns() {
   const emptyStateMessage =
     isAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0
       ? 'Нет кабинетов с API-ключом'
-      : backendErrorMessage ?? 'Нет рекламных кампаний за выбранный период'
+      : isOzonCabinet
+        ? 'Нет рекламных кампаний. Настройте Performance credentials и нажмите «Синхронизировать».'
+        : backendErrorMessage ?? 'Нет рекламных кампаний за выбранный период'
 
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
@@ -296,7 +304,8 @@ export default function AdvertisingCampaigns() {
   const formatCur = (v: number | null | undefined) =>
     v == null ? '-' : v.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const isActive = (c: Campaign) => c.status === 9
-  const statusLabel = (c: Campaign) => (isActive(c) ? 'активна' : 'приостановлена')
+  const statusLabel = (c: Campaign) =>
+    c.statusName ?? (isActive(c) ? 'активна' : 'приостановлена')
   const statusBg = (c: Campaign) => (isActive(c) ? colors.success : colors.error)
   const statusColor = '#fff'
 

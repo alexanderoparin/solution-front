@@ -183,6 +183,13 @@ export interface CabinetApiKeyInfo {
   lastDataUpdateRequestedAt: string | null
   /** Время последнего успешного завершения обновления остатков. */
   lastStocksUpdateAt?: string | null
+  /** Ozon Performance API client_id. */
+  ozonPerformanceClientId?: string | null
+  /** Задан ли client_secret (сам secret не отдаётся). */
+  ozonPerformanceConfigured?: boolean | null
+  ozonPerformanceIsValid?: boolean | null
+  ozonPerformanceLastValidatedAt?: string | null
+  ozonPerformanceValidationError?: string | null
 }
 /** Статус доступа к категории WB API по кабинету (результат последнего блока обновлений). */
 export interface ScopeStatusDto {
@@ -212,6 +219,8 @@ export interface CabinetDto {
   lastStocksUpdateRequestedAt?: string | null
   /** Время последнего успешного завершения обновления остатков. */
   lastStocksUpdateAt?: string | null
+  /** Время последней синхронизации списка РК Ozon. */
+  lastOzonCampaignsSyncAt?: string | null
   apiKey: CabinetApiKeyInfo | null
   /** Статусы доступа к категориям WB API по кабинету. */
   scopeStatuses?: ScopeStatusDto[]
@@ -469,6 +478,7 @@ export type OzonApiEventType =
   | 'PRICES_CABINET'
   | 'STOCKS_CABINET'
   | 'ANALYTICS_DATA_CABINET'
+  | 'CAMPAIGNS_CABINET'
 
 export type OzonApiEventSortField =
   | 'ID'
@@ -605,6 +615,8 @@ export interface UpdateCabinetRequest {
   name?: string
   apiKey?: string
   tokenType?: CabinetTokenType
+  ozonPerformanceClientId?: string
+  ozonPerformanceClientSecret?: string
 }
 
 export type CabinetTokenType = 'PERSONAL' | 'BASIC'

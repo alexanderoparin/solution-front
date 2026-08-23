@@ -207,6 +207,20 @@ export const userApi = {
     return response.data
   },
 
+  triggerOzonCampaignsSync: async (cabinetId: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(
+      `/users/cabinets/${cabinetId}/trigger-ozon-campaigns-sync`,
+    )
+    return response.data
+  },
+
+  validateOzonPerformance: async (cabinetId: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(
+      `/users/cabinets/${cabinetId}/validate-ozon-performance`,
+    )
+    return response.data
+  },
+
   /**
    * Кабинеты с API-ключом в зоне видимости (шапка: админ/менеджер), по алфавиту названия.
    */
