@@ -2,19 +2,14 @@ import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from 'antd'
 import { getTour } from '../../onboarding/tours'
-import { resolveTourTarget, scrollTargetIntoView } from '../../onboarding/resolveTarget'
+import { resolveTourTargetElements, measureTargetRect, scrollTargetsIntoView } from '../../onboarding/resolveTarget'
+import type { TargetRect } from '../../onboarding/resolveTarget'
 import type { OnboardingPlacement } from '../../onboarding/types'
 import { useOnboardingStore } from '../../store/onboardingStore'
 
 const OVERLAY_Z = 10050
-const HIGHLIGHT_PADDING = 8
 
-interface Rect {
-  top: number
-  left: number
-  width: number
-  height: number
-}
+interface Rect extends TargetRect {}
 
 interface TooltipLayout {
   top: number
@@ -22,14 +17,8 @@ interface TooltipLayout {
   placement: OnboardingPlacement
 }
 
-function measureTarget(el: HTMLElement): Rect {
-  const r = el.getBoundingClientRect()
-  return {
-    top: r.top - HIGHLIGHT_PADDING,
-    left: r.left - HIGHLIGHT_PADDING,
-    width: r.width + HIGHLIGHT_PADDING * 2,
-    height: r.height + HIGHLIGHT_PADDING * 2,
-  }
+function measureTargets(elements: HTMLElement[]): Rect | null {
+  return measureTargetRect(elements)
 }
 
 function computeTooltipLayout(target: Rect, placement: OnboardingPlacement): TooltipLayout {
@@ -107,8 +96,8 @@ export default function OnboardingTour() {
       return
     }
     setStepText(step.text)
-    const el = resolveTourTarget(step)
-    if (!el) {
+    const elements = resolveTourTargetElements(step)
+    if (elements.length === 0) {
       setTargetRect(null)
       setTooltipLayout({
         top: Math.max(12, window.innerHeight - 200),
@@ -117,7 +106,10 @@ export default function OnboardingTour() {
       })
       return
     }
-    const rect = measureTarget(el)
+    const rect = measureTargets(elements)
+    if (!rect) {
+      return
+    }
     const layout = computeTooltipLayout(rect, step.placement ?? 'bottom')
     setTargetRect(rect)
     setTooltipLayout(layout)
@@ -135,9 +127,9 @@ export default function OnboardingTour() {
       skipTour()
       return
     }
-    const el = resolveTourTarget(step)
-    if (el) {
-      scrollTargetIntoView(el)
+    const el = resolveTourTargetElements(step)
+    if (el.length > 0) {
+      scrollTargetsIntoView(el)
     }
     const timer = window.setTimeout(remeasure, 280)
     remeasure()

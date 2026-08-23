@@ -7,6 +7,7 @@ import CampaignManageSubscriptionBadge from './campaignManageSubscription/Campai
 import MarketplaceTypeTag from './MarketplaceTypeTag'
 import { landingColors } from '../styles/landing'
 import OnboardingHelpButton from './onboarding/OnboardingHelpButton'
+import { resolveTourIdForPath } from '../onboarding/resolveTourForPath'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
 import type { MarketplaceType } from '../types/api'
 
@@ -303,7 +304,7 @@ export default function Header({
           )
         )}
         <CampaignManageSubscriptionBadge />
-        <OnboardingHelpButton />
+        <OnboardingHelpButton defaultTourId={resolveTourIdForPath(location.pathname)} />
         <Link
           to="/profile"
           className="ant-btn ant-btn-text ant-btn-color-default ant-btn-variant-text"

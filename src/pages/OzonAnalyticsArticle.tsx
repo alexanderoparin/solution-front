@@ -105,8 +105,8 @@ export default function OzonAnalyticsArticle({
         periods,
         selectedSellerId,
         selectedCabinetId ?? undefined,
-        undefined,
-        undefined,
+        dailyFrom,
+        dailyTo,
         dailyFrom,
         dailyTo,
       ),
@@ -243,6 +243,61 @@ export default function OzonAnalyticsArticle({
                               </td>
                             )
                           })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            {(data.campaigns?.length ?? 0) > 0 && (
+              <section
+                style={{
+                  backgroundColor: colors.bgWhite,
+                  borderRadius: borderRadius.md,
+                  border: `1px solid ${colors.borderLight}`,
+                  boxShadow: shadows.md,
+                  padding: spacing.lg,
+                  marginBottom: spacing.lg,
+                }}
+              >
+                <h2 style={{ ...typography.h3, margin: `0 0 ${spacing.xs}px` }}>Рекламные кампании</h2>
+                <p style={{ margin: `0 0 ${spacing.md}px`, fontSize: 12, color: colors.textMuted }}>
+                  Метрики — по кампании за выбранный период (не доля SKU). Синхронизируйте РК на странице «Реклама».
+                </p>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+                    <thead>
+                      <tr>
+                        <th style={thStyle}>Название</th>
+                        <th style={thStyle}>ID</th>
+                        <th style={thStyle}>Тип</th>
+                        <th style={thStyle}>Статус</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>SKU</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>Показы</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>Клики</th>
+                        <th style={{ ...thStyle, textAlign: 'right' }}>Расход</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.campaigns.map((c) => (
+                        <tr key={c.id}>
+                          <td style={tdStyle}>
+                            <Link
+                              to="/advertising/campaigns"
+                              style={{ color: colors.primary, fontWeight: 500, textDecoration: 'none' }}
+                            >
+                              {c.name}
+                            </Link>
+                          </td>
+                          <td style={tdStyle}>{c.id}</td>
+                          <td style={tdStyle}>{c.type ?? '—'}</td>
+                          <td style={tdStyle}>{c.statusName ?? '—'}</td>
+                          <td style={{ ...tdStyle, textAlign: 'right' }}>{formatInt(c.articlesCount)}</td>
+                          <td style={{ ...tdStyle, textAlign: 'right' }}>{formatInt(c.views)}</td>
+                          <td style={{ ...tdStyle, textAlign: 'right' }}>{formatInt(c.clicks)}</td>
+                          <td style={{ ...tdStyle, textAlign: 'right' }}>{formatMoney(c.costs)}</td>
                         </tr>
                       ))}
                     </tbody>

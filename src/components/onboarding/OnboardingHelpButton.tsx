@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button, Tooltip } from 'antd'
 import { QuestionCircleOutlined } from '@ant-design/icons'
+import { matchesTourIdPath } from '../../onboarding/resolveTourForPath'
 import { getTour } from '../../onboarding/tours'
 import { useOnboardingStore } from '../../store/onboardingStore'
 import type { OnboardingTourId } from '../../onboarding/types'
@@ -19,8 +20,8 @@ export default function OnboardingHelpButton({ defaultTourId = 'profile' }: Onbo
   const activeTourId = useOnboardingStore((s) => s.activeTourId)
 
   const handleClick = useCallback(() => {
-    const tour = getTour(defaultTourId)
-    if (!location.pathname.startsWith(tour.pathPrefix)) {
+    if (!matchesTourIdPath(location.pathname, defaultTourId)) {
+      const tour = getTour(defaultTourId)
       navigate(`${tour.pathPrefix}?tour=${defaultTourId}&force=1`)
       return
     }

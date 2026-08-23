@@ -10,6 +10,7 @@ import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabi
 import type { ArticleSummary, Period } from '../types/analytics'
 import type { CabinetTokenType } from '../types/api'
 import { colors, typography, spacing, borderRadius, transitions, shadows, PRODUCT_PHOTO_WIDTH, PRODUCT_PHOTO_HEIGHT } from '../styles/analytics'
+import { ONBOARDING_TARGETS } from '../onboarding/targets'
 import {
   analyticsSharedKeys,
   readSharedFilterToNone,
@@ -786,6 +787,7 @@ export default function AnalyticsProducts() {
             >
               <Button
                 icon={<FilterOutlined />}
+                data-tour-id={ONBOARDING_TARGETS.PRODUCTS_FILTER}
                 style={{ display: 'flex', alignItems: 'center', gap: 6 }}
               >
                 Фильтр
@@ -1355,6 +1357,7 @@ function ProductsTable({
               {last7Dates.map((d, i) => (
                 <th
                   key={d}
+                  data-tour-id={ONBOARDING_TARGETS.PRODUCTS_ORDERS_BY_DAY}
                   style={{
                     ...thBase,
                     textAlign: 'center',
@@ -1368,7 +1371,12 @@ function ProductsTable({
                   </span>
                 </th>
               ))}
-              <th style={{ ...thBase, textAlign: 'center', color: colors.primary, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'dynamics', last7Dates.length), last7Dates.length) }}>Динамика</th>
+              <th
+                data-tour-id={ONBOARDING_TARGETS.PRODUCTS_DYNAMICS}
+                style={{ ...thBase, textAlign: 'center', color: colors.primary, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'dynamics', last7Dates.length), last7Dates.length) }}
+              >
+                Динамика
+              </th>
             </tr>
           </thead>
         </table>

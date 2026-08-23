@@ -31,6 +31,7 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin, WORK_CONTEXT_CABINETS_QUERY_KEY } from '../hooks/useWorkContextForAdmin'
+import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 dayjs.locale('ru')
 
@@ -39,9 +40,10 @@ interface PeriodItemProps {
   periodsCount: number
   onPeriodChange: (periodId: number, dates: [Dayjs | null, Dayjs | null] | null) => void
   onRemovePeriod: (periodId: number) => void
+  datePickerTourId?: string
 }
 
-function PeriodItem({ period, periodsCount, onPeriodChange, onRemovePeriod }: PeriodItemProps) {
+function PeriodItem({ period, periodsCount, onPeriodChange, onRemovePeriod, datePickerTourId }: PeriodItemProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
 
@@ -61,6 +63,7 @@ function PeriodItem({ period, periodsCount, onPeriodChange, onRemovePeriod }: Pe
       <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '4px', textAlign: 'center' }}>{period.name}</div>
       <DatePicker.RangePicker
         locale={locale.DatePicker}
+        data-tour-id={datePickerTourId}
         value={[dayjs(period.dateFrom), dayjs(period.dateTo)]}
         onChange={(dates) => {
           if (dates && dates[0] && dates[1]) {
@@ -975,7 +978,11 @@ export default function AnalyticsSummary() {
               placement="bottomLeft"
               overlayStyle={{ maxWidth: '450px' }}
             >
-                <Button icon={<FilterOutlined />} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Button
+                  icon={<FilterOutlined />}
+                  data-tour-id={ONBOARDING_TARGETS.SUMMARY_FILTER}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
                   Фильтр
                   <span
                     style={{
@@ -996,6 +1003,7 @@ export default function AnalyticsSummary() {
                 <span>
                   <Button
                     icon={<FilterOutlined />}
+                    data-tour-id={ONBOARDING_TARGETS.SUMMARY_FILTER}
                     disabled
                     style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
@@ -1023,17 +1031,15 @@ export default function AnalyticsSummary() {
               Только с фото
             </Checkbox>
             {!isOzonCabinet && (
-              <>
-                <Checkbox checked={onlyPriority} onChange={(e) => setOnlyPriority(e.target.checked)}>
-                  Только приоритетные
-                </Checkbox>
-                <Tooltip title="Только артикулы, привязанные к незавершённым рекламным кампаниям кабинета">
-                  <Checkbox checked={onlyInAdvertising} onChange={(e) => setOnlyInAdvertising(e.target.checked)}>
-                    Только в рекламе
-                  </Checkbox>
-                </Tooltip>
-              </>
+              <Checkbox checked={onlyPriority} onChange={(e) => setOnlyPriority(e.target.checked)}>
+                Только приоритетные
+              </Checkbox>
             )}
+            <Tooltip title="Только артикулы, привязанные к незавершённым рекламным кампаниям кабинета">
+              <Checkbox checked={onlyInAdvertising} onChange={(e) => setOnlyInAdvertising(e.target.checked)}>
+                Только в рекламе
+              </Checkbox>
+            </Tooltip>
             </div>
           </div>
           <div style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 400, color: colors.textPrimary }}>
@@ -1042,13 +1048,14 @@ export default function AnalyticsSummary() {
           <div style={{ minWidth: 280 }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          {periods.map((period) => (
+          {periods.map((period, periodIndex) => (
             <PeriodItem
               key={period.id}
               period={period}
               periodsCount={periods.length}
               onPeriodChange={handlePeriodChange}
               onRemovePeriod={handleRemovePeriod}
+              datePickerTourId={periodIndex === 1 ? ONBOARDING_TARGETS.SUMMARY_PERIOD_DATES : undefined}
             />
           ))}
           {periods.length < 5 && (
@@ -1062,6 +1069,8 @@ export default function AnalyticsSummary() {
             }}>
               <Tooltip title="Добавить период">
                 <button
+                  type="button"
+                  data-tour-id={ONBOARDING_TARGETS.SUMMARY_ADD_PERIOD}
                   onClick={handleAddPeriod}
                   style={{
                     width: '36px',
@@ -1169,7 +1178,7 @@ export default function AnalyticsSummary() {
               </tr>
             </thead>
             <tbody>
-              {metricKeys.map(metricKey => {
+              {metricKeys.map((metricKey, metricIndex) => {
                 const metricNameRu = METRIC_NAMES_RU[metricKey]
                 const category = FUNNEL_METRICS.includes(metricKey) ? 'funnel' : 'advertising'
                 const metrics = summary.aggregatedMetrics
@@ -1229,13 +1238,18 @@ export default function AnalyticsSummary() {
                         boxSizing: 'border-box'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                          {isLoading ? (
-                            <Spin size="small" style={{ fontSize: '12px' }} />
-                          ) : isExpanded ? (
-                            <CaretDownOutlined style={{ fontSize: '12px' }} />
-                          ) : (
-                            <CaretRightOutlined style={{ fontSize: '12px' }} />
-                          )}
+                          <span
+                            data-tour-id={metricIndex === 0 ? ONBOARDING_TARGETS.SUMMARY_METRIC_EXPAND : undefined}
+                            style={{ display: 'inline-flex', alignItems: 'center' }}
+                          >
+                            {isLoading ? (
+                              <Spin size="small" style={{ fontSize: '12px' }} />
+                            ) : isExpanded ? (
+                              <CaretDownOutlined style={{ fontSize: '12px' }} />
+                            ) : (
+                              <CaretRightOutlined style={{ fontSize: '12px' }} />
+                            )}
+                          </span>
                           {metricNameRu}
                         </div>
                       </td>

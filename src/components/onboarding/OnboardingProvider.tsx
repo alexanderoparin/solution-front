@@ -2,13 +2,14 @@ import { useEffect } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { consumePendingTour, isTourFinished } from '../../onboarding/storage'
 import { getTour } from '../../onboarding/tours'
+import { matchesTourPath } from '../../onboarding/resolveTourForPath'
 import type { OnboardingTourId } from '../../onboarding/types'
 import { useOnboardingStore } from '../../store/onboardingStore'
 import OnboardingSkipHint from './OnboardingSkipHint'
 import OnboardingTour from './OnboardingTour'
 
 function parseTourParam(value: string | null): OnboardingTourId | null {
-  if (value === 'profile') {
+  if (value === 'profile' || value === 'analyticsProducts' || value === 'analyticsSummary') {
     return value
   }
   return null
@@ -40,7 +41,7 @@ export default function OnboardingProvider() {
     const pending = consumePendingTour()
     if (pending != null && !isTourFinished(pending)) {
       const tour = getTour(pending)
-      if (!location.pathname.startsWith(tour.pathPrefix)) {
+      if (!matchesTourPath(location.pathname, tour)) {
         navigate(`${tour.pathPrefix}?tour=${pending}`, { replace: true })
         return
       }

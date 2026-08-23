@@ -1,4 +1,4 @@
-export type OnboardingTourId = 'profile'
+export type OnboardingTourId = 'profile' | 'analyticsProducts' | 'analyticsSummary'
 
 export type OnboardingPlacement = 'top' | 'bottom' | 'left' | 'right'
 
@@ -15,5 +15,7 @@ export interface OnboardingTourDefinition {
   id: OnboardingTourId
   /** Маршрут, на котором доступен тур */
   pathPrefix: string
+  /** Точное совпадение pathname (для /analytics без /analytics/products) */
+  exactPath?: boolean
   steps: OnboardingStep[]
 }
