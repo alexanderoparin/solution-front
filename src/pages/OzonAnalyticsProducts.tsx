@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { analyticsApi } from '../api/analytics'
 import type { ArticleSummary } from '../types/analytics'
+import { formatArticleRating, hasMeaningfulArticleRating } from '../utils/articleRating'
 import Header, { type CabinetSelectProps, type WorkContextCabinetSelectProps } from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import {
@@ -138,8 +139,8 @@ export default function OzonAnalyticsProducts({
             message="Каталог Ozon"
             description={
               priceDateLabel
-                ? `Карточки, цены (снимок ${priceDateLabel}), остатки, заказы/выручка и РК после синхронизации.`
-                : 'Карточки, цены, остатки, заказы/выручка и реклама после синхронизации.'
+                ? `Карточки, цены (снимок ${priceDateLabel}), остатки, заказы/выручка, контент-рейтинг и РК после синхронизации.`
+                : 'Карточки, цены, остатки, заказы/выручка, контент-рейтинг и реклама после синхронизации.'
             }
             style={{ marginBottom: spacing.md }}
           />
@@ -193,6 +194,9 @@ export default function OzonAnalyticsProducts({
                     <th style={{ ...thBase, width: 110 }}>Product ID</th>
                     <th style={{ ...thBase, width: 150 }}>Offer ID</th>
                     <th style={thBase}>Название</th>
+                    <th style={{ ...thBase, width: 88, textAlign: 'center' }}>
+                      <Tooltip title="Контент-рейтинг Ozon (0–100)">Рейтинг</Tooltip>
+                    </th>
                     <th style={{ ...thBase, width: 100, textAlign: 'right' }}>Цена</th>
                     <th style={{ ...thBase, width: 100, textAlign: 'right' }}>Старая</th>
                     <th style={{ ...thBase, width: 72, textAlign: 'center' }}>FBO</th>
@@ -233,6 +237,9 @@ export default function OzonAnalyticsProducts({
                         >
                           {a.title || '—'}
                         </Link>
+                      </td>
+                      <td style={{ ...tdBase, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                        {hasMeaningfulArticleRating(a.rating) ? formatArticleRating(a.rating) : '—'}
                       </td>
                       <td style={{ ...tdBase, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                         <Tooltip title={a.priceDate ? `Снимок: ${dayjs(a.priceDate).format('DD.MM.YYYY')}` : undefined}>

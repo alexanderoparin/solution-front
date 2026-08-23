@@ -148,6 +148,7 @@ const OZON_TYPE_LABELS: Record<OzonApiEventType, string> = {
   PRICES_CABINET: 'Цены (кабинет)',
   STOCKS_CABINET: 'Остатки (кабинет)',
   ANALYTICS_DATA_CABINET: 'Аналитика продаж (кабинет)',
+  CONTENT_RATING_CABINET: 'Контент-рейтинг (кабинет)',
   CAMPAIGNS_CABINET: 'Реклама: список РК (Performance)',
   CAMPAIGN_STATS_CABINET: 'Реклама: статистика РК (Performance)',
 }
@@ -182,6 +183,7 @@ const OZON_TYPE_COLORS: Record<OzonApiEventType, string> = {
   PRICES_CABINET: 'gold',
   STOCKS_CABINET: 'blue',
   ANALYTICS_DATA_CABINET: 'cyan',
+  CONTENT_RATING_CABINET: 'purple',
   CAMPAIGNS_CABINET: 'purple',
   CAMPAIGN_STATS_CABINET: 'magenta',
 }
