@@ -851,7 +851,7 @@ export default function AnalyticsSummary() {
                 loading={triggerUpdateMutation.isPending}
                 disabled={!canUpdateSellerData() || triggerUpdateMutation.isPending}
                 style={{
-                  color: '#A78BFA',
+                  color: '#CBD5E1',
                   width: 36,
                   height: 36,
                   display: 'inline-flex',
