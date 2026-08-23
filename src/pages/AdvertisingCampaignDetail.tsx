@@ -213,6 +213,11 @@ export default function AdvertisingCampaignDetail() {
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : selectedCabinetIdSeller
 
+  const isOzonCabinet = useMemo(() => {
+    if (selectedCabinetId == null) return false
+    return cabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
+  }, [cabinets, selectedCabinetId])
+
   useEffect(() => {
     if (!isAdmin) {
       prevAdminCabinetRef.current = null
@@ -1001,8 +1006,12 @@ export default function AdvertisingCampaignDetail() {
     message.success('Файл выгружен')
   }, [funnelDailyData, selectedFunnelArticleNmId, rangeDatesDesc, dateRange, getMetricValueForDate, getPeriodTotalValue, formatValue, formatPercent, formatCurrency])
 
-  const isActive = campaign?.status === 9
-  const statusLabel = campaign ? (isActive ? 'активна' : 'приостановлена') : ''
+  const isActive = isOzonCabinet
+    ? campaign?.statusName === 'Активна'
+    : campaign?.status === 9
+  const statusLabel = isOzonCabinet
+    ? (campaign?.statusName ?? '—')
+    : (campaign ? (isActive ? 'активна' : 'приостановлена') : '')
   const statusBg = isActive ? colors.success : colors.error
 
   if (campaignId == null || Number.isNaN(campaignId)) {
@@ -1120,7 +1129,7 @@ export default function AdvertisingCampaignDetail() {
                 <Link
                   to={`/advertising/campaigns/${campaign.id}/manage`}
                   data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_MANAGE}
-                  style={{ marginLeft: 'auto', color: colors.primary, fontSize: 13, textDecoration: 'none' }}
+                  style={{ marginLeft: 'auto', color: colors.primary, fontSize: 13, textDecoration: 'none', display: isOzonCabinet ? 'none' : undefined }}
                 >
                   Управление →
                 </Link>
@@ -1192,7 +1201,7 @@ export default function AdvertisingCampaignDetail() {
 
             <CampaignDetailViewSwitch value={viewMode} onChange={setViewMode} />
 
-            {viewMode === 'statistics' && campaign.advertisingByPlatform != null && campaign.advertisingByPlatform.length > 0 ? (
+            {viewMode === 'statistics' && !isOzonCabinet && campaign.advertisingByPlatform != null && campaign.advertisingByPlatform.length > 0 ? (
               <div
                 style={{
                   backgroundColor: colors.bgWhite,
@@ -1284,7 +1293,23 @@ export default function AdvertisingCampaignDetail() {
               </div>
             ) : null}
 
-            {viewMode === 'statistics' && (
+            {viewMode === 'statistics' && isOzonCabinet && (
+              <div
+                style={{
+                  backgroundColor: colors.bgWhite,
+                  border: `1px solid ${colors.borderLight}`,
+                  borderRadius: borderRadius.md,
+                  padding: spacing.lg,
+                  marginBottom: spacing.lg,
+                  boxShadow: shadows.md,
+                  color: colors.textSecondary,
+                }}
+              >
+                Детальная воронка и остатки для Ozon пока недоступны на этой странице. Переключитесь на вкладку «Кластеры» для поисковых запросов кампании.
+              </div>
+            )}
+
+            {viewMode === 'statistics' && !isOzonCabinet && (
             <>
             {/* Блок 2 — Воронки + выбор артикула */}
             <div
@@ -1561,7 +1586,9 @@ export default function AdvertisingCampaignDetail() {
               </div>
               {clustersLastSyncedAt == null && !clustersLoading && (
                 <p style={{ ...typography.body, color: colors.textSecondary, marginBottom: spacing.md }}>
-                  Нет сохранённых данных за период. Запустите синхронизацию рекламы — кластеры загружаются после статистики кампаний.
+                  {isOzonCabinet
+                    ? 'Нет данных за период. Запустите синхронизацию «Реклама: статистика РК» — поисковые запросы загружаются для CPC-кампаний.'
+                    : 'Нет сохранённых данных за период. Запустите синхронизацию рекламы — кластеры загружаются после статистики кампаний.'}
                 </p>
               )}
               <CampaignNormQueryClustersTable
