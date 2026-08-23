@@ -14,6 +14,7 @@ import {
   WorkContextCabinetDto,
   AccessStatusResponse,
   PaymentDto,
+  MarketplaceType,
 } from '../types/api'
 import type { CabinetTokenType } from '../types/api'
 import type { SortDirection, UserSortField } from '../constants/userSorting'
@@ -243,6 +244,7 @@ export const userApi = {
     size: number
     search?: string
     onlyActive?: boolean
+    marketplaceType?: MarketplaceType
     sortBy?: CabinetSortField
     sortDir?: SortDirection
   }): Promise<PageResponse<ManagedCabinetRowDto>> => {
@@ -252,6 +254,7 @@ export const userApi = {
         size: params.size,
         search: params.search,
         onlyActive: params.onlyActive,
+        marketplaceType: params.marketplaceType,
         sortBy: params.sortBy ? CABINET_SORT_FIELD_TO_BACKEND[params.sortBy] : undefined,
         sortDir: params.sortDir ? params.sortDir.toUpperCase() : undefined,
       },

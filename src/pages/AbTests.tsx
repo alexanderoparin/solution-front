@@ -965,6 +965,14 @@ export default function AbTests() {
     enabled: role === 'USER',
   })
 
+  const isOzonCabinet = useMemo(() => {
+    if (selectedCabinetId == null) return false
+    if (isAdmin) {
+      return workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)?.marketplaceType === 'OZON'
+    }
+    return myCabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
+  }, [isAdmin, selectedCabinetId, workContext.workContextOptions, myCabinets])
+
   useEffect(() => {
     if (!isAdmin && myCabinets.length > 0 && sellerSelectedCabinetId === null) {
       setSellerSelectedCabinetId(myCabinets[0].id)
@@ -983,7 +991,7 @@ export default function AbTests() {
   const { data: tests = [], isLoading } = useQuery({
     queryKey: ['abTests', selectedSellerId, selectedCabinetId, filter],
     queryFn: () => abTestApi.list(selectedSellerId, selectedCabinetId ?? undefined, filter === 'active'),
-    enabled: selectedCabinetId != null,
+    enabled: selectedCabinetId != null && !isOzonCabinet,
     refetchInterval: (query) => {
       const data = query.state.data
       return Array.isArray(data) && data.some((t) => t.status === 'PENDING_START') ? 5000 : false
@@ -1008,7 +1016,7 @@ export default function AbTests() {
   }, [abQuota, abServiceReady])
 
   const openCreate = () => {
-    if (selectedCabinetId == null) return
+    if (selectedCabinetId == null || isOzonCabinet) return
     if (!abServiceReady) {
       setPaywallOpen(true)
       return
@@ -1064,16 +1072,17 @@ export default function AbTests() {
               icon={<PlusOutlined />}
               style={{ background: accent, borderColor: accent }}
               onClick={openCreate}
-              disabled={selectedCabinetId == null}
+              disabled={selectedCabinetId == null || isOzonCabinet}
             >
               Создать новый тест
             </Button>
-            {quotaLabel ? (
+            {!isOzonCabinet && quotaLabel ? (
               <Typography.Text type="secondary" style={{ fontSize: 14 }}>
                 {quotaLabel}
               </Typography.Text>
             ) : null}
           </div>
+          {!isOzonCabinet && (
           <Segmented
             value={filter}
             onChange={(v) => setFilter(v as 'active' | 'all')}
@@ -1082,8 +1091,27 @@ export default function AbTests() {
               { label: 'Все', value: 'all' },
             ]}
           />
+          )}
         </div>
-        {isLoading ? (
+        {isOzonCabinet ? (
+          <div
+            style={{
+              textAlign: 'center',
+              color: '#64748B',
+              padding: 48,
+              background: '#fff',
+              borderRadius: 12,
+              border: '1px solid #E2E8F0',
+            }}
+          >
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
+              А/Б-тест фото для Ozon пока недоступен
+            </div>
+            <div style={{ fontSize: 14, maxWidth: 480, margin: '0 auto', lineHeight: 1.5 }}>
+              Ротация главного фото на Ozon — отдельное решение (не копия WB). Переключитесь на кабинет Wildberries, чтобы работать с А/Б-тестами.
+            </div>
+          </div>
+        ) : isLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}>
             <Spin />
           </div>

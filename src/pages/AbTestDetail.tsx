@@ -67,6 +67,20 @@ export default function AbTestDetail() {
     enabled: role === 'USER',
   })
 
+  const isOzonCabinet = useMemo(() => {
+    if (selectedCabinetId == null) return false
+    if (isAdmin) {
+      return workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)?.marketplaceType === 'OZON'
+    }
+    return myCabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
+  }, [isAdmin, selectedCabinetId, workContext.workContextOptions, myCabinets])
+
+  useEffect(() => {
+    if (isOzonCabinet) {
+      navigate(AB_TESTS_LIST_PATH, { replace: true })
+    }
+  }, [isOzonCabinet, navigate])
+
   useEffect(() => {
     if (!isAdmin && myCabinets.length > 0 && sellerSelectedCabinetId === null) {
       setSellerSelectedCabinetId(myCabinets[0].id)
@@ -102,7 +116,7 @@ export default function AbTestDetail() {
   const { data: test, isLoading, error } = useQuery({
     queryKey: ['abTest', testId, selectedSellerId, selectedCabinetId],
     queryFn: () => abTestApi.get(testId, selectedSellerId, selectedCabinetId ?? undefined),
-    enabled: Number.isFinite(testId) && selectedCabinetId != null,
+    enabled: Number.isFinite(testId) && selectedCabinetId != null && !isOzonCabinet,
   })
 
   useEffect(() => {

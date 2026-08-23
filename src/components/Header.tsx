@@ -110,6 +110,28 @@ export default function Header({
     cabinetSelectProps?.selectedCabinetId,
   ])
 
+  const isOzonCabinet = selectedCabinetMarketplace === 'OZON'
+
+  const advertisingMenuItems = useMemo(() => {
+    const items = [
+      {
+        key: 'campaigns',
+        label: <NavMenuLink to="/advertising/campaigns">Рекламные кампании</NavMenuLink>,
+      },
+      {
+        key: 'bidder',
+        label: <NavMenuLink to="/advertising/bidder">Управление РК</NavMenuLink>,
+      },
+    ]
+    if (!isOzonCabinet) {
+      items.push({
+        key: 'ab-test',
+        label: <NavMenuLink to="/advertising/ab-test">А/Б-тест</NavMenuLink>,
+      })
+    }
+    return items
+  }, [isOzonCabinet])
+
   const isAnalyticsActive =
     location.pathname === '/analytics' ||
     location.pathname === '/analytics/products' ||
@@ -184,22 +206,7 @@ export default function Header({
 
         {/* Реклама */}
         <Dropdown
-          menu={{
-            items: [
-              {
-                key: 'campaigns',
-                label: <NavMenuLink to="/advertising/campaigns">Рекламные кампании</NavMenuLink>,
-              },
-              {
-                key: 'bidder',
-                label: <NavMenuLink to="/advertising/bidder">Управление РК</NavMenuLink>,
-              },
-              {
-                key: 'ab-test',
-                label: <NavMenuLink to="/advertising/ab-test">А/Б-тест</NavMenuLink>,
-              },
-            ],
-          }}
+          menu={{ items: advertisingMenuItems }}
           trigger={['click']}
         >
           <Button

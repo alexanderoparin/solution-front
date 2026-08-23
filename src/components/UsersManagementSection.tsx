@@ -46,6 +46,7 @@ import {
   CabinetDto,
   ManagedCabinetRowDto,
 } from '../types/api'
+import type { MarketplaceType } from '../types/api'
 import { useAuthStore } from '../store/authStore'
 import { SORT_DIRECTIONS, USER_SORT_FIELDS, type SortDirection, type UserSortField } from '../constants/userSorting'
 import { CABINET_SORT_FIELDS, type CabinetSortField } from '../constants/cabinetSorting'
@@ -183,6 +184,7 @@ export default function UsersManagementSection({
   const [createEmailReadOnly, setCreateEmailReadOnly] = useState(true)
   const [createPasswordReadOnly, setCreatePasswordReadOnly] = useState(true)
   const [onlyActiveCabinets, setOnlyActiveCabinets] = useState(true)
+  const [cabinetMarketplaceFilter, setCabinetMarketplaceFilter] = useState<MarketplaceType | undefined>(undefined)
   const [cabinetPage, setCabinetPage] = useState(1)
   const [cabinetPageSize, setCabinetPageSize] = useState(20)
   const [page, setPage] = useState(1)
@@ -206,7 +208,7 @@ export default function UsersManagementSection({
 
   useEffect(() => {
     setCabinetPage(1)
-  }, [searchEmail, managementView, cabinetSortBy, cabinetSortDir, onlyActiveCabinets])
+  }, [searchEmail, managementView, cabinetSortBy, cabinetSortDir, onlyActiveCabinets, cabinetMarketplaceFilter])
 
   const getCreatableRole = (): UserRole => 'USER'
 
@@ -240,6 +242,7 @@ export default function UsersManagementSection({
       cabinetSortBy,
       cabinetSortDir,
       onlyActiveCabinets,
+      cabinetMarketplaceFilter,
       managementView,
     ],
     queryFn: () =>
@@ -248,6 +251,7 @@ export default function UsersManagementSection({
         size: cabinetPageSize,
         search: searchEmail.trim() || undefined,
         onlyActive: onlyActiveCabinets,
+        marketplaceType: cabinetMarketplaceFilter,
         sortBy: cabinetSortBy,
         sortDir: cabinetSortDir,
       }),
@@ -743,9 +747,21 @@ export default function UsersManagementSection({
             style={{ width: 280 }}
           />
           {showCabinetsTable && (
-            <Checkbox checked={onlyActiveCabinets} onChange={(e) => setOnlyActiveCabinets(e.target.checked)}>
-              Только активные
-            </Checkbox>
+            <>
+              <Select<MarketplaceType | 'ALL'>
+                value={cabinetMarketplaceFilter ?? 'ALL'}
+                onChange={(value) => setCabinetMarketplaceFilter(value === 'ALL' ? undefined : value)}
+                style={{ width: 140 }}
+                options={[
+                  { value: 'ALL', label: 'Все МП' },
+                  { value: 'WB', label: 'Wildberries' },
+                  { value: 'OZON', label: 'Ozon' },
+                ]}
+              />
+              <Checkbox checked={onlyActiveCabinets} onChange={(e) => setOnlyActiveCabinets(e.target.checked)}>
+                Только активные
+              </Checkbox>
+            </>
           )}
         </Space>
         {canCreateUsers && (

@@ -845,12 +845,19 @@ export default function AnalyticsSummary() {
               }
             >
               <Button
-                type="default"
+                type="text"
                 icon={<SyncOutlined spin={triggerUpdateMutation.isPending} />}
                 onClick={() => triggerUpdateMutation.mutate({ sellerId: selectedSellerId, cabinetId: selectedCabinetId ?? undefined })}
                 loading={triggerUpdateMutation.isPending}
                 disabled={!canUpdateSellerData() || triggerUpdateMutation.isPending}
-                style={{ color: '#7C3AED', borderColor: '#7C3AED' }}
+                style={{
+                  color: '#A78BFA',
+                  width: 36,
+                  height: 36,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               />
             </Tooltip>
           ) : null
