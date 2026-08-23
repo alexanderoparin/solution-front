@@ -1621,7 +1621,7 @@ export default function AdvertisingCampaignDetail() {
                 <div key={period} style={{ marginBottom: period === 1 ? spacing.xl : 0 }}>
                   <div
                     data-tour-id={period === 1 ? ONBOARDING_TARGETS.CAMPAIGN_DETAIL_COMPARE_PERIODS : undefined}
-                    style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}
                   >
                     <span style={{ ...typography.body, fontWeight: 600, color: colors.textPrimary }}>Период {period}</span>
                     <DatePicker.RangePicker
