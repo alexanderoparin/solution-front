@@ -164,6 +164,9 @@ const FUNNEL_METRICS = [
   'order_conversion',
 ]
 
+/** Метрики Ozon на сводной (без воронки и рекламы). */
+const OZON_METRIC_KEYS = ['orders', 'orders_amount']
+
 /** Доля ширины таблицы под колонку «Метрика»; остальное делят поровну колонки периодов */
 const METRIC_COLUMN_WIDTH_PERCENT = 35
 
@@ -424,6 +427,8 @@ export default function AnalyticsSummary() {
     () => (selectedCabinetId != null ? cabinets.find((c) => c.id === selectedCabinetId) : undefined),
     [cabinets, selectedCabinetId]
   )
+  const isOzonCabinet = selectedCabinet?.marketplaceType === 'OZON'
+  const metricKeys = isOzonCabinet ? OZON_METRIC_KEYS : METRIC_KEYS
   const MIN_UPDATE_INTERVAL_HOURS = 6
   const getLastUpdateOrRequested = (): string | null => {
     if (selectedCabinet != null) {
@@ -892,7 +897,13 @@ export default function AnalyticsSummary() {
                     {originalArticles
                       .filter((article) => {
                         const searchLower = articleSearchText.toLowerCase()
-                        return article.nmId.toString().includes(searchLower) || article.title.toLowerCase().includes(searchLower)
+                        return (
+                          article.nmId.toString().includes(searchLower) ||
+                          article.title.toLowerCase().includes(searchLower) ||
+                          (isOzonCabinet &&
+                            (article.offerId?.toLowerCase().includes(searchLower) ||
+                              article.vendorCode?.toLowerCase().includes(searchLower)))
+                        )
                       })
                       .map((article) => (
                         <div
@@ -928,7 +939,11 @@ export default function AnalyticsSummary() {
                             />
                           )}
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '12px', color: '#64748B' }}>{article.nmId}</div>
+                            <div style={{ fontSize: '12px', color: '#64748B' }}>
+                              {isOzonCabinet
+                                ? (article.offerId ? `${article.offerId} · ${article.nmId}` : article.nmId)
+                                : article.nmId}
+                            </div>
                             <div style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {article.title}
                             </div>
@@ -990,14 +1005,18 @@ export default function AnalyticsSummary() {
             >
               Только с фото
             </Checkbox>
-            <Checkbox checked={onlyPriority} onChange={(e) => setOnlyPriority(e.target.checked)}>
-              Только приоритетные
-            </Checkbox>
-            <Tooltip title="Только артикулы, привязанные к незавершённым рекламным кампаниям кабинета">
-              <Checkbox checked={onlyInAdvertising} onChange={(e) => setOnlyInAdvertising(e.target.checked)}>
-                Только в рекламе
-              </Checkbox>
-            </Tooltip>
+            {!isOzonCabinet && (
+              <>
+                <Checkbox checked={onlyPriority} onChange={(e) => setOnlyPriority(e.target.checked)}>
+                  Только приоритетные
+                </Checkbox>
+                <Tooltip title="Только артикулы, привязанные к незавершённым рекламным кампаниям кабинета">
+                  <Checkbox checked={onlyInAdvertising} onChange={(e) => setOnlyInAdvertising(e.target.checked)}>
+                    Только в рекламе
+                  </Checkbox>
+                </Tooltip>
+              </>
+            )}
             </div>
           </div>
           <div style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 400, color: colors.textPrimary }}>
@@ -1133,7 +1152,7 @@ export default function AnalyticsSummary() {
               </tr>
             </thead>
             <tbody>
-              {METRIC_KEYS.map(metricKey => {
+              {metricKeys.map(metricKey => {
                 const metricNameRu = METRIC_NAMES_RU[metricKey]
                 const category = FUNNEL_METRICS.includes(metricKey) ? 'funnel' : 'advertising'
                 const metrics = summary.aggregatedMetrics
