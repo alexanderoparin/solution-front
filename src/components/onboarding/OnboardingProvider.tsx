@@ -16,6 +16,7 @@ function parseTourParam(value: string | null): OnboardingTourId | null {
     || value === 'advertisingCampaigns'
     || value === 'advertisingCampaignDetail'
     || value === 'advertisingBidder'
+    || value === 'advertisingCampaignManage'
   ) {
     return value
   }

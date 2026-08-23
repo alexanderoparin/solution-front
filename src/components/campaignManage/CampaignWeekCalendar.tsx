@@ -30,6 +30,8 @@ export interface SlotCreateRange {
 interface CampaignWeekCalendarProps {
   slots: CampaignScheduleSlot[]
   disabled?: boolean
+  /** data-tour-id для обучалки (сетка создания слотов) */
+  tourTargetId?: string
   onCreateRange: (range: SlotCreateRange) => void
   onUpdateSlot: (slotId: number, update: { startTime?: string; endTime?: string }) => void
   onEditSlot: (slot: CampaignScheduleSlot) => void
@@ -78,6 +80,7 @@ function yToMinutes(y: number): number {
 export default function CampaignWeekCalendar({
   slots,
   disabled,
+  tourTargetId,
   onCreateRange,
   onUpdateSlot,
   onEditSlot,
@@ -220,6 +223,7 @@ export default function CampaignWeekCalendar({
         </div>
       </div>
       <div
+        data-tour-id={tourTargetId}
         style={{
           height: GRID_HEIGHT,
           overflow: 'hidden',

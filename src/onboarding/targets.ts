@@ -48,4 +48,18 @@ export const ONBOARDING_TARGETS = {
   BIDDER_STATUS: 'onboarding-bidder-status',
   /** Название кампании (ссылка в настройки) */
   BIDDER_CAMPAIGN_NAME: 'onboarding-bidder-campaign-name',
+  /** Артикулы на странице управления РК */
+  CAMPAIGN_MANAGE_ARTICLES: 'onboarding-campaign-manage-articles',
+  /** Ссылка «Статистика кампании →» */
+  CAMPAIGN_MANAGE_STATS_LINK: 'onboarding-campaign-manage-stats-link',
+  /** Блок настроек автопополнения */
+  CAMPAIGN_MANAGE_AUTO_BUDGET: 'onboarding-campaign-manage-auto-budget',
+  /** Кнопка «Сохранить» / «Редактировать» автопополнения */
+  CAMPAIGN_MANAGE_AUTO_BUDGET_SAVE: 'onboarding-campaign-manage-auto-budget-save',
+  /** Переключатель расписания */
+  CAMPAIGN_MANAGE_SCHEDULE_TOGGLE: 'onboarding-campaign-manage-schedule-toggle',
+  /** Сетка расписания (создание слотов) */
+  CAMPAIGN_MANAGE_SCHEDULE_GRID: 'onboarding-campaign-manage-schedule-grid',
+  /** График бюджета */
+  CAMPAIGN_MANAGE_BUDGET_CHART: 'onboarding-campaign-manage-budget-chart',
 } as const

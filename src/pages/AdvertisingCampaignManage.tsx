@@ -26,6 +26,7 @@ import {
   formatBudgetChartPeriodParam,
 } from '../utils/budgetChartPeriod'
 import dayjs, { type Dayjs } from 'dayjs'
+import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 const COMBO_PHOTO_SIZE = 80
 const CHANGE_LOG_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
@@ -524,12 +525,19 @@ export default function AdvertisingCampaignManage() {
                 </span>
                 <span style={{ color: colors.textSecondary }}>ID {manage.id}</span>
                 <span style={{ color: colors.textSecondary }}>{manage.articlesCount} шт.</span>
-                <Link to={`/advertising/campaigns/${manage.id}`} style={{ marginLeft: 'auto', color: colors.primary }}>
+                <Link
+                  to={`/advertising/campaigns/${manage.id}`}
+                  data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_STATS_LINK}
+                  style={{ marginLeft: 'auto', color: colors.primary }}
+                >
                   Статистика кампании →
                 </Link>
               </div>
               <div style={{ overflowX: 'auto' }}>
-                <div style={{ display: 'flex', gap: spacing.lg }}>
+                <div
+                  data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_ARTICLES}
+                  style={{ display: 'flex', gap: spacing.lg }}
+                >
                   {(manage.articles ?? []).map((art) => (
                     <ComboProductItem key={art.nmId} article={art} />
                   ))}
@@ -540,7 +548,7 @@ export default function AdvertisingCampaignManage() {
             <CampaignManagePaywallShield active={subscriptionBlocked}>
             <div style={cardStyle}>
               <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ flex: 1, minWidth: 0 }} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET}>
                   <h2 style={{ ...typography.h2, fontSize: 16, margin: '0 0 12px' }}>Автопополнение бюджета</h2>
                   {balanceSources?.fetchedAt && (
                     <p style={{ fontSize: 12, color: colors.textSecondary, margin: '0 0 12px' }}>
@@ -650,6 +658,7 @@ export default function AdvertisingCampaignManage() {
                   {autoLocked ? (
                     <Button
                       icon={<EditOutlined />}
+                      data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET_SAVE}
                       onClick={() => unlockAutoMutation.mutate()}
                       disabled={controlBlocked}
                       style={{
@@ -665,6 +674,7 @@ export default function AdvertisingCampaignManage() {
                     <Button
                       type="primary"
                       icon={<SaveOutlined />}
+                      data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET_SAVE}
                       loading={saveAutoMutation.isPending}
                       disabled={controlBlocked}
                       onClick={() =>
@@ -707,6 +717,7 @@ export default function AdvertisingCampaignManage() {
                 <Space align="center" size={12} style={{ flex: 1 }}>
                   <h2 style={{ ...typography.h2, fontSize: 16, margin: 0 }}>Расписание</h2>
                   <Switch
+                    data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_SCHEDULE_TOGGLE}
                     checked={manage.scheduleEnabled ?? false}
                     disabled={controlBlocked || subscriptionBlocked || scheduleTogglePending}
                     loading={scheduleTogglePending}
@@ -725,6 +736,7 @@ export default function AdvertisingCampaignManage() {
                 <Button onClick={() => refetch()}>Обновить</Button>
               </div>
               <CampaignWeekCalendar
+                tourTargetId={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_SCHEDULE_GRID}
                 slots={manage.slots}
                 disabled={controlBlocked || subscriptionBlocked}
                 onCreateRange={openCreateFromRange}
@@ -735,7 +747,7 @@ export default function AdvertisingCampaignManage() {
             </div>
             </CampaignManagePaywallShield>
 
-            <div style={cardStyle}>
+            <div style={cardStyle} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_BUDGET_CHART}>
               <div
                 style={{
                   display: 'flex',

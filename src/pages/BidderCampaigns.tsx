@@ -140,6 +140,12 @@ export default function BidderCampaigns() {
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
 
+  const selectedCabinetMarketplace = useMemo(() => {
+    const cab = cabinets.find((c) => c.id === selectedCabinetId)
+    return cab?.marketplaceType ?? 'WB'
+  }, [cabinets, selectedCabinetId])
+  const isOzonCabinet = selectedCabinetMarketplace === 'OZON'
+
   const dateFromStr = dateRange[0].format('YYYY-MM-DD')
   const dateToStr = dateRange[1].format('YYYY-MM-DD')
 
@@ -192,6 +198,9 @@ export default function BidderCampaigns() {
       queryClient.setQueryData<Campaign[]>(queryKey, (old) =>
         old?.map((c) => {
           if (c.id !== advertId) return c
+          if (isOzonCabinet) {
+            return { ...c, bidderStatus: enabled ? 'RUNNING' : 'OFF' }
+          }
           if (!enabled) {
             return { ...c, bidderStatus: 'OFF' }
           }
@@ -203,16 +212,22 @@ export default function BidderCampaigns() {
         }),
       )
     },
-    [queryClient, queryKey],
+    [queryClient, queryKey, isOzonCabinet],
   )
 
   const startMutation = useMutation({
     mutationFn: (advertId: number) =>
-      campaignManageApi.start(
-        advertId,
-        isAdmin ? selectedSellerId ?? undefined : undefined,
-        selectedCabinetId ?? undefined
-      ),
+      isOzonCabinet
+        ? analyticsApi.startCampaign(
+            advertId,
+            isAdmin ? selectedSellerId ?? undefined : undefined,
+            selectedCabinetId ?? undefined,
+          )
+        : campaignManageApi.start(
+            advertId,
+            isAdmin ? selectedSellerId ?? undefined : undefined,
+            selectedCabinetId ?? undefined,
+          ),
     onMutate: async (advertId) => {
       setLoadingAdvertId(advertId)
       await queryClient.cancelQueries({ queryKey })
@@ -222,8 +237,10 @@ export default function BidderCampaigns() {
     },
     onSettled: () => setLoadingAdvertId(null),
     onSuccess: (data) => {
-      message.success(data.message ?? 'Расписание включено')
-      if (data.enqueued) {
+      message.success(
+        data.message ?? (isOzonCabinet ? 'Кампания запущена' : 'Расписание включено'),
+      )
+      if (!isOzonCabinet && data.enqueued) {
         setPollUntil(Date.now() + 30_000)
       }
       void queryClient.invalidateQueries({ queryKey })
@@ -239,11 +256,17 @@ export default function BidderCampaigns() {
 
   const pauseMutation = useMutation({
     mutationFn: (advertId: number) =>
-      campaignManageApi.pause(
-        advertId,
-        isAdmin ? selectedSellerId ?? undefined : undefined,
-        selectedCabinetId ?? undefined
-      ),
+      isOzonCabinet
+        ? analyticsApi.pauseCampaign(
+            advertId,
+            isAdmin ? selectedSellerId ?? undefined : undefined,
+            selectedCabinetId ?? undefined,
+          )
+        : campaignManageApi.pause(
+            advertId,
+            isAdmin ? selectedSellerId ?? undefined : undefined,
+            selectedCabinetId ?? undefined,
+          ),
     onMutate: async (advertId) => {
       setLoadingAdvertId(advertId)
       await queryClient.cancelQueries({ queryKey })
@@ -253,8 +276,10 @@ export default function BidderCampaigns() {
     },
     onSettled: () => setLoadingAdvertId(null),
     onSuccess: (data) => {
-      message.success(data.message ?? 'Расписание выключено')
-      if (data.enqueued) {
+      message.success(
+        data.message ?? (isOzonCabinet ? 'Кампания остановлена' : 'Расписание выключено'),
+      )
+      if (!isOzonCabinet && data.enqueued) {
         setPollUntil(Date.now() + 30_000)
       }
       void queryClient.invalidateQueries({ queryKey })
@@ -388,6 +413,9 @@ export default function BidderCampaigns() {
   const formatNum = (v: number | null | undefined) => (v == null ? '-' : v.toLocaleString('ru-RU'))
 
   const isScheduleEnabled = (c: Campaign) => {
+    if (isOzonCabinet) {
+      return parseBidderStatus(c.bidderStatus) === 'RUNNING'
+    }
     const status = parseBidderStatus(c.bidderStatus)
     return status != null && status !== 'OFF'
   }
@@ -433,7 +461,9 @@ export default function BidderCampaigns() {
             checked={scheduleOn}
             loading={rowLoading && actionBusy}
             disabled={actionsDisabled}
-            title={scheduleOn ? 'Выключить расписание' : 'Включить расписание'}
+            title={isOzonCabinet
+              ? (scheduleOn ? 'Остановить кампанию' : 'Запустить кампанию')
+              : (scheduleOn ? 'Выключить расписание' : 'Включить расписание')}
             onChange={(checked) =>
               guardAction(() => {
                 if (checked) {
@@ -539,8 +569,7 @@ export default function BidderCampaigns() {
               <Alert
                 type="warning"
                 showIcon
-                style={{ marginBottom: spacing.md }}
-                message="Управление РК недоступно"
+                message={isOzonCabinet ? 'Управление РК Ozon временно недоступно' : 'Управление РК недоступно'}
                 description={
                   <>
                     <div>{controlCapabilities.message}</div>
@@ -549,6 +578,16 @@ export default function BidderCampaigns() {
                     )}
                   </>
                 }
+                style={{ marginBottom: spacing.md }}
+              />
+            )}
+            {isOzonCabinet && (
+              <Alert
+                type="info"
+                showIcon
+                message="Ozon Performance"
+                description="Расписание и автопополнение бюджета доступны только для Wildberries. Для Ozon — запуск и остановка кампании через переключатель в таблице."
+                style={{ marginBottom: spacing.md }}
               />
             )}
 
@@ -647,23 +686,36 @@ export default function BidderCampaigns() {
                             {formatCampaignDateTime(c.updatedAt)}
                           </td>
                           <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT_PAGE_SMALL }}>
-                            <Link
-                              to={`/advertising/campaigns/${c.id}/manage`}
-                              onClick={guardClick}
-                              data-tour-id={idx === 0 ? ONBOARDING_TARGETS.BIDDER_CAMPAIGN_NAME : undefined}
-                              style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}
-                            >
-                              {c.name}
-                            </Link>
+                            {isOzonCabinet ? (
+                              <span
+                                data-tour-id={idx === 0 ? ONBOARDING_TARGETS.BIDDER_CAMPAIGN_NAME : undefined}
+                                style={{ fontWeight: 500 }}
+                              >
+                                {c.name}
+                              </span>
+                            ) : (
+                              <Link
+                                to={`/advertising/campaigns/${c.id}/manage`}
+                                onClick={guardClick}
+                                data-tour-id={idx === 0 ? ONBOARDING_TARGETS.BIDDER_CAMPAIGN_NAME : undefined}
+                                style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}
+                              >
+                                {c.name}
+                              </Link>
+                            )}
                           </td>
                           <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT_PAGE_SMALL, color: colors.textSecondary }}>
-                            <Link
-                              to={`/advertising/campaigns/${c.id}/manage`}
-                              onClick={guardClick}
-                              style={{ color: colors.textSecondary, textDecoration: 'none' }}
-                            >
-                              {c.id}
-                            </Link>
+                            {isOzonCabinet ? (
+                              c.id
+                            ) : (
+                              <Link
+                                to={`/advertising/campaigns/${c.id}/manage`}
+                                onClick={guardClick}
+                                style={{ color: colors.textSecondary, textDecoration: 'none' }}
+                              >
+                                {c.id}
+                              </Link>
+                            )}
                           </td>
                           <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT_PAGE_SMALL }}>
                             {c.type || '-'}
