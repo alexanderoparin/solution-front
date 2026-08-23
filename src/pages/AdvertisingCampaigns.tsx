@@ -13,6 +13,7 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
+import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 dayjs.locale('ru')
 
@@ -385,6 +386,7 @@ export default function AdvertisingCampaigns() {
               }}
             >
               <DatePicker.RangePicker
+                data-tour-id={ONBOARDING_TARGETS.CAMPAIGNS_PERIOD}
                 value={dateRange}
                 onChange={(dates) => {
                   if (dates != null && dates[0] != null && dates[1] != null) {
@@ -432,6 +434,7 @@ export default function AdvertisingCampaigns() {
                 <Button
                   type="default"
                   icon={<SyncOutlined />}
+                  data-tour-id={ONBOARDING_TARGETS.CAMPAIGNS_REFRESH}
                   loading={promotionSyncMutation.isPending}
                   disabled={selectedCabinetId == null}
                   onClick={() => promotionSyncMutation.mutate()}
@@ -500,7 +503,13 @@ export default function AdvertisingCampaigns() {
                       <td style={{ width: `${COL_WIDTHS_PCT.createdAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDate(c.createdAt)}</td>
                       <td style={{ width: `${COL_WIDTHS_PCT.updatedAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDateTime(c.updatedAt)}</td>
                       <td style={{ width: `${COL_WIDTHS_PCT.name}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>
-                        <Link to={`/advertising/campaigns/${c.id}`} style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}>{c.name}</Link>
+                        <Link
+                          to={`/advertising/campaigns/${c.id}`}
+                          data-tour-id={idx === 0 ? ONBOARDING_TARGETS.CAMPAIGNS_NAME : undefined}
+                          style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}
+                        >
+                          {c.name}
+                        </Link>
                       </td>
                       <td style={{ width: `${COL_WIDTHS_PCT.id}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL, color: colors.textSecondary }}>
                         <Link to={`/advertising/campaigns/${c.id}`} style={{ color: colors.textSecondary, textDecoration: 'none' }}>{c.id}</Link>

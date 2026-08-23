@@ -46,7 +46,12 @@ export function consumePendingTour(): OnboardingTourId | null {
   try {
     const value = sessionStorage.getItem(PENDING_KEY)
     sessionStorage.removeItem(PENDING_KEY)
-    if (value === 'profile' || value === 'analyticsProducts' || value === 'analyticsSummary') {
+    if (
+      value === 'profile'
+      || value === 'analyticsProducts'
+      || value === 'analyticsSummary'
+      || value === 'advertisingCampaigns'
+    ) {
       return value
     }
     return null

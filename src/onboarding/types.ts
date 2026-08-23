@@ -1,4 +1,8 @@
-export type OnboardingTourId = 'profile' | 'analyticsProducts' | 'analyticsSummary'
+export type OnboardingTourId =
+  | 'profile'
+  | 'analyticsProducts'
+  | 'analyticsSummary'
+  | 'advertisingCampaigns'
 
 export type OnboardingPlacement = 'top' | 'bottom' | 'left' | 'right'
 

@@ -20,4 +20,10 @@ export const ONBOARDING_TARGETS = {
   SUMMARY_PERIOD_DATES: 'onboarding-summary-period-dates',
   /** Стрелка раскрытия списка артикулов в таблице */
   SUMMARY_METRIC_EXPAND: 'onboarding-summary-metric-expand',
+  /** Кнопка «Обновить все РК» */
+  CAMPAIGNS_REFRESH: 'onboarding-campaigns-refresh',
+  /** Период статистики по кампаниям */
+  CAMPAIGNS_PERIOD: 'onboarding-campaigns-period',
+  /** Название кампании (ссылка в деталку) */
+  CAMPAIGNS_NAME: 'onboarding-campaigns-name',
 } as const

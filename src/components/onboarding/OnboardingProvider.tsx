@@ -9,7 +9,12 @@ import OnboardingSkipHint from './OnboardingSkipHint'
 import OnboardingTour from './OnboardingTour'
 
 function parseTourParam(value: string | null): OnboardingTourId | null {
-  if (value === 'profile' || value === 'analyticsProducts' || value === 'analyticsSummary') {
+  if (
+    value === 'profile'
+    || value === 'analyticsProducts'
+    || value === 'analyticsSummary'
+    || value === 'advertisingCampaigns'
+  ) {
     return value
   }
   return null
