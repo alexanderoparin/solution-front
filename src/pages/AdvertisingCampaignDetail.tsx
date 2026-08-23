@@ -1617,33 +1617,22 @@ export default function AdvertisingCampaignDetail() {
                 Сравнение периодов
                 {comparePeriodsDataLoading && <Spin size="small" />}
               </h2>
-              {(() => {
-                const periodBlocks = [
-                  { period: 1, periodDates: period1, setPeriod: setPeriod1, aggKey: 'p1' as const, total: totalPeriod1 },
-                  { period: 2, periodDates: period2, setPeriod: setPeriod2, aggKey: 'p2' as const, total: totalPeriod2 },
-                ] as const
-                return (
-                  <>
-                    <div
-                      data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_COMPARE_PERIODS}
-                      style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm, marginBottom: spacing.lg }}
-                    >
-                      {periodBlocks.map(({ period, periodDates, setPeriod }) => (
-                        <div key={period} style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
-                          <span style={{ ...typography.body, fontWeight: 600, color: colors.textPrimary }}>Период {period}</span>
-                          <DatePicker.RangePicker
-                            locale={locale.DatePicker}
-                            value={periodDates}
-                            onChange={(dates) => dates?.[0] && dates?.[1] && setPeriod([dates[0], dates[1]])}
-                            format="DD.MM.YYYY"
-                            separator="→"
-                            style={{ width: 220 }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    {periodBlocks.map(({ period, aggKey, total }) => (
+              {([{ period: 1, periodDates: period1, setPeriod: setPeriod1, aggKey: 'p1' as const, total: totalPeriod1 }, { period: 2, periodDates: period2, setPeriod: setPeriod2, aggKey: 'p2' as const, total: totalPeriod2 }] as const).map(({ period, periodDates, setPeriod, aggKey, total }) => (
                 <div key={period} style={{ marginBottom: period === 1 ? spacing.xl : 0 }}>
+                  <div
+                    data-tour-id={period === 1 ? ONBOARDING_TARGETS.CAMPAIGN_DETAIL_COMPARE_PERIODS : undefined}
+                    style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}
+                  >
+                    <span style={{ ...typography.body, fontWeight: 600, color: colors.textPrimary }}>Период {period}</span>
+                    <DatePicker.RangePicker
+                      locale={locale.DatePicker}
+                      value={periodDates}
+                      onChange={(dates) => dates?.[0] && dates?.[1] && setPeriod([dates[0], dates[1]])}
+                      format="DD.MM.YYYY"
+                      separator="→"
+                      style={{ width: 220 }}
+                    />
+                  </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, tableLayout: 'fixed' }}>
                     <colgroup>
                       <col style={{ width: 120 }} />
@@ -1722,10 +1711,7 @@ export default function AdvertisingCampaignDetail() {
                     </tbody>
                   </table>
                 </div>
-                    ))}
-                  </>
-                )
-              })()}
+              ))}
             </div>
 
             {/* Блок 4 + 5 в один ряд: слева — сравнение периодов (суммарно), справа — остатки (оформление как в «Инфа по артикулу»).
