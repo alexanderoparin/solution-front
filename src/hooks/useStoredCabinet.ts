@@ -1,33 +1,40 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 
+function isCabinetAvailable(cabinetId: number, cabinets: readonly { id: number }[]): boolean {
+  return cabinets.some((c) => Number(c.id) === Number(cabinetId))
+}
+
 /**
- * Выбранный кабинет селлера: читаем и пишем в localStorage.
+ * Выбранный кабинет селлера — только localStorage, без рассинхрона state/storage.
  */
 export function useStoredCabinet(myCabinets: readonly { id: number }[]) {
-  const [cabinetId, setCabinetIdState] = useState<number | null>(() => getStoredCabinetId())
+  const [revision, setRevision] = useState(0)
 
   const setCabinetId = useCallback((id: number | null) => {
-    setCabinetIdState(id)
     setStoredCabinetId(id)
+    setRevision((r) => r + 1)
   }, [])
 
-  /** Если сохранённый id недоступен — первый из списка. */
+  /** Только если в storage пусто или id недоступен — первый кабинет из списка. */
   useEffect(() => {
     if (myCabinets.length === 0) {
       return
     }
 
     const stored = getStoredCabinetId()
-    if (stored != null && myCabinets.some((c) => Number(c.id) === Number(stored))) {
-      setCabinetIdState(stored)
+    if (stored != null && isCabinetAvailable(stored, myCabinets)) {
       return
     }
 
-    const first = myCabinets[0].id
-    setCabinetIdState(first)
-    setStoredCabinetId(first)
+    setStoredCabinetId(myCabinets[0].id)
+    setRevision((r) => r + 1)
   }, [myCabinets])
 
-  return { cabinetId, setCabinetId }
+  void revision
+
+  return {
+    cabinetId: getStoredCabinetId(),
+    setCabinetId,
+  }
 }
