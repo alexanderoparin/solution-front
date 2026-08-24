@@ -60,14 +60,6 @@ export function useSellerCabinetSelection(
     }
   }, [myCabinets, sellerSelectedCabinetId, setSelectedCabinetId])
 
-  useEffect(() => {
-    return () => {
-      if (sellerSelectedCabinetId != null) {
-        persistSellerCabinetId(sellerSelectedCabinetId)
-      }
-    }
-  }, [sellerSelectedCabinetId])
-
   return {
     selectedCabinetId: sellerSelectedCabinetId,
     setSelectedCabinetId,

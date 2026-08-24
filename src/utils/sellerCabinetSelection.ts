@@ -22,7 +22,7 @@ export function isCabinetInList(
 
 /**
  * Выбор кабинета для USER: localStorage + проверка, что id есть в списке.
- * Если сохранённый кабинет недоступен — первый из списка.
+ * Активный state важнее storage (переключение в шапке); storage — для перехода между страницами.
  */
 export function resolveSellerCabinetId(
   selectedCabinetId: number | null,
@@ -32,13 +32,13 @@ export function resolveSellerCabinetId(
     return selectedCabinetId
   }
 
+  if (selectedCabinetId != null && isCabinetInList(selectedCabinetId, cabinets)) {
+    return selectedCabinetId
+  }
+
   const storedId = getStoredCabinetId()
   if (storedId != null && isCabinetInList(storedId, cabinets)) {
     return storedId
-  }
-
-  if (selectedCabinetId != null && isCabinetInList(selectedCabinetId, cabinets)) {
-    return selectedCabinetId
   }
 
   return cabinets[0].id
