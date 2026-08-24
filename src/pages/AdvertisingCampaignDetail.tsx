@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, Fragment, type CSSProperties } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { Spin, DatePicker, Checkbox, Switch, Button, Select, message, Input, Modal, Tooltip, Upload } from 'antd'
 import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, RightOutlined, DownOutlined, ReloadOutlined, PaperClipOutlined, EyeOutlined, FireFilled } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -180,7 +180,6 @@ function writeStoredComparePeriods(period1: [Dayjs, Dayjs], period2: [Dayjs, Day
 
 export default function AdvertisingCampaignDetail() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const role = useAuthStore((state) => state.role)
   const isAdmin = role === 'ADMIN'
 
