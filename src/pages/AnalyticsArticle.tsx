@@ -171,15 +171,24 @@ export default function AnalyticsArticle() {
 
   const cabinetsLoading = isAdmin ? workContext.workContextLoading : myCabinetsLoading
 
-  const storedCabinetIdSeller = !isAdmin ? getStoredCabinetId() : null
-  const selectedCabinetIdSeller =
-    !isAdmin && myCabinets.length > 0
-      ? (storedCabinetIdSeller != null && myCabinets.some((c) => c.id === storedCabinetIdSeller)
-          ? storedCabinetIdSeller
-          : myCabinets[0].id)
-      : null
+  /** Как на /analytics/products: state + localStorage, без подмены на «свой» Ozon при grant-кабинетах. */
+  const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
 
-  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : selectedCabinetIdSeller
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setSellerSelectedCabinetId(getStoredCabinetId())
+    }
+  }, [isAdmin, nmId])
+
+  useEffect(() => {
+    if (isAdmin) return
+    if (myCabinets.length === 0 || sellerSelectedCabinetId != null) return
+    const first = myCabinets[0].id
+    setSellerSelectedCabinetId(first)
+    setStoredCabinetId(first)
+  }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 
   useEffect(() => {
     if (!isAdmin) {
@@ -202,6 +211,7 @@ export default function AnalyticsArticle() {
       if (isAdmin) {
         if (cid != null) workContext.applyWorkContextCabinet(cid)
       } else {
+        setSellerSelectedCabinetId(cid)
         setStoredCabinetId(cid)
       }
       setCabinetReloadTrigger((t) => t + 1)
@@ -221,7 +231,7 @@ export default function AnalyticsArticle() {
 
   const isOzonCabinet = useMemo(() => {
     if (selectedCabinetId == null) return false
-    return cabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
+    return cabinets.find((c) => Number(c.id) === Number(selectedCabinetId))?.marketplaceType === 'OZON'
   }, [selectedCabinetId, cabinets])
 
   const getSelectedSellerId = useCallback((): number | undefined => {
@@ -233,8 +243,8 @@ export default function AnalyticsArticle() {
     if (isAdmin) {
       return workContext.selectedCabinetId ?? undefined
     }
-    return getStoredCabinetId() ?? undefined
-  }, [isAdmin, workContext.selectedCabinetId])
+    return sellerSelectedCabinetId ?? undefined
+  }, [isAdmin, workContext.selectedCabinetId, sellerSelectedCabinetId])
 
   // Общий диапазон дат для графика и воронок (по умолчанию последние 2 недели)
   const yesterday = dayjs().subtract(1, 'day')
@@ -314,6 +324,8 @@ export default function AnalyticsArticle() {
     !isAdmin ||
     (!workContext.workContextLoading &&
       (workContext.workContextOptions.length === 0 || workContext.selectedCabinetId != null))
+  const sellerCabinetReady =
+    isAdmin || sellerSelectedCabinetId != null || (!myCabinetsLoading && myCabinets.length === 0)
 
   useEffect(() => {
     if (!nmId) {
@@ -322,13 +334,17 @@ export default function AnalyticsArticle() {
       return
     }
 
-    if (!workContextReady) {
+    if (!workContextReady || !sellerCabinetReady) {
       return
     }
 
     if (workContextListEmpty) {
       setError('Нет кабинетов с API-ключом для просмотра аналитики')
       setLoading(false)
+      return
+    }
+
+    if (isOzonCabinet) {
       return
     }
 
@@ -341,10 +357,13 @@ export default function AnalyticsArticle() {
     dateRange,
     campaignDateRange,
     workContextReady,
+    sellerCabinetReady,
     workContextListEmpty,
     workContext.selectedCabinetId,
     workContext.workContextLoading,
     workContext.workContextOptions.length,
+    sellerSelectedCabinetId,
+    isOzonCabinet,
   ])
 
   const loadArticle = async (
