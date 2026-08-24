@@ -32,9 +32,13 @@ export function resolveSellerCabinetId(
     return selectedCabinetId
   }
 
-  const storedId = selectedCabinetId ?? getStoredCabinetId()
+  const storedId = getStoredCabinetId()
   if (storedId != null && isCabinetInList(storedId, cabinets)) {
     return storedId
+  }
+
+  if (selectedCabinetId != null && isCabinetInList(selectedCabinetId, cabinets)) {
+    return selectedCabinetId
   }
 
   return cabinets[0].id

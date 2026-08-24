@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi, getStoredCabinetId } from '../api/cabinets'
 import type { CabinetAccessSection } from '../types/api'
 import { useAuthStore } from '../store/authStore'
 
@@ -13,14 +13,14 @@ const ALL_SECTIONS: CabinetAccessSection[] = [
 
 /**
  * Разрешённые разделы для выбранного кабинета (владелец / ADMIN — все).
- * Если в localStorage лежит чужой/устаревший cabinetId — подставляет первый доступный.
+ * Выбор кабинета не меняет — только проверяет доступ к разделу.
  */
 export function useCabinetSectionAccess(selectedCabinetId?: number | null) {
   const role = useAuthStore((s) => s.role)
   const isAdmin = role === 'ADMIN'
 
-  const [storedCabinetId, setStoredCabinetIdState] = useState<number | null>(() => getStoredCabinetId())
-  const cabinetId = selectedCabinetId ?? storedCabinetId
+  const cabinetId = selectedCabinetId ?? getStoredCabinetId()
+  const normalizedCabinetId = cabinetId != null ? Number(cabinetId) : null
 
   const { data, isFetched, isError } = useQuery({
     queryKey: ['cabinetsOverview', ''],
@@ -29,40 +29,8 @@ export function useCabinetSectionAccess(selectedCabinetId?: number | null) {
     staleTime: 60_000,
   })
 
-  const accessibleCabinetIds = useMemo(() => {
-    if (data == null) {
-      return null
-    }
-    const ids = new Set<number>()
-    for (const c of data.owned ?? []) {
-      ids.add(c.id)
-    }
-    for (const c of data.granted ?? []) {
-      ids.add(c.id)
-    }
-    return ids
-  }, [data])
-
-  /** Нужно поправить выбор: чужой id в storage или пусто при наличии доступных кабинетов. */
-  const needsCabinetFix =
-    !isAdmin
-    && accessibleCabinetIds != null
-    && (
-      (accessibleCabinetIds.size > 0 && (cabinetId == null || !accessibleCabinetIds.has(cabinetId)))
-      || (accessibleCabinetIds.size === 0 && cabinetId != null)
-    )
-
-  useEffect(() => {
-    if (!needsCabinetFix || data == null) {
-      return
-    }
-    const fallback = data.owned?.[0]?.id ?? data.granted?.[0]?.id ?? null
-    setStoredCabinetId(fallback)
-    setStoredCabinetIdState(fallback)
-  }, [needsCabinetFix, data])
-
-  /** Готовность: админ сразу; иначе — после overview и после автопочинки cabinetId. */
-  const isReady = isAdmin || isError || (isFetched && !needsCabinetFix)
+  /** Готовность: админ сразу; иначе — после overview. */
+  const isReady = isAdmin || isError || isFetched
 
   const sections = useMemo(() => {
     if (isAdmin) {
@@ -73,30 +41,32 @@ export function useCabinetSectionAccess(selectedCabinetId?: number | null) {
       return new Set(ALL_SECTIONS)
     }
 
-    const ownedIds = new Set((data.owned ?? []).map((c) => c.id))
+    const ownedIds = new Set((data.owned ?? []).map((c) => Number(c.id)))
     const granted = data.granted ?? []
 
-    if (cabinetId != null && ownedIds.has(cabinetId)) {
+    if (normalizedCabinetId != null && ownedIds.has(normalizedCabinetId)) {
       return new Set(ALL_SECTIONS)
     }
 
-    const grant = cabinetId != null ? granted.find((g) => g.id === cabinetId) : undefined
+    const grant =
+      normalizedCabinetId != null
+        ? granted.find((g) => Number(g.id) === normalizedCabinetId)
+        : undefined
     if (grant) {
       return new Set(grant.sections ?? [])
     }
 
-    // Кабинетов ещё нет / кабинет не выбран — не блокируем заранее
-    if (cabinetId == null) {
+    if (normalizedCabinetId == null) {
       return new Set(ALL_SECTIONS)
     }
 
     return new Set<CabinetAccessSection>()
-  }, [isAdmin, isReady, cabinetId, data])
+  }, [isAdmin, isReady, normalizedCabinetId, data])
 
   const hasSection = useCallback(
     (section: CabinetAccessSection) => sections.has(section),
     [sections],
   )
 
-  return { cabinetId, sections, hasSection, isReady }
+  return { cabinetId: normalizedCabinetId, sections, hasSection, isReady }
 }

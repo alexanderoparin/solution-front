@@ -6,7 +6,7 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
-import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi } from '../api/cabinets'
 import type { ArticleSummary, Period } from '../types/analytics'
 import type { CabinetTokenType } from '../types/api'
 import { colors, typography, spacing, borderRadius, transitions, shadows, PRODUCT_PHOTO_WIDTH, PRODUCT_PHOTO_HEIGHT } from '../styles/analytics'
@@ -32,13 +32,8 @@ import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import OzonAnalyticsProducts from './OzonAnalyticsProducts'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
+import { useSellerCabinetSelection } from '../hooks/useSellerCabinetSelection'
 import { hasMeaningfulArticleRating, formatArticleRating } from '../utils/articleRating'
-import {
-  isCabinetInList,
-  persistSellerCabinetId,
-  readCabinetIdFromNavigationState,
-  resolveSellerCabinetId,
-} from '../utils/sellerCabinetSelection'
 
 dayjs.locale('ru')
 
@@ -185,7 +180,15 @@ export default function AnalyticsProducts() {
 
   const cabinetsLoadingState = isAdmin ? workContext.workContextLoading : cabinetsLoading
 
-  const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
+  const clearNavigationState = useCallback(() => {
+    navigate(location.pathname, { replace: true, state: null })
+  }, [navigate, location.pathname])
+
+  const { selectedCabinetId: sellerSelectedCabinetId, setSelectedCabinetId: setSellerSelectedCabinetId } =
+    useSellerCabinetSelection(myCabinets, {
+      navigationState: location.state,
+      onNavigationStateConsumed: clearNavigationState,
+    })
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
 
@@ -195,37 +198,10 @@ export default function AnalyticsProducts() {
         if (id != null) workContext.applyWorkContextCabinet(id)
       } else {
         setSellerSelectedCabinetId(id)
-        setStoredCabinetId(id)
       }
     },
-    [isAdmin, workContext.applyWorkContextCabinet],
+    [isAdmin, workContext.applyWorkContextCabinet, setSellerSelectedCabinetId],
   )
-
-  useEffect(() => {
-    if (isAdmin) return
-
-    const fromNav = readCabinetIdFromNavigationState(location.state)
-    if (fromNav != null) {
-      setSellerSelectedCabinetId(fromNav)
-      persistSellerCabinetId(fromNav)
-      navigate(location.pathname, { replace: true, state: null })
-    }
-  }, [isAdmin, location.pathname, location.state, navigate])
-
-  useEffect(() => {
-    if (isAdmin) return
-    if (myCabinets.length === 0) return
-
-    const resolved = resolveSellerCabinetId(sellerSelectedCabinetId, myCabinets)
-    if (resolved == null) return
-
-    if (sellerSelectedCabinetId == null || Number(sellerSelectedCabinetId) !== Number(resolved)) {
-      setSellerSelectedCabinetId(resolved)
-      if (!isCabinetInList(getStoredCabinetId(), myCabinets) || getStoredCabinetId() !== resolved) {
-        persistSellerCabinetId(resolved)
-      }
-    }
-  }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 
   const last7DaysPeriod = useMemo(() => getLast7DaysPeriod(), [])
 

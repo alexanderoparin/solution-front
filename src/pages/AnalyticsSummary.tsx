@@ -7,7 +7,7 @@ import locale from 'antd/locale/ru_RU'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { userApi } from '../api/user'
-import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi } from '../api/cabinets'
 import { generateDefaultPeriods, validatePeriods } from '../utils/periodGenerator'
 import { analyticsRequestQueue } from '../utils/requestQueue'
 import {
@@ -31,12 +31,8 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin, WORK_CONTEXT_CABINETS_QUERY_KEY } from '../hooks/useWorkContextForAdmin'
+import { useSellerCabinetSelection } from '../hooks/useSellerCabinetSelection'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
-import {
-  isCabinetInList,
-  persistSellerCabinetId,
-  resolveSellerCabinetId,
-} from '../utils/sellerCabinetSelection'
 
 dayjs.locale('ru')
 
@@ -216,7 +212,8 @@ export default function AnalyticsSummary() {
 
   const cabinetsLoading = isAdmin ? workContext.workContextLoading : myCabinetsLoading
 
-  const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
+  const { selectedCabinetId: sellerSelectedCabinetId, setSelectedCabinetId: setSellerSelectedCabinetId } =
+    useSellerCabinetSelection(myCabinets)
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
 
@@ -226,26 +223,10 @@ export default function AnalyticsSummary() {
         if (id != null) workContext.applyWorkContextCabinet(id)
       } else {
         setSellerSelectedCabinetId(id)
-        setStoredCabinetId(id)
       }
     },
-    [isAdmin, workContext.applyWorkContextCabinet],
+    [isAdmin, workContext.applyWorkContextCabinet, setSellerSelectedCabinetId],
   )
-
-  useEffect(() => {
-    if (isAdmin) return
-    if (myCabinets.length === 0) return
-
-    const resolved = resolveSellerCabinetId(sellerSelectedCabinetId, myCabinets)
-    if (resolved == null) return
-
-    if (sellerSelectedCabinetId == null || Number(sellerSelectedCabinetId) !== Number(resolved)) {
-      setSellerSelectedCabinetId(resolved)
-      if (!isCabinetInList(getStoredCabinetId(), myCabinets) || getStoredCabinetId() !== resolved) {
-        persistSellerCabinetId(resolved)
-      }
-    }
-  }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 
   const [periods, setPeriods] = useState<Period[]>(() => {
     // Загружаем периоды из localStorage или генерируем по умолчанию
