@@ -1,13 +1,27 @@
-/** Стартовая страница после смены кабинета в шапке. */
+/** Стартовая страница после смены кабинета на детальной странице. */
 export const CABINET_HOME_PATH = '/analytics/products'
 
-/** Страницы аналитики, на которых можно остаться при смене кабинета. */
-const ANALYTICS_SAFE_PATHS = new Set([CABINET_HOME_PATH, '/analytics'])
-
 /**
- * Нужен ли переход на «Аналитика → Товары» при смене кабинета.
- * На «Товарах» и «Сводной» остаёмся; при одном кабинете редирект не нужен.
+ * Страница привязана к конкретной сущности (id в URL).
+ * При смене кабинета здесь нельзя остаться — уходим на «Товары».
  */
+export function isCabinetScopedDetailPage(pathname: string): boolean {
+  if (/^\/analytics\/article\/[^/]+$/.test(pathname)) {
+    return true
+  }
+  if (/^\/advertising\/campaigns\/[^/]+\/manage$/.test(pathname)) {
+    return true
+  }
+  if (/^\/advertising\/campaigns\/[^/]+$/.test(pathname)) {
+    return true
+  }
+  if (/^\/advertising\/ab-test\/[^/]+$/.test(pathname)) {
+    return true
+  }
+  return false
+}
+
+/** Редирект на «Товары» только на деталках с id в адресе. */
 export function shouldRedirectOnCabinetSwitch(
   pathname: string,
   currentCabinetId: number | null | undefined,
@@ -17,11 +31,11 @@ export function shouldRedirectOnCabinetSwitch(
   if (cabinetCount <= 1) {
     return false
   }
-  if (ANALYTICS_SAFE_PATHS.has(pathname)) {
-    return false
-  }
   if (currentCabinetId == null) {
     return false
   }
-  return Number(currentCabinetId) !== Number(newCabinetId)
+  if (Number(currentCabinetId) === Number(newCabinetId)) {
+    return false
+  }
+  return isCabinetScopedDetailPage(pathname)
 }

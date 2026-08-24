@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
-import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Spin, Input, Button, Popover, Checkbox, message, Tooltip } from 'antd'
 import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled, HolderOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
@@ -32,7 +32,7 @@ import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import OzonAnalyticsProducts from './OzonAnalyticsProducts'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
-import { useSellerCabinetSelection } from '../hooks/useSellerCabinetSelection'
+import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { hasMeaningfulArticleRating, formatArticleRating } from '../utils/articleRating'
 
 dayjs.locale('ru')
@@ -141,8 +141,6 @@ function MiniChart({ values, height = 32 }: { values: number[]; height?: number 
 
 export default function AnalyticsProducts() {
   const queryClient = useQueryClient()
-  const location = useLocation()
-  const navigate = useNavigate()
   const role = useAuthStore((state) => state.role)
   const isAdmin = role === 'ADMIN'
   const [searchQuery, setSearchQuery] = useState('')
@@ -180,27 +178,19 @@ export default function AnalyticsProducts() {
 
   const cabinetsLoadingState = isAdmin ? workContext.workContextLoading : cabinetsLoading
 
-  const clearNavigationState = useCallback(() => {
-    navigate(location.pathname, { replace: true, state: null })
-  }, [navigate, location.pathname])
+  const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
 
-  const { selectedCabinetId: sellerSelectedCabinetId, setSelectedCabinetId: setSellerSelectedCabinetId } =
-    useSellerCabinetSelection(myCabinets, {
-      navigationState: location.state,
-      onNavigationStateConsumed: clearNavigationState,
-    })
-
-  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
 
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
       if (isAdmin) {
         if (id != null) workContext.applyWorkContextCabinet(id)
       } else {
-        setSellerSelectedCabinetId(id)
+        setSellerCabinetId(id)
       }
     },
-    [isAdmin, workContext.applyWorkContextCabinet, setSellerSelectedCabinetId],
+    [isAdmin, workContext.applyWorkContextCabinet, setSellerCabinetId],
   )
 
   const last7DaysPeriod = useMemo(() => getLast7DaysPeriod(), [])
@@ -1508,13 +1498,9 @@ function ProductRow({
     return stockSizes.map((s) => s.wbSize || s.techSize || '').filter(Boolean).join(', ') || '-'
   }, [stockSizes])
 
-  const goToArticle = () =>
-    navigate(`/analytics/article/${article.nmId}`, {
-      state: selectedCabinetId != null ? { cabinetId: selectedCabinetId } : undefined,
-    })
+  const goToArticle = () => navigate(`/analytics/article/${article.nmId}`)
   const wbUrl = WB_CATALOG_URL(article.nmId)
   const articlePath = `/analytics/article/${article.nmId}`
-  const articleNavState = selectedCabinetId != null ? { cabinetId: selectedCabinetId } : undefined
 
   const stopProp = (e: React.MouseEvent) => e.stopPropagation()
 
@@ -1648,7 +1634,6 @@ function ProductRow({
       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         <Link
           to={articlePath}
-          state={articleNavState}
           onClick={stopProp}
           className="products-table-link"
           style={{ fontWeight: 700, fontSize: 13, color: colors.textPrimary, marginBottom: 4, display: 'inline-block' }}
@@ -1660,13 +1645,13 @@ function ProductRow({
         </div>
         <div style={{ color: colors.textSecondary, marginBottom: 2 }}>
           Артикул WB:{' '}
-          <Link to={articlePath} state={articleNavState} onClick={stopProp} className="products-table-link">
+          <Link to={articlePath} onClick={stopProp} className="products-table-link">
             {article.nmId}
           </Link>
         </div>
         <div style={{ color: colors.textSecondary, marginBottom: 4 }}>
           Артикул продавца:{' '}
-          <Link to={articlePath} state={articleNavState} onClick={stopProp} className="products-table-link">
+          <Link to={articlePath} onClick={stopProp} className="products-table-link">
             {article.vendorCode ?? '-'}
           </Link>
         </div>

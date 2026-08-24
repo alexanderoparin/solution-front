@@ -31,7 +31,7 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin, WORK_CONTEXT_CABINETS_QUERY_KEY } from '../hooks/useWorkContextForAdmin'
-import { useSellerCabinetSelection } from '../hooks/useSellerCabinetSelection'
+import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 dayjs.locale('ru')
@@ -212,20 +212,19 @@ export default function AnalyticsSummary() {
 
   const cabinetsLoading = isAdmin ? workContext.workContextLoading : myCabinetsLoading
 
-  const { selectedCabinetId: sellerSelectedCabinetId, setSelectedCabinetId: setSellerSelectedCabinetId } =
-    useSellerCabinetSelection(myCabinets)
+  const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
 
-  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
 
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
       if (isAdmin) {
         if (id != null) workContext.applyWorkContextCabinet(id)
       } else {
-        setSellerSelectedCabinetId(id)
+        setSellerCabinetId(id)
       }
     },
-    [isAdmin, workContext.applyWorkContextCabinet, setSellerSelectedCabinetId],
+    [isAdmin, workContext.applyWorkContextCabinet, setSellerCabinetId],
   )
 
   const [periods, setPeriods] = useState<Period[]>(() => {

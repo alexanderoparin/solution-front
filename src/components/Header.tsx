@@ -54,7 +54,7 @@ interface HeaderProps {
 
 function NavMenuLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
-    <Link to={to} state={null} style={{ color: 'inherit', textDecoration: 'none' }}>
+    <Link to={to} style={{ color: 'inherit', textDecoration: 'none' }}>
       {children}
     </Link>
   )
@@ -78,7 +78,7 @@ export default function Header({
     ) => {
       applyChange()
       if (shouldRedirectOnCabinetSwitch(location.pathname, currentCabinetId, newCabinetId, cabinetCount)) {
-        navigate(CABINET_HOME_PATH, { state: { cabinetId: newCabinetId } })
+        navigate(CABINET_HOME_PATH)
       }
     },
     [location.pathname, navigate],

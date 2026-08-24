@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox, Switch, Tooltip } from 'antd'
 import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined, ReloadOutlined, FireFilled } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -7,7 +7,7 @@ import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
 import { useQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
-import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi } from '../api/cabinets'
 import { userApi } from '../api/user'
 import type { ArticleResponse, StockSize, ArticleNote } from '../types/analytics'
 import { resolveArticlePhotoUrl, resolveArticleBundleThumbUrl } from '../types/analytics'
@@ -25,6 +25,7 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
+import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { useFunnelTableVerticalSelection, sumFunnelBaseMetricsForDates } from '../hooks/useFunnelTableVerticalSelection'
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
@@ -147,7 +148,6 @@ function getDatesInRange(from: Dayjs, to: Dayjs): string[] {
 export default function AnalyticsArticle() {
   const { nmId } = useParams<{ nmId: string }>()
   const navigate = useNavigate()
-  const location = useLocation()
   const role = useAuthStore((state) => state.role)
   const userId = useAuthStore((state) => state.userId)
   const isAdmin = role === 'ADMIN'
@@ -171,42 +171,20 @@ export default function AnalyticsArticle() {
 
   const cabinetsLoading = isAdmin ? workContext.workContextLoading : myCabinetsLoading
 
-  /** Как на /analytics/products: state + localStorage, без подмены на «свой» Ozon при grant-кабинетах. */
-  const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
+  const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
 
-  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
-
-  useEffect(() => {
-    if (!isAdmin) {
-      const fromNav = (location.state as { cabinetId?: number } | null)?.cabinetId
-      if (fromNav != null) {
-        setSellerSelectedCabinetId(fromNav)
-        setStoredCabinetId(fromNav)
-        return
-      }
-      setSellerSelectedCabinetId(getStoredCabinetId())
-    }
-  }, [isAdmin, nmId, location.state])
-
-  useEffect(() => {
-    if (isAdmin) return
-    if (myCabinets.length === 0 || sellerSelectedCabinetId != null) return
-    const first = myCabinets[0].id
-    setSellerSelectedCabinetId(first)
-    setStoredCabinetId(first)
-  }, [isAdmin, myCabinets, sellerSelectedCabinetId])
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
 
   const setSelectedCabinetId = useCallback(
     (cid: number | null) => {
       if (isAdmin) {
         if (cid != null) workContext.applyWorkContextCabinet(cid)
       } else {
-        setSellerSelectedCabinetId(cid)
-        setStoredCabinetId(cid)
+        setSellerCabinetId(cid)
       }
       setCabinetReloadTrigger((t) => t + 1)
     },
-    [isAdmin, workContext.applyWorkContextCabinet],
+    [isAdmin, workContext.applyWorkContextCabinet, setSellerCabinetId],
   )
 
   const cabinetSelectProps =
@@ -233,8 +211,8 @@ export default function AnalyticsArticle() {
     if (isAdmin) {
       return workContext.selectedCabinetId ?? undefined
     }
-    return sellerSelectedCabinetId ?? undefined
-  }, [isAdmin, workContext.selectedCabinetId, sellerSelectedCabinetId])
+    return sellerCabinetId ?? undefined
+  }, [isAdmin, workContext.selectedCabinetId, sellerCabinetId])
 
   // Общий диапазон дат для графика и воронок (по умолчанию последние 2 недели)
   const yesterday = dayjs().subtract(1, 'day')
@@ -315,7 +293,7 @@ export default function AnalyticsArticle() {
     (!workContext.workContextLoading &&
       (workContext.workContextOptions.length === 0 || workContext.selectedCabinetId != null))
   const sellerCabinetReady =
-    isAdmin || sellerSelectedCabinetId != null || (!myCabinetsLoading && myCabinets.length === 0)
+    isAdmin || sellerCabinetId != null || (!myCabinetsLoading && myCabinets.length === 0)
 
   useEffect(() => {
     if (!nmId) {
@@ -352,7 +330,7 @@ export default function AnalyticsArticle() {
     workContext.selectedCabinetId,
     workContext.workContextLoading,
     workContext.workContextOptions.length,
-    sellerSelectedCabinetId,
+    sellerCabinetId,
     isOzonCabinet,
   ])
 
