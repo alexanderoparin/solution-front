@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { accessStatusQueryKey, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
-import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi, getStoredCabinetId } from '../api/cabinets'
 import { useAuthStore } from '../store/authStore'
 import { useWorkContextForAdmin } from './useWorkContextForAdmin'
 
@@ -17,6 +17,24 @@ function resolveSellerIdForAccess(role: string | null, userId: number | null): n
   return undefined
 }
 
+function isCabinetInOverview(
+  cabinetId: number,
+  overview: { owned?: { id: number }[]; granted?: { id: number }[] } | undefined,
+): boolean {
+  if (overview == null) {
+    return false
+  }
+  const ids = [
+    ...(overview.owned ?? []).map((c) => Number(c.id)),
+    ...(overview.granted ?? []).map((c) => Number(c.id)),
+  ]
+  return ids.includes(Number(cabinetId))
+}
+
+/**
+ * Доступ к «Управление РК» и бейдж в шапке.
+ * Не меняет глобальный выбор кабинета аналитики — только читает storage.
+ */
 export function useCampaignManageAccess(overrideSellerId?: number, overrideCabinetId?: number) {
   const role = useAuthStore((s) => s.role)
   const userId = useAuthStore((s) => s.userId)
@@ -39,22 +57,14 @@ export function useCampaignManageAccess(overrideSellerId?: number, overrideCabin
     if (isAdmin) {
       return workContext.selectedCabinetId ?? undefined
     }
-    const ownedIds = (overview?.owned ?? []).map((c) => c.id)
+
     const stored = getStoredCabinetId()
-    if (stored != null && ownedIds.includes(stored)) {
+    if (stored != null && isCabinetInOverview(stored, overview)) {
       return stored
     }
-    return ownedIds[0]
-  }, [overrideCabinetId, isAdmin, workContext.selectedCabinetId, overview])
 
-  useEffect(() => {
-    if (isAdmin || overrideCabinetId != null || cabinetId == null) {
-      return
-    }
-    if (getStoredCabinetId() !== cabinetId) {
-      setStoredCabinetId(cabinetId)
-    }
-  }, [isAdmin, overrideCabinetId, cabinetId])
+    return overview?.owned?.[0]?.id ?? overview?.granted?.[0]?.id
+  }, [overrideCabinetId, isAdmin, workContext.selectedCabinetId, overview])
 
   const accessEnabled = isAdmin || overrideCabinetId != null || cabinetId != null || overview !== undefined
 

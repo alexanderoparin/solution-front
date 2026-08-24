@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, type CSSProperties } from 'react'
+import { useState, useMemo, useCallback, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { Spin, Input, Select, DatePicker, message, Alert, Switch } from 'antd'
 import { SearchOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
@@ -7,13 +7,14 @@ import 'dayjs/locale/ru'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { campaignManageApi } from '../api/campaignManage'
-import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi } from '../api/cabinets'
 import type { Campaign } from '../types/analytics'
 import { colors, typography, spacing, borderRadius, transitions, shadows } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
+import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { useCampaignManagePaywall } from '../hooks/useCampaignManagePaywall'
 import { bidderStatusColor, bidderStatusIcon, bidderStatusLabel, parseBidderStatus } from '../utils/bidderStatus'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
@@ -136,9 +137,9 @@ export default function BidderCampaigns() {
 
   const cabinetsLoadingState = isAdmin ? workContext.workContextLoading : cabinetsLoading
 
-  const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
+  const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
 
-  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
 
   const selectedCabinetMarketplace = useMemo(() => {
     const cab = cabinets.find((c) => c.id === selectedCabinetId)
@@ -308,27 +309,11 @@ export default function BidderCampaigns() {
       if (isAdmin) {
         if (id != null) workContext.applyWorkContextCabinet(id)
       } else {
-        setSellerSelectedCabinetId(id)
-        setStoredCabinetId(id)
+        setSellerCabinetId(id)
       }
     },
-    [isAdmin, workContext.applyWorkContextCabinet]
+    [isAdmin, workContext.applyWorkContextCabinet, setSellerCabinetId],
   )
-
-  useEffect(() => {
-    if (!isAdmin) {
-      setSellerSelectedCabinetId(getStoredCabinetId())
-    }
-  }, [isAdmin])
-
-  useEffect(() => {
-    if (isAdmin) return
-    if (myCabinets.length > 0 && sellerSelectedCabinetId === null) {
-      const first = myCabinets[0].id
-      setSellerSelectedCabinetId(first)
-      setStoredCabinetId(first)
-    }
-  }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 
   const cabinetSelectProps =
     !isAdmin && cabinets.length > 0

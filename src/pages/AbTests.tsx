@@ -8,7 +8,8 @@ import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useAuthStore } from '../store/authStore'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
-import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi } from '../api/cabinets'
+import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { analyticsApi } from '../api/analytics'
 import { abTestApi } from '../api/abTest'
 import { subscriptionApi } from '../api/subscription'
@@ -951,19 +952,20 @@ export default function AbTests() {
   const isAdmin = role === 'ADMIN'
   const workContext = useWorkContextForAdmin(isAdmin)
   const queryClient = useQueryClient()
-  const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
   const [filter, setFilter] = useState<'active' | 'all'>('all')
   const [createOpen, setCreateOpen] = useState(false)
   const [paywallOpen, setPaywallOpen] = useState(false)
-
-  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
-  const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
 
   const { data: myCabinets = [] } = useQuery({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
     enabled: role === 'USER',
   })
+
+  const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
+
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
+  const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
 
   const isOzonCabinet = useMemo(() => {
     if (selectedCabinetId == null) return false
@@ -972,13 +974,6 @@ export default function AbTests() {
     }
     return myCabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
   }, [isAdmin, selectedCabinetId, workContext.workContextOptions, myCabinets])
-
-  useEffect(() => {
-    if (!isAdmin && myCabinets.length > 0 && sellerSelectedCabinetId === null) {
-      setSellerSelectedCabinetId(myCabinets[0].id)
-      setStoredCabinetId(myCabinets[0].id)
-    }
-  }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 
   const selectedTokenType: CabinetTokenType | null | undefined = useMemo(() => {
     if (selectedCabinetId == null) return null
@@ -1050,12 +1045,11 @@ export default function AbTests() {
       selectedCabinetId,
       onCabinetChange: (id: number | null) => {
         if (id == null) return
-        setSellerSelectedCabinetId(id)
-        setStoredCabinetId(id)
+        setSellerCabinetId(id)
       },
       loading: false,
     }
-  }, [isAdmin, myCabinets, selectedCabinetId])
+  }, [isAdmin, myCabinets, selectedCabinetId, setSellerCabinetId])
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bgGray }}>
