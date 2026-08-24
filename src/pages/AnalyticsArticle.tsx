@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'
 import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox, Switch, Tooltip } from 'antd'
 import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined, ReloadOutlined, FireFilled } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -147,6 +147,7 @@ function getDatesInRange(from: Dayjs, to: Dayjs): string[] {
 export default function AnalyticsArticle() {
   const { nmId } = useParams<{ nmId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const role = useAuthStore((state) => state.role)
   const userId = useAuthStore((state) => state.userId)
   const isAdmin = role === 'ADMIN'
@@ -178,9 +179,15 @@ export default function AnalyticsArticle() {
 
   useEffect(() => {
     if (!isAdmin) {
+      const fromNav = (location.state as { cabinetId?: number } | null)?.cabinetId
+      if (fromNav != null) {
+        setSellerSelectedCabinetId(fromNav)
+        setStoredCabinetId(fromNav)
+        return
+      }
       setSellerSelectedCabinetId(getStoredCabinetId())
     }
-  }, [isAdmin, nmId])
+  }, [isAdmin, nmId, location.state])
 
   useEffect(() => {
     if (isAdmin) return

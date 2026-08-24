@@ -1513,9 +1513,13 @@ function ProductRow({
     return stockSizes.map((s) => s.wbSize || s.techSize || '').filter(Boolean).join(', ') || '-'
   }, [stockSizes])
 
-  const goToArticle = () => navigate(`/analytics/article/${article.nmId}`)
+  const goToArticle = () =>
+    navigate(`/analytics/article/${article.nmId}`, {
+      state: selectedCabinetId != null ? { cabinetId: selectedCabinetId } : undefined,
+    })
   const wbUrl = WB_CATALOG_URL(article.nmId)
   const articlePath = `/analytics/article/${article.nmId}`
+  const articleNavState = selectedCabinetId != null ? { cabinetId: selectedCabinetId } : undefined
 
   const stopProp = (e: React.MouseEvent) => e.stopPropagation()
 
@@ -1649,6 +1653,7 @@ function ProductRow({
       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         <Link
           to={articlePath}
+          state={articleNavState}
           onClick={stopProp}
           className="products-table-link"
           style={{ fontWeight: 700, fontSize: 13, color: colors.textPrimary, marginBottom: 4, display: 'inline-block' }}
@@ -1660,13 +1665,13 @@ function ProductRow({
         </div>
         <div style={{ color: colors.textSecondary, marginBottom: 2 }}>
           Артикул WB:{' '}
-          <Link to={articlePath} onClick={stopProp} className="products-table-link">
+          <Link to={articlePath} state={articleNavState} onClick={stopProp} className="products-table-link">
             {article.nmId}
           </Link>
         </div>
         <div style={{ color: colors.textSecondary, marginBottom: 4 }}>
           Артикул продавца:{' '}
-          <Link to={articlePath} onClick={stopProp} className="products-table-link">
+          <Link to={articlePath} state={articleNavState} onClick={stopProp} className="products-table-link">
             {article.vendorCode ?? '-'}
           </Link>
         </div>
