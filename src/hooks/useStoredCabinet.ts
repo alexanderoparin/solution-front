@@ -1,40 +1,40 @@
 import { useCallback, useEffect, useState } from 'react'
 import { getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
 
-function isCabinetAvailable(cabinetId: number, cabinets: readonly { id: number }[]): boolean {
+function isCabinetAvailable(
+  cabinetId: number | null | undefined,
+  cabinets: readonly { id: number }[],
+): boolean {
+  if (cabinetId == null) {
+    return false
+  }
   return cabinets.some((c) => Number(c.id) === Number(cabinetId))
 }
 
 /**
- * Выбранный кабинет селлера — только localStorage, без рассинхрона state/storage.
+ * Выбранный кабинет: state + localStorage, синхронно при setCabinetId.
  */
 export function useStoredCabinet(myCabinets: readonly { id: number }[]) {
-  const [revision, setRevision] = useState(0)
+  const [cabinetId, setCabinetIdState] = useState<number | null>(() => getStoredCabinetId())
 
   const setCabinetId = useCallback((id: number | null) => {
+    setCabinetIdState(id)
     setStoredCabinetId(id)
-    setRevision((r) => r + 1)
   }, [])
 
-  /** Только если в storage пусто или id недоступен — первый кабинет из списка. */
+  /** Только если storage пуст/битый — подставить первый кабинет. Выбор пользователя не трогаем. */
   useEffect(() => {
     if (myCabinets.length === 0) {
       return
     }
 
     const stored = getStoredCabinetId()
-    if (stored != null && isCabinetAvailable(stored, myCabinets)) {
+    if (isCabinetAvailable(stored, myCabinets)) {
       return
     }
 
-    setStoredCabinetId(myCabinets[0].id)
-    setRevision((r) => r + 1)
-  }, [myCabinets])
+    setCabinetId(myCabinets[0].id)
+  }, [myCabinets, setCabinetId])
 
-  void revision
-
-  return {
-    cabinetId: getStoredCabinetId(),
-    setCabinetId,
-  }
+  return { cabinetId, setCabinetId }
 }
