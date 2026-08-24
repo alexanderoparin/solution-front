@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef, Fragment, type CSSProperties } from 'react'
+import { useState, useMemo, useCallback, useEffect, Fragment, type CSSProperties } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Spin, DatePicker, Checkbox, Switch, Button, Select, message, Input, Modal, Tooltip, Upload } from 'antd'
 import { DownloadOutlined, PlusOutlined, EditOutlined, DeleteOutlined, ArrowUpOutlined, ArrowDownOutlined, RightOutlined, DownOutlined, ReloadOutlined, PaperClipOutlined, EyeOutlined, FireFilled } from '@ant-design/icons'
@@ -186,7 +186,6 @@ export default function AdvertisingCampaignDetail() {
 
   const workContext = useWorkContextForAdmin(isAdmin)
   const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
-  const prevAdminCabinetRef = useRef<number | null>(null)
 
   const { data: myCabinets = [], isLoading: myCabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
@@ -217,22 +216,6 @@ export default function AdvertisingCampaignDetail() {
     if (selectedCabinetId == null) return false
     return cabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
   }, [cabinets, selectedCabinetId])
-
-  useEffect(() => {
-    if (!isAdmin) {
-      prevAdminCabinetRef.current = null
-      return
-    }
-    const cur = workContext.selectedCabinetId
-    if (cur == null) {
-      prevAdminCabinetRef.current = null
-      return
-    }
-    if (prevAdminCabinetRef.current != null && prevAdminCabinetRef.current !== cur) {
-      navigate('/advertising/campaigns')
-    }
-    prevAdminCabinetRef.current = cur
-  }, [isAdmin, workContext.selectedCabinetId, navigate])
 
   const setSelectedCabinetId = useCallback(
     (cid: number | null) => {

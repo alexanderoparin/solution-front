@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button, InputNumber, Modal, Radio, Select, Spin, Tooltip, message } from 'antd'
 import { EditOutlined, PauseCircleOutlined, PlayCircleOutlined } from '@ant-design/icons'
@@ -56,7 +56,6 @@ export default function AbTestDetail() {
   const workContext = useWorkContextForAdmin(isAdmin)
   const [sellerSelectedCabinetId, setSellerSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
   const [editOpen, setEditOpen] = useState(false)
-  const prevAdminCabinetRef = useRef<number | null>(null)
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerSelectedCabinetId
   const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
@@ -87,23 +86,6 @@ export default function AbTestDetail() {
       setStoredCabinetId(myCabinets[0].id)
     }
   }, [isAdmin, myCabinets, sellerSelectedCabinetId])
-
-  /** Смена кабинета на деталке чужого А/Б → список (как на деталке РК / артикула). */
-  useEffect(() => {
-    if (!isAdmin) {
-      prevAdminCabinetRef.current = null
-      return
-    }
-    const cur = workContext.selectedCabinetId
-    if (cur == null) {
-      prevAdminCabinetRef.current = null
-      return
-    }
-    if (prevAdminCabinetRef.current != null && prevAdminCabinetRef.current !== cur) {
-      navigate(AB_TESTS_LIST_PATH)
-    }
-    prevAdminCabinetRef.current = cur
-  }, [isAdmin, workContext.selectedCabinetId, navigate])
 
   const selectedTokenType: CabinetTokenType | null | undefined = useMemo(() => {
     if (selectedCabinetId == null) return null

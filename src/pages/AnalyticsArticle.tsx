@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom'
 import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox, Switch, Tooltip } from 'antd'
 import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined, ReloadOutlined, FireFilled } from '@ant-design/icons'
@@ -155,7 +155,6 @@ export default function AnalyticsArticle() {
   const workContext = useWorkContextForAdmin(isAdmin)
   const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
   const [cabinetReloadTrigger, setCabinetReloadTrigger] = useState(0)
-  const prevAdminCabinetRef = useRef<number | null>(null)
 
   const { data: myCabinets = [], isLoading: myCabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
@@ -196,22 +195,6 @@ export default function AnalyticsArticle() {
     setSellerSelectedCabinetId(first)
     setStoredCabinetId(first)
   }, [isAdmin, myCabinets, sellerSelectedCabinetId])
-
-  useEffect(() => {
-    if (!isAdmin) {
-      prevAdminCabinetRef.current = null
-      return
-    }
-    const cur = workContext.selectedCabinetId
-    if (cur == null) {
-      prevAdminCabinetRef.current = null
-      return
-    }
-    if (prevAdminCabinetRef.current != null && prevAdminCabinetRef.current !== cur) {
-      navigate('/analytics/products')
-    }
-    prevAdminCabinetRef.current = cur
-  }, [isAdmin, workContext.selectedCabinetId, navigate])
 
   const setSelectedCabinetId = useCallback(
     (cid: number | null) => {

@@ -1,5 +1,5 @@
-import { Link, useLocation } from 'react-router-dom'
-import { useMemo } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useCallback, useMemo } from 'react'
 import { Button, Space, Dropdown, Select } from 'antd'
 import { UserOutlined, BarChartOutlined, RiseOutlined, DownOutlined } from '@ant-design/icons'
 import SiteLogo from './SiteLogo'
@@ -9,6 +9,7 @@ import { landingColors } from '../styles/landing'
 import OnboardingHelpButton from './onboarding/OnboardingHelpButton'
 import { resolveTourIdForPath } from '../onboarding/resolveTourForPath'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
+import { CABINET_HOME_PATH, shouldRedirectOnCabinetSwitch } from '../utils/cabinetSwitchNavigation'
 import type { MarketplaceType } from '../types/api'
 
 export interface CabinetSelectProps {
@@ -66,6 +67,22 @@ export default function Header({
   headerRightExtra,
 }: HeaderProps = {}) {
   const location = useLocation()
+  const navigate = useNavigate()
+
+  const handleCabinetSwitch = useCallback(
+    (
+      currentCabinetId: number | null | undefined,
+      newCabinetId: number,
+      cabinetCount: number,
+      applyChange: () => void,
+    ) => {
+      if (shouldRedirectOnCabinetSwitch(location.pathname, currentCabinetId, newCabinetId, cabinetCount)) {
+        navigate(CABINET_HOME_PATH)
+      }
+      applyChange()
+    },
+    [location.pathname, navigate],
+  )
 
   const selectedCabinetName = useMemo(() => {
     if (workContextCabinetSelect?.options.length) {
@@ -233,7 +250,15 @@ export default function Header({
               showSearch
               optionFilterProp="searchText"
               value={workContextCabinetSelect.value}
-              onChange={(v) => workContextCabinetSelect.onChange(Number(v))}
+              onChange={(v) => {
+                const newCabinetId = Number(v)
+                handleCabinetSwitch(
+                  workContextCabinetSelect.value,
+                  newCabinetId,
+                  workContextCabinetSelect.options.length,
+                  () => workContextCabinetSelect.onChange(newCabinetId),
+                )
+              }}
               style={{ minWidth: 280, maxWidth: 420 }}
               placeholder={workContextCabinetSelect.placeholder ?? 'Кабинет'}
               options={workContextCabinetSelect.options}
@@ -269,7 +294,13 @@ export default function Header({
                       <MarketplaceTypeTag type={c.marketplaceType} />
                     </span>
                   ),
-                  onClick: () => cabinetSelectProps.onCabinetChange(c.id),
+                  onClick: () =>
+                    handleCabinetSwitch(
+                      cabinetSelectProps.selectedCabinetId,
+                      c.id,
+                      cabinetSelectProps.cabinets.length,
+                      () => cabinetSelectProps.onCabinetChange(c.id),
+                    ),
                 })),
               }}
               trigger={['click']}
