@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { Spin, Input, Button, Popover, Checkbox, message, Tooltip } from 'antd'
 import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled, HolderOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
@@ -140,6 +140,7 @@ function MiniChart({ values, height = 32 }: { values: number[]; height?: number 
 
 export default function AnalyticsProducts() {
   const queryClient = useQueryClient()
+  const location = useLocation()
   const role = useAuthStore((state) => state.role)
   const isAdmin = role === 'ADMIN'
   const [searchQuery, setSearchQuery] = useState('')
@@ -195,17 +196,31 @@ export default function AnalyticsProducts() {
 
   useEffect(() => {
     if (!isAdmin) {
+      const fromNav = (location.state as { cabinetId?: number } | null)?.cabinetId
+      if (fromNav != null) {
+        setSellerSelectedCabinetId(fromNav)
+        setStoredCabinetId(fromNav)
+        return
+      }
       setSellerSelectedCabinetId(getStoredCabinetId())
     }
-  }, [isAdmin])
+  }, [isAdmin, location.state])
 
   useEffect(() => {
     if (isAdmin) return
-    if (myCabinets.length > 0 && sellerSelectedCabinetId === null) {
-      const first = myCabinets[0].id
-      setSellerSelectedCabinetId(first)
-      setStoredCabinetId(first)
+    if (myCabinets.length === 0) return
+
+    const storedId = sellerSelectedCabinetId ?? getStoredCabinetId()
+    if (storedId != null && myCabinets.some((c) => Number(c.id) === Number(storedId))) {
+      if (sellerSelectedCabinetId == null) {
+        setSellerSelectedCabinetId(storedId)
+      }
+      return
     }
+
+    const first = myCabinets[0].id
+    setSellerSelectedCabinetId(first)
+    setStoredCabinetId(first)
   }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 
   const last7DaysPeriod = useMemo(() => getLast7DaysPeriod(), [])

@@ -76,10 +76,10 @@ export default function Header({
       cabinetCount: number,
       applyChange: () => void,
     ) => {
-      if (shouldRedirectOnCabinetSwitch(location.pathname, currentCabinetId, newCabinetId, cabinetCount)) {
-        navigate(CABINET_HOME_PATH)
-      }
       applyChange()
+      if (shouldRedirectOnCabinetSwitch(location.pathname, currentCabinetId, newCabinetId, cabinetCount)) {
+        navigate(CABINET_HOME_PATH, { state: { cabinetId: newCabinetId } })
+      }
     },
     [location.pathname, navigate],
   )
