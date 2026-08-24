@@ -32,6 +32,11 @@ import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin, WORK_CONTEXT_CABINETS_QUERY_KEY } from '../hooks/useWorkContextForAdmin'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
+import {
+  isCabinetInList,
+  persistSellerCabinetId,
+  resolveSellerCabinetId,
+} from '../utils/sellerCabinetSelection'
 
 dayjs.locale('ru')
 
@@ -228,29 +233,17 @@ export default function AnalyticsSummary() {
   )
 
   useEffect(() => {
-    if (!isAdmin) {
-      setSellerSelectedCabinetId(getStoredCabinetId())
-    }
-  }, [isAdmin])
-
-  // По умолчанию — первый кабинет (USER; для админа выбор задаёт work context)
-  useEffect(() => {
     if (isAdmin) return
     if (myCabinets.length === 0) return
 
-    // 1) Если кабинет не выбран — выбираем первый
-    if (sellerSelectedCabinetId === null) {
-      const first = myCabinets[0].id
-      setSellerSelectedCabinetId(first)
-      setStoredCabinetId(first)
-      return
-    }
+    const resolved = resolveSellerCabinetId(sellerSelectedCabinetId, myCabinets)
+    if (resolved == null) return
 
-    // 2) Если в localStorage лежит удалённый/недоступный cabinetId — сбрасываем на первый доступный
-    if (!myCabinets.some((c) => c.id === sellerSelectedCabinetId)) {
-      const first = myCabinets[0].id
-      setSellerSelectedCabinetId(first)
-      setStoredCabinetId(first)
+    if (sellerSelectedCabinetId == null || Number(sellerSelectedCabinetId) !== Number(resolved)) {
+      setSellerSelectedCabinetId(resolved)
+      if (!isCabinetInList(getStoredCabinetId(), myCabinets) || getStoredCabinetId() !== resolved) {
+        persistSellerCabinetId(resolved)
+      }
     }
   }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 

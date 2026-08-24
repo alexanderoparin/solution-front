@@ -1,9 +1,12 @@
 /** Стартовая страница после смены кабинета в шапке. */
 export const CABINET_HOME_PATH = '/analytics/products'
 
+/** Страницы аналитики, на которых можно остаться при смене кабинета. */
+const ANALYTICS_SAFE_PATHS = new Set([CABINET_HOME_PATH, '/analytics'])
+
 /**
  * Нужен ли переход на «Аналитика → Товары» при смене кабинета.
- * На самой странице товаров остаёмся; при одном кабинете редирект не нужен.
+ * На «Товарах» и «Сводной» остаёмся; при одном кабинете редирект не нужен.
  */
 export function shouldRedirectOnCabinetSwitch(
   pathname: string,
@@ -14,7 +17,7 @@ export function shouldRedirectOnCabinetSwitch(
   if (cabinetCount <= 1) {
     return false
   }
-  if (pathname === CABINET_HOME_PATH) {
+  if (ANALYTICS_SAFE_PATHS.has(pathname)) {
     return false
   }
   if (currentCabinetId == null) {

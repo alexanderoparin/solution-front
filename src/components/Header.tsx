@@ -54,7 +54,7 @@ interface HeaderProps {
 
 function NavMenuLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
-    <Link to={to} style={{ color: 'inherit', textDecoration: 'none' }}>
+    <Link to={to} state={null} style={{ color: 'inherit', textDecoration: 'none' }}>
       {children}
     </Link>
   )

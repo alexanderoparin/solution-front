@@ -33,6 +33,12 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import OzonAnalyticsProducts from './OzonAnalyticsProducts'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { hasMeaningfulArticleRating, formatArticleRating } from '../utils/articleRating'
+import {
+  isCabinetInList,
+  persistSellerCabinetId,
+  readCabinetIdFromNavigationState,
+  resolveSellerCabinetId,
+} from '../utils/sellerCabinetSelection'
 
 dayjs.locale('ru')
 
@@ -141,6 +147,7 @@ function MiniChart({ values, height = 32 }: { values: number[]; height?: number 
 export default function AnalyticsProducts() {
   const queryClient = useQueryClient()
   const location = useLocation()
+  const navigate = useNavigate()
   const role = useAuthStore((state) => state.role)
   const isAdmin = role === 'ADMIN'
   const [searchQuery, setSearchQuery] = useState('')
@@ -195,32 +202,29 @@ export default function AnalyticsProducts() {
   )
 
   useEffect(() => {
-    if (!isAdmin) {
-      const fromNav = (location.state as { cabinetId?: number } | null)?.cabinetId
-      if (fromNav != null) {
-        setSellerSelectedCabinetId(fromNav)
-        setStoredCabinetId(fromNav)
-        return
-      }
-      setSellerSelectedCabinetId(getStoredCabinetId())
+    if (isAdmin) return
+
+    const fromNav = readCabinetIdFromNavigationState(location.state)
+    if (fromNav != null) {
+      setSellerSelectedCabinetId(fromNav)
+      persistSellerCabinetId(fromNav)
+      navigate(location.pathname, { replace: true, state: null })
     }
-  }, [isAdmin, location.state])
+  }, [isAdmin, location.pathname, location.state, navigate])
 
   useEffect(() => {
     if (isAdmin) return
     if (myCabinets.length === 0) return
 
-    const storedId = sellerSelectedCabinetId ?? getStoredCabinetId()
-    if (storedId != null && myCabinets.some((c) => Number(c.id) === Number(storedId))) {
-      if (sellerSelectedCabinetId == null) {
-        setSellerSelectedCabinetId(storedId)
-      }
-      return
-    }
+    const resolved = resolveSellerCabinetId(sellerSelectedCabinetId, myCabinets)
+    if (resolved == null) return
 
-    const first = myCabinets[0].id
-    setSellerSelectedCabinetId(first)
-    setStoredCabinetId(first)
+    if (sellerSelectedCabinetId == null || Number(sellerSelectedCabinetId) !== Number(resolved)) {
+      setSellerSelectedCabinetId(resolved)
+      if (!isCabinetInList(getStoredCabinetId(), myCabinets) || getStoredCabinetId() !== resolved) {
+        persistSellerCabinetId(resolved)
+      }
+    }
   }, [isAdmin, myCabinets, sellerSelectedCabinetId])
 
   const last7DaysPeriod = useMemo(() => getLast7DaysPeriod(), [])
