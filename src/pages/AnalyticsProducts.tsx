@@ -30,7 +30,6 @@ import {
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
-import OzonAnalyticsProducts from './OzonAnalyticsProducts'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { hasMeaningfulArticleRating, formatArticleRating } from '../utils/articleRating'
@@ -182,6 +181,14 @@ export default function AnalyticsProducts() {
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
 
+  const isOzonCabinet = useMemo(() => {
+    if (selectedCabinetId == null) return false
+    if (isAdmin) {
+      return workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)?.marketplaceType === 'OZON'
+    }
+    return myCabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
+  }, [selectedCabinetId, isAdmin, workContext.workContextOptions, myCabinets])
+
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
       if (isAdmin) {
@@ -316,7 +323,9 @@ export default function AnalyticsProducts() {
   const emptyStateMessage =
     isAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0
       ? 'Нет кабинетов с API-ключом'
-      : summaryErrorMessage ?? 'Нет товаров за последние 7 дней'
+      : summaryErrorMessage ?? (isOzonCabinet
+          ? 'Нет товаров. Запустите «Обновить данные» в профиле кабинета.'
+          : 'Нет товаров за последние 7 дней')
 
   const articles = useMemo(
     () => summaryData?.pages.flatMap((p) => p.articles) ?? [],
@@ -550,6 +559,7 @@ export default function AnalyticsProducts() {
   }, [])
 
   const showRatingColumn = useMemo(() => {
+    if (isOzonCabinet) return true
     if (selectedCabinetId == null) return false
     if (isAdmin) {
       const row = workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)
@@ -557,27 +567,7 @@ export default function AnalyticsProducts() {
     }
     const cab = myCabinets.find((c) => c.id === selectedCabinetId)
     return cabinetSupportsItemRating(cab?.apiKey?.tokenType)
-  }, [selectedCabinetId, isAdmin, workContext.workContextOptions, myCabinets])
-
-  const isOzonCabinet = useMemo(() => {
-    if (selectedCabinetId == null) return false
-    if (isAdmin) {
-      return workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)?.marketplaceType === 'OZON'
-    }
-    return myCabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
-  }, [selectedCabinetId, isAdmin, workContext.workContextOptions, myCabinets])
-
-  if (isOzonCabinet) {
-    return (
-      <OzonAnalyticsProducts
-        selectedCabinetId={selectedCabinetId}
-        selectedSellerId={selectedSellerId}
-        isAdmin={isAdmin}
-        workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
-        cabinetSelectProps={cabinetSelectProps}
-      />
-    )
-  }
+  }, [isOzonCabinet, selectedCabinetId, isAdmin, workContext.workContextOptions, myCabinets])
 
   return (
     <>
@@ -630,7 +620,7 @@ export default function AnalyticsProducts() {
             }}
           >
             <Input
-              placeholder="Поиск по артикулу или названию"
+              placeholder={isOzonCabinet ? 'Поиск по product_id, offer_id или названию' : 'Поиск по артикулу или названию'}
               prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -658,7 +648,7 @@ export default function AnalyticsProducts() {
                   return (
                     <div style={{ width: 400, maxHeight: 'min(520px, calc(100vh - 160px))', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                       <Input
-                        placeholder="Поиск по арт. продавца или WB"
+                        placeholder={isOzonCabinet ? 'Поиск по offer_id или product_id' : 'Поиск по арт. продавца или WB'}
                         prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
                         value={filterSearch}
                         onChange={(e) => setFilterSearch(e.target.value)}
@@ -685,6 +675,7 @@ export default function AnalyticsProducts() {
                           Снять все
                         </Button>
                       </div>
+                      {!isOzonCabinet && (
                       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexShrink: 0 }}>
                         <Button
                           size="small"
@@ -707,6 +698,7 @@ export default function AnalyticsProducts() {
                           Снять приоритет у выбранных
                         </Button>
                       </div>
+                      )}
                       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
                         {filterListFiltered.map((a) => (
                           <div
@@ -756,7 +748,7 @@ export default function AnalyticsProducts() {
                                 {a.title || '—'}
                               </div>
                               <div style={{ fontSize: 12, color: colors.textSecondary }}>
-                                Артикул продавца: {a.vendorCode || '—'}
+                                {isOzonCabinet ? 'Offer ID' : 'Артикул продавца'}: {a.vendorCode || '—'}
                               </div>
                             </div>
                           </div>
@@ -798,12 +790,14 @@ export default function AnalyticsProducts() {
             >
               Только с фото
             </Checkbox>
+            {!isOzonCabinet && (
             <Checkbox
               checked={onlyPriority}
               onChange={(e) => setOnlyPriority(e.target.checked)}
             >
               Только приоритетные
             </Checkbox>
+            )}
             <Tooltip title="Только артикулы, привязанные к незавершённым рекламным кампаниям кабинета">
               <Checkbox
                 checked={onlyInAdvertising}
@@ -946,6 +940,7 @@ export default function AnalyticsProducts() {
                 selectedCabinetId={selectedCabinetId}
                 selectedSellerId={selectedSellerId}
                 showRatingColumn={showRatingColumn}
+                isOzonCabinet={isOzonCabinet}
                 sortField={sortField}
                 sortOrder={sortOrder}
                 onSort={handleSort}
@@ -1092,6 +1087,7 @@ interface ProductsTableProps {
   selectedCabinetId: number | null
   selectedSellerId: number | undefined
   showRatingColumn: boolean
+  isOzonCabinet: boolean
   sortField: ProductsSortField
   sortOrder: 'asc' | 'desc'
   onSort: (field: ProductsSortField) => void
@@ -1107,6 +1103,7 @@ function ProductsTable({
   selectedCabinetId,
   selectedSellerId,
   showRatingColumn,
+  isOzonCabinet,
   sortField,
   sortOrder,
   onSort,
@@ -1328,7 +1325,9 @@ function ProductsTable({
                 </span>
               </th>
               {showRatingColumn && (
-                <th style={{ ...thBase, textAlign: 'center', width: COL_WIDTHS.rating, maxWidth: COL_WIDTHS.rating, boxSizing: 'border-box', borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length) }}>Рейтинг</th>
+                <th style={{ ...thBase, textAlign: 'center', width: COL_WIDTHS.rating, maxWidth: COL_WIDTHS.rating, boxSizing: 'border-box', borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length) }}>
+                  {isOzonCabinet ? 'Контент-рейтинг' : 'Рейтинг'}
+                </th>
               )}
               <StocksColumnHeader
                 fulfillment="FBO"
@@ -1384,6 +1383,7 @@ function ProductsTable({
                 selectedCabinetId={selectedCabinetId}
                 selectedSellerId={selectedSellerId}
                 showRatingColumn={showRatingColumn}
+                isOzonCabinet={isOzonCabinet}
                 rowIndex={idx}
                 onDragHandleStart={handleRowDragStart}
                 onDragHandleEnd={handleRowDragEnd}
@@ -1407,6 +1407,7 @@ interface ProductRowProps {
   selectedCabinetId: number | null
   selectedSellerId: number | undefined
   showRatingColumn: boolean
+  isOzonCabinet: boolean
   rowIndex: number
   onDragHandleStart: (rowIndex: number, e: React.DragEvent) => void
   onDragHandleEnd: () => void
@@ -1423,6 +1424,7 @@ function ProductRow({
   selectedCabinetId,
   selectedSellerId,
   showRatingColumn,
+  isOzonCabinet,
   rowIndex,
   onDragHandleStart,
   onDragHandleEnd,
@@ -1461,7 +1463,7 @@ function ProductRow({
         selectedSellerId,
         selectedCabinetId ?? undefined
       ),
-    enabled: !!firstStockWarehouse,
+    enabled: !!firstStockWarehouse && !isOzonCabinet,
   })
 
   const inPromotion = articleDetail?.inWbPromotion === true
@@ -1493,10 +1495,18 @@ function ProductRow({
     [last7Dates, dailyByDate]
   )
 
+  const fboTotal = articleDetail?.stocks?.length
+    ? stocksTotal
+    : (article.stockFbo ?? 0)
+  const fbsTotal = articleDetail?.fbsStocks?.length
+    ? fbsStocksTotal
+    : (article.stockFbs ?? 0)
+
   const sizesLabel = useMemo(() => {
+    if (isOzonCabinet) return '—'
     if (!stockSizes.length) return '-'
     return stockSizes.map((s) => s.wbSize || s.techSize || '').filter(Boolean).join(', ') || '-'
-  }, [stockSizes])
+  }, [isOzonCabinet, stockSizes])
 
   const goToArticle = () => navigate(`/analytics/article/${article.nmId}`)
   const wbUrl = WB_CATALOG_URL(article.nmId)
@@ -1597,6 +1607,38 @@ function ProductRow({
             overflow: 'hidden',
           }}
         >
+          {isOzonCabinet ? (
+            <Link
+              to={articlePath}
+              onClick={stopProp}
+              className="products-table-link products-table-link--img"
+              style={{ display: 'block', width: '100%', height: '100%', overflow: 'hidden' }}
+            >
+              {article.photoTm ? (
+                <img
+                  src={article.photoTm}
+                  alt=""
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    height: '100%',
+                    maxWidth: PRODUCT_PHOTO_WIDTH,
+                    maxHeight: PRODUCT_PHOTO_HEIGHT,
+                    objectFit: 'cover',
+                    objectPosition: 'center',
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: colors.bgGray,
+                  }}
+                />
+              )}
+            </Link>
+          ) : (
           <a
             href={wbUrl}
             target="_blank"
@@ -1629,6 +1671,7 @@ function ProductRow({
               />
             )}
           </a>
+          )}
         </div>
       </td>
       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
@@ -1641,20 +1684,24 @@ function ProductRow({
           {article.title || '-'}
         </Link>
         <div style={{ color: colors.textSecondary, marginBottom: 2 }}>
-          {[article.subjectName, article.brand].filter(Boolean).join(' · ') || '-'}
+          {isOzonCabinet
+            ? (article.offerId ? `Offer ID: ${article.offerId}` : '—')
+            : ([article.subjectName, article.brand].filter(Boolean).join(' · ') || '-')}
         </div>
         <div style={{ color: colors.textSecondary, marginBottom: 2 }}>
-          Артикул WB:{' '}
+          {isOzonCabinet ? 'Product ID' : 'Артикул WB'}:{' '}
           <Link to={articlePath} onClick={stopProp} className="products-table-link">
             {article.nmId}
           </Link>
         </div>
+        {!isOzonCabinet && (
         <div style={{ color: colors.textSecondary, marginBottom: 4 }}>
           Артикул продавца:{' '}
           <Link to={articlePath} onClick={stopProp} className="products-table-link">
             {article.vendorCode ?? '-'}
           </Link>
         </div>
+        )}
         {inPromotion && (
           <span
             title={promotionTooltip || undefined}
@@ -1674,15 +1721,19 @@ function ProductRow({
         )}
       </td>
       <td style={{ padding: '6px 6px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 3, last7Dates.length), textAlign: 'center', verticalAlign: 'top' }}>
-        <Checkbox
-          checked={isPriority}
-          disabled={prioritySaving || selectedCabinetId == null}
-          onClick={stopProp}
-          onChange={(e) => {
-            e.stopPropagation()
-            void togglePriority(e.target.checked)
-          }}
-        />
+        {isOzonCabinet ? (
+          '—'
+        ) : (
+          <Checkbox
+            checked={isPriority}
+            disabled={prioritySaving || selectedCabinetId == null}
+            onClick={stopProp}
+            onChange={(e) => {
+              e.stopPropagation()
+              void togglePriority(e.target.checked)
+            }}
+          />
+        )}
       </td>
       <td
         style={{
@@ -1705,23 +1756,29 @@ function ProductRow({
           {isLoading && !hasMeaningfulArticleRating(rating) ? (
             <Spin size="small" />
           ) : hasMeaningfulArticleRating(rating) ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <StarFilled style={{ color: '#FBBF24', fontSize: 12 }} />
-              <span>{formatArticleRating(rating)}</span>
-            </span>
+            isOzonCabinet ? (
+              <Tooltip title="Контент-рейтинг Ozon">
+                <span>{formatArticleRating(rating)}</span>
+              </Tooltip>
+            ) : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <StarFilled style={{ color: '#FBBF24', fontSize: 12 }} />
+                <span>{formatArticleRating(rating)}</span>
+              </span>
+            )
           ) : (
             '—'
           )}
         </td>
       )}
       <td style={{ padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length), width: COL_WIDTHS.stock, maxWidth: COL_WIDTHS.stock, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
-        {isLoading ? '-' : stocksTotal.toLocaleString('ru-RU')}
+        {isLoading && !isOzonCabinet ? '-' : fboTotal.toLocaleString('ru-RU')}
       </td>
       <td style={{ padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length), width: COL_WIDTHS.fbsStock, maxWidth: COL_WIDTHS.fbsStock, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
-        {isLoading ? '-' : fbsStocksTotal.toLocaleString('ru-RU')}
+        {isLoading && !isOzonCabinet ? '-' : fbsTotal.toLocaleString('ru-RU')}
       </td>
       <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
-        {!firstStockWarehouse ? '-' : sizesLabel}
+        {isOzonCabinet ? '—' : (!firstStockWarehouse ? '-' : sizesLabel)}
       </td>
       {last7Dates.map((d, i) => (
         <td
