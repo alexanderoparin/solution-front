@@ -32,7 +32,7 @@ import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useStoredCabinet } from '../hooks/useStoredCabinet'
-import { hasMeaningfulArticleRating, formatArticleRating } from '../utils/articleRating'
+import { hasMeaningfulArticleRating, formatArticleRating, formatOzonContentRating, getOzonContentRatingColor, ozonContentRatingTooltip } from '../utils/articleRating'
 
 dayjs.locale('ru')
 
@@ -1326,7 +1326,13 @@ function ProductsTable({
               </th>
               {showRatingColumn && (
                 <th style={{ ...thBase, textAlign: 'center', width: COL_WIDTHS.rating, maxWidth: COL_WIDTHS.rating, boxSizing: 'border-box', borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length) }}>
-                  {isOzonCabinet ? 'Контент-рейтинг' : 'Рейтинг'}
+                  {isOzonCabinet ? (
+                    <Tooltip title="Оценка качества карточки Ozon, 0–100 баллов">
+                      <span>Контент-рейтинг</span>
+                    </Tooltip>
+                  ) : (
+                    'Рейтинг'
+                  )}
                 </th>
               )}
               <StocksColumnHeader
@@ -1757,8 +1763,11 @@ function ProductRow({
             <Spin size="small" />
           ) : hasMeaningfulArticleRating(rating) ? (
             isOzonCabinet ? (
-              <Tooltip title="Контент-рейтинг Ozon">
-                <span>{formatArticleRating(rating)}</span>
+              <Tooltip title={ozonContentRatingTooltip(rating)}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                  <StarFilled style={{ color: getOzonContentRatingColor(rating!), fontSize: 12 }} />
+                  <span>{formatOzonContentRating(rating)}</span>
+                </span>
               </Tooltip>
             ) : (
               <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
