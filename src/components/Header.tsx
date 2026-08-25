@@ -52,9 +52,29 @@ interface HeaderProps {
   headerRightExtra?: React.ReactNode
 }
 
+function isNavPathActive(pathname: string, to: string): boolean {
+  if (to === '/analytics') {
+    return pathname === '/analytics'
+  }
+  if (to === '/analytics/products') {
+    return pathname === '/analytics/products' || pathname.startsWith('/analytics/article/')
+  }
+  return pathname === to || pathname.startsWith(`${to}/`)
+}
+
 function NavMenuLink({ to, children }: { to: string; children: React.ReactNode }) {
+  const { pathname } = useLocation()
+  const active = isNavPathActive(pathname, to)
   return (
-    <Link to={to} style={{ color: 'inherit', textDecoration: 'none' }}>
+    <Link
+      to={to}
+      style={{
+        color: active ? landingColors.accent : 'inherit',
+        textDecoration: 'none',
+        fontWeight: active ? 600 : 400,
+        display: 'block',
+      }}
+    >
       {children}
     </Link>
   )
@@ -149,6 +169,26 @@ export default function Header({
     return items
   }, [isOzonCabinet])
 
+  const analyticsMenuSelectedKeys = useMemo(() => {
+    if (
+      location.pathname === '/analytics/products' ||
+      location.pathname.startsWith('/analytics/article/')
+    ) {
+      return ['products']
+    }
+    if (location.pathname === '/analytics') {
+      return ['summary']
+    }
+    return []
+  }, [location.pathname])
+
+  const advertisingMenuSelectedKeys = useMemo(() => {
+    if (location.pathname.startsWith('/advertising/campaigns')) return ['campaigns']
+    if (location.pathname.startsWith('/advertising/bidder')) return ['bidder']
+    if (location.pathname.startsWith('/advertising/ab-test')) return ['ab-test']
+    return []
+  }, [location.pathname])
+
   const isAnalyticsActive =
     location.pathname === '/analytics' ||
     location.pathname === '/analytics/products' ||
@@ -200,6 +240,7 @@ export default function Header({
         {/* Аналитика */}
         <Dropdown
           menu={{
+            selectedKeys: analyticsMenuSelectedKeys,
             items: [
               { key: 'products', label: <NavMenuLink to="/analytics/products">Товары</NavMenuLink> },
               { key: 'summary', label: <NavMenuLink to="/analytics">Сводная</NavMenuLink> },
@@ -223,7 +264,7 @@ export default function Header({
 
         {/* Реклама */}
         <Dropdown
-          menu={{ items: advertisingMenuItems }}
+          menu={{ items: advertisingMenuItems, selectedKeys: advertisingMenuSelectedKeys }}
           trigger={['click']}
         >
           <Button
