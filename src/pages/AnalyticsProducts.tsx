@@ -32,7 +32,7 @@ import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useStoredCabinet } from '../hooks/useStoredCabinet'
-import { hasMeaningfulArticleRating, formatArticleRating, formatOzonContentRating, getOzonContentRatingColor, ozonContentRatingTooltip } from '../utils/articleRating'
+import { hasMeaningfulArticleRating, formatArticleRating, formatOzonContentRating, ozonContentRatingTooltip } from '../utils/articleRating'
 
 dayjs.locale('ru')
 
@@ -42,6 +42,7 @@ const PAGE_SIZE = 10
 const FILTER_LIST_PAGE_SIZE = 500
 
 const WB_CATALOG_URL = (nmId: number) => `https://www.wildberries.ru/catalog/${nmId}/detail.aspx`
+const OZON_CATALOG_URL = (productId: number) => `https://www.ozon.ru/product/${productId}/`
 
 /** Item-rating WB доступен только для персонального/сервисного токена, не для базового. */
 function cabinetSupportsItemRating(tokenType?: CabinetTokenType | null): boolean {
@@ -189,6 +190,12 @@ export default function AnalyticsProducts() {
     return myCabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
   }, [selectedCabinetId, isAdmin, workContext.workContextOptions, myCabinets])
 
+  useEffect(() => {
+    if (isOzonCabinet && onlyPriority) {
+      setOnlyPriority(false)
+    }
+  }, [isOzonCabinet, onlyPriority])
+
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
       if (isAdmin) {
@@ -203,6 +210,7 @@ export default function AnalyticsProducts() {
   const last7DaysPeriod = useMemo(() => getLast7DaysPeriod(), [])
 
   const searchTrimmed = searchQuery.trim()
+  const effectiveOnlyPriority = isOzonCabinet ? false : onlyPriority
   const {
     data: summaryData,
     isLoading: summaryLoading,
@@ -219,7 +227,7 @@ export default function AnalyticsProducts() {
       last7DaysPeriod,
       searchTrimmed,
       onlyWithPhoto,
-      onlyPriority,
+      effectiveOnlyPriority,
       onlyInAdvertising,
       sortField,
       sortOrder,
@@ -234,7 +242,7 @@ export default function AnalyticsProducts() {
         size: PAGE_SIZE,
         search: searchTrimmed || undefined,
         onlyWithPhoto: onlyWithPhoto || undefined,
-        onlyPriority: onlyPriority || undefined,
+        onlyPriority: effectiveOnlyPriority || undefined,
         onlyInAdvertising: onlyInAdvertising || undefined,
         sortBy: sortField,
         sortDir: sortOrder,
@@ -258,7 +266,7 @@ export default function AnalyticsProducts() {
       last7DaysPeriod,
       searchTrimmed,
       onlyWithPhoto,
-      onlyPriority,
+      effectiveOnlyPriority,
       onlyInAdvertising,
       sortField,
       sortOrder,
@@ -272,7 +280,7 @@ export default function AnalyticsProducts() {
         size: FILTER_LIST_PAGE_SIZE,
         search: searchTrimmed || undefined,
         onlyWithPhoto: onlyWithPhoto || undefined,
-        onlyPriority: onlyPriority || undefined,
+        onlyPriority: effectiveOnlyPriority || undefined,
         onlyInAdvertising: onlyInAdvertising || undefined,
         sortBy: sortField,
         sortDir: sortOrder,
@@ -959,14 +967,19 @@ export default function AnalyticsProducts() {
 
 const thBase = { borderBottom: `2px solid ${colors.border}`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary, padding: '8px 10px' as const }
 
-/** Индекс колонки после «Приоритет» с учётом скрытия рейтинга для базового токена. */
+/** Индекс колонки данных с учётом скрытия «Приоритет» и «Рейтинг». */
 function productsDataColIndex(
   showRating: boolean,
+  showPriority: boolean,
   slot: 'stock' | 'fbsStock' | 'sizes' | 'date' | 'dynamics',
   dateColsCount: number,
   dateIndex = 0,
 ): number {
-  const stockCol = showRating ? 6 : 5
+  let col = 3
+  if (showPriority) col++
+  col++
+  if (showRating) col++
+  const stockCol = col
   if (slot === 'stock') return stockCol
   if (slot === 'fbsStock') return stockCol + 1
   if (slot === 'sizes') return stockCol + 2
@@ -985,10 +998,15 @@ function WbCreatedAtCell({ value }: { value: string | null | undefined }) {
   )
 }
 
-/** Правая граница ячейки с учётом скрытия колонки рейтинга. */
-function getCellBorderRightForTable(showRating: boolean, colIndex: number, dateColsCount: number): string {
-  const sizesIdx = productsDataColIndex(showRating, 'sizes', dateColsCount)
-  const lastDateIdx = productsDataColIndex(showRating, 'date', dateColsCount, dateColsCount - 1)
+/** Правая граница ячейки с учётом скрытия колонок «Приоритет» и «Рейтинг». */
+function getCellBorderRightForTable(
+  showRating: boolean,
+  showPriority: boolean,
+  colIndex: number,
+  dateColsCount: number,
+): string {
+  const sizesIdx = productsDataColIndex(showRating, showPriority, 'sizes', dateColsCount)
+  const lastDateIdx = productsDataColIndex(showRating, showPriority, 'date', dateColsCount, dateColsCount - 1)
   if (colIndex === sizesIdx || colIndex === lastDateIdx) return `2px solid ${colors.border}`
   return `1px solid ${colors.border}`
 }
@@ -996,8 +1014,8 @@ function getCellBorderRightForTable(showRating: boolean, colIndex: number, dateC
 /** Ширины колонок (px) для выравнивания шапки и тела таблицы */
 const COL_WIDTHS = {
   drag: 32,
-  photo: PRODUCT_PHOTO_WIDTH, /* колонка по ширине фото */
-  name: 200, /* название и детали */
+  photo: PRODUCT_PHOTO_WIDTH,
+  name: 200,
   priority: 72,
   wbCreatedAt: 76,
   rating: 56,
@@ -1008,12 +1026,12 @@ const COL_WIDTHS = {
   dynamics: 80,
 } as const
 
-function productsTableMinWidth(showRating: boolean, dateCols: number): number {
+function productsTableMinWidth(showRating: boolean, showPriority: boolean, dateCols: number): number {
   return (
     COL_WIDTHS.drag +
     COL_WIDTHS.photo +
     COL_WIDTHS.name +
-    COL_WIDTHS.priority +
+    (showPriority ? COL_WIDTHS.priority : 0) +
     COL_WIDTHS.wbCreatedAt +
     (showRating ? COL_WIDTHS.rating : 0) +
     COL_WIDTHS.stock +
@@ -1024,11 +1042,45 @@ function productsTableMinWidth(showRating: boolean, dateCols: number): number {
   )
 }
 
+function productsTableColumnStyles(showPriorityColumn: boolean, showRatingColumn: boolean): string {
+  const colRule = (nth: number, width: number) => `
+        .products-table-wrapper table.products-table colgroup col:nth-child(${nth}),
+        .products-table-wrapper table.products-table thead th:nth-child(${nth}),
+        .products-table-wrapper table.products-table tbody td:nth-child(${nth}) {
+          width: ${width}px !important;
+          min-width: ${width}px !important;
+          max-width: ${width}px !important;
+          box-sizing: border-box !important;
+        }`
+  let nth = 4
+  const parts = [
+    colRule(1, COL_WIDTHS.drag),
+    colRule(2, PRODUCT_PHOTO_WIDTH),
+    colRule(3, COL_WIDTHS.name),
+  ]
+  if (showPriorityColumn) {
+    parts.push(colRule(nth, COL_WIDTHS.priority))
+    nth++
+  }
+  parts.push(colRule(nth, COL_WIDTHS.wbCreatedAt))
+  nth++
+  if (showRatingColumn) {
+    parts.push(colRule(nth, COL_WIDTHS.rating))
+    nth++
+  }
+  parts.push(colRule(nth, COL_WIDTHS.stock))
+  nth++
+  parts.push(colRule(nth, COL_WIDTHS.fbsStock))
+  return parts.join('')
+}
+
 function ProductsTableColgroup({
   showRatingColumn,
+  showPriorityColumn,
   last7Dates,
 }: {
   showRatingColumn: boolean
+  showPriorityColumn: boolean
   last7Dates: string[]
 }) {
   return (
@@ -1036,7 +1088,7 @@ function ProductsTableColgroup({
       <col style={{ width: COL_WIDTHS.drag }} />
       <col style={{ width: COL_WIDTHS.photo }} />
       <col style={{ width: COL_WIDTHS.name }} />
-      <col style={{ width: COL_WIDTHS.priority }} />
+      {showPriorityColumn && <col style={{ width: COL_WIDTHS.priority }} />}
       <col style={{ width: COL_WIDTHS.wbCreatedAt }} />
       {showRatingColumn && <col style={{ width: COL_WIDTHS.rating }} />}
       <col style={{ width: COL_WIDTHS.stock }} />
@@ -1111,6 +1163,7 @@ function ProductsTable({
   onScroll,
   onReorderRows,
 }: ProductsTableProps) {
+  const showPriorityColumn = !isOzonCabinet
   const [scrollbarWidth, setScrollbarWidth] = useState(0)
   const dragFromIndexRef = useRef<number | null>(null)
   const [dragOverRowIndex, setDragOverRowIndex] = useState<number | null>(null)
@@ -1209,110 +1262,30 @@ function ProductsTable({
       }}
     >
       <style>{`
-        .products-table-wrapper table.products-table colgroup col:nth-child(1),
-        .products-table-wrapper table.products-table thead th:nth-child(1),
-        .products-table-wrapper table.products-table tbody td:nth-child(1) {
-          width: ${COL_WIDTHS.drag}px !important;
-          min-width: ${COL_WIDTHS.drag}px !important;
-          max-width: ${COL_WIDTHS.drag}px !important;
-          box-sizing: border-box !important;
-        }
-        .products-table-wrapper table.products-table colgroup col:nth-child(2),
-        .products-table-wrapper table.products-table thead th:nth-child(2),
-        .products-table-wrapper table.products-table tbody td:nth-child(2) {
-          width: ${PRODUCT_PHOTO_WIDTH}px !important;
-          min-width: ${PRODUCT_PHOTO_WIDTH}px !important;
-          max-width: ${PRODUCT_PHOTO_WIDTH}px !important;
-          box-sizing: border-box !important;
-        }
-        .products-table-wrapper table.products-table colgroup col:nth-child(3),
-        .products-table-wrapper table.products-table thead th:nth-child(3),
-        .products-table-wrapper table.products-table tbody td:nth-child(3) {
-          width: ${COL_WIDTHS.name}px !important;
-          min-width: ${COL_WIDTHS.name}px !important;
-          max-width: ${COL_WIDTHS.name}px !important;
-          box-sizing: border-box !important;
-        }
-        .products-table-wrapper table.products-table colgroup col:nth-child(4),
-        .products-table-wrapper table.products-table thead th:nth-child(4),
-        .products-table-wrapper table.products-table tbody td:nth-child(4) {
-          width: ${COL_WIDTHS.priority}px !important;
-          min-width: ${COL_WIDTHS.priority}px !important;
-          max-width: ${COL_WIDTHS.priority}px !important;
-          box-sizing: border-box !important;
-        }
-        .products-table-wrapper table.products-table colgroup col:nth-child(5),
-        .products-table-wrapper table.products-table thead th:nth-child(5),
-        .products-table-wrapper table.products-table tbody td:nth-child(5) {
-          width: ${COL_WIDTHS.wbCreatedAt}px !important;
-          min-width: ${COL_WIDTHS.wbCreatedAt}px !important;
-          max-width: ${COL_WIDTHS.wbCreatedAt}px !important;
-          box-sizing: border-box !important;
-        }
-        ${showRatingColumn ? `
-        .products-table-wrapper table.products-table colgroup col:nth-child(6),
-        .products-table-wrapper table.products-table thead th:nth-child(6),
-        .products-table-wrapper table.products-table tbody td:nth-child(6) {
-          width: ${COL_WIDTHS.rating}px !important;
-          min-width: ${COL_WIDTHS.rating}px !important;
-          max-width: ${COL_WIDTHS.rating}px !important;
-          box-sizing: border-box !important;
-        }
-        .products-table-wrapper table.products-table colgroup col:nth-child(7),
-        .products-table-wrapper table.products-table thead th:nth-child(7),
-        .products-table-wrapper table.products-table tbody td:nth-child(7) {
-          width: ${COL_WIDTHS.stock}px !important;
-          min-width: ${COL_WIDTHS.stock}px !important;
-          max-width: ${COL_WIDTHS.stock}px !important;
-          box-sizing: border-box !important;
-        }
-        .products-table-wrapper table.products-table colgroup col:nth-child(8),
-        .products-table-wrapper table.products-table thead th:nth-child(8),
-        .products-table-wrapper table.products-table tbody td:nth-child(8) {
-          width: ${COL_WIDTHS.fbsStock}px !important;
-          min-width: ${COL_WIDTHS.fbsStock}px !important;
-          max-width: ${COL_WIDTHS.fbsStock}px !important;
-          box-sizing: border-box !important;
-        }
-        ` : `
-        .products-table-wrapper table.products-table colgroup col:nth-child(6),
-        .products-table-wrapper table.products-table thead th:nth-child(6),
-        .products-table-wrapper table.products-table tbody td:nth-child(6) {
-          width: ${COL_WIDTHS.stock}px !important;
-          min-width: ${COL_WIDTHS.stock}px !important;
-          max-width: ${COL_WIDTHS.stock}px !important;
-          box-sizing: border-box !important;
-        }
-        .products-table-wrapper table.products-table colgroup col:nth-child(7),
-        .products-table-wrapper table.products-table thead th:nth-child(7),
-        .products-table-wrapper table.products-table tbody td:nth-child(7) {
-          width: ${COL_WIDTHS.fbsStock}px !important;
-          min-width: ${COL_WIDTHS.fbsStock}px !important;
-          max-width: ${COL_WIDTHS.fbsStock}px !important;
-          box-sizing: border-box !important;
-        }
-        `}
+        ${productsTableColumnStyles(showPriorityColumn, showRatingColumn)}
       `}</style>
       {/* Шапка таблицы — отступ справа под ширину скроллбара тела (измеряется под текущую ОС/браузер) */}
       <div style={{ flexShrink: 0, borderBottom: `2px solid ${colors.border}`, paddingRight: scrollbarWidth }}>
-        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: productsTableMinWidth(showRatingColumn, last7Dates.length) }}>
-          <ProductsTableColgroup showRatingColumn={showRatingColumn} last7Dates={last7Dates} />
+        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: productsTableMinWidth(showRatingColumn, showPriorityColumn, last7Dates.length) }}>
+          <ProductsTableColgroup showRatingColumn={showRatingColumn} showPriorityColumn={showPriorityColumn} last7Dates={last7Dates} />
           <thead>
             <tr style={{ backgroundColor: colors.bgGray }}>
               <th
                 title="Перетащите строку за ручку слева"
-                style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, 0, last7Dates.length), padding: '8px 2px', width: COL_WIDTHS.drag, maxWidth: COL_WIDTHS.drag, boxSizing: 'border-box' }}
+                style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, 0, last7Dates.length), padding: '8px 2px', width: COL_WIDTHS.drag, maxWidth: COL_WIDTHS.drag, boxSizing: 'border-box' }}
               >
                 <HolderOutlined style={{ color: colors.textMuted, fontSize: 14 }} />
               </th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, 1, last7Dates.length), padding: '8px 4px', width: COL_WIDTHS.photo, maxWidth: COL_WIDTHS.photo, boxSizing: 'border-box' }}>Фото</th>
-              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, 2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box' }}>Название и детали</th>
-              <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, 3, last7Dates.length), width: COL_WIDTHS.priority, maxWidth: COL_WIDTHS.priority, boxSizing: 'border-box' }}>Приоритет</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, 1, last7Dates.length), padding: '8px 4px', width: COL_WIDTHS.photo, maxWidth: COL_WIDTHS.photo, boxSizing: 'border-box' }}>Фото</th>
+              <th style={{ ...thBase, textAlign: 'left', borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, 2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box' }}>Название и детали</th>
+              {showPriorityColumn && (
+              <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, 3, last7Dates.length), width: COL_WIDTHS.priority, maxWidth: COL_WIDTHS.priority, boxSizing: 'border-box' }}>Приоритет</th>
+              )}
               <th
                 style={{
                   ...sortableThStyle,
                   textAlign: 'center',
-                  borderRight: getCellBorderRightForTable(showRatingColumn, 4, last7Dates.length),
+                  borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, showPriorityColumn ? 4 : 3, last7Dates.length),
                   width: COL_WIDTHS.wbCreatedAt,
                   maxWidth: COL_WIDTHS.wbCreatedAt,
                   boxSizing: 'border-box',
@@ -1325,7 +1298,7 @@ function ProductsTable({
                 </span>
               </th>
               {showRatingColumn && (
-                <th style={{ ...thBase, textAlign: 'center', width: COL_WIDTHS.rating, maxWidth: COL_WIDTHS.rating, boxSizing: 'border-box', borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length) }}>
+                <th style={{ ...thBase, textAlign: 'center', width: COL_WIDTHS.rating, maxWidth: COL_WIDTHS.rating, boxSizing: 'border-box', borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, showPriorityColumn ? 5 : 4, last7Dates.length) }}>
                   {isOzonCabinet ? (
                     <Tooltip title="Оценка качества карточки Ozon, 0–100 баллов">
                       <span>Контент-рейтинг</span>
@@ -1337,13 +1310,13 @@ function ProductsTable({
               )}
               <StocksColumnHeader
                 fulfillment="FBO"
-                borderRight={getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length)}
+                borderRight={getCellBorderRightForTable(showRatingColumn, showPriorityColumn, productsDataColIndex(showRatingColumn, showPriorityColumn, 'stock', last7Dates.length), last7Dates.length)}
               />
               <StocksColumnHeader
                 fulfillment="FBS"
-                borderRight={getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length)}
+                borderRight={getCellBorderRightForTable(showRatingColumn, showPriorityColumn, productsDataColIndex(showRatingColumn, showPriorityColumn, 'fbsStock', last7Dates.length), last7Dates.length)}
               />
-              <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length) }}>Размеры</th>
+              <th style={{ ...thBase, textAlign: 'center', borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, productsDataColIndex(showRatingColumn, showPriorityColumn, 'sizes', last7Dates.length), last7Dates.length) }}>Размеры</th>
               {last7Dates.map((d, i) => (
                 <th
                   key={d}
@@ -1353,7 +1326,7 @@ function ProductsTable({
                     textAlign: 'center',
                     padding: '8px 6px',
                     verticalAlign: 'bottom',
-                    borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'date', last7Dates.length, i), last7Dates.length),
+                    borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, productsDataColIndex(showRatingColumn, showPriorityColumn, 'date', last7Dates.length, i), last7Dates.length),
                   }}
                 >
                   <span style={{ writingMode: 'vertical-rl', textOrientation: 'mixed', transform: 'rotate(-180deg)', display: 'inline-block', whiteSpace: 'nowrap' }}>
@@ -1363,7 +1336,7 @@ function ProductsTable({
               ))}
               <th
                 data-tour-id={ONBOARDING_TARGETS.PRODUCTS_DYNAMICS}
-                style={{ ...thBase, textAlign: 'center', color: colors.primary, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'dynamics', last7Dates.length), last7Dates.length) }}
+                style={{ ...thBase, textAlign: 'center', color: colors.primary, borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, productsDataColIndex(showRatingColumn, showPriorityColumn, 'dynamics', last7Dates.length), last7Dates.length) }}
               >
                 Динамика
               </th>
@@ -1377,8 +1350,8 @@ function ProductsTable({
         onScroll={onScroll}
         style={{ overflowY: 'auto', overflowX: 'hidden', flex: 1, minHeight: 0 }}
       >
-        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: productsTableMinWidth(showRatingColumn, last7Dates.length) }}>
-          <ProductsTableColgroup showRatingColumn={showRatingColumn} last7Dates={last7Dates} />
+        <table className="products-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: productsTableMinWidth(showRatingColumn, showPriorityColumn, last7Dates.length) }}>
+          <ProductsTableColgroup showRatingColumn={showRatingColumn} showPriorityColumn={showPriorityColumn} last7Dates={last7Dates} />
           <tbody>
             {visibleArticles.map((article, idx) => (
               <ProductRow
@@ -1389,6 +1362,7 @@ function ProductsTable({
                 selectedCabinetId={selectedCabinetId}
                 selectedSellerId={selectedSellerId}
                 showRatingColumn={showRatingColumn}
+                showPriorityColumn={showPriorityColumn}
                 isOzonCabinet={isOzonCabinet}
                 rowIndex={idx}
                 onDragHandleStart={handleRowDragStart}
@@ -1413,6 +1387,7 @@ interface ProductRowProps {
   selectedCabinetId: number | null
   selectedSellerId: number | undefined
   showRatingColumn: boolean
+  showPriorityColumn: boolean
   isOzonCabinet: boolean
   rowIndex: number
   onDragHandleStart: (rowIndex: number, e: React.DragEvent) => void
@@ -1430,6 +1405,7 @@ function ProductRow({
   selectedCabinetId,
   selectedSellerId,
   showRatingColumn,
+  showPriorityColumn,
   isOzonCabinet,
   rowIndex,
   onDragHandleStart,
@@ -1515,7 +1491,7 @@ function ProductRow({
   }, [isOzonCabinet, stockSizes])
 
   const goToArticle = () => navigate(`/analytics/article/${article.nmId}`)
-  const wbUrl = WB_CATALOG_URL(article.nmId)
+  const marketplaceProductUrl = isOzonCabinet ? OZON_CATALOG_URL(article.nmId) : WB_CATALOG_URL(article.nmId)
   const articlePath = `/analytics/article/${article.nmId}`
 
   const stopProp = (e: React.MouseEvent) => e.stopPropagation()
@@ -1573,7 +1549,7 @@ function ProductRow({
         style={{
           padding: '4px 2px',
           borderBottom: `1px solid ${colors.border}`,
-          borderRight: getCellBorderRightForTable(showRatingColumn, 0, last7Dates.length),
+          borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, 0, last7Dates.length),
           verticalAlign: 'middle',
           textAlign: 'center',
           width: COL_WIDTHS.drag,
@@ -1590,7 +1566,7 @@ function ProductRow({
         style={{
           padding: '6px 0',
           borderBottom: `1px solid ${colors.border}`,
-          borderRight: getCellBorderRightForTable(showRatingColumn, 1, last7Dates.length),
+          borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, 1, last7Dates.length),
           verticalAlign: 'top',
           width: COL_WIDTHS.photo,
           maxWidth: COL_WIDTHS.photo,
@@ -1613,40 +1589,8 @@ function ProductRow({
             overflow: 'hidden',
           }}
         >
-          {isOzonCabinet ? (
-            <Link
-              to={articlePath}
-              onClick={stopProp}
-              className="products-table-link products-table-link--img"
-              style={{ display: 'block', width: '100%', height: '100%', overflow: 'hidden' }}
-            >
-              {article.photoTm ? (
-                <img
-                  src={article.photoTm}
-                  alt=""
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    height: '100%',
-                    maxWidth: PRODUCT_PHOTO_WIDTH,
-                    maxHeight: PRODUCT_PHOTO_HEIGHT,
-                    objectFit: 'cover',
-                    objectPosition: 'center',
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: colors.bgGray,
-                  }}
-                />
-              )}
-            </Link>
-          ) : (
           <a
-            href={wbUrl}
+            href={marketplaceProductUrl}
             target="_blank"
             rel="noopener noreferrer"
             onClick={stopProp}
@@ -1677,10 +1621,9 @@ function ProductRow({
               />
             )}
           </a>
-          )}
         </div>
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, 2, last7Dates.length), width: COL_WIDTHS.name, maxWidth: COL_WIDTHS.name, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top' }}>
         <Link
           to={articlePath}
           onClick={stopProp}
@@ -1726,26 +1669,24 @@ function ProductRow({
           </span>
         )}
       </td>
-      <td style={{ padding: '6px 6px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 3, last7Dates.length), textAlign: 'center', verticalAlign: 'top' }}>
-        {isOzonCabinet ? (
-          '—'
-        ) : (
-          <Checkbox
-            checked={isPriority}
-            disabled={prioritySaving || selectedCabinetId == null}
-            onClick={stopProp}
-            onChange={(e) => {
-              e.stopPropagation()
-              void togglePriority(e.target.checked)
-            }}
-          />
-        )}
+      {showPriorityColumn && (
+      <td style={{ padding: '6px 6px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, 3, last7Dates.length), textAlign: 'center', verticalAlign: 'top' }}>
+        <Checkbox
+          checked={isPriority}
+          disabled={prioritySaving || selectedCabinetId == null}
+          onClick={stopProp}
+          onChange={(e) => {
+            e.stopPropagation()
+            void togglePriority(e.target.checked)
+          }}
+        />
       </td>
+      )}
       <td
         style={{
           padding: '6px 8px',
           borderBottom: `1px solid ${colors.border}`,
-          borderRight: getCellBorderRightForTable(showRatingColumn, 4, last7Dates.length),
+          borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, showPriorityColumn ? 4 : 3, last7Dates.length),
           width: COL_WIDTHS.wbCreatedAt,
           maxWidth: COL_WIDTHS.wbCreatedAt,
           boxSizing: 'border-box',
@@ -1758,14 +1699,14 @@ function ProductRow({
         <WbCreatedAtCell value={article.wbCreatedAt} />
       </td>
       {showRatingColumn && (
-        <td style={{ padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, 5, last7Dates.length), width: COL_WIDTHS.rating, maxWidth: COL_WIDTHS.rating, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
+        <td style={{ padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, showPriorityColumn ? 5 : 4, last7Dates.length), width: COL_WIDTHS.rating, maxWidth: COL_WIDTHS.rating, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
           {isLoading && !hasMeaningfulArticleRating(rating) ? (
             <Spin size="small" />
           ) : hasMeaningfulArticleRating(rating) ? (
             isOzonCabinet ? (
               <Tooltip title={ozonContentRatingTooltip(rating)}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                  <StarFilled style={{ color: getOzonContentRatingColor(rating!), fontSize: 12 }} />
+                  <StarFilled style={{ color: '#FBBF24', fontSize: 12 }} />
                   <span>{formatOzonContentRating(rating)}</span>
                 </span>
               </Tooltip>
@@ -1780,13 +1721,13 @@ function ProductRow({
           )}
         </td>
       )}
-      <td style={{ padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'stock', last7Dates.length), last7Dates.length), width: COL_WIDTHS.stock, maxWidth: COL_WIDTHS.stock, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
+      <td style={{ padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, productsDataColIndex(showRatingColumn, showPriorityColumn, 'stock', last7Dates.length), last7Dates.length), width: COL_WIDTHS.stock, maxWidth: COL_WIDTHS.stock, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
         {isLoading && !isOzonCabinet ? '-' : fboTotal.toLocaleString('ru-RU')}
       </td>
-      <td style={{ padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'fbsStock', last7Dates.length), last7Dates.length), width: COL_WIDTHS.fbsStock, maxWidth: COL_WIDTHS.fbsStock, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
+      <td style={{ padding: '6px 4px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, productsDataColIndex(showRatingColumn, showPriorityColumn, 'fbsStock', last7Dates.length), last7Dates.length), width: COL_WIDTHS.fbsStock, maxWidth: COL_WIDTHS.fbsStock, boxSizing: 'border-box', ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
         {isLoading && !isOzonCabinet ? '-' : fbsTotal.toLocaleString('ru-RU')}
       </td>
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'sizes', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, productsDataColIndex(showRatingColumn, showPriorityColumn, 'sizes', last7Dates.length), last7Dates.length), ...typography.body, ...FONT_PAGE_SMALL, verticalAlign: 'top', textAlign: 'center' }}>
         {isOzonCabinet ? '—' : (!firstStockWarehouse ? '-' : sizesLabel)}
       </td>
       {last7Dates.map((d, i) => (
@@ -1796,7 +1737,7 @@ function ProductRow({
             textAlign: 'center',
             padding: '6px',
             borderBottom: `1px solid ${colors.border}`,
-            borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'date', last7Dates.length, i), last7Dates.length),
+            borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, productsDataColIndex(showRatingColumn, showPriorityColumn, 'date', last7Dates.length, i), last7Dates.length),
             ...typography.body,
             ...FONT_PAGE_SMALL,
             verticalAlign: 'top',
@@ -1805,7 +1746,7 @@ function ProductRow({
           {isLoading ? '-' : (dailyByDate.get(d) ?? 0).toLocaleString('ru-RU')}
         </td>
       ))}
-      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, productsDataColIndex(showRatingColumn, 'dynamics', last7Dates.length), last7Dates.length), verticalAlign: 'top' }}>
+      <td style={{ padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, borderRight: getCellBorderRightForTable(showRatingColumn, showPriorityColumn, productsDataColIndex(showRatingColumn, showPriorityColumn, 'dynamics', last7Dates.length), last7Dates.length), verticalAlign: 'top' }}>
         {isLoading ? (
           <Spin size="small" />
         ) : (
