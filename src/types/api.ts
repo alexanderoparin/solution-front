@@ -223,6 +223,16 @@ export interface CabinetDto {
   lastStocksUpdateAt?: string | null
   /** Время последней синхронизации списка РК Ozon. */
   lastOzonCampaignsSyncAt?: string | null
+  /** Тип подписки Ozon Seller. */
+  ozonSubscriptionType?: string | null
+  /** Русское название тарифа Ozon. */
+  ozonSubscriptionTypeDisplayName?: string | null
+  /** Флаг is_premium из seller/info. */
+  ozonSubscriptionIsPremium?: boolean | null
+  /** Доступна ли воронка analytics/data. */
+  ozonAnalyticsFunnelAvailable?: boolean | null
+  /** Когда последний раз проверяли подписку Ozon. */
+  ozonSubscriptionCheckedAt?: string | null
   apiKey: CabinetApiKeyInfo | null
   /** Статусы доступа к категориям WB API по кабинету. */
   scopeStatuses?: ScopeStatusDto[]

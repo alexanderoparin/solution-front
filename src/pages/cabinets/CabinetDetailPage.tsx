@@ -508,6 +508,58 @@ export default function CabinetDetailPage() {
 
               {cabinet.marketplaceType === 'OZON' && (
                 <InfoBlock
+                  label="Тариф Ozon Seller"
+                  action={
+                    <Tooltip title="Обновляется при проверке Api-Key или синхронизации analytics">
+                      <Button block disabled>
+                        Автообновление
+                      </Button>
+                    </Tooltip>
+                  }
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      {cabinet.ozonSubscriptionTypeDisplayName || cabinet.ozonSubscriptionType ? (
+                        <Tag
+                          color={
+                            cabinet.ozonSubscriptionType === 'PREMIUM_PLUS'
+                            || cabinet.ozonSubscriptionType === 'PREMIUM_PRO'
+                              ? 'purple'
+                              : cabinet.ozonSubscriptionType === 'PREMIUM'
+                              || cabinet.ozonSubscriptionType === 'PREMIUM_LITE'
+                                ? 'gold'
+                                : 'default'
+                          }
+                          style={{ margin: 0 }}
+                        >
+                          {cabinet.ozonSubscriptionTypeDisplayName ?? cabinet.ozonSubscriptionType}
+                        </Tag>
+                      ) : (
+                        <Text type="secondary">Не проверялся</Text>
+                      )}
+                      {cabinet.ozonSubscriptionIsPremium === true && (
+                        <Tag color="gold" style={{ margin: 0 }}>Premium</Tag>
+                      )}
+                    </div>
+                    {cabinet.ozonAnalyticsFunnelAvailable === false && (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        Воронка analytics (переходы, корзина, конверсии) недоступна без Premium Plus.
+                      </Text>
+                    )}
+                    {cabinet.ozonAnalyticsFunnelAvailable === true && (
+                      <Text type="success" style={{ fontSize: 12 }}>
+                        Воронка analytics доступна.
+                      </Text>
+                    )}
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      Проверено: {formatCabinetAdminDate(cabinet.ozonSubscriptionCheckedAt ?? null)}
+                    </Text>
+                  </div>
+                </InfoBlock>
+              )}
+
+              {cabinet.marketplaceType === 'OZON' && (
+                <InfoBlock
                   label="Performance API (реклама)"
                   action={
                     <Button block icon={<EditOutlined />} onClick={() => openEditPerformance(cabinet)}>

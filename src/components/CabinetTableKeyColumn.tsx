@@ -38,6 +38,35 @@ const tokenTypeColor = (tokenType?: 'PERSONAL' | 'BASIC' | null): 'cyan' | 'blue
   return 'blue'
 }
 
+const ozonSubscriptionTagColor = (
+  type?: string | null,
+  funnelAvailable?: boolean | null
+): 'gold' | 'purple' | 'default' | 'orange' => {
+  if (type === 'PREMIUM_PLUS' || type === 'PREMIUM_PRO') return 'purple'
+  if (type === 'PREMIUM' || type === 'PREMIUM_LITE') return 'gold'
+  if (funnelAvailable === false) return 'orange'
+  return 'default'
+}
+
+function ozonSubscriptionTag(cab: ManagedCabinetRowDto['cabinet']) {
+  const label = cab.ozonSubscriptionTypeDisplayName ?? cab.ozonSubscriptionType
+  if (!label) return null
+  const funnelHint =
+    cab.ozonAnalyticsFunnelAvailable === false
+      ? 'Воронка analytics недоступна (нужен Premium Plus)'
+      : cab.ozonAnalyticsFunnelAvailable === true
+        ? 'Воронка analytics доступна'
+        : 'Воронка не проверялась'
+  const checkedAt = formatCabinetAdminDate(cab.ozonSubscriptionCheckedAt ?? null)
+  return (
+    <Tooltip title={`${funnelHint}${checkedAt ? ` · ${checkedAt}` : ''}`}>
+      <Tag color={ozonSubscriptionTagColor(cab.ozonSubscriptionType, cab.ozonAnalyticsFunnelAvailable)} style={tagStyle}>
+        {label}
+      </Tag>
+    </Tooltip>
+  )
+}
+
 function validityTag(isValid: boolean | null | undefined) {
   if (isValid === true) {
     return (
@@ -179,6 +208,7 @@ export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
               Seller
             </Tag>
           )}
+          {isOzon && ozonSubscriptionTag(cab)}
           <div style={keyRowActionsStyle}>
             <Tooltip
               title={
