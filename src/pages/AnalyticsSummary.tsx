@@ -845,7 +845,7 @@ export default function AnalyticsSummary() {
       }}>
       {/* Шапка: поиск, фильтр, периоды — часть страницы, без отдельного блока */}
       <div style={{ marginBottom: spacing.lg }}>
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.md }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.xl }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, minWidth: 280 }}>
             <Input
               placeholder="Поиск по артикулу или названию"
@@ -1022,12 +1022,12 @@ export default function AnalyticsSummary() {
             </Tooltip>
             </div>
           </div>
-          <div style={{ flex: 1, textAlign: 'center', fontSize: 14, fontWeight: 400, color: colors.textPrimary }}>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.sm }}>
+          <div style={{ fontSize: 14, fontWeight: 400, color: colors.textPrimary, textAlign: 'center', whiteSpace: 'nowrap' }}>
             Выберите периоды для сравнения
           </div>
-          <div style={{ minWidth: 280 }} />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
           {periods.map((period, periodIndex) => (
             <PeriodItem
               key={period.id}
@@ -1090,6 +1090,7 @@ export default function AnalyticsSummary() {
               </Tooltip>
             </div>
           )}
+        </div>
         </div>
       </div>
 
