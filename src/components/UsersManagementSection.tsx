@@ -392,7 +392,7 @@ export default function UsersManagementSection({
         render: (_: unknown, row: ManagedCabinetRowDto) => <CabinetTableKeyColumn row={row} />,
       },
       {
-        title: 'Доступ WB API',
+        title: 'Доступ API',
         key: 'cabinetScopes',
         width: 252,
         align: 'left',

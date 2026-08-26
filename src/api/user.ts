@@ -282,6 +282,23 @@ export const userApi = {
   },
 
   /**
+   * Обновление credentials кабинета (Seller/WB ключ и/или Ozon Performance) одним запросом.
+   */
+  updateSellerCabinetCredentials: async (
+    cabinetId: number,
+    payload: {
+      apiKey?: string
+      tokenType?: CabinetTokenType
+      ozonClientId?: string
+      ozonPerformanceClientId?: string
+      ozonPerformanceClientSecret?: string
+    },
+  ): Promise<CabinetDto> => {
+    const response = await apiClient.patch<CabinetDto>(`/users/cabinets/${cabinetId}`, payload)
+    return response.data
+  },
+
+  /**
    * Обновление Ozon Performance credentials кабинета (для ADMIN).
    */
   updateSellerCabinetPerformance: async (

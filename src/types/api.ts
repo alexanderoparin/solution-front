@@ -185,7 +185,9 @@ export interface CabinetApiKeyInfo {
   lastStocksUpdateAt?: string | null
   /** Ozon Performance API client_id. */
   ozonPerformanceClientId?: string | null
-  /** Задан ли client_secret (сам secret не отдаётся). */
+  /** Ozon Performance API client_secret. */
+  ozonPerformanceClientSecret?: string | null
+  /** Задан ли client_secret. */
   ozonPerformanceConfigured?: boolean | null
   ozonPerformanceIsValid?: boolean | null
   ozonPerformanceLastValidatedAt?: string | null

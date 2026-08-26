@@ -11,6 +11,15 @@ function invalidateCabinetListCaches(queryClient: ReturnType<typeof useQueryClie
   void queryClient.invalidateQueries({ queryKey: WORK_CONTEXT_CABINETS_QUERY_KEY })
 }
 
+export type CabinetCredentialsUpdatePayload = {
+  cabinetId: number
+  apiKey?: string
+  tokenType?: CabinetTokenType
+  ozonClientId?: string
+  ozonPerformanceClientId?: string
+  ozonPerformanceClientSecret?: string
+}
+
 /**
  * Состояние и мутации для админ-панели кабинета (карточка в профиле селлера или строка таблицы).
  */
@@ -18,12 +27,7 @@ export function useCabinetAdminPanel(sellerId: number) {
   const queryClient = useQueryClient()
   const [validateCooldown, setValidateCooldown] = useState(0)
   const [validatePerformanceCooldown, setValidatePerformanceCooldown] = useState(0)
-  const [editingKey, setEditingKey] = useState(false)
-  const [editKeyValue, setEditKeyValue] = useState('')
-  const [editTokenType, setEditTokenType] = useState<CabinetTokenType>('BASIC')
-  const [editingPerformance, setEditingPerformance] = useState(false)
-  const [editPerformanceClientId, setEditPerformanceClientId] = useState('')
-  const [editPerformanceClientSecret, setEditPerformanceClientSecret] = useState('')
+  const [credentialsModalOpen, setCredentialsModalOpen] = useState(false)
 
   useEffect(() => {
     if (validateCooldown <= 0) return
@@ -63,47 +67,36 @@ export function useCabinetAdminPanel(sellerId: number) {
     },
   })
 
+  const updateCredentialsMutation = useMutation({
+    mutationFn: (payload: CabinetCredentialsUpdatePayload) => {
+      const { cabinetId, ...body } = payload
+      return userApi.updateSellerCabinetCredentials(cabinetId, body)
+    },
+    onSuccess: () => {
+      message.success('Credentials обновлены')
+      invalidateCabinetListCaches(queryClient, sellerId)
+      setCredentialsModalOpen(false)
+    },
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { error?: string; message?: string } } }
+      const d = ax.response?.data
+      message.error(d?.error ?? d?.message ?? 'Ошибка обновления credentials')
+    },
+  })
+
+  /** @deprecated используйте updateCredentialsMutation */
   const updateKeyMutation = useMutation({
     mutationFn: ({ cabinetId, apiKey, tokenType }: { cabinetId: number; apiKey?: string; tokenType?: CabinetTokenType }) =>
       userApi.updateSellerCabinetKey(cabinetId, apiKey, tokenType),
     onSuccess: () => {
       message.success('Кабинет обновлён')
       invalidateCabinetListCaches(queryClient, sellerId)
-      setEditingKey(false)
-      setEditKeyValue('')
+      setCredentialsModalOpen(false)
     },
     onError: (err: unknown) => {
       const ax = err as { response?: { data?: { error?: string; message?: string } } }
       const d = ax.response?.data
       message.error(d?.error ?? d?.message ?? 'Ошибка обновления ключа')
-    },
-  })
-
-  const updatePerformanceMutation = useMutation({
-    mutationFn: ({
-      cabinetId,
-      ozonPerformanceClientId,
-      ozonPerformanceClientSecret,
-    }: {
-      cabinetId: number
-      ozonPerformanceClientId?: string
-      ozonPerformanceClientSecret?: string
-    }) =>
-      userApi.updateSellerCabinetPerformance(cabinetId, {
-        ozonPerformanceClientId,
-        ozonPerformanceClientSecret,
-      }),
-    onSuccess: () => {
-      message.success('Performance credentials обновлены')
-      invalidateCabinetListCaches(queryClient, sellerId)
-      setEditingPerformance(false)
-      setEditPerformanceClientId('')
-      setEditPerformanceClientSecret('')
-    },
-    onError: (err: unknown) => {
-      const ax = err as { response?: { data?: { error?: string; message?: string } } }
-      const d = ax.response?.data
-      message.error(d?.error ?? d?.message ?? 'Ошибка обновления Performance credentials')
     },
   })
 
@@ -132,22 +125,12 @@ export function useCabinetAdminPanel(sellerId: number) {
   return {
     validateCooldown,
     validatePerformanceCooldown,
-    editingKey,
-    setEditingKey,
-    editKeyValue,
-    setEditKeyValue,
-    editTokenType,
-    setEditTokenType,
-    editingPerformance,
-    setEditingPerformance,
-    editPerformanceClientId,
-    setEditPerformanceClientId,
-    editPerformanceClientSecret,
-    setEditPerformanceClientSecret,
+    credentialsModalOpen,
+    setCredentialsModalOpen,
     validateKeyMutation,
     validatePerformanceMutation,
+    updateCredentialsMutation,
     updateKeyMutation,
-    updatePerformanceMutation,
     triggerCabinetUpdateMutation,
     triggerCabinetStocksUpdateMutation,
   }

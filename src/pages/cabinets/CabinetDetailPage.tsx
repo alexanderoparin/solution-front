@@ -238,7 +238,7 @@ export default function CabinetDetailPage() {
   const openEditPerformance = (cab: CabinetDto) => {
     performanceForm.setFieldsValue({
       ozonPerformanceClientId: cab.apiKey?.ozonPerformanceClientId ?? '',
-      ozonPerformanceClientSecret: '',
+      ozonPerformanceClientSecret: cab.apiKey?.ozonPerformanceClientSecret ?? '',
     })
     setPerformanceEditOpen(true)
   }
@@ -518,10 +518,19 @@ export default function CabinetDetailPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <Text>
                       client_id:{' '}
-                      <Text code>{cabinet.apiKey?.ozonPerformanceClientId ?? 'не задан'}</Text>
+                      <Text code copyable={cabinet.apiKey?.ozonPerformanceClientId ? { text: cabinet.apiKey.ozonPerformanceClientId } : undefined}>
+                        {cabinet.apiKey?.ozonPerformanceClientId
+                          ? maskApiKeyPreview(cabinet.apiKey.ozonPerformanceClientId)
+                          : 'не задан'}
+                      </Text>
                     </Text>
-                    <Text type="secondary">
-                      client_secret: {cabinet.apiKey?.ozonPerformanceConfigured ? 'задан' : 'не задан'}
+                    <Text>
+                      client_secret:{' '}
+                      <Text code copyable={cabinet.apiKey?.ozonPerformanceClientSecret ? { text: cabinet.apiKey.ozonPerformanceClientSecret } : undefined}>
+                        {cabinet.apiKey?.ozonPerformanceClientSecret
+                          ? maskApiKeyPreview(cabinet.apiKey.ozonPerformanceClientSecret)
+                          : 'не задан'}
+                      </Text>
                     </Text>
                     {cabinet.apiKey?.ozonPerformanceValidationError && (
                       <Text type="danger" style={{ fontSize: 12 }}>
@@ -562,7 +571,9 @@ export default function CabinetDetailPage() {
                 style={{ borderRadius: 16, border: `1px solid ${border}` }}
                 title={
                   <Text type="secondary" style={{ fontSize: 13, fontWeight: 500 }}>
-                    Доступ к категориям WB API
+                    {cabinet.marketplaceType === 'OZON'
+                      ? 'Доступ к категориям Ozon API'
+                      : 'Доступ к категориям WB API'}
                   </Text>
                 }
               >
@@ -704,12 +715,16 @@ export default function CabinetDetailPage() {
           form={performanceForm}
           layout="vertical"
           onFinish={(values) => {
+            const currentClientId = cabinet?.apiKey?.ozonPerformanceClientId?.trim() ?? ''
+            const currentClientSecret = cabinet?.apiKey?.ozonPerformanceClientSecret?.trim() ?? ''
+            const nextClientId = values.ozonPerformanceClientId?.trim() ?? ''
+            const nextClientSecret = values.ozonPerformanceClientSecret?.trim() ?? ''
             updateMutation.mutate({
-              ...(values.ozonPerformanceClientId?.trim()
-                ? { ozonPerformanceClientId: values.ozonPerformanceClientId.trim() }
+              ...(nextClientId.length > 0 && nextClientId !== currentClientId
+                ? { ozonPerformanceClientId: nextClientId }
                 : {}),
-              ...(values.ozonPerformanceClientSecret?.trim()
-                ? { ozonPerformanceClientSecret: values.ozonPerformanceClientSecret.trim() }
+              ...(nextClientSecret.length > 0 && nextClientSecret !== currentClientSecret
+                ? { ozonPerformanceClientSecret: nextClientSecret }
                 : {}),
             })
           }}

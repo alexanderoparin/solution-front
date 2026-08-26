@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { Button, Input, Select, Space, Tag, Tooltip, Typography, message } from 'antd'
 import { CheckCircleOutlined, EditOutlined, SyncOutlined } from '@ant-design/icons'
 import { buildScopeStatusTooltip, ScopeStatusIcon } from '../utils/scopeStatusUi'
-import type { CabinetDto } from '../types/api'
+import type { CabinetDto, CabinetTokenType } from '../types/api'
 import { useCabinetAdminPanel } from '../hooks/useCabinetAdminPanel'
 import {
   ADMIN_CABINET_UPDATE_COOLDOWN_MINUTES,
@@ -29,17 +30,14 @@ const tokenTypeColor = (tokenType?: 'PERSONAL' | 'BASIC' | null): 'cyan' | 'blue
 export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetDto; sellerId: number }) {
   const {
     validateCooldown,
-    editingKey,
-    setEditingKey,
-    editKeyValue,
-    setEditKeyValue,
-    editTokenType,
-    setEditTokenType,
     validateKeyMutation,
     updateKeyMutation,
     triggerCabinetUpdateMutation,
     triggerCabinetStocksUpdateMutation,
   } = useCabinetAdminPanel(sellerId)
+  const [editingKey, setEditingKey] = useState(false)
+  const [editKeyValue, setEditKeyValue] = useState('')
+  const [editTokenType, setEditTokenType] = useState<CabinetTokenType>('BASIC')
 
   return (
     <div
@@ -115,11 +113,19 @@ export function CabinetAdminCard({ cabinet: cab, sellerId }: { cabinet: CabinetD
                     message.warning('Нет изменений для сохранения')
                     return
                   }
-                  updateKeyMutation.mutate({
-                    cabinetId: cab.id,
-                    ...(hasKeyChange ? { apiKey: key } : {}),
-                    ...(hasTypeChange ? { tokenType: editTokenType } : {}),
-                  })
+                  updateKeyMutation.mutate(
+                    {
+                      cabinetId: cab.id,
+                      ...(hasKeyChange ? { apiKey: key } : {}),
+                      ...(hasTypeChange ? { tokenType: editTokenType } : {}),
+                    },
+                    {
+                      onSuccess: () => {
+                        setEditingKey(false)
+                        setEditKeyValue('')
+                      },
+                    },
+                  )
                 }}
                 loading={updateKeyMutation.isPending}
               >
