@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi } from '../api/cabinets'
 import type { Campaign } from '../types/analytics'
@@ -76,7 +76,6 @@ const COL_WIDTHS_PCT = {
 } as const
 
 export default function AdvertisingCampaigns() {
-  const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role)
   const isAdmin = role === 'ADMIN'
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
