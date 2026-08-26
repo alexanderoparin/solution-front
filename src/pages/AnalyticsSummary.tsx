@@ -168,9 +168,6 @@ const FUNNEL_METRICS = [
   'order_conversion',
 ]
 
-/** Метрики Ozon на сводной (без воронки и рекламы). */
-const OZON_METRIC_KEYS = ['orders', 'orders_amount']
-
 /** Доля ширины таблицы под колонку «Метрика»; остальное делят поровну колонки периодов */
 const METRIC_COLUMN_WIDTH_PERCENT = 35
 
@@ -404,7 +401,7 @@ export default function AnalyticsSummary() {
     [cabinets, selectedCabinetId]
   )
   const isOzonCabinet = selectedCabinet?.marketplaceType === 'OZON'
-  const metricKeys = isOzonCabinet ? OZON_METRIC_KEYS : METRIC_KEYS
+  const metricKeys = METRIC_KEYS
   const MIN_UPDATE_INTERVAL_HOURS = 6
   const getLastUpdateOrRequested = (): string | null => {
     if (selectedCabinet != null) {

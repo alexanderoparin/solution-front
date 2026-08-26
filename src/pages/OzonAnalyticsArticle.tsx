@@ -51,9 +51,18 @@ function formatMoney(value: number | null | undefined): string {
   }).format(Number(value))
 }
 
-function formatInt(value: number | null | undefined): string {
+function formatPercent(value: number | null | undefined): string {
   if (value == null || Number.isNaN(Number(value))) return '—'
-  return new Intl.NumberFormat('ru-RU').format(Number(value))
+  return `${new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(value))}%`
+}
+
+const PERCENT_METRICS = new Set(['cart_conversion', 'order_conversion', 'ctr', 'drr'])
+const CURRENCY_METRICS = new Set(['orders_amount', 'costs', 'cpc', 'cpo'])
+
+function formatMetricValue(metricName: string, value: number | null | undefined): string {
+  if (PERCENT_METRICS.has(metricName)) return formatPercent(value)
+  if (CURRENCY_METRICS.has(metricName)) return formatMoney(value)
+  return formatInt(value)
 }
 
 function formatPeriodLabel(period: Period): string {
@@ -116,10 +125,7 @@ export default function OzonAnalyticsArticle({
   const fboStock = data?.stocks?.[0]?.amount ?? null
   const fbsStock = data?.fbsStocks?.[0]?.amount ?? null
 
-  const ozonMetrics = useMemo(
-    () => (data?.metrics ?? []).filter((m) => m.metricName === 'orders' || m.metricName === 'orders_amount'),
-    [data?.metrics],
-  )
+  const ozonMetrics = useMemo(() => data?.metrics ?? [], [data?.metrics])
 
   const handleDailyRangeChange = useCallback(
     (values: [Dayjs | null, Dayjs | null] | null) => {
@@ -226,11 +232,8 @@ export default function OzonAnalyticsArticle({
                           <td style={tdStyle}>{metric.metricNameRu}</td>
                           {data.periods.map((p) => {
                             const pv = metric.periods.find((x) => x.periodId === p.id)
-                            const val = pv?.value
-                            const display =
-                              metric.metricName === 'orders_amount'
-                                ? formatMoney(val as number | null)
-                                : formatInt(val as number | null)
+                            const val = pv?.value as number | null | undefined
+                            const display = formatMetricValue(metric.metricName, val)
                             return (
                               <td key={p.id} style={{ ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                                 {display}
