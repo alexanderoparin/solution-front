@@ -17,15 +17,25 @@ function invalidateCabinetListCaches(queryClient: ReturnType<typeof useQueryClie
 export function useCabinetAdminPanel(sellerId: number) {
   const queryClient = useQueryClient()
   const [validateCooldown, setValidateCooldown] = useState(0)
+  const [validatePerformanceCooldown, setValidatePerformanceCooldown] = useState(0)
   const [editingKey, setEditingKey] = useState(false)
   const [editKeyValue, setEditKeyValue] = useState('')
   const [editTokenType, setEditTokenType] = useState<CabinetTokenType>('BASIC')
+  const [editingPerformance, setEditingPerformance] = useState(false)
+  const [editPerformanceClientId, setEditPerformanceClientId] = useState('')
+  const [editPerformanceClientSecret, setEditPerformanceClientSecret] = useState('')
 
   useEffect(() => {
     if (validateCooldown <= 0) return
     const t = setInterval(() => setValidateCooldown((c) => Math.max(0, c - 1)), 1000)
     return () => clearInterval(t)
   }, [validateCooldown])
+
+  useEffect(() => {
+    if (validatePerformanceCooldown <= 0) return
+    const t = setInterval(() => setValidatePerformanceCooldown((c) => Math.max(0, c - 1)), 1000)
+    return () => clearInterval(t)
+  }, [validatePerformanceCooldown])
 
   const validateKeyMutation = useMutation({
     mutationFn: (cabinetId: number) => userApi.validateSellerCabinetKey(cabinetId),
@@ -36,6 +46,19 @@ export function useCabinetAdminPanel(sellerId: number) {
     },
     onError: (err: any) => {
       message.error(err.response?.data?.message || 'Ошибка проверки ключа')
+      invalidateCabinetListCaches(queryClient, sellerId)
+    },
+  })
+
+  const validatePerformanceMutation = useMutation({
+    mutationFn: (cabinetId: number) => userApi.validateOzonPerformance(cabinetId),
+    onMutate: () => setValidatePerformanceCooldown(30),
+    onSuccess: (data) => {
+      message.success(data.message || 'Performance credentials проверены')
+      invalidateCabinetListCaches(queryClient, sellerId)
+    },
+    onError: (err: any) => {
+      message.error(err.response?.data?.message || 'Ошибка проверки Performance credentials')
       invalidateCabinetListCaches(queryClient, sellerId)
     },
   })
@@ -53,6 +76,34 @@ export function useCabinetAdminPanel(sellerId: number) {
       const ax = err as { response?: { data?: { error?: string; message?: string } } }
       const d = ax.response?.data
       message.error(d?.error ?? d?.message ?? 'Ошибка обновления ключа')
+    },
+  })
+
+  const updatePerformanceMutation = useMutation({
+    mutationFn: ({
+      cabinetId,
+      ozonPerformanceClientId,
+      ozonPerformanceClientSecret,
+    }: {
+      cabinetId: number
+      ozonPerformanceClientId?: string
+      ozonPerformanceClientSecret?: string
+    }) =>
+      userApi.updateSellerCabinetPerformance(cabinetId, {
+        ozonPerformanceClientId,
+        ozonPerformanceClientSecret,
+      }),
+    onSuccess: () => {
+      message.success('Performance credentials обновлены')
+      invalidateCabinetListCaches(queryClient, sellerId)
+      setEditingPerformance(false)
+      setEditPerformanceClientId('')
+      setEditPerformanceClientSecret('')
+    },
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { error?: string; message?: string } } }
+      const d = ax.response?.data
+      message.error(d?.error ?? d?.message ?? 'Ошибка обновления Performance credentials')
     },
   })
 
@@ -80,14 +131,23 @@ export function useCabinetAdminPanel(sellerId: number) {
 
   return {
     validateCooldown,
+    validatePerformanceCooldown,
     editingKey,
     setEditingKey,
     editKeyValue,
     setEditKeyValue,
     editTokenType,
     setEditTokenType,
+    editingPerformance,
+    setEditingPerformance,
+    editPerformanceClientId,
+    setEditPerformanceClientId,
+    editPerformanceClientSecret,
+    setEditPerformanceClientSecret,
     validateKeyMutation,
+    validatePerformanceMutation,
     updateKeyMutation,
+    updatePerformanceMutation,
     triggerCabinetUpdateMutation,
     triggerCabinetStocksUpdateMutation,
   }

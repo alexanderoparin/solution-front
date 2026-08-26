@@ -280,5 +280,16 @@ export const userApi = {
     const response = await apiClient.patch<CabinetDto>(`/users/cabinets/${cabinetId}`, payload)
     return response.data
   },
+
+  /**
+   * Обновление Ozon Performance credentials кабинета (для ADMIN).
+   */
+  updateSellerCabinetPerformance: async (
+    cabinetId: number,
+    payload: { ozonPerformanceClientId?: string; ozonPerformanceClientSecret?: string },
+  ): Promise<CabinetDto> => {
+    const response = await apiClient.patch<CabinetDto>(`/users/cabinets/${cabinetId}`, payload)
+    return response.data
+  },
 }
 
