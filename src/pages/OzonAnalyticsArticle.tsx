@@ -51,6 +51,11 @@ function formatMoney(value: number | null | undefined): string {
   }).format(Number(value))
 }
 
+function formatInt(value: number | null | undefined): string {
+  if (value == null || Number.isNaN(Number(value))) return '—'
+  return new Intl.NumberFormat('ru-RU').format(Number(value))
+}
+
 function formatPercent(value: number | null | undefined): string {
   if (value == null || Number.isNaN(Number(value))) return '—'
   return `${new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(Number(value))}%`
