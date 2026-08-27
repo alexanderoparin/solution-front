@@ -4,6 +4,11 @@ import { EditOutlined, CheckCircleOutlined, DownOutlined, RightOutlined } from '
 import type { CabinetTokenType, ManagedCabinetRowDto } from '../types/api'
 import { useCabinetTableRowAdmin } from './CabinetTableRowAdminContext'
 import { formatCabinetAdminDate, maskApiKeyPreview } from '../utils/cabinetAdminUtils'
+import {
+  buildOzonSubscriptionTooltip,
+  getOzonAnalyticsApiTierColor,
+  getOzonAnalyticsApiTierLabel,
+} from '../utils/ozonSubscriptionUi'
 
 const { Text } = Typography
 
@@ -38,45 +43,14 @@ const tokenTypeColor = (tokenType?: 'PERSONAL' | 'BASIC' | null): 'cyan' | 'blue
   return 'blue'
 }
 
-const ozonSubscriptionTagColor = (
-  type?: string | null,
-  funnelAvailable?: boolean | null
-): 'gold' | 'purple' | 'default' | 'orange' => {
-  if (type === 'PREMIUM_PLUS' || type === 'PREMIUM_PRO') return 'purple'
-  if (type === 'PREMIUM' || type === 'PREMIUM_LITE') return 'gold'
-  if (funnelAvailable === false) return 'orange'
-  return 'default'
-}
-
 function ozonSubscriptionTag(cab: ManagedCabinetRowDto['cabinet']) {
-  const checkedAt = formatCabinetAdminDate(cab.ozonSubscriptionCheckedAt ?? null)
-  const funnelHint =
-    cab.ozonAnalyticsFunnelAvailable === false
-      ? 'Воронка analytics недоступна (нужен Premium Plus)'
-      : cab.ozonAnalyticsFunnelAvailable === true
-        ? 'Воронка analytics доступна'
-        : 'Воронка не проверялась'
-
-  if (
-    cab.ozonSubscriptionIsPremium === false
-    || cab.ozonSubscriptionType === 'UNSPECIFIED'
-  ) {
-    return (
-      <Tooltip title={`Без Premium · ${funnelHint}${checkedAt ? ` · ${checkedAt}` : ''}`}>
-        <Tag color="default" style={tagStyle}>
-          Без Premium
-        </Tag>
-      </Tooltip>
-    )
-  }
-
-  const label = cab.ozonSubscriptionTypeDisplayName ?? cab.ozonSubscriptionType
-  if (!label || label === 'Неизвестно') return null
+  const apiLabel = getOzonAnalyticsApiTierLabel(cab)
+  if (apiLabel === 'Не проверен') return null
 
   return (
-    <Tooltip title={`${funnelHint}${checkedAt ? ` · ${checkedAt}` : ''}`}>
-      <Tag color={ozonSubscriptionTagColor(cab.ozonSubscriptionType, cab.ozonAnalyticsFunnelAvailable)} style={tagStyle}>
-        {label}
+    <Tooltip title={buildOzonSubscriptionTooltip(cab)}>
+      <Tag color={getOzonAnalyticsApiTierColor(cab)} style={tagStyle}>
+        {apiLabel}
       </Tag>
     </Tooltip>
   )

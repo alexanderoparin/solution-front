@@ -45,6 +45,12 @@ import {
   maskApiKeyPreview,
   STOCKS_UPDATE_COOLDOWN_MINUTES,
 } from '../../utils/cabinetAdminUtils'
+import {
+  buildOzonSubscriptionTooltip,
+  getOzonAnalyticsApiTierColor,
+  getOzonAnalyticsApiTierLabel,
+  getOzonSellerSubscriptionLabel,
+} from '../../utils/ozonSubscriptionUi'
 import type { CabinetDto, CabinetTokenType, UpdateCabinetRequest } from '../../types/api'
 
 dayjs.locale('ru')
@@ -508,7 +514,7 @@ export default function CabinetDetailPage() {
 
               {cabinet.marketplaceType === 'OZON' && (
                 <InfoBlock
-                  label="Тариф Ozon Seller"
+                  label="Тариф Ozon"
                   action={
                     <Tooltip title="Обновляется при проверке Api-Key или синхронизации analytics">
                       <Button block disabled>
@@ -519,39 +525,32 @@ export default function CabinetDetailPage() {
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      {cabinet.ozonSubscriptionIsPremium === false
-                      || cabinet.ozonSubscriptionType === 'UNSPECIFIED' ? (
-                        <Tag color="default" style={{ margin: 0 }}>Без Premium</Tag>
-                      ) : cabinet.ozonSubscriptionTypeDisplayName || cabinet.ozonSubscriptionType ? (
-                        <Tag
-                          color={
-                            cabinet.ozonSubscriptionType === 'PREMIUM_PLUS'
-                            || cabinet.ozonSubscriptionType === 'PREMIUM_PRO'
-                              ? 'purple'
-                              : cabinet.ozonSubscriptionType === 'PREMIUM'
-                              || cabinet.ozonSubscriptionType === 'PREMIUM_LITE'
-                                ? 'gold'
-                                : 'default'
-                          }
-                          style={{ margin: 0 }}
-                        >
-                          {cabinet.ozonSubscriptionTypeDisplayName ?? cabinet.ozonSubscriptionType}
+                      <Text type="secondary" style={{ fontSize: 12 }}>Подписка:</Text>
+                      {getOzonSellerSubscriptionLabel(cabinet) ? (
+                        <Tag color="gold" style={{ margin: 0 }}>
+                          {getOzonSellerSubscriptionLabel(cabinet)}
                         </Tag>
                       ) : (
                         <Text type="secondary">Не проверялся</Text>
                       )}
-                      {cabinet.ozonSubscriptionIsPremium === true && (
-                        <Tag color="gold" style={{ margin: 0 }}>Premium</Tag>
-                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>Analytics API:</Text>
+                      <Tooltip title={buildOzonSubscriptionTooltip(cabinet)}>
+                        <Tag color={getOzonAnalyticsApiTierColor(cabinet)} style={{ margin: 0 }}>
+                          {getOzonAnalyticsApiTierLabel(cabinet)}
+                        </Tag>
+                      </Tooltip>
                     </div>
                     {cabinet.ozonAnalyticsFunnelAvailable === false && (
                       <Text type="secondary" style={{ fontSize: 12 }}>
-                        Воронка analytics (переходы, корзина, конверсии) недоступна без Premium Plus.
+                        Premium в личном кабинете Ozon не включает Seller API analytics — для воронки
+                        (переходы, корзина, конверсии) нужен Premium Plus.
                       </Text>
                     )}
                     {cabinet.ozonAnalyticsFunnelAvailable === true && (
                       <Text type="success" style={{ fontSize: 12 }}>
-                        Воронка analytics доступна.
+                        Расширенная analytics через Seller API доступна.
                       </Text>
                     )}
                     <Text type="secondary" style={{ fontSize: 12 }}>
