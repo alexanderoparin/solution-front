@@ -49,15 +49,30 @@ const ozonSubscriptionTagColor = (
 }
 
 function ozonSubscriptionTag(cab: ManagedCabinetRowDto['cabinet']) {
-  const label = cab.ozonSubscriptionTypeDisplayName ?? cab.ozonSubscriptionType
-  if (!label) return null
+  const checkedAt = formatCabinetAdminDate(cab.ozonSubscriptionCheckedAt ?? null)
   const funnelHint =
     cab.ozonAnalyticsFunnelAvailable === false
       ? 'Воронка analytics недоступна (нужен Premium Plus)'
       : cab.ozonAnalyticsFunnelAvailable === true
         ? 'Воронка analytics доступна'
         : 'Воронка не проверялась'
-  const checkedAt = formatCabinetAdminDate(cab.ozonSubscriptionCheckedAt ?? null)
+
+  if (
+    cab.ozonSubscriptionIsPremium === false
+    || cab.ozonSubscriptionType === 'UNSPECIFIED'
+  ) {
+    return (
+      <Tooltip title={`Без Premium · ${funnelHint}${checkedAt ? ` · ${checkedAt}` : ''}`}>
+        <Tag color="default" style={tagStyle}>
+          Без Premium
+        </Tag>
+      </Tooltip>
+    )
+  }
+
+  const label = cab.ozonSubscriptionTypeDisplayName ?? cab.ozonSubscriptionType
+  if (!label || label === 'Неизвестно') return null
+
   return (
     <Tooltip title={`${funnelHint}${checkedAt ? ` · ${checkedAt}` : ''}`}>
       <Tag color={ozonSubscriptionTagColor(cab.ozonSubscriptionType, cab.ozonAnalyticsFunnelAvailable)} style={tagStyle}>

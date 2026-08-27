@@ -519,7 +519,10 @@ export default function CabinetDetailPage() {
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      {cabinet.ozonSubscriptionTypeDisplayName || cabinet.ozonSubscriptionType ? (
+                      {cabinet.ozonSubscriptionIsPremium === false
+                      || cabinet.ozonSubscriptionType === 'UNSPECIFIED' ? (
+                        <Tag color="default" style={{ margin: 0 }}>Без Premium</Tag>
+                      ) : cabinet.ozonSubscriptionTypeDisplayName || cabinet.ozonSubscriptionType ? (
                         <Tag
                           color={
                             cabinet.ozonSubscriptionType === 'PREMIUM_PLUS'
