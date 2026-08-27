@@ -6,8 +6,8 @@ import { useCabinetTableRowAdmin } from './CabinetTableRowAdminContext'
 import { formatCabinetAdminDate, maskApiKeyPreview } from '../utils/cabinetAdminUtils'
 import {
   buildOzonSubscriptionTooltip,
-  getOzonAnalyticsApiTierColor,
-  getOzonAnalyticsApiTierLabel,
+  getOzonSellerSubscriptionColor,
+  getOzonSellerSubscriptionLabel,
 } from '../utils/ozonSubscriptionUi'
 
 const { Text } = Typography
@@ -44,13 +44,13 @@ const tokenTypeColor = (tokenType?: 'PERSONAL' | 'BASIC' | null): 'cyan' | 'blue
 }
 
 function ozonSubscriptionTag(cab: ManagedCabinetRowDto['cabinet']) {
-  const apiLabel = getOzonAnalyticsApiTierLabel(cab)
-  if (apiLabel === 'Не проверен') return null
+  const label = getOzonSellerSubscriptionLabel(cab)
+  if (!label) return null
 
   return (
     <Tooltip title={buildOzonSubscriptionTooltip(cab)}>
-      <Tag color={getOzonAnalyticsApiTierColor(cab)} style={tagStyle}>
-        {apiLabel}
+      <Tag color={getOzonSellerSubscriptionColor(cab)} style={tagStyle}>
+        {label}
       </Tag>
     </Tooltip>
   )
