@@ -266,7 +266,7 @@ export default function CabinetDetailPage() {
       }
     },
     onError: (err: unknown) => {
-      message.error(getRequestFailureDescription(err, 'Не удалось импортировать воронку из Excel'))
+      message.error(getRequestFailureDescription(err) || 'Не удалось импортировать воронку из Excel')
     },
   })
 
