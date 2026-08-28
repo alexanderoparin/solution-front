@@ -587,9 +587,10 @@ export const analyticsApi = {
   },
 
   /**
-   * Импорт воронки продаж из Excel-выгрузки WB (лист «Товары»).
+   * Импорт воронки продаж из Excel-выгрузки WB (лист «Товары») для артикула.
    */
   importSalesFunnelExcel: async (
+    nmId: number,
     file: File,
     sellerId?: number,
     cabinetId?: number
@@ -602,7 +603,7 @@ export const analyticsApi = {
     const query = searchParams.toString()
     const params = query ? `?${query}` : ''
     const response = await apiClient.post<WbSalesFunnelExcelImportResult>(
-      `/analytics/funnel-import${params}`,
+      `/analytics/article/${nmId}/funnel-import${params}`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     )

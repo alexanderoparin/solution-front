@@ -1,11 +1,11 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Spin, DatePicker, Input, Button, Upload, Modal, message, Checkbox, Switch, Tooltip } from 'antd'
-import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined, ReloadOutlined, FireFilled } from '@ant-design/icons'
+import { InfoCircleOutlined, DownOutlined, RightOutlined, PlusOutlined, EditOutlined, DeleteOutlined, PaperClipOutlined, DownloadOutlined, UploadOutlined, EyeOutlined, ArrowUpOutlined, ArrowDownOutlined, SearchOutlined, ReloadOutlined, FireFilled } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi } from '../api/cabinets'
 import { userApi } from '../api/user'
@@ -284,6 +284,7 @@ export default function AnalyticsArticle() {
   const [stocksUpdateLoading, setStocksUpdateLoading] = useState(false)
   const [articleGoalDraft, setArticleGoalDraft] = useState('')
   const [articleGoalSaving, setArticleGoalSaving] = useState(false)
+  const funnelImportInputRef = useRef<HTMLInputElement | null>(null)
 
   /** Пока список work context грузится или выбранный кабинет ещё не проставлен — не дергаем API (иначе бэкенд берёт «дефолтный» кабинет и 404 по nmId). */
   const workContextListEmpty =
@@ -365,6 +366,35 @@ export default function AnalyticsArticle() {
       setLoading(false)
     }
   }
+
+  const funnelImportMutation = useMutation({
+    mutationFn: (file: File) =>
+      analyticsApi.importSalesFunnelExcel(
+        Number(nmId),
+        file,
+        getSelectedSellerId(),
+        getSelectedCabinetId(),
+      ),
+    onSuccess: async (result) => {
+      const period =
+        result.periodFrom && result.periodTo
+          ? ` (${result.periodFrom} — ${result.periodTo})`
+          : ''
+      message.success(
+        `Воронка импортирована${period}: ${result.rowsImported} дней, создано ${result.rowsCreated}, обновлено ${result.rowsUpdated}`
+      )
+      if (nmId) {
+        await loadArticle(Number(nmId), dateRange, campaignDateRange)
+      }
+    },
+    onError: (err: unknown) => {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined
+      message.error(msg ?? 'Не удалось импортировать воронку из Excel')
+    },
+  })
 
   const formatValue = (value: number | null): string => {
     if (value === null || value === undefined) return '-'
@@ -1337,6 +1367,29 @@ export default function AnalyticsArticle() {
               >
                 Выгрузить
               </Button>
+              <input
+                ref={funnelImportInputRef}
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                style={{ display: 'none' }}
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  event.target.value = ''
+                  if (file) {
+                    funnelImportMutation.mutate(file)
+                  }
+                }}
+              />
+              <Tooltip title="Загрузите выгрузку «Воронка продаж» из ЛК WB (лист «Товары»). Импортируются только строки текущего артикула.">
+                <Button
+                  icon={<UploadOutlined />}
+                  loading={funnelImportMutation.isPending}
+                  disabled={!article || funnelImportMutation.isPending}
+                  onClick={() => funnelImportInputRef.current?.click()}
+                >
+                  Импорт из Excel
+                </Button>
+              </Tooltip>
             </div>
           </div>
           {selectedFunnel1 ? (

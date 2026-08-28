@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -23,12 +23,10 @@ import {
   EditOutlined,
   SearchOutlined,
   SyncOutlined,
-  UploadOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { cabinetsApi } from '../../api/cabinets'
-import { analyticsApi } from '../../api/analytics'
 import { userApi } from '../../api/user'
 import Header from '../../components/Header'
 import Breadcrumbs from '../../components/Breadcrumbs'
@@ -247,26 +245,6 @@ export default function CabinetDetailPage() {
     onError: (err: unknown) => {
       const ax = err as { response?: { data?: { error?: string; message?: string } } }
       message.error(ax.response?.data?.error ?? ax.response?.data?.message ?? 'Ошибка обновления остатков')
-    },
-  })
-
-  const funnelImportInputRef = useRef<HTMLInputElement | null>(null)
-  const funnelImportMutation = useMutation({
-    mutationFn: (file: File) => analyticsApi.importSalesFunnelExcel(file, undefined, cabinetId),
-    onSuccess: (result) => {
-      const period =
-        result.periodFrom && result.periodTo
-          ? ` (${result.periodFrom} — ${result.periodTo})`
-          : ''
-      message.success(
-        `Воронка импортирована${period}: ${result.rowsImported} строк, создано ${result.rowsCreated}, обновлено ${result.rowsUpdated}`
-      )
-      if (result.rowsSkippedUnknownNmId > 0) {
-        message.warning(`Пропущено ${result.rowsSkippedUnknownNmId} строк: артикулы не найдены в кабинете`)
-      }
-    },
-    onError: (err: unknown) => {
-      message.error(getRequestFailureDescription(err) || 'Не удалось импортировать воронку из Excel')
     },
   })
 
@@ -525,44 +503,6 @@ export default function CabinetDetailPage() {
                   <SyncOutlined style={{ color: accent, fontSize: 16 }} />
                 </div>
               </InfoBlock>
-
-              {cabinet.marketplaceType !== 'OZON' && (
-                <InfoBlock
-                  label="Воронка из Excel"
-                  action={
-                    <>
-                      <input
-                        ref={funnelImportInputRef}
-                        type="file"
-                        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        style={{ display: 'none' }}
-                        onChange={(event) => {
-                          const file = event.target.files?.[0]
-                          event.target.value = ''
-                          if (file) {
-                            funnelImportMutation.mutate(file)
-                          }
-                        }}
-                      />
-                      <Tooltip title="Загрузите выгрузку «Воронка продаж» из ЛК WB (лист «Товары», детализация по дням)">
-                        <Button
-                          block
-                          icon={<UploadOutlined />}
-                          loading={funnelImportMutation.isPending}
-                          disabled={funnelImportMutation.isPending}
-                          onClick={() => funnelImportInputRef.current?.click()}
-                        >
-                          Импорт воронки из Excel
-                        </Button>
-                      </Tooltip>
-                    </>
-                  }
-                >
-                  <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.5 }}>
-                    Дополняет историю воронки за период &gt;7 дней — данные, которые API WB не отдаёт.
-                  </Text>
-                </InfoBlock>
-              )}
 
               <InfoBlock
                 label="Обновление остатков"
