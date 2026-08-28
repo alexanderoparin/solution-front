@@ -227,6 +227,12 @@ export interface CabinetDto {
   ozonSubscriptionType?: string | null
   /** Русское название тарифа Ozon. */
   ozonSubscriptionTypeDisplayName?: string | null
+  /** Автоопределение из seller/info (консервативно). */
+  ozonSubscriptionTypeDetected?: string | null
+  /** Ручная настройка тарифа; null — авто. */
+  ozonSubscriptionTypeOverride?: string | null
+  /** true — тариф задан администратором вручную. */
+  ozonSubscriptionManual?: boolean | null
   /** Флаг is_premium из seller/info. */
   ozonSubscriptionIsPremium?: boolean | null
   /** Доступна ли воронка analytics/data. */

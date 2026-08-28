@@ -29,6 +29,18 @@ export interface PromotionControlCapabilities {
   blockedUntil?: string | null
 }
 
+export interface WbSalesFunnelExcelImportResult {
+  rowsTotal: number
+  rowsImported: number
+  rowsCreated: number
+  rowsUpdated: number
+  rowsSkippedUnknownNmId: number
+  rowsSkippedInvalid: number
+  periodFrom?: string | null
+  periodTo?: string | null
+  warnings?: string[]
+}
+
 function buildCampaignControlParams(sellerId?: number, cabinetId?: number): string {
   const searchParams = new URLSearchParams()
   if (sellerId != null) searchParams.set('sellerId', String(sellerId))
@@ -572,6 +584,29 @@ export const analyticsApi = {
     const query = searchParams.toString()
     const params = query ? `?${query}` : ''
     await apiClient.delete(`/analytics/article/${nmId}/notes/${noteId}/files/${fileId}${params}`)
+  },
+
+  /**
+   * Импорт воронки продаж из Excel-выгрузки WB (лист «Товары»).
+   */
+  importSalesFunnelExcel: async (
+    file: File,
+    sellerId?: number,
+    cabinetId?: number
+  ): Promise<WbSalesFunnelExcelImportResult> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    const response = await apiClient.post<WbSalesFunnelExcelImportResult>(
+      `/analytics/funnel-import${params}`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    )
+    return response.data
   },
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -23,10 +23,12 @@ import {
   EditOutlined,
   SearchOutlined,
   SyncOutlined,
+  UploadOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 import { cabinetsApi } from '../../api/cabinets'
+import { analyticsApi } from '../../api/analytics'
 import { userApi } from '../../api/user'
 import Header from '../../components/Header'
 import Breadcrumbs from '../../components/Breadcrumbs'
@@ -49,6 +51,7 @@ import {
   buildOzonSubscriptionTooltip,
   getOzonAnalyticsApiTierColor,
   getOzonAnalyticsApiTierLabel,
+  getOzonSellerSubscriptionColor,
   getOzonSellerSubscriptionLabel,
 } from '../../utils/ozonSubscriptionUi'
 import type { CabinetDto, CabinetTokenType, UpdateCabinetRequest } from '../../types/api'
@@ -115,6 +118,7 @@ export default function CabinetDetailPage() {
   const [editForm] = Form.useForm<{ name: string }>()
   const [tokenForm] = Form.useForm<{ apiKey: string; tokenType: CabinetTokenType }>()
   const [performanceForm] = Form.useForm<{ ozonPerformanceClientId: string; ozonPerformanceClientSecret: string }>()
+  const [subscriptionForm] = Form.useForm<{ ozonSubscriptionTypeOverride: string }>()
 
   useEffect(() => {
     if (validateCooldown <= 0) return
@@ -136,6 +140,13 @@ export default function CabinetDetailPage() {
       return failureCount < 2
     },
   })
+
+  useEffect(() => {
+    if (!cabinet || cabinet.marketplaceType !== 'OZON') return
+    subscriptionForm.setFieldsValue({
+      ozonSubscriptionTypeOverride: cabinet.ozonSubscriptionTypeOverride ?? 'AUTO',
+    })
+  }, [cabinet, subscriptionForm])
 
   const invalidateCabinet = () => {
     void queryClient.invalidateQueries({ queryKey: ['cabinet', cabinetId] })
@@ -199,6 +210,19 @@ export default function CabinetDetailPage() {
     },
   })
 
+  const updateSubscriptionMutation = useMutation({
+    mutationFn: (ozonSubscriptionTypeOverride: string) =>
+      userApi.updateSellerCabinetCredentials(cabinetId, { ozonSubscriptionTypeOverride }),
+    onSuccess: () => {
+      message.success('Тариф Ozon сохранён')
+      invalidateCabinet()
+    },
+    onError: (err: unknown) => {
+      const ax = err as { response?: { data?: { error?: string; message?: string } } }
+      message.error(ax.response?.data?.error ?? ax.response?.data?.message ?? 'Не удалось сохранить тариф')
+    },
+  })
+
   const updateDataMutation = useMutation({
     mutationFn: () =>
       isAdmin
@@ -223,6 +247,26 @@ export default function CabinetDetailPage() {
     onError: (err: unknown) => {
       const ax = err as { response?: { data?: { error?: string; message?: string } } }
       message.error(ax.response?.data?.error ?? ax.response?.data?.message ?? 'Ошибка обновления остатков')
+    },
+  })
+
+  const funnelImportInputRef = useRef<HTMLInputElement | null>(null)
+  const funnelImportMutation = useMutation({
+    mutationFn: (file: File) => analyticsApi.importSalesFunnelExcel(file, undefined, cabinetId),
+    onSuccess: (result) => {
+      const period =
+        result.periodFrom && result.periodTo
+          ? ` (${result.periodFrom} — ${result.periodTo})`
+          : ''
+      message.success(
+        `Воронка импортирована${period}: ${result.rowsImported} строк, создано ${result.rowsCreated}, обновлено ${result.rowsUpdated}`
+      )
+      if (result.rowsSkippedUnknownNmId > 0) {
+        message.warning(`Пропущено ${result.rowsSkippedUnknownNmId} строк: артикулы не найдены в кабинете`)
+      }
+    },
+    onError: (err: unknown) => {
+      message.error(getRequestFailureDescription(err, 'Не удалось импортировать воронку из Excel'))
     },
   })
 
@@ -482,6 +526,44 @@ export default function CabinetDetailPage() {
                 </div>
               </InfoBlock>
 
+              {cabinet.marketplaceType !== 'OZON' && (
+                <InfoBlock
+                  label="Воронка из Excel"
+                  action={
+                    <>
+                      <input
+                        ref={funnelImportInputRef}
+                        type="file"
+                        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        style={{ display: 'none' }}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0]
+                          event.target.value = ''
+                          if (file) {
+                            funnelImportMutation.mutate(file)
+                          }
+                        }}
+                      />
+                      <Tooltip title="Загрузите выгрузку «Воронка продаж» из ЛК WB (лист «Товары», детализация по дням)">
+                        <Button
+                          block
+                          icon={<UploadOutlined />}
+                          loading={funnelImportMutation.isPending}
+                          disabled={funnelImportMutation.isPending}
+                          onClick={() => funnelImportInputRef.current?.click()}
+                        >
+                          Импорт воронки из Excel
+                        </Button>
+                      </Tooltip>
+                    </>
+                  }
+                >
+                  <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.5 }}>
+                    Дополняет историю воронки за период &gt;7 дней — данные, которые API WB не отдаёт.
+                  </Text>
+                </InfoBlock>
+              )}
+
               <InfoBlock
                 label="Обновление остатков"
                 action={
@@ -516,24 +598,67 @@ export default function CabinetDetailPage() {
                 <InfoBlock
                   label="Тариф Ozon"
                   action={
-                    <Tooltip title="Обновляется при проверке Api-Key или синхронизации analytics">
-                      <Button block disabled>
-                        Автообновление
+                    isAdmin ? (
+                      <Button
+                        block
+                        loading={updateSubscriptionMutation.isPending}
+                        onClick={() => subscriptionForm.submit()}
+                      >
+                        Сохранить тариф
                       </Button>
-                    </Tooltip>
+                    ) : (
+                      <Tooltip title="Обновляется при проверке Api-Key или синхронизации analytics">
+                        <Button block disabled>
+                          Автообновление
+                        </Button>
+                      </Tooltip>
+                    )
                   }
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {isAdmin && (
+                      <Form
+                        form={subscriptionForm}
+                        layout="vertical"
+                        onFinish={(values: { ozonSubscriptionTypeOverride: string }) =>
+                          updateSubscriptionMutation.mutate(values.ozonSubscriptionTypeOverride)
+                        }
+                      >
+                        <Form.Item
+                          name="ozonSubscriptionTypeOverride"
+                          label={<Text type="secondary" style={{ fontSize: 12 }}>Подписка в ЛК Ozon</Text>}
+                          style={{ marginBottom: 8 }}
+                        >
+                          <Select
+                            options={[
+                              { value: 'AUTO', label: 'Авто (по API)' },
+                              { value: 'UNSPECIFIED', label: 'Без Premium' },
+                              { value: 'PREMIUM', label: 'Premium' },
+                              { value: 'PREMIUM_PLUS', label: 'Premium Plus' },
+                            ]}
+                          />
+                        </Form.Item>
+                      </Form>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>Подписка:</Text>
+                      <Text type="secondary" style={{ fontSize: 12 }}>Отображается:</Text>
                       {getOzonSellerSubscriptionLabel(cabinet) ? (
-                        <Tag color="gold" style={{ margin: 0 }}>
+                        <Tag color={getOzonSellerSubscriptionColor(cabinet)} style={{ margin: 0 }}>
                           {getOzonSellerSubscriptionLabel(cabinet)}
+                          {cabinet.ozonSubscriptionManual ? ' · вручную' : ''}
                         </Tag>
                       ) : (
                         <Text type="secondary">Не проверялся</Text>
                       )}
                     </div>
+                    {!cabinet.ozonSubscriptionManual && cabinet.ozonSubscriptionTypeDetected && (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        Авто из API: {cabinet.ozonSubscriptionTypeDetected === 'UNSPECIFIED'
+                          ? 'Без Premium'
+                          : cabinet.ozonSubscriptionTypeDetected}
+                        {' '}(seller/info type=PREMIUM у всех — probe analytics &gt;3 мес.)
+                      </Text>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <Text type="secondary" style={{ fontSize: 12 }}>Analytics API:</Text>
                       <Tooltip title={buildOzonSubscriptionTooltip(cabinet)}>

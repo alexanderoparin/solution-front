@@ -5,7 +5,7 @@ import { formatCabinetAdminDate } from './cabinetAdminUtils'
 export type OzonSubscriptionTagColor = 'purple' | 'gold' | 'default' | 'orange'
 
 /**
- * Название подписки Ozon (seller/info + probe Premium в ЛК).
+ * Название подписки Ozon (probe analytics lookback + seller/info type_).
  */
 export function getOzonSellerSubscriptionLabel(cab: CabinetDto): string | null {
   if (cab.ozonSubscriptionType == null && cab.ozonSubscriptionIsPremium == null) {
@@ -67,11 +67,19 @@ export function buildOzonSubscriptionTooltip(cab: CabinetDto): string {
   const sellerLabel = getOzonSellerSubscriptionLabel(cab) ?? '—'
   const apiLabel = getOzonAnalyticsApiTierLabel(cab)
   const checkedAt = formatCabinetAdminDate(cab.ozonSubscriptionCheckedAt ?? null)
+  const detected = cab.ozonSubscriptionTypeDetected ?? '—'
+  const override = cab.ozonSubscriptionTypeOverride ?? 'авто'
 
   const lines = [
-    `Подписка Ozon: ${sellerLabel}`,
+    `Подписка Ozon: ${sellerLabel}${cab.ozonSubscriptionManual ? ' (вручную)' : ''}`,
+    `Авто из API: ${detected === 'UNSPECIFIED' ? 'Без Premium' : detected}`,
+    `Override: ${override}`,
     `Analytics Seller API: ${apiLabel}`,
   ]
+
+  if (!cab.ozonSubscriptionManual) {
+    lines.push('Premium в ЛК: probe analytics за период >3 мес.; seller/info type=PREMIUM не используем.')
+  }
 
   if (cab.ozonAnalyticsFunnelAvailable === true) {
     lines.push('Доступны переходы, корзина, конверсии через Seller API.')

@@ -292,6 +292,7 @@ export const userApi = {
       ozonClientId?: string
       ozonPerformanceClientId?: string
       ozonPerformanceClientSecret?: string
+      ozonSubscriptionTypeOverride?: string
     },
   ): Promise<CabinetDto> => {
     const response = await apiClient.patch<CabinetDto>(`/users/cabinets/${cabinetId}`, payload)
