@@ -1359,14 +1359,16 @@ export default function AnalyticsArticle() {
                 />
                 <span>График</span>
               </span>
-              <Button
-                type="primary"
-                icon={<DownloadOutlined />}
-                onClick={handleExportFunnelsExcel}
-                disabled={!article}
-              >
-                Выгрузить
-              </Button>
+              <Tooltip title="Выгрузить таблицу воронок за выбранный период в Excel.">
+                <Button
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  onClick={handleExportFunnelsExcel}
+                  disabled={!article}
+                >
+                  Выгрузить
+                </Button>
+              </Tooltip>
               <input
                 ref={funnelImportInputRef}
                 type="file"
@@ -1386,9 +1388,8 @@ export default function AnalyticsArticle() {
                   loading={funnelImportMutation.isPending}
                   disabled={!article || funnelImportMutation.isPending}
                   onClick={() => funnelImportInputRef.current?.click()}
-                >
-                  Импорт из Excel
-                </Button>
+                  aria-label="Импорт воронки из Excel"
+                />
               </Tooltip>
             </div>
           </div>
