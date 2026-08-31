@@ -32,7 +32,7 @@ interface SubscriptionCardProps {
 
 function formatExpires(expiresAt: string | null | undefined): string {
   if (!expiresAt) return 'Бессрочно'
-  return dayjs(expiresAt).format('DD.MM.YYYY')
+  return dayjs(expiresAt).format('DD.MM.YYYY HH:mm')
 }
 
 function serviceIcon(serviceCode: string) {
@@ -256,7 +256,9 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: 12, color: textMuted, marginBottom: 4 }}>Действует</div>
+                    <div style={{ fontSize: 12, color: textMuted, marginBottom: 4 }}>
+                      {expiresLabel === 'Бессрочно' ? 'Действует' : 'Действует до'}
+                    </div>
                     <div style={{ fontWeight: 600, color: '#0F172A' }}>{expiresLabel}</div>
                   </div>
                   <div>
