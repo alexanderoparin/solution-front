@@ -1,10 +1,10 @@
 import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Spin, Input, Button, Popover, Checkbox, message, Tooltip } from 'antd'
-import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled, HolderOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
+import { SearchOutlined, FilterOutlined, CloseOutlined, StarFilled, HolderOutlined, CaretUpOutlined, CaretDownOutlined, UploadOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi } from '../api/cabinets'
 import type { ArticleSummary, Period } from '../types/analytics'
@@ -156,6 +156,7 @@ export default function AnalyticsProducts() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const containerRef = useRef<HTMLDivElement>(null)
   const filterListArticlesRef = useRef<ArticleSummary[]>([])
+  const funnelBulkImportInputRef = useRef<HTMLInputElement | null>(null)
   /** Пропустить одну запись в storage, если только что восстановили выбор из общего ключа (чтобы не перезаписать 155 на []) */
   const skipNextWriteRef = useRef(false)
 
@@ -208,6 +209,37 @@ export default function AnalyticsProducts() {
   )
 
   const last7DaysPeriod = useMemo(() => getLast7DaysPeriod(), [])
+
+  const funnelBulkImportMutation = useMutation({
+    mutationFn: (file: File) =>
+      analyticsApi.importCabinetSalesFunnelExcel(
+        file,
+        selectedSellerId ?? undefined,
+        selectedCabinetId ?? undefined,
+      ),
+    onSuccess: (result) => {
+      const period =
+        result.periodFrom && result.periodTo
+          ? ` (${result.periodFrom} — ${result.periodTo})`
+          : ''
+      const skippedUnknown =
+        result.rowsSkippedUnknownNmId > 0
+          ? `, пропущено чужих артикулов: ${result.rowsSkippedUnknownNmId}`
+          : ''
+      message.success(
+        `Воронка импортирована${period}: ${result.rowsImported} строк, создано ${result.rowsCreated}, обновлено ${result.rowsUpdated}${skippedUnknown}`,
+      )
+      void queryClient.invalidateQueries({ queryKey: ['analytics-products-summary'] })
+      void queryClient.invalidateQueries({ queryKey: ['analytics-products-filter-list'] })
+    },
+    onError: (err: unknown) => {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined
+      message.error(msg ?? 'Не удалось импортировать воронку из Excel')
+    },
+  })
 
   const searchTrimmed = searchQuery.trim()
   const effectiveOnlyPriority = isOzonCabinet ? false : onlyPriority
@@ -815,6 +847,33 @@ export default function AnalyticsProducts() {
               </Checkbox>
             </Tooltip>
             </div>
+            {!isOzonCabinet && (
+              <>
+                <input
+                  ref={funnelBulkImportInputRef}
+                  type="file"
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  style={{ display: 'none' }}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    event.target.value = ''
+                    if (file) {
+                      funnelBulkImportMutation.mutate(file)
+                    }
+                  }}
+                />
+                <Tooltip title="Загрузите выгрузку «Воронка продаж» из ЛК WB (лист «Товары»). Импортируются все артикулы кабинета из файла.">
+                  <Button
+                    icon={<UploadOutlined />}
+                    loading={funnelBulkImportMutation.isPending}
+                    disabled={selectedCabinetId == null || funnelBulkImportMutation.isPending}
+                    onClick={() => funnelBulkImportInputRef.current?.click()}
+                    aria-label="Импорт воронки из Excel для всех артикулов"
+                    style={{ marginLeft: 'auto' }}
+                  />
+                </Tooltip>
+              </>
+            )}
           </div>
 
           {/* Выбранные артикулы ВБ под фильтром — на всю ширину; по клику «ещё» раскрывается весь список */}

@@ -609,5 +609,28 @@ export const analyticsApi = {
     )
     return response.data
   },
+
+  /**
+   * Массовый импорт воронки продаж из Excel-выгрузки WB (лист «Товары») для всех артикулов кабинета.
+   */
+  importCabinetSalesFunnelExcel: async (
+    file: File,
+    sellerId?: number,
+    cabinetId?: number
+  ): Promise<WbSalesFunnelExcelImportResult> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const searchParams = new URLSearchParams()
+    if (sellerId != null) searchParams.set('sellerId', String(sellerId))
+    if (cabinetId != null) searchParams.set('cabinetId', String(cabinetId))
+    const query = searchParams.toString()
+    const params = query ? `?${query}` : ''
+    const response = await apiClient.post<WbSalesFunnelExcelImportResult>(
+      `/analytics/funnel-import${params}`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    )
+    return response.data
+  },
 }
 
