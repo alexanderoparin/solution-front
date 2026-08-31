@@ -4,6 +4,7 @@ import { accessStatusQueryKey, ACCESS_STATUS_STALE_MS, userApi } from '../api/us
 import { cabinetsApi, getStoredCabinetId } from '../api/cabinets'
 import { useAuthStore } from '../store/authStore'
 import { useWorkContextForAdmin } from './useWorkContextForAdmin'
+import { useCabinetProAccess } from './useCabinetProAccess'
 
 function resolveSellerIdForAccess(role: string | null, userId: number | null): number | undefined {
   if (role === 'USER' && userId != null) {
@@ -78,16 +79,21 @@ export function useCampaignManageAccess(overrideSellerId?: number, overrideCabin
   const campaignManage = access?.campaignManage
   const cabinetsLoading = !isAdmin && overrideCabinetId == null && overviewPending
 
+  const { onPro, campaignManageReady } = useCabinetProAccess(cabinetId ?? null)
+
+  const hasCampaignManageAccess = campaignManage?.hasAccess === true || campaignManageReady || onPro
+
   const showBadge = useMemo(() => {
     if (role !== 'USER') return false
+    if (hasCampaignManageAccess) return false
     if (campaignManage?.status === 'AGENCY' || campaignManage?.status === 'PRO') return false
     return campaignManage?.enabled === true
-  }, [role, campaignManage?.enabled, campaignManage?.status])
+  }, [role, hasCampaignManageAccess, campaignManage?.enabled, campaignManage?.status])
 
   return {
     access,
     campaignManage,
-    hasCampaignManageAccess: campaignManage?.hasAccess === true,
+    hasCampaignManageAccess,
     showBadge,
     isLoading: cabinetsLoading || accessLoading,
     refetchAccess: refetch,

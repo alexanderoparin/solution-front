@@ -12,7 +12,6 @@ import { cabinetsApi } from '../api/cabinets'
 import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { analyticsApi } from '../api/analytics'
 import { abTestApi } from '../api/abTest'
-import { subscriptionApi } from '../api/subscription'
 import type {
   AbTest,
   AbTestFinishAction,
@@ -24,6 +23,7 @@ import type { CabinetTokenType } from '../types/api'
 import { colors, borderRadius } from '../styles/analytics'
 import AbTestVariantImage from '../components/AbTestVariantImage'
 import AbTestPaywallModal from '../components/subscription/AbTestPaywallModal'
+import { useCabinetProAccess } from '../hooks/useCabinetProAccess'
 import {
   formatFinishLabel,
   formatRotationLabel,
@@ -993,14 +993,9 @@ export default function AbTests() {
     },
   })
 
-  const { data: billing } = useQuery({
-    queryKey: ['cabinetBilling', selectedCabinetId],
-    queryFn: () => subscriptionApi.getCabinetBillingStatus(selectedCabinetId!),
-    enabled: selectedCabinetId != null,
-  })
+  const { billing, abServiceReady, onPro, isLoading: proAccessLoading } = useCabinetProAccess(selectedCabinetId)
 
   const abQuota = billing?.abTestQuota
-  const abServiceReady = Boolean(abQuota?.unlimited || abQuota?.activated)
   const quotaLabel = useMemo(() => {
     if (!abQuota || !abServiceReady) return null
     if (abQuota.unlimited) return 'А/Б безлимит (PRO)'
@@ -1012,11 +1007,12 @@ export default function AbTests() {
 
   const openCreate = () => {
     if (selectedCabinetId == null || isOzonCabinet) return
+    if (proAccessLoading) return
     if (!abServiceReady) {
       setPaywallOpen(true)
       return
     }
-    if (!abQuota?.unlimited && (abQuota?.remaining ?? 0) <= 0) {
+    if (!onPro && !abQuota?.unlimited && (abQuota?.remaining ?? 0) <= 0) {
       setPaywallOpen(true)
       return
     }
