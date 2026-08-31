@@ -18,6 +18,7 @@ import Profile from './pages/Profile'
 import AdminPlansAndSubscriptions from './pages/AdminPlansAndSubscriptions'
 import AdminWbEvents from './pages/AdminWbEvents'
 import AdminDeletionRequests from './pages/AdminDeletionRequests'
+import AdminPromoRedemptions from './pages/AdminPromoRedemptions'
 import Subscribe from './pages/Subscribe'
 import Subscription from './pages/Subscription'
 import PaymentUnavailable from './pages/PaymentUnavailable'
@@ -112,6 +113,10 @@ function AppRoutes() {
         <Route
           path="/admin/plans"
           element={token ? <AdminPlansAndSubscriptions /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/admin/promo-codes"
+          element={token ? <AdminPromoRedemptions /> : <Navigate to="/login" replace />}
         />
         <Route
           path="/admin/deletion-requests"

@@ -31,6 +31,8 @@ export interface RegisterRequest {
   accountTypes: AccountType[]
   /** Токен приглашения (регистрация по invite). */
   invitationToken?: string
+  /** Промокод (необязательно). */
+  promoCode?: string
 }
 
 /** Номинальный тип аккаунта (статистика и отображение, не права доступа). */
@@ -730,4 +732,29 @@ export interface CabinetInvitationPreviewDto {
   declined?: boolean
   revoked?: boolean
   email: string
+}
+
+/** Промокод для админки. */
+export interface PromoCodeAdminDto {
+  id: number
+  code: string
+  description?: string | null
+  durationDays: number
+  grantType: string
+  active: boolean
+  maxRedemptionsPerUser?: number | null
+  maxRedemptionsTotal?: number | null
+  validFrom?: string | null
+  validTo?: string | null
+  createdAt?: string | null
+}
+
+/** Строка таблицы активаций промокодов. */
+export interface PromoCodeRedemptionAdminDto {
+  id: number
+  email: string
+  promoCode: string
+  redeemedAt: string
+  expiresAt: string
+  userRegisteredAt?: string | null
 }

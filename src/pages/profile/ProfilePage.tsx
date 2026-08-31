@@ -7,6 +7,7 @@ import {
   CreditCardOutlined,
   ApiOutlined,
   DeleteOutlined,
+  GiftOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -268,6 +269,14 @@ export default function ProfilePage() {
                   style={profileAdminActionGridButtonStyle}
                 >
                   Тарифы и услуги
+                </Button>
+                <Button
+                  icon={<GiftOutlined />}
+                  onClick={() => navigate('/admin/promo-codes')}
+                  size="large"
+                  style={profileAdminActionGridButtonStyle}
+                >
+                  Промокоды
                 </Button>
                 <Badge count={pendingDeletionCount} overflowCount={99} offset={[-4, 4]}>
                   <Button

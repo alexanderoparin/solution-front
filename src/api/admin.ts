@@ -26,6 +26,8 @@ import type {
   AccountDeletionRequestAdminDto,
   MessageResponse,
   CabinetBillingOverviewDto,
+  PromoCodeAdminDto,
+  PromoCodeRedemptionAdminDto,
 } from '../types/api'
 
 export const adminApi = {
@@ -213,6 +215,29 @@ export const adminApi = {
 
   rejectDeletionRequest: async (requestId: number): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>(`/admin/deletion-requests/${requestId}/reject`)
+    return response.data
+  },
+
+  getPromoCodes: async (): Promise<PromoCodeAdminDto[]> => {
+    const response = await apiClient.get<PromoCodeAdminDto[]>('/admin/promo-codes')
+    return response.data
+  },
+
+  getPromoCodeRedemptions: async (params: {
+    page: number
+    size: number
+    code?: string
+  }): Promise<PageResponse<PromoCodeRedemptionAdminDto>> => {
+    const response = await apiClient.get<PageResponse<PromoCodeRedemptionAdminDto>>(
+      '/admin/promo-codes/redemptions',
+      {
+        params: {
+          page: params.page,
+          size: params.size,
+          code: params.code || undefined,
+        },
+      },
+    )
     return response.data
   },
 }

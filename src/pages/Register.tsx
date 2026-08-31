@@ -2,7 +2,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Form, Input, Button, Card, Typography, message, Checkbox, Tooltip } from 'antd'
-import { UserOutlined, LockOutlined, IdcardOutlined } from '@ant-design/icons'
+import { UserOutlined, LockOutlined, IdcardOutlined, GiftOutlined } from '@ant-design/icons'
 import { authApi } from '../api/auth'
 import { invitationsApi } from '../api/invitations'
 import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
@@ -130,9 +130,11 @@ export default function Register() {
     accountTypes: AccountType[]
     agreeToOffer: boolean
     marketingConsent?: boolean
+    promoCode?: string
   }) => {
     if (!values.agreeToOffer) return
     const accountTypes = isInviteFlow ? (['EMPLOYEE'] as AccountType[]) : values.accountTypes
+    const promoCode = values.promoCode?.trim()
     registerMutation.mutate({
       name: values.name.trim(),
       email: values.email,
@@ -141,6 +143,7 @@ export default function Register() {
       marketingConsent: values.marketingConsent ?? false,
       accountTypes,
       invitationToken: invitationToken ?? undefined,
+      promoCode: promoCode || undefined,
     })
   }
 
@@ -249,6 +252,13 @@ export default function Register() {
                 </Checkbox>
               ))}
             </Checkbox.Group>
+          </Form.Item>
+          <Form.Item
+            name="promoCode"
+            label="Промокод"
+            rules={[{ max: 64, message: 'Промокод слишком длинный' }]}
+          >
+            <Input prefix={<GiftOutlined />} placeholder="Необязательно" autoComplete="off" />
           </Form.Item>
           <Form.Item name="agreeToOffer" valuePropName="checked">
             <Checkbox>

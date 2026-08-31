@@ -66,6 +66,8 @@ export default function Breadcrumbs() {
     )
   } else if (pathname === '/admin/plans') {
     items.push({ label: 'Профиль', path: '/profile' }, { label: 'Тарифы и услуги' })
+  } else if (pathname === '/admin/promo-codes') {
+    items.push({ label: 'Профиль', path: '/profile' }, { label: 'Промокоды' })
   } else if (pathname === '/admin/api-events' || pathname === '/admin/wb-events') {
     items.push({ label: 'Профиль', path: '/profile' }, { label: 'API события' })
   } else if (pathname.match(/^\/cabinets\/\d+$/) && params.id) {
