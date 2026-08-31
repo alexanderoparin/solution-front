@@ -32,7 +32,6 @@ import * as XLSX from 'xlsx'
 import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/clipboardFiles'
 import { linkifyNoteText } from '../utils/linkifyNoteText'
 import { NoteImagePreviewModal } from '../components/NoteImagePreviewModal'
-import OzonAnalyticsArticle from './OzonAnalyticsArticle'
 import FboFbsStocksSwitch, { type StocksFulfillment, stockRowKey } from '../components/FboFbsStocksSwitch'
 
 type NoteFileEntry = { uid: string; file: File }
@@ -313,10 +312,6 @@ export default function AnalyticsArticle() {
       return
     }
 
-    if (isOzonCabinet) {
-      return
-    }
-
     void loadArticle(Number(nmId), dateRange, campaignDateRange)
     void loadNotes(Number(nmId))
   }, [
@@ -332,8 +327,12 @@ export default function AnalyticsArticle() {
     workContext.workContextLoading,
     workContext.workContextOptions.length,
     sellerCabinetId,
-    isOzonCabinet,
   ])
+
+  useEffect(() => {
+    if (!isOzonCabinet) return
+    setSelectedFunnelKeys((prev) => prev.filter((k) => k !== 'pricing'))
+  }, [isOzonCabinet])
 
   const loadArticle = async (
     id: number,
@@ -890,17 +889,9 @@ export default function AnalyticsArticle() {
   const period1Data = aggregatePeriodData(period1[0], period1[1])
   const period2Data = aggregatePeriodData(period2[0], period2[1])
 
-  if (isOzonCabinet) {
-    return (
-      <OzonAnalyticsArticle
-        selectedCabinetId={selectedCabinetId}
-        selectedSellerId={selectedSellerId}
-        isAdmin={isAdmin}
-        workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
-        cabinetSelectProps={cabinetSelectProps}
-      />
-    )
-  }
+  const productPageUrl =
+    article?.article.productUrl ||
+    (isOzonCabinet && article ? `https://www.ozon.ru/product/${article.article.nmId}/` : article?.article.productUrl)
 
   if (loading) {
     return (
@@ -1009,7 +1000,7 @@ export default function AnalyticsArticle() {
         }}>
           {articleHeaderPhotoUrl && (
             <a
-              href={article.article.productUrl}
+              href={productPageUrl ?? article.article.productUrl}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -1063,9 +1054,9 @@ export default function AnalyticsArticle() {
               {[article.article.subjectName, article.article.brand].filter(Boolean).join(' · ') || '-'}
             </div>
             <div style={{ color: colors.textSecondary, marginBottom: 2, fontSize: 12 }}>
-              Артикул WB:{' '}
+              {isOzonCabinet ? 'Product ID:' : 'Артикул WB:'}{' '}
               <a
-                href={article.article.productUrl}
+                href={productPageUrl ?? article.article.productUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ color: colors.primary, fontWeight: 500 }}
@@ -1074,7 +1065,7 @@ export default function AnalyticsArticle() {
               </a>
             </div>
             <div style={{ color: colors.textSecondary, marginBottom: 6, fontSize: 12 }}>
-              Артикул продавца:{' '}
+              {isOzonCabinet ? 'Offer ID:' : 'Артикул продавца:'}{' '}
               <span style={{ color: colors.primary, fontWeight: 500 }}>
                 {article.article.vendorCode ?? '-'}
               </span>
@@ -1122,7 +1113,7 @@ export default function AnalyticsArticle() {
                 <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Сохранение…</div>
               )}
             </div>
-            {article.inWbPromotion && (
+            {article.inWbPromotion && !isOzonCabinet && (
               <span
                 title={(article.wbPromotionNames?.length ?? 0) > 0
                   ? (article.wbPromotionNames ?? []).map((n, i) => {
@@ -1147,7 +1138,7 @@ export default function AnalyticsArticle() {
           </div>
 
           {/* Товары в связке: справа от основного, 2 ряда × колонки, горизонтальный скролл; размер превью — BUNDLE_* константы */}
-          {(article.bundleProducts?.length ?? 0) > 0 && (() => {
+          {(article.bundleProducts?.length ?? 0) > 0 && !isOzonCabinet && (() => {
             const bundleLinkedH = BUNDLE_LINKED_INNER_HEIGHT_PX
             const rowHeight = Math.floor((bundleLinkedH - BUNDLE_LINKED_ROW_GAP_PX) / 2)
             const bundlePhotoH = rowHeight
@@ -1343,12 +1334,14 @@ export default function AnalyticsArticle() {
               >
                 Реклама
               </Checkbox>
-              <Checkbox
-                checked={selectedFunnelKeys.includes('pricing')}
-                onChange={() => toggleFunnel('pricing')}
-              >
-                Цены
-              </Checkbox>
+              {!isOzonCabinet && (
+                <Checkbox
+                  checked={selectedFunnelKeys.includes('pricing')}
+                  onChange={() => toggleFunnel('pricing')}
+                >
+                  Цены
+                </Checkbox>
+              )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, ...typography.body }}>
@@ -1369,28 +1362,32 @@ export default function AnalyticsArticle() {
                   Выгрузить
                 </Button>
               </Tooltip>
-              <input
-                ref={funnelImportInputRef}
-                type="file"
-                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                style={{ display: 'none' }}
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  event.target.value = ''
-                  if (file) {
-                    funnelImportMutation.mutate(file)
-                  }
-                }}
-              />
-              <Tooltip title="Загрузите выгрузку «Воронка продаж» из ЛК WB (лист «Товары»). Импортируются только строки текущего артикула.">
-                <Button
-                  icon={<UploadOutlined />}
-                  loading={funnelImportMutation.isPending}
-                  disabled={!article || funnelImportMutation.isPending}
-                  onClick={() => funnelImportInputRef.current?.click()}
-                  aria-label="Импорт воронки из Excel"
-                />
-              </Tooltip>
+              {!isOzonCabinet && (
+                <>
+                  <input
+                    ref={funnelImportInputRef}
+                    type="file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    style={{ display: 'none' }}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0]
+                      event.target.value = ''
+                      if (file) {
+                        funnelImportMutation.mutate(file)
+                      }
+                    }}
+                  />
+                  <Tooltip title="Загрузите выгрузку «Воронка продаж» из ЛК WB (лист «Товары»). Импортируются только строки текущего артикула.">
+                    <Button
+                      icon={<UploadOutlined />}
+                      loading={funnelImportMutation.isPending}
+                      disabled={!article || funnelImportMutation.isPending}
+                      onClick={() => funnelImportInputRef.current?.click()}
+                      aria-label="Импорт воронки из Excel"
+                    />
+                  </Tooltip>
+                </>
+              )}
             </div>
           </div>
           {selectedFunnel1 ? (
@@ -3464,7 +3461,9 @@ export default function AnalyticsArticle() {
               </span>
             </div>
             <p style={{ fontSize: 11, color: colors.textSecondary, margin: '0 0 8px 0' }}>
-              Положили в корзину и заказали товаров — по рекламной статистике WB (fullstats) для этого артикула в каждой РК.
+              {isOzonCabinet
+                ? 'Метрики РК — по кампании Ozon Performance за выбранный период (не доля SKU).'
+                : 'Положили в корзину и заказали товаров — по рекламной статистике WB (fullstats) для этого артикула в каждой РК.'}
             </p>
             <div style={{ overflowX: 'auto', width: '100%' }}>
               <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 1040 }}>
