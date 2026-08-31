@@ -53,7 +53,7 @@ export default function AdminPromoRedemptions() {
       render: (_value, _record, index) => page * pageSize + index + 1,
     },
     {
-      title: 'Почта',
+      title: 'Пользователь',
       dataIndex: 'email',
       key: 'email',
     },
@@ -77,13 +77,6 @@ export default function AdminPromoRedemptions() {
       width: 180,
       render: (value: string) => formatDateTime(value),
     },
-    {
-      title: 'Регистрация',
-      dataIndex: 'userRegisteredAt',
-      key: 'userRegisteredAt',
-      width: 180,
-      render: (value: string | null | undefined) => formatDateTime(value),
-    },
   ]
 
   return (
@@ -94,7 +87,7 @@ export default function AdminPromoRedemptions() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <GiftOutlined style={{ fontSize: 28, color: '#7C3AED' }} />
           <Title level={2} style={{ margin: 0 }}>
-            Промокоды
+            Использование промокодов
           </Title>
         </div>
 
@@ -132,7 +125,7 @@ export default function AdminPromoRedemptions() {
                 setPageSize(nextSize)
               },
             }}
-            scroll={{ x: 900 }}
+            scroll={{ x: 720 }}
           />
         </Card>
 

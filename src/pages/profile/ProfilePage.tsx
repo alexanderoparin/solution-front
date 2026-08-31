@@ -276,7 +276,7 @@ export default function ProfilePage() {
                   size="large"
                   style={profileAdminActionGridButtonStyle}
                 >
-                  Промокоды
+                  Использование промокодов
                 </Button>
                 <Badge count={pendingDeletionCount} overflowCount={99} offset={[-4, 4]}>
                   <Button
