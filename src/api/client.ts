@@ -72,15 +72,22 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // 401 — неавторизован. Не трогаем форму логина/регистрации и публичные auth-эндпоинты.
-    if (
-      status === 401
-      && !url.includes('/auth/login')
-      && !url.includes('/auth/register')
-      && !url.includes('/auth/forgot-password')
-      && !url.includes('/auth/reset-password')
-      && !url.includes('/auth/confirm-email')
-    ) {
+    // 401 — неавторизован. Сбрасываем сессию только если отклонён текущий JWT
+    // (иначе ответ на устаревший in-flight запрос после login/register может разлогинить).
+    const isPublicAuth =
+      url.includes('/auth/login')
+      || url.includes('/auth/register')
+      || url.includes('/auth/forgot-password')
+      || url.includes('/auth/reset-password')
+      || url.includes('/auth/confirm-email')
+    const authHeader = config?.headers?.Authorization as string | undefined
+    const currentToken = useAuthStore.getState().token
+    const isCurrentSessionRejected =
+      Boolean(authHeader)
+      && Boolean(currentToken)
+      && authHeader === `Bearer ${currentToken}`
+
+    if (status === 401 && !isPublicAuth && isCurrentSessionRejected) {
       useAuthStore.getState().clearAuth()
       if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/register')) {
         window.location.href = '/login'

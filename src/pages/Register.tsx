@@ -17,6 +17,7 @@ import {
   isBidderTrialRegisterSearch,
   markBidderTrialRegisterIntent,
 } from '../utils/registerBidderTrial'
+import { NEED_EMAIL_CONFIRM_MODAL_KEY } from '../constants/needEmailConfirmStorage'
 
 const { Title, Text } = Typography
 
@@ -71,20 +72,33 @@ export default function Register() {
   const registerMutation = useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
     onSuccess: async (auth, variables) => {
+      if (!auth?.token) {
+        message.error('Регистрация прошла, но не получен токен. Войдите с email и паролем.')
+        navigate('/login', { replace: true })
+        return
+      }
+
+      queryClient.cancelQueries({ queryKey: ['accessStatus'] })
       setAuth(auth.token, auth.email, auth.userId, auth.role)
 
-      void userApi.sendEmailConfirmation().catch(() => {
-        /* письмо не чаще 1 раза в 12 ч или ошибка отправки */
-      })
-
       try {
-        await queryClient.prefetchQuery({
+        await queryClient.fetchQuery({
           queryKey: ACCESS_STATUS_QUERY_KEY,
           queryFn: () => userApi.getAccessStatus(),
           staleTime: ACCESS_STATUS_STALE_MS,
         })
       } catch {
         /* AccessStatusPrefetch / AccessGuard повторят запрос */
+      }
+
+      void userApi.sendEmailConfirmation().catch(() => {
+        /* письмо не чаще 1 раза в 12 ч или ошибка отправки */
+      })
+
+      try {
+        sessionStorage.setItem(NEED_EMAIL_CONFIRM_MODAL_KEY, '1')
+      } catch {
+        /* ignore */
       }
 
       if (consumeBidderTrialRegisterIntent()) {
