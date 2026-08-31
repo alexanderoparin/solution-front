@@ -26,8 +26,8 @@ function isBillingPro(billing: Awaited<ReturnType<typeof subscriptionApi.getCabi
 }
 
 /**
- * PRO / промокод для выбранного кабинета: billing API + промо владельца из профиля.
- * Промо user-level действует только на собственные кабинеты пользователя.
+ * PRO / промокод для выбранного кабинета: billing API + промо из профиля.
+ * Промокод user-level действует на собственные и выданные кабинеты пользователя.
  */
 export function useCabinetProAccess(cabinetId: number | null | undefined) {
   const role = useAuthStore((s) => s.role)
@@ -54,12 +54,15 @@ export function useCabinetProAccess(cabinetId: number | null | undefined) {
     staleTime: 30_000,
   })
 
-  const isOwnCabinet = useMemo(() => {
+  const isAccessibleCabinet = useMemo(() => {
     if (isAdmin || cabinetId == null) return false
-    return (overview?.owned ?? []).some((c) => Number(c.id) === Number(cabinetId))
-  }, [isAdmin, cabinetId, overview?.owned])
+    const id = Number(cabinetId)
+    const inOwned = (overview?.owned ?? []).some((c) => Number(c.id) === id)
+    const inGranted = (overview?.granted ?? []).some((c) => Number(c.id) === id)
+    return inOwned || inGranted
+  }, [isAdmin, cabinetId, overview?.owned, overview?.granted])
 
-  const profilePromoActive = isOwnCabinet && isProfilePromoActive(profile?.subscription)
+  const profilePromoActive = isAccessibleCabinet && isProfilePromoActive(profile?.subscription)
 
   const onPro = isAdmin || isBillingPro(billing) || profilePromoActive
 
@@ -76,7 +79,7 @@ export function useCabinetProAccess(cabinetId: number | null | undefined) {
     abServiceReady,
     campaignManageReady,
     profilePromoActive,
-    isOwnCabinet,
+    isAccessibleCabinet,
     isLoading: cabinetId != null && (billingPending || billingFetching),
   }
 }
