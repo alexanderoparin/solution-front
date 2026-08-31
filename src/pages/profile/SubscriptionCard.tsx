@@ -71,30 +71,43 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
     queryKey: ['cabinetBilling', cabinetId],
     queryFn: () => subscriptionApi.getCabinetBillingStatus(cabinetId!),
     enabled: cabinetId != null,
+    staleTime: 0,
   })
+
+  const profilePromoActive = Boolean(subscription?.promoCode)
+    || (subscription?.planCode === 'pro_month'
+      && subscription?.active
+      && Boolean(subscription?.expiresAt))
+
+  const billingPromo = billing?.mainTariff?.status === 'PROMO'
+  const isPromo = billingPromo || profilePromoActive
 
   const onPro =
     Boolean(billing?.mainTariff?.unlimitedAccess)
     || billing?.mainTariff?.code === 'pro_month'
     || billing?.mainTariff?.status === 'AGENCY'
     || billing?.mainTariff?.status === 'PROMO'
+    || profilePromoActive
 
-  const isPromo = billing?.mainTariff?.status === 'PROMO'
-
-  const planName = billing?.mainTariff?.name ?? subscription?.planName ?? '—'
-  const isActive = billing != null
+  const planName = isPromo
+    ? (subscription?.planName ?? billing?.mainTariff?.name ?? 'PRO (промокод)')
+    : (billing?.mainTariff?.name ?? subscription?.planName ?? '—')
+  const isActive = onPro || (billing != null
     ? !['NONE', 'EXPIRED', 'CANCELLED'].includes(String(billing.mainTariff.status ?? '').toUpperCase())
-    : Boolean(subscription?.active)
+    : Boolean(subscription?.active))
   const statusLabel = isActive ? 'Активен' : (subscription?.statusLabel ?? 'Неактивен')
-  const expiresLabel = billing
-    ? formatExpires(billing.mainTariff.expiresAt)
-    : (subscription?.freePlanHint ? 'Бессрочно' : formatExpires(subscription?.expiresAt))
-  const autoRenewLabel = billing?.mainTariff?.expiresAt
+  const expiresLabel = isPromo
+    ? formatExpires(billing?.mainTariff?.expiresAt ?? subscription?.expiresAt)
+    : billing
+      ? formatExpires(billing.mainTariff.expiresAt)
+      : (subscription?.freePlanHint ? 'Бессрочно' : formatExpires(subscription?.expiresAt))
+  const autoRenewLabel = (billing?.mainTariff?.expiresAt || subscription?.expiresAt)
     ? (subscription?.autoRenew ? 'Включено' : 'Выключено')
     : '—'
 
   const planDescription = isPromo
-    ? 'Полный доступ по промокоду: все разделы сервиса, Управление РК и А/Б тесты без ограничений.'
+    ? (subscription?.freePlanHint
+      ?? 'Полный доступ по промокоду: все разделы сервиса, Управление РК и А/Б тесты без ограничений.')
     : subscription?.freePlanHint
     ?? 'Включает все основные функции сервиса: Товары, Сводная, Рекламные кампании и др.'
 
@@ -281,8 +294,7 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {(billing.services ?? []).map((svc) => {
-                    const includedInPro = onPro && (svc.status === 'INCLUDED' || svc.connected)
-                    const connected = svc.connected || includedInPro
+                    const connected = onPro || svc.connected
                     return (
                       <div
                         key={svc.serviceCode}
@@ -322,21 +334,21 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {includedInPro ? 'В PRO' : connected ? 'Подключен' : 'Не подключен'}
+                          {onPro ? 'В PRO' : connected ? 'Подключен' : 'Не подключен'}
                         </span>
                         {billing.canManageBilling ? (
                           <Button
                             size="small"
-                            disabled={includedInPro}
+                            disabled={onPro}
                             onClick={() => onConnectService(svc)}
-                            type={!connected && !includedInPro ? 'primary' : 'default'}
+                            type={!connected && !onPro ? 'primary' : 'default'}
                             style={
-                              !connected && !includedInPro
+                              !connected && !onPro
                                 ? { borderRadius: 8, background: accent, borderColor: accent, fontWeight: 600 }
                                 : { borderRadius: 8, borderColor: accent, color: accent, fontWeight: 600 }
                             }
                           >
-                            {includedInPro ? 'Включено' : connected ? 'Управление' : 'Подключить'}
+                            {onPro ? 'Включено' : connected ? 'Управление' : 'Подключить'}
                           </Button>
                         ) : null}
                       </div>

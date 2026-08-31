@@ -59,6 +59,8 @@ export interface ProfileSubscriptionSummary {
   nextBillingAt?: string | null
   autoRenew: boolean
   freePlanHint?: string | null
+  /** Активный промокод FULL_ACCESS, если есть. */
+  promoCode?: string | null
 }
 
 /** Статус заявки на удаление в профиле. */
