@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { campaignManageApi, type CampaignAutoBudgetRequest, type CampaignScheduleSlotRequest } from '../api/campaignManage'
 import { analyticsApi } from '../api/analytics'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
-import type { ArticleSummary, CampaignScheduleSlot, CampaignSlotRepeatMode } from '../types/analytics'
+import type { ArticleSummary, CampaignScheduleSlot, CampaignSlotRepeatMode, CampaignAutoBudgetSettings } from '../types/analytics'
 import { resolveArticlePhotoUrl } from '../types/analytics'
 import { colors, typography, spacing, borderRadius, shadows, transitions } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
@@ -40,6 +40,39 @@ const manageActionButtonStyle = {
   fontSize: 12,
   paddingInline: 10,
 } as const
+
+const manageActionButtonRowStyle = {
+  display: 'flex',
+  gap: 8,
+  width: '100%',
+} as const
+
+const manageActionButtonHalfStyle = {
+  ...manageActionButtonStyle,
+  flex: 1,
+  minWidth: 0,
+} as const
+
+function applyAutoBudgetFormState(
+  a: CampaignAutoBudgetSettings,
+  setters: {
+    setAutoEnabled: (v: boolean) => void
+    setTopUpAmount: (v: number | null) => void
+    setSourceType: (v: number | null) => void
+    setUsePromoCashback: (v: boolean) => void
+    setThresholdRub: (v: number | null) => void
+    setMaxTopUps: (v: number | null) => void
+    setAutoLocked: (v: boolean) => void
+  },
+) {
+  setters.setAutoEnabled(a.enabled)
+  setters.setTopUpAmount(a.topUpAmount ?? null)
+  setters.setSourceType(a.sourceType ?? 1)
+  setters.setUsePromoCashback(a.usePromoCashback !== false)
+  setters.setThresholdRub(a.thresholdRub ?? null)
+  setters.setMaxTopUps(a.maxTopUpsPerDay ?? null)
+  setters.setAutoLocked(a.locked)
+}
 
 function formatControlError(err: unknown): string {
   const ax = err as { response?: { data?: { message?: string; error?: string } } }
@@ -237,14 +270,15 @@ export default function AdvertisingCampaignManage() {
 
   useEffect(() => {
     if (!manage?.autoBudget) return
-    const a = manage.autoBudget
-    setAutoEnabled(a.enabled)
-    setTopUpAmount(a.topUpAmount)
-    setSourceType(a.sourceType ?? 1)
-    setUsePromoCashback(a.usePromoCashback !== false)
-    setThresholdRub(a.thresholdRub)
-    setMaxTopUps(a.maxTopUpsPerDay)
-    setAutoLocked(a.locked)
+    applyAutoBudgetFormState(manage.autoBudget, {
+      setAutoEnabled,
+      setTopUpAmount,
+      setSourceType,
+      setUsePromoCashback,
+      setThresholdRub,
+      setMaxTopUps,
+      setAutoLocked,
+    })
   }, [manage?.autoBudget])
 
   const [slotModalOpen, setSlotModalOpen] = useState(false)
@@ -270,6 +304,7 @@ export default function AdvertisingCampaignManage() {
       campaignManageApi.saveAutoBudget(advertId, body, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
     onSuccess: () => {
       message.success('Настройки автопополнения сохранены')
+      setAutoLocked(true)
       invalidate()
     },
     onError: (e) => message.error(formatControlError(e)),
@@ -293,12 +328,21 @@ export default function AdvertisingCampaignManage() {
     },
   })
 
-  const unlockAutoMutation = useMutation({
-    mutationFn: () =>
-      campaignManageApi.unlockAutoBudget(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
-    onSuccess: () => invalidate(),
-    onError: (e) => message.error(formatControlError(e)),
-  })
+  const cancelAutoBudgetEdit = useCallback(() => {
+    if (manage?.autoBudget) {
+      applyAutoBudgetFormState(manage.autoBudget, {
+        setAutoEnabled,
+        setTopUpAmount,
+        setSourceType,
+        setUsePromoCashback,
+        setThresholdRub,
+        setMaxTopUps,
+        setAutoLocked,
+      })
+    } else {
+      setAutoLocked(true)
+    }
+  }, [manage?.autoBudget])
 
   const manualTopUpMutation = useMutation({
     mutationFn: (body: { topUpAmount: number; sourceType: number; usePromoCashback?: boolean }) =>
@@ -659,7 +703,7 @@ export default function AdvertisingCampaignManage() {
                     <Button
                       icon={<EditOutlined />}
                       data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET_SAVE}
-                      onClick={() => unlockAutoMutation.mutate()}
+                      onClick={() => setAutoLocked(false)}
                       disabled={controlBlocked}
                       style={{
                         ...manageActionButtonStyle,
@@ -671,31 +715,45 @@ export default function AdvertisingCampaignManage() {
                       Редактировать
                     </Button>
                   ) : (
-                    <Button
-                      type="primary"
-                      icon={<SaveOutlined />}
-                      data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET_SAVE}
-                      loading={saveAutoMutation.isPending}
-                      disabled={controlBlocked}
-                      onClick={() =>
-                        saveAutoMutation.mutate({
-                          enabled: autoEnabled,
-                          topUpAmount,
-                          sourceType,
-                          usePromoCashback,
-                          thresholdRub,
-                          maxTopUpsPerDay: maxTopUps,
-                        })
-                      }
-                      style={{
-                        ...manageActionButtonStyle,
-                        backgroundColor: colors.success,
-                        borderColor: colors.success,
-                        boxShadow: '0 4px 14px rgba(16, 185, 129, 0.24)',
-                      }}
-                    >
-                      Сохранить
-                    </Button>
+                    <div style={manageActionButtonRowStyle}>
+                      <Button
+                        type="primary"
+                        icon={<SaveOutlined />}
+                        data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET_SAVE}
+                        loading={saveAutoMutation.isPending}
+                        disabled={controlBlocked}
+                        onClick={() =>
+                          saveAutoMutation.mutate({
+                            enabled: autoEnabled,
+                            topUpAmount,
+                            sourceType,
+                            usePromoCashback,
+                            thresholdRub,
+                            maxTopUpsPerDay: maxTopUps,
+                          })
+                        }
+                        style={{
+                          ...manageActionButtonHalfStyle,
+                          backgroundColor: colors.success,
+                          borderColor: colors.success,
+                          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.24)',
+                        }}
+                      >
+                        Сохранить
+                      </Button>
+                      <Button
+                        disabled={controlBlocked || saveAutoMutation.isPending}
+                        onClick={cancelAutoBudgetEdit}
+                        style={{
+                          ...manageActionButtonHalfStyle,
+                          backgroundColor: colors.bgWhite,
+                          borderColor: colors.border,
+                          color: colors.textPrimary,
+                        }}
+                      >
+                        Отмена
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>

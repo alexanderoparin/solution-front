@@ -139,17 +139,6 @@ export const campaignManageApi = {
     return response.data
   },
 
-  unlockAutoBudget: async (
-    advertId: number,
-    sellerId?: number,
-    cabinetId?: number,
-  ): Promise<CampaignAutoBudgetSettings> => {
-    const response = await apiClient.post<CampaignAutoBudgetSettings>(
-      `/advertising/campaigns/${advertId}/manage/auto-budget/unlock${buildParams(sellerId, cabinetId)}`,
-    )
-    return response.data
-  },
-
   manualTopUp: async (
     advertId: number,
     body: CampaignManualTopUpRequest,
