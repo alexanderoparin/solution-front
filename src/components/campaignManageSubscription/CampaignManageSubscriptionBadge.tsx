@@ -9,7 +9,13 @@ import { campaignManageDaysLabel } from '../../utils/campaignManageSubscription'
  */
 export default function CampaignManageSubscriptionBadge() {
   const navigate = useNavigate()
-  const { showBadge, campaignManage } = useCampaignManageAccess()
+  const {
+    showBadge,
+    campaignManage,
+    onPro,
+    proTariffLabel,
+    proDaysRemaining,
+  } = useCampaignManageAccess()
   const openPlans = useCampaignManageSubscriptionUi((s) => s.openPlans)
 
   if (!showBadge || !campaignManage) {
@@ -20,7 +26,12 @@ export default function CampaignManageSubscriptionBadge() {
   let line2 = 'Перейти на PRO'
   let onLine2Click: () => void = () => navigate('/subscription')
 
-  if (campaignManage.status === 'ACTIVE') {
+  if (campaignManage.status === 'PRO' || onPro) {
+    line1 = proTariffLabel
+    const days = proDaysRemaining ?? campaignManage.daysRemaining ?? 0
+    line2 = days > 0 ? `Осталось ${campaignManageDaysLabel(days)}` : 'Осталось менее дня'
+    onLine2Click = () => navigate('/profile')
+  } else if (campaignManage.status === 'ACTIVE') {
     line1 = 'Управление РК подключено'
     const days = campaignManage.daysRemaining ?? 0
     line2 = days > 0 ? `Осталось ${campaignManageDaysLabel(days)}` : 'Осталось менее дня'

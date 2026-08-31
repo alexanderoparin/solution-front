@@ -66,6 +66,21 @@ export function useCabinetProAccess(cabinetId: number | null | undefined) {
 
   const onPro = isAdmin || isBillingPro(billing) || profilePromoActive
 
+  const proTariffLabel = useMemo(() => {
+    if (profile?.subscription?.promoCode) {
+      return `PRO (промокод ${profile.subscription.promoCode})`
+    }
+    if (billing?.mainTariff?.status === 'PROMO' && billing.mainTariff.name) {
+      return billing.mainTariff.name
+    }
+    if (billing?.mainTariff?.code === 'pro_month' && billing.mainTariff.name) {
+      return billing.mainTariff.name
+    }
+    return 'PRO'
+  }, [profile?.subscription?.promoCode, billing?.mainTariff])
+
+  const proExpiresAt = billing?.mainTariff?.expiresAt ?? profile?.subscription?.expiresAt ?? null
+
   const abServiceReady = onPro || Boolean(billing?.abTestQuota?.unlimited || billing?.abTestQuota?.activated)
 
   const campaignManageReady = onPro
@@ -80,6 +95,8 @@ export function useCabinetProAccess(cabinetId: number | null | undefined) {
     campaignManageReady,
     profilePromoActive,
     isAccessibleCabinet,
+    proTariffLabel,
+    proExpiresAt,
     isLoading: cabinetId != null && (billingPending || billingFetching),
   }
 }

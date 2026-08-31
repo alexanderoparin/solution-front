@@ -79,22 +79,35 @@ export function useCampaignManageAccess(overrideSellerId?: number, overrideCabin
   const campaignManage = access?.campaignManage
   const cabinetsLoading = !isAdmin && overrideCabinetId == null && overviewPending
 
-  const { onPro, campaignManageReady } = useCabinetProAccess(cabinetId ?? null)
+  const { onPro, campaignManageReady, proTariffLabel, proExpiresAt } = useCabinetProAccess(cabinetId ?? null)
 
   const hasCampaignManageAccess = campaignManage?.hasAccess === true || campaignManageReady || onPro
 
+  const proDaysRemaining = useMemo(() => {
+    if (campaignManage?.status === 'PRO' && campaignManage.daysRemaining != null) {
+      return campaignManage.daysRemaining
+    }
+    if (!proExpiresAt) return null
+    const end = new Date(proExpiresAt).getTime()
+    const diff = Math.ceil((end - Date.now()) / (1000 * 60 * 60 * 24))
+    return Math.max(0, diff)
+  }, [campaignManage?.status, campaignManage?.daysRemaining, proExpiresAt])
+
   const showBadge = useMemo(() => {
     if (role !== 'USER') return false
-    if (hasCampaignManageAccess) return false
-    if (campaignManage?.status === 'AGENCY' || campaignManage?.status === 'PRO') return false
-    return campaignManage?.enabled === true
-  }, [role, hasCampaignManageAccess, campaignManage?.enabled, campaignManage?.status])
+    if (campaignManage?.enabled !== true) return false
+    if (campaignManage?.status === 'AGENCY') return false
+    return true
+  }, [role, campaignManage?.enabled, campaignManage?.status])
 
   return {
     access,
     campaignManage,
     hasCampaignManageAccess,
     showBadge,
+    onPro,
+    proTariffLabel,
+    proDaysRemaining,
     isLoading: cabinetsLoading || accessLoading,
     refetchAccess: refetch,
     sellerId,
