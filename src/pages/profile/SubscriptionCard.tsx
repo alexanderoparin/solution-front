@@ -77,6 +77,9 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
     Boolean(billing?.mainTariff?.unlimitedAccess)
     || billing?.mainTariff?.code === 'pro_month'
     || billing?.mainTariff?.status === 'AGENCY'
+    || billing?.mainTariff?.status === 'PROMO'
+
+  const isPromo = billing?.mainTariff?.status === 'PROMO'
 
   const planName = billing?.mainTariff?.name ?? subscription?.planName ?? '—'
   const isActive = billing != null
@@ -90,8 +93,9 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
     ? (subscription?.autoRenew ? 'Включено' : 'Выключено')
     : '—'
 
-  const planDescription =
-    subscription?.freePlanHint
+  const planDescription = isPromo
+    ? 'Полный доступ по промокоду: все разделы сервиса, Управление РК и А/Б тесты без ограничений.'
+    : subscription?.freePlanHint
     ?? 'Включает все основные функции сервиса: Товары, Сводная, Рекламные кампании и др.'
 
   const onConnectService = (svc: CabinetBillingServiceStatusDto) => {
@@ -219,9 +223,11 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
                     </span>
                   </div>
                   <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.45, display: 'block' }}>
-                    {planDescription.includes('В бесплатный')
-                      ? 'Включает все основные функции сервиса: Товары, Сводная, Рекламные кампании и др.'
-                      : planDescription}
+                    {isPromo
+                      ? planDescription
+                      : planDescription.includes('В бесплатный')
+                        ? 'Включает все основные функции сервиса: Товары, Сводная, Рекламные кампании и др.'
+                        : planDescription}
                   </Text>
                 </div>
                 <div
