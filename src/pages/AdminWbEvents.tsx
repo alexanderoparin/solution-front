@@ -42,6 +42,7 @@ const WB_STATUS_COLORS: Record<WbApiEventStatus, string> = {
   FAILED_FINAL: 'red',
   FAILED_WITH_FALLBACK: 'gold',
   DEFERRED_RATE_LIMIT: 'purple',
+  SKIPPED_NO_BUDGET: 'volcano',
   CANCELLED: 'default',
 }
 
@@ -53,6 +54,7 @@ const WB_STATUS_LABELS: Record<WbApiEventStatus, string> = {
   FAILED_FINAL: 'Ошибка (финальная)',
   FAILED_WITH_FALLBACK: 'Успех с fallback',
   DEFERRED_RATE_LIMIT: 'Отложено (лимит)',
+  SKIPPED_NO_BUDGET: 'Пропущено (нет бюджета)',
   CANCELLED: 'Отменено',
 }
 
