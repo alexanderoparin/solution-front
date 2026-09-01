@@ -5,11 +5,14 @@ import { formatCabinetAdminDate } from './cabinetAdminUtils'
 export type OzonSubscriptionTagColor = 'purple' | 'gold' | 'default' | 'orange'
 
 /**
- * Название подписки Ozon (seller/info: is_premium + type).
+ * Название подписки Ozon (seller/info: type_ или консервативно).
  */
 export function getOzonSellerSubscriptionLabel(cab: CabinetDto): string | null {
   if (cab.ozonSubscriptionType == null && cab.ozonSubscriptionIsPremium == null) {
     return null
+  }
+  if (cab.ozonSubscriptionType === 'INCONCLUSIVE') {
+    return cab.ozonSubscriptionTypeDisplayName ?? 'Не определено'
   }
   if (cab.ozonSubscriptionIsPremium === false || cab.ozonSubscriptionType === 'UNSPECIFIED') {
     return 'Без Premium'
@@ -18,6 +21,9 @@ export function getOzonSellerSubscriptionLabel(cab: CabinetDto): string | null {
 }
 
 export function getOzonSellerSubscriptionColor(cab: CabinetDto): OzonSubscriptionTagColor {
+  if (cab.ozonSubscriptionType === 'INCONCLUSIVE') {
+    return 'orange'
+  }
   if (cab.ozonSubscriptionIsPremium === false || cab.ozonSubscriptionType === 'UNSPECIFIED') {
     return 'default'
   }
@@ -41,6 +47,9 @@ export function getOzonAnalyticsApiTierLabel(cab: CabinetDto): string {
     }
     return 'Premium Plus'
   }
+  if (cab.ozonSubscriptionType === 'INCONCLUSIVE') {
+    return 'Базовый Seller API'
+  }
   if (cab.ozonSubscriptionIsPremium === false || cab.ozonSubscriptionType === 'UNSPECIFIED') {
     return 'Без Premium'
   }
@@ -53,6 +62,9 @@ export function getOzonAnalyticsApiTierLabel(cab: CabinetDto): string {
 export function getOzonAnalyticsApiTierColor(cab: CabinetDto): OzonSubscriptionTagColor {
   if (cab.ozonAnalyticsFunnelAvailable === true) {
     return cab.ozonSubscriptionType === 'PREMIUM_PRO' ? 'purple' : 'purple'
+  }
+  if (cab.ozonSubscriptionType === 'INCONCLUSIVE') {
+    return 'orange'
   }
   if (cab.ozonSubscriptionIsPremium === false || cab.ozonSubscriptionType === 'UNSPECIFIED') {
     return 'default'
@@ -72,13 +84,15 @@ export function buildOzonSubscriptionTooltip(cab: CabinetDto): string {
 
   const lines = [
     `Подписка Ozon: ${sellerLabel}${cab.ozonSubscriptionManual ? ' (вручную)' : ''}`,
-    `Авто из API: ${detected === 'UNSPECIFIED' ? 'Без Premium' : detected}`,
+    `Авто из API: ${formatDetectedSubscription(detected)}`,
     `Override: ${override}`,
     `Analytics Seller API: ${apiLabel}`,
   ]
 
   if (!cab.ozonSubscriptionManual) {
-    lines.push('Авто: seller/info (is_premium, type). Дата окончания Premium в API не приходит.')
+    lines.push(
+      'seller/info отдаёт is_premium=true всем кабинетам без type_; Premium в ЛК API не подтверждает.'
+    )
   }
 
   if (cab.ozonAnalyticsFunnelAvailable === true) {
@@ -94,4 +108,14 @@ export function buildOzonSubscriptionTooltip(cab: CabinetDto): string {
   }
 
   return lines.join(' · ')
+}
+
+function formatDetectedSubscription(detected: string): string {
+  if (detected === 'UNSPECIFIED') {
+    return 'Без Premium'
+  }
+  if (detected === 'INCONCLUSIVE') {
+    return 'Не определено (is_premium без type_)'
+  }
+  return detected
 }

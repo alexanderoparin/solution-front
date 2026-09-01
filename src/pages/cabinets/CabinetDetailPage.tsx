@@ -595,8 +595,10 @@ export default function CabinetDetailPage() {
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         Авто из API: {cabinet.ozonSubscriptionTypeDetected === 'UNSPECIFIED'
                           ? 'Без Premium'
-                          : cabinet.ozonSubscriptionTypeDetected}
-                        {' '}(seller/info type=PREMIUM у всех — probe analytics &gt;3 мес.)
+                          : cabinet.ozonSubscriptionTypeDetected === 'INCONCLUSIVE'
+                            ? 'Не определено (is_premium без type_)'
+                            : cabinet.ozonSubscriptionTypeDetected}
+                        {' '}(seller/info type=PREMIUM у всех кабинетов — не используем как Premium в ЛК)
                       </Text>
                     )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
