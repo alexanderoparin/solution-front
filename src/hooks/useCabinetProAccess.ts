@@ -26,8 +26,8 @@ function isBillingPro(billing: Awaited<ReturnType<typeof subscriptionApi.getCabi
 }
 
 /**
- * PRO / промокод для выбранного кабинета: billing API + промо из профиля.
- * Промокод user-level действует на собственные и выданные кабинеты пользователя.
+ * PRO / промокод для выбранного кабинета: billing API + промо владельца из профиля.
+ * Промокод user-level действует только на собственные кабинеты пользователя.
  */
 export function useCabinetProAccess(cabinetId: number | null | undefined) {
   const role = useAuthStore((s) => s.role)
@@ -54,20 +54,17 @@ export function useCabinetProAccess(cabinetId: number | null | undefined) {
     staleTime: 30_000,
   })
 
-  const isAccessibleCabinet = useMemo(() => {
+  const isOwnCabinet = useMemo(() => {
     if (isAdmin || cabinetId == null) return false
-    const id = Number(cabinetId)
-    const inOwned = (overview?.owned ?? []).some((c) => Number(c.id) === id)
-    const inGranted = (overview?.granted ?? []).some((c) => Number(c.id) === id)
-    return inOwned || inGranted
-  }, [isAdmin, cabinetId, overview?.owned, overview?.granted])
+    return (overview?.owned ?? []).some((c) => Number(c.id) === Number(cabinetId))
+  }, [isAdmin, cabinetId, overview?.owned])
 
-  const profilePromoActive = isAccessibleCabinet && isProfilePromoActive(profile?.subscription)
+  const profilePromoActive = isOwnCabinet && isProfilePromoActive(profile?.subscription)
 
   const onPro = isAdmin || isBillingPro(billing) || profilePromoActive
 
   const proTariffLabel = useMemo(() => {
-    if (profile?.subscription?.promoCode) {
+    if (profilePromoActive && profile?.subscription?.promoCode) {
       return `PRO (промокод ${profile.subscription.promoCode})`
     }
     if (billing?.mainTariff?.status === 'PROMO' && billing.mainTariff.name) {
@@ -77,9 +74,11 @@ export function useCabinetProAccess(cabinetId: number | null | undefined) {
       return billing.mainTariff.name
     }
     return 'PRO'
-  }, [profile?.subscription?.promoCode, billing?.mainTariff])
+  }, [profilePromoActive, profile?.subscription?.promoCode, billing?.mainTariff])
 
-  const proExpiresAt = billing?.mainTariff?.expiresAt ?? profile?.subscription?.expiresAt ?? null
+  const proExpiresAt = billing?.mainTariff?.expiresAt
+    ?? (profilePromoActive ? profile?.subscription?.expiresAt : null)
+    ?? null
 
   const abServiceReady = onPro || Boolean(billing?.abTestQuota?.unlimited || billing?.abTestQuota?.activated)
 
@@ -94,7 +93,7 @@ export function useCabinetProAccess(cabinetId: number | null | undefined) {
     abServiceReady,
     campaignManageReady,
     profilePromoActive,
-    isAccessibleCabinet,
+    isOwnCabinet,
     proTariffLabel,
     proExpiresAt,
     isLoading: cabinetId != null && (billingPending || billingFetching),
