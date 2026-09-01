@@ -5,7 +5,7 @@ import { formatCabinetAdminDate } from './cabinetAdminUtils'
 export type OzonSubscriptionTagColor = 'purple' | 'gold' | 'default' | 'orange'
 
 /**
- * Название подписки Ozon (probe analytics lookback + seller/info type_).
+ * Название подписки Ozon (seller/info: is_premium + type).
  */
 export function getOzonSellerSubscriptionLabel(cab: CabinetDto): string | null {
   if (cab.ozonSubscriptionType == null && cab.ozonSubscriptionIsPremium == null) {
@@ -78,7 +78,7 @@ export function buildOzonSubscriptionTooltip(cab: CabinetDto): string {
   ]
 
   if (!cab.ozonSubscriptionManual) {
-    lines.push('Premium в ЛК: probe analytics за период >3 мес.; seller/info type=PREMIUM не используем.')
+    lines.push('Авто: seller/info (is_premium, type). Дата окончания Premium в API не приходит.')
   }
 
   if (cab.ozonAnalyticsFunnelAvailable === true) {
