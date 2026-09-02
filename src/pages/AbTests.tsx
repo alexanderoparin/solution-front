@@ -79,6 +79,12 @@ function formatAbTestUserFacingError(
   if (status === 'PENDING_START') {
     return { text: 'Не удалось выполнить шаг запуска, повторяем…', tone: 'muted' }
   }
+  if (status === 'DISABLED' && lastWbError.includes('Content API не вернул фото')) {
+    return {
+      text: 'Не удалось получить фото карточки из WB. Проверьте токен (Контент) или нажмите «Перезапустить».',
+      tone: 'error',
+    }
+  }
   if (status === 'ENABLED') {
     return { text: 'Временная ошибка Wildberries, повторим автоматически', tone: 'muted' }
   }
