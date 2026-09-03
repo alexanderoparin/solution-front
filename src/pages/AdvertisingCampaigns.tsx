@@ -81,7 +81,7 @@ export default function AdvertisingCampaigns() {
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('createdAt')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'paused'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'paused' | 'finished'>('all')
   const [filterType, setFilterType] = useState<string | null>(null)
 
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>(() => {
@@ -199,7 +199,8 @@ export default function AdvertisingCampaigns() {
   const filteredCampaigns = useMemo(() => {
     let list = campaigns
     if (filterStatus === 'active') list = list.filter((c) => c.status === 9)
-    else if (filterStatus === 'paused') list = list.filter((c) => c.status !== 9)
+    else if (filterStatus === 'paused') list = list.filter((c) => c.status === 11)
+    else if (filterStatus === 'finished') list = list.filter((c) => c.status === 7)
     if (filterType != null) list = list.filter((c) => c.type === filterType)
     if (searchLower) {
       list = list.filter(
@@ -294,10 +295,13 @@ export default function AdvertisingCampaigns() {
     v == null ? '-' : `${Number(v).toFixed(2)}%`
   const formatCur = (v: number | null | undefined) =>
     v == null ? '-' : v.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  const isActive = (c: Campaign) => c.status === 9
   const statusLabel = (c: Campaign) =>
-    c.statusName ?? (isActive(c) ? 'активна' : 'приостановлена')
-  const statusBg = (c: Campaign) => (isActive(c) ? colors.success : colors.error)
+    c.statusName ?? (c.status === 9 ? 'активна' : c.status === 7 ? 'завершена' : 'приостановлена')
+  const statusBg = (c: Campaign) => {
+    if (c.status === 9) return colors.success
+    if (c.status === 7) return colors.textMuted
+    return colors.warning
+  }
   const statusColor = '#fff'
 
   const handleSort = (field: SortField) => {
@@ -403,6 +407,7 @@ export default function AdvertisingCampaigns() {
                   { value: 'all', label: 'Все' },
                   { value: 'active', label: 'Активна' },
                   { value: 'paused', label: 'Приостановлена' },
+                  { value: 'finished', label: 'Завершена' },
                 ]}
                 style={{ minWidth: 160, borderRadius: borderRadius.sm }}
               />

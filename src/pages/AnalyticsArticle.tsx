@@ -3387,11 +3387,13 @@ export default function AnalyticsArticle() {
           v == null ? '-' : `${Number(v).toFixed(2)}%`
         const formatCur = (v: number | null | undefined) =>
           v == null ? '-' : v.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-        const isActive = (c: typeof article.campaigns[0]) => c.status === 9
         const statusLabel = (c: typeof article.campaigns[0]) =>
-          isActive(c) ? 'активна' : 'приостановлена'
-        const statusBg = (c: typeof article.campaigns[0]) =>
-          isActive(c) ? colors.success : colors.error
+          c.statusName ?? (c.status === 9 ? 'активна' : c.status === 7 ? 'завершена' : 'приостановлена')
+        const statusBg = (c: typeof article.campaigns[0]) => {
+          if (c.status === 9) return colors.success
+          if (c.status === 7) return colors.textMuted
+          return colors.warning
+        }
         const statusColor = '#fff'
         return (
           <div
