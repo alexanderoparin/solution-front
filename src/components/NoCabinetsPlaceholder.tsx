@@ -47,7 +47,7 @@ export default function NoCabinetsPlaceholder({
   const createMutation = useMutation({
     mutationFn: cabinetsApi.create,
     onSuccess: (created) => {
-      message.success('Кабинет создан')
+      message.success('Кабинет создан. Обновление данных запущено.')
       setStoredCabinetId(created.id)
       setModalOpen(false)
       void queryClient.invalidateQueries({ queryKey: ['cabinetsOverview'] })
