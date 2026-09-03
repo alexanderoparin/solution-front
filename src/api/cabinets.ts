@@ -29,6 +29,11 @@ export const cabinetsApi = {
     return response.data
   },
 
+  triggerDataUpdate: async (id: number): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>(`/cabinets/${id}/update-data`)
+    return response.data
+  },
+
   update: async (id: number, data: UpdateCabinetRequest): Promise<CabinetDto> => {
     const response = await apiClient.patch<CabinetDto>(`/cabinets/${id}`, data)
     return response.data

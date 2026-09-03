@@ -96,28 +96,81 @@ function ValidationCell({ at, valid }: { at: string | null | undefined; valid: b
   )
 }
 
-function DataUpdateCell({ at }: { at: string | null | undefined }) {
+function DataUpdateCell({
+  at,
+  onRefresh,
+  refreshing,
+  canRefresh,
+  remainingLabel,
+}: {
+  at: string | null | undefined
+  onRefresh?: () => void
+  refreshing?: boolean
+  canRefresh?: boolean
+  remainingLabel?: string | null
+}) {
+  const tooltip =
+    onRefresh == null
+      ? undefined
+      : canRefresh
+        ? 'Запустить обновление данных кабинета'
+        : `Не чаще одного раза в 6 часов. Следующее обновление через ${remainingLabel ?? '…'}.`
+
   return (
     <ColumnValue>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
         <span>{formatDateTime(at)}</span>
-        <span
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: '50%',
-            background: '#EFF6FF',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <ReloadOutlined style={{ color: '#3B82F6', fontSize: 12 }} />
-        </span>
+        {onRefresh != null && (
+          <Tooltip title={tooltip}>
+            <span>
+              <Button
+                type="text"
+                size="small"
+                shape="circle"
+                loading={refreshing}
+                disabled={!canRefresh || refreshing}
+                icon={<ReloadOutlined style={{ color: '#3B82F6', fontSize: 12 }} />}
+                aria-label="Обновить данные"
+                onClick={onRefresh}
+                style={{
+                  width: 24,
+                  height: 24,
+                  minWidth: 24,
+                  background: '#EFF6FF',
+                }}
+              />
+            </span>
+          </Tooltip>
+        )}
       </span>
     </ColumnValue>
   )
+}
+
+const SELLER_DATA_UPDATE_COOLDOWN_HOURS = 6
+
+function lastCabinetUpdateActionAt(row: OwnedCabinetRowDto): string | null {
+  const completed = row.lastDataUpdateAt
+  const requested = row.lastDataUpdateRequestedAt ?? null
+  if (!completed && !requested) return null
+  if (!completed) return requested
+  if (!requested) return completed
+  return dayjs(completed).isAfter(dayjs(requested)) ? completed : requested
+}
+
+function canSellerRefreshCabinet(row: OwnedCabinetRowDto): boolean {
+  const lastAt = lastCabinetUpdateActionAt(row)
+  if (!lastAt) return true
+  return dayjs().diff(dayjs(lastAt), 'hour') >= SELLER_DATA_UPDATE_COOLDOWN_HOURS
+}
+
+function sellerRefreshRemainingLabel(row: OwnedCabinetRowDto): string | null {
+  const lastAt = lastCabinetUpdateActionAt(row)
+  if (!lastAt) return null
+  const remaining = SELLER_DATA_UPDATE_COOLDOWN_HOURS - dayjs().diff(dayjs(lastAt), 'hour')
+  if (remaining <= 0) return null
+  const word = remaining === 1 ? 'час' : remaining < 5 ? 'часа' : 'часов'
+  return `${remaining} ${word}`
 }
 
 function isMaskedApiKey(value: string | null | undefined): boolean {
@@ -189,16 +242,16 @@ function RowActionsMenu({ items }: { items: MenuProps['items'] }) {
 
 const ownedRowGrid: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(280px, 1fr) max-content max-content max-content minmax(150px, max-content) 40px',
-  gap: 12,
+  gridTemplateColumns: 'minmax(280px, 2.6fr) minmax(104px, 0.55fr) minmax(152px, 0.75fr) minmax(152px, 0.75fr) minmax(190px, 0.95fr) 40px',
+  columnGap: 20,
   alignItems: 'center',
 }
 
 const grantedRowGrid: CSSProperties = {
   display: 'grid',
   gridTemplateColumns:
-    'minmax(280px, 1fr) max-content max-content max-content max-content minmax(140px, max-content)',
-  gap: 12,
+    'minmax(280px, 2.4fr) minmax(96px, 0.5fr) minmax(96px, 0.5fr) minmax(152px, 0.7fr) minmax(152px, 0.7fr) minmax(140px, 0.85fr)',
+  columnGap: 20,
   alignItems: 'center',
 }
 
@@ -281,10 +334,31 @@ function CabinetIdentity({
 }
 
 function OwnedCabinetRow({ row }: { row: OwnedCabinetRowDto }) {
+  const queryClient = useQueryClient()
+  const canRefresh = canSellerRefreshCabinet(row)
+  const remainingLabel = sellerRefreshRemainingLabel(row)
+
+  const refreshMutation = useMutation({
+    mutationFn: () => cabinetsApi.triggerDataUpdate(row.id),
+    onSuccess: (data) => {
+      message.success(data.message || 'Обновление запущено')
+      void queryClient.invalidateQueries({ queryKey: ['cabinetsOverview'] })
+    },
+    onError: (err: unknown) => {
+      message.error(getRequestFailureDescription(err) || 'Не удалось запустить обновление')
+    },
+  })
+
   const menuItems: MenuProps['items'] = [
     {
       key: 'open',
       label: <Link to={`/cabinets/${row.id}`}>Перейти в кабинет</Link>,
+    },
+    {
+      key: 'refresh',
+      label: 'Обновить данные',
+      disabled: !canRefresh || refreshMutation.isPending,
+      onClick: () => refreshMutation.mutate(),
     },
   ]
 
@@ -311,7 +385,13 @@ function OwnedCabinetRow({ row }: { row: OwnedCabinetRowDto }) {
         />
         <ColumnValue>{formatDateShort(row.createdAt)}</ColumnValue>
         <ValidationCell at={row.lastValidatedAt} valid={row.apiKeyValid} />
-        <DataUpdateCell at={row.lastDataUpdateAt} />
+        <DataUpdateCell
+          at={row.lastDataUpdateAt}
+          onRefresh={() => refreshMutation.mutate()}
+          refreshing={refreshMutation.isPending}
+          canRefresh={canRefresh}
+          remainingLabel={remainingLabel}
+        />
         <ApiTokenCell cabinetId={row.id} masked={row.apiKeyMasked} />
         <RowActionsMenu items={menuItems} />
       </div>
@@ -352,8 +432,8 @@ function GrantedCabinetRow({ row }: { row: GrantedCabinetRowDto }) {
 
 const pendingInviteGrid: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(280px, 1fr) max-content minmax(140px, max-content) max-content 220px',
-  gap: 12,
+  gridTemplateColumns: 'minmax(280px, 2.2fr) minmax(140px, 0.85fr) minmax(140px, 0.85fr) minmax(100px, 0.55fr) 220px',
+  columnGap: 20,
   alignItems: 'center',
 }
 

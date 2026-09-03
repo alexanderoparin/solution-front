@@ -659,6 +659,7 @@ export interface OwnedCabinetRowDto {
   lastValidatedAt: string | null
   apiKeyValid: boolean | null
   lastDataUpdateAt: string | null
+  lastDataUpdateRequestedAt?: string | null
   apiKeyMasked: string | null
 }
 
