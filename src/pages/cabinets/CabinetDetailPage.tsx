@@ -26,8 +26,8 @@ import {
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import { cabinetsApi } from '../../api/cabinets'
-import { userApi } from '../../api/user'
+import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../../api/cabinets'
+import { ACCESS_STATUS_QUERY_KEY, userApi } from '../../api/user'
 import Header from '../../components/Header'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import MarketplaceTypeTag from '../../components/MarketplaceTypeTag'
@@ -169,14 +169,18 @@ export default function CabinetDetailPage() {
 
   const deleteMutation = useMutation({
     mutationFn: () => cabinetsApi.delete(cabinetId),
-    onSuccess: () => {
-      message.success('Кабинет удалён')
+    onSuccess: (data) => {
+      if (getStoredCabinetId() === cabinetId) {
+        setStoredCabinetId(null)
+      }
+      message.success(data.message || 'Удаление запущено')
       void queryClient.invalidateQueries({ queryKey: ['cabinetsOverview'] })
+      void queryClient.invalidateQueries({ queryKey: ['cabinets'] })
+      void queryClient.invalidateQueries({ queryKey: ACCESS_STATUS_QUERY_KEY })
       navigate('/profile', { replace: true })
     },
     onError: (err: unknown) => {
-      const ax = err as { response?: { data?: { error?: string; message?: string } } }
-      message.error(ax.response?.data?.error ?? ax.response?.data?.message ?? 'Не удалось удалить')
+      message.error(getRequestFailureDescription(err) || 'Не удалось запустить удаление')
     },
   })
 
@@ -274,7 +278,7 @@ export default function CabinetDetailPage() {
   const confirmDelete = (cab: CabinetDto) => {
     Modal.confirm({
       title: 'Удалить кабинет?',
-      content: `Кабинет «${cab.name}» будет удалён безвозвратно.`,
+      content: `Кабинет «${cab.name}» будет скрыт сразу. Очистка данных займёт несколько минут.`,
       okText: 'Удалить',
       okButtonProps: { danger: true },
       cancelText: 'Отмена',

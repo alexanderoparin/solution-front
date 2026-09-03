@@ -44,8 +44,9 @@ export const cabinetsApi = {
     return response.data
   },
 
-  delete: async (id: number): Promise<void> => {
-    await apiClient.delete(`/cabinets/${id}`)
+  delete: async (id: number): Promise<MessageResponse> => {
+    const response = await apiClient.delete<MessageResponse>(`/cabinets/${id}`)
+    return response.data
   },
 
   getOverview: async (search?: string): Promise<CabinetsOverviewDto> => {
