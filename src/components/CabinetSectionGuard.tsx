@@ -1,11 +1,10 @@
-import { Result, Button, Typography } from 'antd'
+import { Result, Button, Typography, Spin } from 'antd'
 import { Link } from 'react-router-dom'
 import Header from './Header'
 import Breadcrumbs from './Breadcrumbs'
 import { useCabinetSectionAccess } from '../hooks/useCabinetSectionAccess'
 import { CABINET_ACCESS_SECTION_LABELS } from '../constants/cabinetAccessSections'
 import type { CabinetAccessSection } from '../types/api'
-import { Spin } from 'antd'
 
 const { Text } = Typography
 
@@ -17,14 +16,24 @@ interface CabinetSectionGuardProps {
 /**
  * Пускает на страницу раздела только при наличии соответствующего доступа к выбранному кабинету.
  * Меню сверху всегда показывает все разделы — при отказе отображается сообщение.
+ * Селектор кабинета остаётся в шапке, чтобы можно было переключиться на кабинет с нужным разделом.
  */
 export default function CabinetSectionGuard({ section, children }: CabinetSectionGuardProps) {
-  const { hasSection, isReady } = useCabinetSectionAccess()
+  const { hasSection, isReady, cabinets, cabinetId, setCabinetId } = useCabinetSectionAccess()
+
+  const cabinetSelectProps =
+    cabinets.length > 0
+      ? {
+          cabinets,
+          selectedCabinetId: cabinetId,
+          onCabinetChange: setCabinetId,
+        }
+      : undefined
 
   if (!isReady) {
     return (
       <div>
-        <Header />
+        <Header cabinetSelectProps={cabinetSelectProps} />
         <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
           <Spin size="large" />
         </div>
@@ -34,9 +43,10 @@ export default function CabinetSectionGuard({ section, children }: CabinetSectio
 
   if (!hasSection(section)) {
     const sectionLabel = CABINET_ACCESS_SECTION_LABELS[section]
+    const canSwitchCabinet = cabinets.length > 1
     return (
       <div>
-        <Header />
+        <Header cabinetSelectProps={cabinetSelectProps} />
         <div style={{ padding: '16px 24px' }}>
           <Breadcrumbs />
         </div>
@@ -47,7 +57,9 @@ export default function CabinetSectionGuard({ section, children }: CabinetSectio
             subTitle={
               <Text type="secondary" style={{ fontSize: 15 }}>
                 У вас нет доступа к разделу «{sectionLabel}» для выбранного кабинета.
-                Обратитесь к владельцу кабинета, чтобы расширить права доступа.
+                {canSwitchCabinet
+                  ? ' Выберите другой кабинет в шапке или обратитесь к владельцу, чтобы расширить права доступа.'
+                  : ' Обратитесь к владельцу кабинета, чтобы расширить права доступа.'}
               </Text>
             }
             extra={
