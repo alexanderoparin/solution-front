@@ -15,7 +15,6 @@ import {
 import type { MenuProps } from 'antd'
 import {
   AppstoreOutlined,
-  BankOutlined,
   CheckCircleFilled,
   CloseCircleFilled,
   CopyOutlined,
@@ -23,7 +22,6 @@ import {
   QuestionCircleOutlined,
   ReloadOutlined,
   SearchOutlined,
-  UserOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -78,7 +76,7 @@ function ColumnHeader({ children }: { children: ReactNode }) {
 
 function ColumnValue({ children }: { children: ReactNode }) {
   return (
-    <div style={{ fontSize: 14, lineHeight: '20px', color: '#1E293B', fontWeight: 500 }}>
+    <div style={{ fontSize: 14, lineHeight: '20px', color: '#1E293B', fontWeight: 500, minWidth: 0 }}>
       {children}
     </div>
   )
@@ -214,6 +212,7 @@ function ApiTokenCell({ cabinetId, masked }: { cabinetId: number; masked: string
             border: `1px solid ${border}`,
             margin: 0,
             userSelect: 'none',
+            whiteSpace: 'nowrap',
           }}
         >
           {masked}
@@ -240,19 +239,45 @@ function RowActionsMenu({ items }: { items: MenuProps['items'] }) {
   )
 }
 
-const ownedRowGrid: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(280px, 2.6fr) minmax(104px, 0.55fr) minmax(152px, 0.75fr) minmax(152px, 0.75fr) minmax(190px, 0.95fr) 40px',
-  columnGap: 20,
-  alignItems: 'center',
+const ROW_H_PAD = 20
+
+const OWNED_COLUMNS = 'minmax(0, 2.4fr) 108px 168px 176px minmax(160px, 1fr) 40px'
+const GRANTED_COLUMNS = 'minmax(0, 2.2fr) 108px 108px 168px 176px minmax(140px, 1fr)'
+const PENDING_COLUMNS = 'minmax(0, 2fr) minmax(140px, 1fr) minmax(140px, 1fr) 108px 220px'
+
+function tableGrid(columns: string): CSSProperties {
+  return {
+    display: 'grid',
+    gridTemplateColumns: columns,
+    columnGap: 20,
+    rowGap: 12,
+  }
 }
 
-const grantedRowGrid: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns:
-    'minmax(280px, 2.4fr) minmax(96px, 0.5fr) minmax(96px, 0.5fr) minmax(152px, 0.7fr) minmax(152px, 0.7fr) minmax(140px, 0.85fr)',
-  columnGap: 20,
-  alignItems: 'center',
+function subgridHeader(): CSSProperties {
+  return {
+    display: 'grid',
+    gridTemplateColumns: 'subgrid',
+    gridColumn: '1 / -1',
+    alignItems: 'center',
+    boxSizing: 'border-box',
+    padding: `0 ${ROW_H_PAD}px`,
+    border: '1px solid transparent',
+  }
+}
+
+function subgridCard(background = '#FFFFFF'): CSSProperties {
+  return {
+    display: 'grid',
+    gridTemplateColumns: 'subgrid',
+    gridColumn: '1 / -1',
+    alignItems: 'center',
+    boxSizing: 'border-box',
+    padding: `16px ${ROW_H_PAD}px`,
+    border: `1px solid ${border}`,
+    borderRadius: 12,
+    background,
+  }
 }
 
 function CabinetIdentity({
@@ -261,9 +286,6 @@ function CabinetIdentity({
   badgeLabel,
   badgeColor,
   badgeBg,
-  icon,
-  iconBg,
-  iconColor,
   to,
 }: {
   name: string
@@ -271,9 +293,6 @@ function CabinetIdentity({
   badgeLabel: string
   badgeColor: string
   badgeBg: string
-  icon: ReactNode
-  iconBg: string
-  iconColor: string
   to?: string
 }) {
   const nameStyle: CSSProperties = {
@@ -293,27 +312,9 @@ function CabinetIdentity({
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-      <div
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          background: iconBg,
-          color: iconColor,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          fontSize: 18,
-        }}
-      >
-        {icon}
-      </div>
+      <MarketplaceTypeTag type={marketplaceType} size={40} />
       <div style={{ minWidth: 0 }}>
-        <div style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {nameNode}
-          <MarketplaceTypeTag type={marketplaceType} />
-        </div>
+        <div style={{ marginBottom: 6 }}>{nameNode}</div>
         <span
           style={{
             display: 'inline-block',
@@ -363,78 +364,47 @@ function OwnedCabinetRow({ row }: { row: OwnedCabinetRowDto }) {
   ]
 
   return (
-    <div
-      style={{
-        border: `1px solid ${border}`,
-        borderRadius: 12,
-        padding: '16px 20px',
-        background: '#FFFFFF',
-      }}
-    >
-      <div style={ownedRowGrid}>
-        <CabinetIdentity
-          name={row.name}
-          marketplaceType={row.marketplaceType}
-          badgeLabel="Создан вами"
-          badgeColor="#15803D"
-          badgeBg="#DCFCE7"
-          icon={<BankOutlined />}
-          iconBg="#DCFCE7"
-          iconColor="#16A34A"
-          to={`/cabinets/${row.id}`}
-        />
-        <ColumnValue>{formatDateShort(row.createdAt)}</ColumnValue>
-        <ValidationCell at={row.lastValidatedAt} valid={row.apiKeyValid} />
-        <DataUpdateCell
-          at={row.lastDataUpdateAt}
-          onRefresh={() => refreshMutation.mutate()}
-          refreshing={refreshMutation.isPending}
-          canRefresh={canRefresh}
-          remainingLabel={remainingLabel}
-        />
-        <ApiTokenCell cabinetId={row.id} masked={row.apiKeyMasked} />
-        <RowActionsMenu items={menuItems} />
-      </div>
+    <div style={subgridCard()}>
+      <CabinetIdentity
+        name={row.name}
+        marketplaceType={row.marketplaceType}
+        badgeLabel="Создан вами"
+        badgeColor="#15803D"
+        badgeBg="#DCFCE7"
+        to={`/cabinets/${row.id}`}
+      />
+      <ColumnValue>{formatDateShort(row.createdAt)}</ColumnValue>
+      <ValidationCell at={row.lastValidatedAt} valid={row.apiKeyValid} />
+      <DataUpdateCell
+        at={row.lastDataUpdateAt}
+        onRefresh={() => refreshMutation.mutate()}
+        refreshing={refreshMutation.isPending}
+        canRefresh={canRefresh}
+        remainingLabel={remainingLabel}
+      />
+      <ApiTokenCell cabinetId={row.id} masked={row.apiKeyMasked} />
+      <RowActionsMenu items={menuItems} />
     </div>
   )
 }
 
 function GrantedCabinetRow({ row }: { row: GrantedCabinetRowDto }) {
   return (
-    <div
-      style={{
-        border: `1px solid ${border}`,
-        borderRadius: 12,
-        padding: '16px 20px',
-        background: '#FFFFFF',
-      }}
-    >
-      <div style={grantedRowGrid}>
-        <CabinetIdentity
-          name={row.name}
-          marketplaceType={row.marketplaceType}
-          badgeLabel="Доступ предоставлен"
-          badgeColor={accent}
-          badgeBg="#EDE9FE"
-          icon={<UserOutlined />}
-          iconBg="#EDE9FE"
-          iconColor={accent}
-        />
-        <ColumnValue>{formatDateShort(row.accessFrom)}</ColumnValue>
-        <ColumnValue>{formatAccessUntil(row.accessUntil)}</ColumnValue>
-        <ValidationCell at={row.lastValidatedAt} valid={row.apiKeyValid} />
-        <DataUpdateCell at={row.lastDataUpdateAt} />
-        <ColumnValue>{formatCabinetAccessSections(row.sections)}</ColumnValue>
-      </div>
+    <div style={subgridCard()}>
+      <CabinetIdentity
+        name={row.name}
+        marketplaceType={row.marketplaceType}
+        badgeLabel="Доступ предоставлен"
+        badgeColor={accent}
+        badgeBg="#EDE9FE"
+      />
+      <ColumnValue>{formatDateShort(row.accessFrom)}</ColumnValue>
+      <ColumnValue>{formatAccessUntil(row.accessUntil)}</ColumnValue>
+      <ValidationCell at={row.lastValidatedAt} valid={row.apiKeyValid} />
+      <DataUpdateCell at={row.lastDataUpdateAt} />
+      <ColumnValue>{formatCabinetAccessSections(row.sections)}</ColumnValue>
     </div>
   )
-}
-
-const pendingInviteGrid: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(280px, 2.2fr) minmax(140px, 0.85fr) minmax(140px, 0.85fr) minmax(100px, 0.55fr) 220px',
-  columnGap: 20,
-  alignItems: 'center',
 }
 
 function PendingInvitationRow({
@@ -453,28 +423,18 @@ function PendingInvitationRow({
   const inviter = row.inviterName || row.inviterEmail || '—'
   const busy = accepting || declining
   return (
-    <div
-      style={{
-        border: `1px solid ${border}`,
-        borderRadius: 12,
-        padding: '16px 20px',
-        background: '#FFFBEB',
-      }}
-    >
-      <div style={pendingInviteGrid}>
-        <CabinetIdentity
-          name={row.cabinetName}
-          badgeLabel="Ожидает принятия"
-          badgeColor="#B45309"
-          badgeBg="#FEF3C7"
-          icon={<UserOutlined />}
-          iconBg="#FEF3C7"
-          iconColor="#B45309"
-        />
-        <ColumnValue>{inviter}</ColumnValue>
-        <ColumnValue>{formatCabinetAccessSections(row.sections)}</ColumnValue>
-        <ColumnValue>{formatAccessUntil(row.accessUntil)}</ColumnValue>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+    <div style={subgridCard('#FFFBEB')}>
+      <CabinetIdentity
+        name={row.cabinetName}
+        marketplaceType={row.marketplaceType}
+        badgeLabel="Ожидает принятия"
+        badgeColor="#B45309"
+        badgeBg="#FEF3C7"
+      />
+      <ColumnValue>{inviter}</ColumnValue>
+      <ColumnValue>{formatCabinetAccessSections(row.sections)}</ColumnValue>
+      <ColumnValue>{formatAccessUntil(row.accessUntil)}</ColumnValue>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <Popconfirm
             title="Отклонить приглашение?"
             description="Доступ к кабинету не будет предоставлен."
@@ -498,7 +458,6 @@ function PendingInvitationRow({
             Принять
           </Button>
         </div>
-      </div>
     </div>
   )
 }
@@ -647,8 +606,8 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
                 onAddModalOpenChange={onAddCabinetOpenChange}
               />
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ ...ownedRowGrid, padding: '0 20px' }}>
+              <div style={tableGrid(OWNED_COLUMNS)}>
+                <div style={subgridHeader()}>
                   <ColumnHeader>Кабинет</ColumnHeader>
                   <ColumnHeader>Создан</ColumnHeader>
                   <ColumnHeader>Последняя проверка</ColumnHeader>
@@ -680,8 +639,8 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
                     </Text>
                     <SectionCountBadge count={pendingInvitations.length} />
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div style={{ ...pendingInviteGrid, padding: '0 20px' }}>
+                  <div style={tableGrid(PENDING_COLUMNS)}>
+                    <div style={subgridHeader()}>
                       <ColumnHeader>Кабинет</ColumnHeader>
                       <ColumnHeader>Кто пригласил</ColumnHeader>
                       <ColumnHeader>Разделы</ColumnHeader>
@@ -705,8 +664,8 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
               {granted.length === 0 && pendingInvitations.length === 0 ? (
                 <Text type="secondary">Вам ещё не предоставили доступ к чужим кабинетам.</Text>
               ) : granted.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ ...grantedRowGrid, padding: '0 20px' }}>
+                <div style={tableGrid(GRANTED_COLUMNS)}>
+                  <div style={subgridHeader()}>
                     <ColumnHeader>Кабинет</ColumnHeader>
                     <ColumnHeader>Доступ с</ColumnHeader>
                     <ColumnHeader>Доступ до</ColumnHeader>

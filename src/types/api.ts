@@ -682,6 +682,7 @@ export interface PendingCabinetInvitationRowDto {
   token: string
   cabinetId: number
   cabinetName: string
+  marketplaceType?: MarketplaceType
   inviterName: string | null
   inviterEmail: string | null
   sections: CabinetAccessSection[]
