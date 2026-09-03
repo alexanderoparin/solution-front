@@ -189,16 +189,16 @@ function RowActionsMenu({ items }: { items: MenuProps['items'] }) {
 
 const ownedRowGrid: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(220px, 1.6fr) minmax(100px, 0.8fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(180px, 1.1fr) 40px',
-  gap: 16,
+  gridTemplateColumns: 'minmax(280px, 1fr) max-content max-content max-content minmax(150px, max-content) 40px',
+  gap: 12,
   alignItems: 'center',
 }
 
 const grantedRowGrid: CSSProperties = {
   display: 'grid',
   gridTemplateColumns:
-    'minmax(220px, 1.5fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(180px, 1.2fr)',
-  gap: 16,
+    'minmax(280px, 1fr) max-content max-content max-content max-content minmax(140px, max-content)',
+  gap: 12,
   alignItems: 'center',
 }
 
@@ -223,12 +223,19 @@ function CabinetIdentity({
   iconColor: string
   to?: string
 }) {
+  const nameStyle: CSSProperties = {
+    color: '#1E293B',
+    fontWeight: 600,
+    fontSize: 15,
+    lineHeight: '20px',
+    overflowWrap: 'break-word',
+  }
   const nameNode = to ? (
-    <Link to={to} style={{ color: '#1E293B', fontWeight: 600, fontSize: 15, lineHeight: '20px' }}>
+    <Link to={to} style={nameStyle}>
       {name}
     </Link>
   ) : (
-    <span style={{ color: '#1E293B', fontWeight: 600, fontSize: 15, lineHeight: '20px' }}>{name}</span>
+    <span style={nameStyle}>{name}</span>
   )
 
   return (
@@ -345,8 +352,8 @@ function GrantedCabinetRow({ row }: { row: GrantedCabinetRowDto }) {
 
 const pendingInviteGrid: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(220px, 1.5fr) minmax(160px, 1fr) minmax(180px, 1.2fr) minmax(140px, 0.9fr) 220px',
-  gap: 16,
+  gridTemplateColumns: 'minmax(280px, 1fr) max-content minmax(140px, max-content) max-content 220px',
+  gap: 12,
   alignItems: 'center',
 }
 
