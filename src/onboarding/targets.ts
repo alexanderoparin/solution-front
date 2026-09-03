@@ -62,4 +62,20 @@ export const ONBOARDING_TARGETS = {
   CAMPAIGN_MANAGE_SCHEDULE_GRID: 'onboarding-campaign-manage-schedule-grid',
   /** График бюджета */
   CAMPAIGN_MANAGE_BUDGET_CHART: 'onboarding-campaign-manage-budget-chart',
+  /** Кнопка «Создать новый тест» */
+  AB_TEST_CREATE: 'onboarding-ab-test-create',
+  /** Фильтр «Активные / Все» */
+  AB_TEST_FILTER: 'onboarding-ab-test-filter',
+  /** Превью вариантов фото и CTR */
+  AB_TEST_VARIANTS: 'onboarding-ab-test-variants',
+  /** Название теста (ссылка в деталку) */
+  AB_TEST_TITLE: 'onboarding-ab-test-title',
+  /** Статус и переключатель теста */
+  AB_TEST_STATUS: 'onboarding-ab-test-status',
+  /** Настройки ротации и остановки на деталке */
+  AB_TEST_DETAIL_SETTINGS: 'onboarding-ab-test-detail-settings',
+  /** Карточки вариантов на деталке */
+  AB_TEST_DETAIL_VARIANTS: 'onboarding-ab-test-detail-variants',
+  /** Метка «Сейчас на ВБ» */
+  AB_TEST_DETAIL_ACTIVE_WB: 'onboarding-ab-test-detail-active-wb',
 } as const

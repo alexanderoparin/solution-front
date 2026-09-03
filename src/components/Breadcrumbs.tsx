@@ -1,6 +1,7 @@
 import { useLocation, useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { cabinetsApi } from '../api/cabinets'
+import { DEMO_ARTICLES, DEMO_CAMPAIGN_NAME } from '../onboarding/demoConstants'
 
 interface BreadcrumbItem {
   label: string
@@ -44,25 +45,25 @@ export default function Breadcrumbs() {
     items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Управление РК' })
   } else if (pathname === '/advertising/ab-test') {
     items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'А/Б-тест' })
-  } else if (pathname.match(/^\/advertising\/ab-test\/\d+$/) && params.id) {
+  } else if (pathname.match(/^\/advertising\/ab-test\/[^/]+$/) && params.id) {
     items.push(
       { label: 'Реклама', path: '/advertising/campaigns' },
       { label: 'А/Б-тест', path: '/advertising/ab-test' },
-      { label: params.id }
+      { label: params.id === 'demo' ? DEMO_ARTICLES[0].title : params.id }
     )
   } else if (pathname === '/advertising/campaigns') {
     items.push({ label: 'Реклама', path: '/advertising/campaigns' }, { label: 'Рекламные кампании' })
-  } else if (pathname.match(/^\/advertising\/campaigns\/\d+\/manage$/) && params.id) {
+  } else if (pathname.match(/^\/advertising\/campaigns\/[^/]+\/manage$/) && params.id) {
     items.push(
       { label: 'Реклама', path: '/advertising/campaigns' },
       { label: 'Управление РК', path: '/advertising/bidder' },
-      { label: params.id }
+      { label: params.id === 'demo' ? DEMO_CAMPAIGN_NAME : params.id }
     )
-  } else if (pathname.match(/^\/advertising\/campaigns\/\d+$/) && params.id) {
+  } else if (pathname.match(/^\/advertising\/campaigns\/[^/]+$/) && params.id) {
     items.push(
       { label: 'Реклама', path: '/advertising/campaigns' },
       { label: 'Рекламные кампании', path: '/advertising/campaigns' },
-      { label: params.id }
+      { label: params.id === 'demo' ? DEMO_CAMPAIGN_NAME : params.id }
     )
   } else if (pathname === '/admin/plans') {
     items.push({ label: 'Профиль', path: '/profile' }, { label: 'Тарифы и услуги' })

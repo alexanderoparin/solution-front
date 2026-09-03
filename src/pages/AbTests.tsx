@@ -24,6 +24,7 @@ import { colors, borderRadius } from '../styles/analytics'
 import AbTestVariantImage from '../components/AbTestVariantImage'
 import AbTestPaywallModal from '../components/subscription/AbTestPaywallModal'
 import { useCabinetProAccess } from '../hooks/useCabinetProAccess'
+import { ONBOARDING_TARGETS } from '../onboarding/targets'
 import {
   formatFinishLabel,
   formatRotationLabel,
@@ -777,6 +778,7 @@ function AbTestCard({
   restarting,
   sellerId,
   cabinetId,
+  tourAnchors,
 }: {
   item: AbTest
   onToggle: (enabled: boolean) => void
@@ -785,6 +787,7 @@ function AbTestCard({
   restarting: boolean
   sellerId?: number
   cabinetId?: number | null
+  tourAnchors?: boolean
 }) {
   const advertLabel =
     item.advertIds?.length ? `рк ${item.advertIds.join(', ')}` : 'рк —'
@@ -816,7 +819,10 @@ function AbTestCard({
         alignItems: 'flex-start',
       }}
     >
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxWidth: 360 }}>
+      <div
+        data-tour-id={tourAnchors ? ONBOARDING_TARGETS.AB_TEST_VARIANTS : undefined}
+        style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxWidth: 360 }}
+      >
         {item.variants.map((v) => (
           <Link key={v.id} to={`/advertising/ab-test/${item.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ width: 72 }}>
@@ -888,7 +894,11 @@ function AbTestCard({
         ))}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <Link to={`/advertising/ab-test/${item.id}`} style={{ color: colors.textPrimary, fontWeight: 600, fontSize: 15 }}>
+        <Link
+          to={`/advertising/ab-test/${item.id}`}
+          data-tour-id={tourAnchors ? ONBOARDING_TARGETS.AB_TEST_TITLE : undefined}
+          style={{ color: colors.textPrimary, fontWeight: 600, fontSize: 15 }}
+        >
           {item.title ?? `Артикул ${item.nmId}`}
         </Link>
         <div style={{ color: '#64748B', fontSize: 13, marginTop: 4 }}>
@@ -917,7 +927,10 @@ function AbTestCard({
           )
         })()}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+      <div
+        data-tour-id={tourAnchors ? ONBOARDING_TARGETS.AB_TEST_STATUS : undefined}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}
+      >
         <span
           style={{
             padding: '4px 10px',
@@ -1066,6 +1079,7 @@ export default function AbTests() {
             <Button
               type="primary"
               icon={<PlusOutlined />}
+              data-tour-id={ONBOARDING_TARGETS.AB_TEST_CREATE}
               style={{ background: accent, borderColor: accent }}
               onClick={openCreate}
               disabled={selectedCabinetId == null || isOzonCabinet}
@@ -1079,6 +1093,7 @@ export default function AbTests() {
             ) : null}
           </div>
           {!isOzonCabinet && (
+          <span data-tour-id={ONBOARDING_TARGETS.AB_TEST_FILTER}>
           <Segmented
             value={filter}
             onChange={(v) => setFilter(v as 'active' | 'all')}
@@ -1087,6 +1102,7 @@ export default function AbTests() {
               { label: 'Все', value: 'all' },
             ]}
           />
+          </span>
           )}
         </div>
         {isOzonCabinet ? (
@@ -1115,12 +1131,13 @@ export default function AbTests() {
           <div style={{ textAlign: 'center', color: '#64748B', padding: 48 }}>Нет А/Б-тестов</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {tests.map((item) => (
+            {tests.map((item, index) => (
               <AbTestCard
                 key={item.id}
                 item={item}
                 sellerId={selectedSellerId}
                 cabinetId={selectedCabinetId}
+                tourAnchors={index === 0}
                 toggling={statusMutation.isPending && statusMutation.variables?.id === item.id && !statusMutation.variables?.enabled}
                 restarting={statusMutation.isPending && statusMutation.variables?.id === item.id && !!statusMutation.variables?.enabled}
                 onToggle={(enabled) => {

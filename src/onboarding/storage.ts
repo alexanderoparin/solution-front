@@ -1,4 +1,4 @@
-import type { OnboardingTourId } from './types'
+import { isOnboardingTourId, type OnboardingTourId } from './types'
 
 const PREFIX = 'clicki.onboarding.'
 const PENDING_KEY = `${PREFIX}pending`
@@ -46,15 +46,7 @@ export function consumePendingTour(): OnboardingTourId | null {
   try {
     const value = sessionStorage.getItem(PENDING_KEY)
     sessionStorage.removeItem(PENDING_KEY)
-    if (
-      value === 'profile'
-      || value === 'analyticsProducts'
-      || value === 'analyticsSummary'
-      || value === 'advertisingCampaigns'
-      || value === 'advertisingCampaignDetail'
-      || value === 'advertisingBidder'
-      || value === 'advertisingCampaignManage'
-    ) {
+    if (isOnboardingTourId(value)) {
       return value
     }
     return null

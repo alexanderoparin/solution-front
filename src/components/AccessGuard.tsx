@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { Button, Card, Spin, Typography } from 'antd'
 import { MailOutlined } from '@ant-design/icons'
 import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
@@ -9,7 +9,8 @@ import { useAuthStore } from '../store/authStore'
 import type { AccountType } from '../types/api'
 import Header from './Header'
 import Breadcrumbs from './Breadcrumbs'
-import NoCabinetsPlaceholder from './NoCabinetsPlaceholder'
+import OnboardingDemoShell from './onboarding/demo/OnboardingDemoShell'
+import OnboardingDemoByRoute from './onboarding/demo/OnboardingDemoByRoute'
 
 interface AccessGuardProps {
   children: React.ReactNode
@@ -24,11 +25,12 @@ function isOwnerAccount(accountTypes: AccountType[] | undefined): boolean {
 /**
  * Для авторизованных пользователей проверяет доступ (подписка / подтверждение почты).
  * Без подтверждённой почты — экран с переходом в профиль.
- * Владелец без кабинетов — онбординг с добавлением кабинета.
+ * Владелец без кабинетов — учебная витрина интерфейса и добавление кабинета.
  * Нет доступа по подписке — редирект на /subscribe.
  */
 export default function AccessGuard({ children }: AccessGuardProps) {
   const navigate = useNavigate()
+  const location = useLocation()
   const role = useAuthStore((s) => s.role)
   const isAdmin = role === 'ADMIN'
 
@@ -159,14 +161,19 @@ export default function AccessGuard({ children }: AccessGuardProps) {
       <>
         <Header />
         <Breadcrumbs />
-        <div style={{ padding: 24, maxWidth: 640, margin: '0 auto' }}>
-          <NoCabinetsPlaceholder
-            onCreated={() => {
-              void refetchOverview()
-              void refetch()
-            }}
-          />
-        </div>
+        <OnboardingDemoShell
+          onCreated={() => {
+            void refetchOverview()
+            void refetch()
+            if (/\/advertising\/campaigns\/demo(\/|$)/.test(location.pathname)) {
+              navigate('/advertising/campaigns', { replace: true })
+            } else if (/\/advertising\/ab-test\/demo(\/|$)/.test(location.pathname)) {
+              navigate('/advertising/ab-test', { replace: true })
+            }
+          }}
+        >
+          <OnboardingDemoByRoute />
+        </OnboardingDemoShell>
       </>
     )
   }

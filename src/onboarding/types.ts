@@ -1,11 +1,23 @@
-export type OnboardingTourId =
-  | 'profile'
-  | 'analyticsProducts'
-  | 'analyticsSummary'
-  | 'advertisingCampaigns'
-  | 'advertisingCampaignDetail'
-  | 'advertisingBidder'
-  | 'advertisingCampaignManage'
+export const ONBOARDING_TOUR_IDS = [
+  'profile',
+  'analyticsProducts',
+  'analyticsSummary',
+  'advertisingCampaigns',
+  'advertisingCampaignDetail',
+  'advertisingBidder',
+  'advertisingCampaignManage',
+  'advertisingAbTest',
+  'advertisingAbTestDetail',
+] as const
+
+export type OnboardingTourId = (typeof ONBOARDING_TOUR_IDS)[number]
+
+export function isOnboardingTourId(value: string | null | undefined): value is OnboardingTourId {
+  if (value == null) {
+    return false
+  }
+  return (ONBOARDING_TOUR_IDS as readonly string[]).includes(value)
+}
 
 export type OnboardingPlacement = 'top' | 'bottom' | 'left' | 'right'
 

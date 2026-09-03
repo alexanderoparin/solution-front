@@ -3,24 +3,13 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { consumePendingTour, isTourFinished } from '../../onboarding/storage'
 import { getTour } from '../../onboarding/tours'
 import { matchesTourPath } from '../../onboarding/resolveTourForPath'
-import type { OnboardingTourId } from '../../onboarding/types'
+import { isOnboardingTourId, type OnboardingTourId } from '../../onboarding/types'
 import { useOnboardingStore } from '../../store/onboardingStore'
 import OnboardingSkipHint from './OnboardingSkipHint'
 import OnboardingTour from './OnboardingTour'
 
 function parseTourParam(value: string | null): OnboardingTourId | null {
-  if (
-    value === 'profile'
-    || value === 'analyticsProducts'
-    || value === 'analyticsSummary'
-    || value === 'advertisingCampaigns'
-    || value === 'advertisingCampaignDetail'
-    || value === 'advertisingBidder'
-    || value === 'advertisingCampaignManage'
-  ) {
-    return value
-  }
-  return null
+  return isOnboardingTourId(value) ? value : null
 }
 
 /**

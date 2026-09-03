@@ -32,6 +32,12 @@ export function resolveTourIdForPath(pathname: string): OnboardingTourId {
   if (pathname === '/advertising/bidder') {
     return 'advertisingBidder'
   }
+  if (pathname === '/advertising/ab-test') {
+    return 'advertisingAbTest'
+  }
+  if (/^\/advertising\/ab-test\/[^/]+$/.test(pathname)) {
+    return 'advertisingAbTestDetail'
+  }
   if (pathname.startsWith('/profile')) {
     return 'profile'
   }

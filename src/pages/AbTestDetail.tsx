@@ -11,6 +11,7 @@ import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { cabinetsApi } from '../api/cabinets'
 import { abTestApi } from '../api/abTest'
 import { colors, borderRadius } from '../styles/analytics'
+import { ONBOARDING_TARGETS } from '../onboarding/targets'
 import AbTestVariantImage from '../components/AbTestVariantImage'
 import {
   formatFinishSummary,
@@ -155,6 +156,7 @@ export default function AbTestDetail() {
               {test.advertIds?.length ? ` · рк ${test.advertIds.join(', ')}` : ''}
             </div>
             <div
+              data-tour-id={ONBOARDING_TARGETS.AB_TEST_DETAIL_SETTINGS}
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -184,6 +186,7 @@ export default function AbTestDetail() {
               ) : null}
             </div>
             <div
+              data-tour-id={ONBOARDING_TARGETS.AB_TEST_DETAIL_VARIANTS}
               style={{
                 display: 'grid',
                 gridTemplateColumns: `repeat(${Math.min(test.variants.length, 5)}, minmax(140px, 1fr))`,
@@ -193,6 +196,7 @@ export default function AbTestDetail() {
               {(() => {
                 const activeCtrs = test.variants.filter((x) => !x.paused).map((x) => Number(x.ctr) || 0)
                 const bestCtr = activeCtrs.length > 0 ? Math.max(...activeCtrs) : 0
+                const activeOnWbId = test.variants.find((x) => x.activeOnWb && !x.paused)?.id
                 return test.variants.map((v) => {
                   const isCtrLeader = !!v.winning || (!v.paused && bestCtr > 0 && Number(v.ctr) === bestCtr)
                   const showInColor = v.activeOnWb && !v.paused
@@ -211,7 +215,12 @@ export default function AbTestDetail() {
                     >
                       <div style={{ height: 22, marginBottom: 6 }}>
                         {v.activeOnWb && !v.paused ? (
-                          <span style={{ color: '#16A34A', fontWeight: 600, fontSize: 13 }}>Сейчас на ВБ</span>
+                          <span
+                            data-tour-id={v.id === activeOnWbId ? ONBOARDING_TARGETS.AB_TEST_DETAIL_ACTIVE_WB : undefined}
+                            style={{ color: '#16A34A', fontWeight: 600, fontSize: 13 }}
+                          >
+                            Сейчас на ВБ
+                          </span>
                         ) : null}
                       </div>
                       <div style={{ position: 'relative' }}>
