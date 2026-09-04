@@ -34,3 +34,4 @@ export const demoTableCell: CSSProperties = {
   color: colors.textPrimary,
 }
 
+

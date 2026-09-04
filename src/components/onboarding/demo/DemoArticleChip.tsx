@@ -1,4 +1,5 @@
-import { colors, borderRadius, spacing, typography } from '../../../styles/analytics'
+import { colors, spacing, typography } from '../../../styles/analytics'
+import { DemoPhotoPlaceholder } from './DemoPhotoPlaceholder'
 
 interface DemoArticleChipProps {
   nmId: string
@@ -19,15 +20,7 @@ export default function DemoArticleChip({ nmId, title, photoSize = 56 }: DemoArt
         flexShrink: 0,
       }}
     >
-      <div
-        style={{
-          width: photoSize,
-          height: photoSize,
-          borderRadius: borderRadius.sm,
-          background: 'linear-gradient(145deg, #EDE9FE 0%, #C4B5FD 55%, #A78BFA 100%)',
-          flexShrink: 0,
-        }}
-      />
+      <DemoPhotoPlaceholder width={photoSize} height={photoSize} />
       <div style={{ maxWidth: 160 }}>
         <div style={{ ...typography.body, fontSize: 12, lineHeight: 1.3 }}>{title}</div>
         <div style={{ ...typography.bodySmall, marginTop: 2, color: colors.textSecondary }}>{nmId}</div>
