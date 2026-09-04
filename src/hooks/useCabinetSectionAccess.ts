@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, subscribeStoredCabinetId } from '../api/cabinets'
 import type { CabinetAccessSection, MarketplaceType } from '../types/api'
 import { useAuthStore } from '../store/authStore'
 
@@ -65,6 +65,8 @@ export function useCabinetSectionAccess(selectedCabinetId?: number | null) {
     setStoredCabinetIdState(id)
     setStoredCabinetId(id)
   }, [])
+
+  useEffect(() => subscribeStoredCabinetId(setStoredCabinetIdState), [])
 
   const { data, isFetched, isError } = useQuery({
     queryKey: ['cabinetsOverview'],

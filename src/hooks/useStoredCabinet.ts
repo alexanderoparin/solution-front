@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import { getStoredCabinetId, setStoredCabinetId, subscribeStoredCabinetId } from '../api/cabinets'
 
 function isCabinetAvailable(
   cabinetId: number | null | undefined,
@@ -24,6 +24,8 @@ export function useStoredCabinet(myCabinets: readonly { id: number }[]) {
     setCabinetIdState(id)
     setStoredCabinetId(id)
   }, [])
+
+  useEffect(() => subscribeStoredCabinetId(setCabinetIdState), [])
 
   /** Стабильный ключ — не реагируем на каждый refetch массива из React Query. */
   const cabinetIdsKey = useMemo(

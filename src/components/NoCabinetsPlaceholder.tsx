@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useLocation } from 'react-router-dom'
 import { Button, Typography, message } from 'antd'
 import { PlusOutlined, AppstoreOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -7,8 +6,6 @@ import { cabinetsApi, setStoredCabinetId } from '../api/cabinets'
 import type { CreateCabinetRequest } from '../types/api'
 import { getRequestFailureDescription } from '../utils/requestError'
 import AddCabinetModal from '../pages/profile/modals/AddCabinetModal'
-import { isTourFinished, setPendingTour } from '../onboarding/storage'
-import { useOnboardingStore } from '../store/onboardingStore'
 
 const { Text, Title } = Typography
 
@@ -30,8 +27,6 @@ export default function NoCabinetsPlaceholder({
   onAddModalOpenChange,
 }: NoCabinetsPlaceholderProps) {
   const queryClient = useQueryClient()
-  const location = useLocation()
-  const startTour = useOnboardingStore((s) => s.startTour)
   const [internalModalOpen, setInternalModalOpen] = useState(false)
 
   const modalOpen = addModalOpen ?? internalModalOpen
@@ -54,13 +49,6 @@ export default function NoCabinetsPlaceholder({
       void queryClient.invalidateQueries({ queryKey: ['cabinets'] })
       void queryClient.invalidateQueries({ queryKey: ['myCabinets'] })
       void queryClient.invalidateQueries({ queryKey: ['accessStatus'] })
-      if (!isTourFinished('profile')) {
-        if (location.pathname.startsWith('/profile')) {
-          window.setTimeout(() => startTour('profile'), 500)
-        } else {
-          setPendingTour('profile')
-        }
-      }
       onCreated?.()
     },
     onError: (err: unknown) => {

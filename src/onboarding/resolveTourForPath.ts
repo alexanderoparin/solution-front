@@ -12,8 +12,8 @@ export function matchesTourPath(pathname: string, tour: OnboardingTourDefinition
   return pathname === tour.pathPrefix || pathname.startsWith(`${tour.pathPrefix}/`)
 }
 
-/** Тур для текущего маршрута (кнопка «?» и ?tour=). */
-export function resolveTourIdForPath(pathname: string): OnboardingTourId {
+/** Тур текущего маршрута или null, если для страницы тура нет. */
+export function resolveOptionalTourIdForPath(pathname: string): OnboardingTourId | null {
   if (pathname.startsWith('/analytics/products')) {
     return 'analyticsProducts'
   }
@@ -41,7 +41,12 @@ export function resolveTourIdForPath(pathname: string): OnboardingTourId {
   if (pathname.startsWith('/profile')) {
     return 'profile'
   }
-  return 'profile'
+  return null
+}
+
+/** Тур для текущего маршрута (кнопка «?» и ?tour=). */
+export function resolveTourIdForPath(pathname: string): OnboardingTourId {
+  return resolveOptionalTourIdForPath(pathname) ?? 'profile'
 }
 
 /** Проверка маршрута по id тура. */

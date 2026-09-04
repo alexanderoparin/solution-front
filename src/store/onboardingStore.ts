@@ -8,6 +8,8 @@ interface OnboardingState {
   stepIndex: number
   skipHintVisible: boolean
   startTour: (tourId: OnboardingTourId) => void
+  /** Сбросить активный тур без отметки «пройден / пропущен». */
+  cancelTour: () => void
   nextStep: () => void
   skipTour: () => void
   completeTour: () => void
@@ -21,6 +23,10 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
   startTour: (tourId) => {
     set({ activeTourId: tourId, stepIndex: 0, skipHintVisible: false })
+  },
+
+  cancelTour: () => {
+    set({ activeTourId: null, stepIndex: 0, skipHintVisible: false })
   },
 
   nextStep: () => {

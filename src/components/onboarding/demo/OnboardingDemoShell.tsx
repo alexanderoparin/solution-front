@@ -1,7 +1,5 @@
-import { useEffect, type ReactNode } from 'react'
-import { useLocation } from 'react-router-dom'
-import { isTourFinished } from '../../../onboarding/storage'
-import { resolveTourIdForPath } from '../../../onboarding/resolveTourForPath'
+import { useLayoutEffect, type ReactNode } from 'react'
+import { setOnboardingDemoMode } from '../../../onboarding/storage'
 import { useOnboardingStore } from '../../../store/onboardingStore'
 import OnboardingDemoBanner from './OnboardingDemoBanner'
 
@@ -11,35 +9,22 @@ interface OnboardingDemoShellProps {
 }
 
 /**
- * Обёртка учебной витрины: плашка «это пример» и автозапуск тура страницы.
+ * Обёртка учебной витрины: плашка «это пример».
+ * Автозапуск тура страницы делает {@link OnboardingProvider} в scope `demo`.
  */
 export default function OnboardingDemoShell({ children, onCreated }: OnboardingDemoShellProps) {
-  const location = useLocation()
-  const startTour = useOnboardingStore((s) => s.startTour)
-  const activeTourId = useOnboardingStore((s) => s.activeTourId)
+  const cancelTour = useOnboardingStore((s) => s.cancelTour)
 
-  useEffect(() => {
-    const tourId = resolveTourIdForPath(location.pathname)
-    if (tourId === 'profile') {
-      return
+  useLayoutEffect(() => {
+    setOnboardingDemoMode(true)
+    return () => {
+      setOnboardingDemoMode(false)
+      cancelTour()
     }
-    if (isTourFinished(tourId) || activeTourId != null) {
-      return
-    }
-    const timer = window.setTimeout(() => {
-      if (useOnboardingStore.getState().activeTourId != null) {
-        return
-      }
-      if (isTourFinished(tourId)) {
-        return
-      }
-      startTour(tourId)
-    }, 500)
-    return () => window.clearTimeout(timer)
-  }, [location.pathname, activeTourId, startTour])
+  }, [cancelTour])
 
   const handleCreated = () => {
-    useOnboardingStore.setState({ activeTourId: null, stepIndex: 0, skipHintVisible: false })
+    cancelTour()
     onCreated?.()
   }
 
