@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Button, DatePicker, Input, Select } from 'antd'
+import { Button, DatePicker, Input } from 'antd'
 import { SearchOutlined, SyncOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { ONBOARDING_TARGETS } from '../../../onboarding/targets'
@@ -7,6 +7,9 @@ import { ONBOARDING_DEMO_CAMPAIGN_PATH } from '../../../onboarding/demoPaths'
 import { DEMO_CAMPAIGN_NAME, DEMO_CAMPAIGN_TYPE, DEMO_CAMPAIGN_WB_ID, DEMO_CAMPAIGN_WB_ID_SECOND } from '../../../onboarding/demoConstants'
 import { colors, typography, spacing, borderRadius, shadows } from '../../../styles/analytics'
 import { demoPageWrap } from './demoUi'
+import CampaignStatusFilterCheckboxes, {
+  DEFAULT_CAMPAIGN_STATUS_FILTERS,
+} from '../../CampaignStatusFilterCheckboxes'
 
 const FONT = { fontSize: 11 as const }
 const DATE_TO = dayjs().subtract(1, 'day')
@@ -91,17 +94,7 @@ export default function DemoAdvertisingCampaigns() {
             prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
             style={{ maxWidth: 360, borderRadius: borderRadius.sm }}
           />
-          <Select
-            mode="multiple"
-            defaultValue={['active', 'paused']}
-            options={[
-              { value: 'active', label: 'Активна' },
-              { value: 'paused', label: 'Приостановлена' },
-              { value: 'finished', label: 'Завершена' },
-            ]}
-            maxTagCount="responsive"
-            style={{ minWidth: 220, borderRadius: borderRadius.sm }}
-          />
+          <CampaignStatusFilterCheckboxes value={[...DEFAULT_CAMPAIGN_STATUS_FILTERS]} />
           <div style={{ marginLeft: 'auto' }}>
             <Button type="default" icon={<SyncOutlined />} data-tour-id={ONBOARDING_TARGETS.CAMPAIGNS_REFRESH} style={{ borderRadius: borderRadius.sm }}>
               Обновить все РК

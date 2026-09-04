@@ -17,6 +17,10 @@ import { colors, typography, spacing, borderRadius, transitions, shadows } from 
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
+import CampaignStatusFilterCheckboxes, {
+  DEFAULT_CAMPAIGN_STATUS_FILTERS,
+  type CampaignStatusFilter,
+} from '../components/CampaignStatusFilterCheckboxes'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
@@ -42,19 +46,9 @@ type SortField =
   | 'orders'
 type SortOrder = 'asc' | 'desc'
 
-type CampaignStatusFilter = 'active' | 'paused' | 'finished'
-
-const DEFAULT_STATUS_FILTERS: CampaignStatusFilter[] = ['active', 'paused']
-
-const CAMPAIGN_STATUS_FILTER_OPTIONS: { value: CampaignStatusFilter; label: string }[] = [
-  { value: 'active', label: 'Активна' },
-  { value: 'paused', label: 'Приостановлена' },
-  { value: 'finished', label: 'Завершена' },
-]
-
 function campaignMatchesStatusFilters(campaign: Campaign, selected: CampaignStatusFilter[]): boolean {
   if (selected.length === 0) {
-    return true
+    return false
   }
   const statusName = (campaign.statusName ?? '').toLowerCase()
   return selected.some((key) => {
@@ -113,7 +107,7 @@ export default function AdvertisingCampaigns() {
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('createdAt')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
-  const [filterStatus, setFilterStatus] = useState<CampaignStatusFilter[]>(DEFAULT_STATUS_FILTERS)
+  const [filterStatus, setFilterStatus] = useState<CampaignStatusFilter[]>(DEFAULT_CAMPAIGN_STATUS_FILTERS)
   const [filterType, setFilterType] = useState<string | null>(null)
 
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>(() => {
@@ -229,10 +223,7 @@ export default function AdvertisingCampaigns() {
   )
 
   const filteredCampaigns = useMemo(() => {
-    let list = campaigns
-    if (filterStatus.length > 0) {
-      list = list.filter((c) => campaignMatchesStatusFilters(c, filterStatus))
-    }
+    let list = campaigns.filter((c) => campaignMatchesStatusFilters(c, filterStatus))
     if (filterType != null) list = list.filter((c) => c.type === filterType)
     if (searchLower) {
       list = list.filter(
@@ -431,16 +422,7 @@ export default function AdvertisingCampaigns() {
                 allowClear
                 style={{ maxWidth: 360, borderRadius: borderRadius.sm }}
               />
-              <Select
-                mode="multiple"
-                allowClear
-                placeholder="Статус"
-                value={filterStatus}
-                onChange={(value) => setFilterStatus(value as CampaignStatusFilter[])}
-                options={CAMPAIGN_STATUS_FILTER_OPTIONS}
-                maxTagCount="responsive"
-                style={{ minWidth: 220, borderRadius: borderRadius.sm }}
-              />
+              <CampaignStatusFilterCheckboxes value={filterStatus} onChange={setFilterStatus} />
               <Select
                 placeholder="Тип"
                 value={filterType ?? ''}
