@@ -1,76 +1,126 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Button, DatePicker, Input } from 'antd'
+import { Button, DatePicker, Input, Select } from 'antd'
 import { SearchOutlined, SyncOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { ONBOARDING_TARGETS } from '../../../onboarding/targets'
 import { ONBOARDING_DEMO_CAMPAIGN_PATH } from '../../../onboarding/demoPaths'
-import { DEMO_CAMPAIGN_NAME, DEMO_CAMPAIGN_TYPE, DEMO_CAMPAIGN_WB_ID, DEMO_CAMPAIGN_WB_ID_SECOND } from '../../../onboarding/demoConstants'
-import { colors, typography, spacing, borderRadius, shadows } from '../../../styles/analytics'
+import {
+  DEMO_CAMPAIGNS,
+  DEMO_CAMPAIGN_WB_ID,
+  type DemoCampaignStatus,
+} from '../../../onboarding/demoConstants'
+import { colors, typography, spacing, borderRadius, shadows, transitions } from '../../../styles/analytics'
 import { demoPageWrap } from './demoUi'
 import CampaignStatusFilterCheckboxes, {
-  DEFAULT_CAMPAIGN_STATUS_FILTERS,
+  ALL_CAMPAIGN_STATUS_FILTERS,
+  type CampaignStatusFilter,
 } from '../../CampaignStatusFilterCheckboxes'
 
 const FONT = { fontSize: 11 as const }
 const DATE_TO = dayjs().subtract(1, 'day')
 const DATE_FROM = DATE_TO.subtract(13, 'day')
 
-const ROWS = [
-  {
-    createdAt: '12.03.2026',
-    updatedAt: '01.09.2026 09:14',
-    name: DEMO_CAMPAIGN_NAME,
-    id: DEMO_CAMPAIGN_WB_ID,
-    type: DEMO_CAMPAIGN_TYPE,
-    articlesCount: 2,
-    status: 'Активна',
-    views: '48 210',
-    clicks: '1 518',
-    costs: '21 150 ₽',
-    cpc: '13,93 ₽',
-    ctr: '3,15%',
-    cart: '214',
-    orders: '96',
-  },
-  {
-    createdAt: '04.02.2026',
-    updatedAt: '28.08.2026 18:02',
-    name: 'Пижама — авто',
-    id: DEMO_CAMPAIGN_WB_ID_SECOND,
-    type: 'Автоматическая',
-    articlesCount: 2,
-    status: 'Приостановлена',
-    views: '12 400',
-    clicks: '310',
-    costs: '4 880 ₽',
-    cpc: '15,74 ₽',
-    ctr: '2,50%',
-    cart: '41',
-    orders: '18',
-  },
-]
+const STATUS_LABEL: Record<DemoCampaignStatus, string> = {
+  active: 'Активна',
+  paused: 'Приостановлена',
+  finished: 'Завершена',
+}
 
-const HEADERS = [
-  'Дата создания',
-  'Дата обновления',
-  'Кампания',
-  'ID',
-  'Тип',
-  'Количество артикулов',
-  'Статус',
-  'Просмотры',
-  'Клики',
-  'Затраты',
-  'CPC',
-  'CTR',
-  'Положили в корзину',
-  'Заказали товаров',
+const STATUS_BG: Record<DemoCampaignStatus, string> = {
+  active: colors.success,
+  paused: colors.warning,
+  finished: colors.textMuted,
+}
+
+const COL_WIDTHS_PCT = {
+  createdAt: 8,
+  updatedAt: 8,
+  name: 11,
+  id: 6,
+  type: 8,
+  articlesCount: 7,
+  status: 8,
+  views: 6,
+  clicks: 6,
+  costs: 6,
+  cpc: 6,
+  ctr: 5,
+  cart: 5,
+  orders: 5,
+} as const
+
+const thStyle = {
+  textAlign: 'left' as const,
+  padding: '8px 10px',
+  borderBottom: `2px solid ${colors.border}`,
+  overflow: 'hidden',
+  wordBreak: 'break-word' as const,
+  whiteSpace: 'normal' as const,
+  boxSizing: 'border-box' as const,
+}
+
+const tdOverflowStyle = { overflow: 'hidden', wordBreak: 'break-word' as const, boxSizing: 'border-box' as const }
+
+function formatNum(value: number): string {
+  return value.toLocaleString('ru-RU')
+}
+
+function formatPct(value: number): string {
+  return `${value.toFixed(2)}%`
+}
+
+function formatCur(value: number): string {
+  return value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+const HEADERS: { key: keyof typeof COL_WIDTHS_PCT; label: string; center?: boolean }[] = [
+  { key: 'createdAt', label: 'Дата создания' },
+  { key: 'updatedAt', label: 'Дата обновления' },
+  { key: 'name', label: 'Кампания' },
+  { key: 'id', label: 'ID' },
+  { key: 'type', label: 'Тип' },
+  { key: 'articlesCount', label: 'Количество артикулов', center: true },
+  { key: 'status', label: 'Статус', center: true },
+  { key: 'views', label: 'Просмотры', center: true },
+  { key: 'clicks', label: 'Клики', center: true },
+  { key: 'costs', label: 'Затраты', center: true },
+  { key: 'cpc', label: 'CPC', center: true },
+  { key: 'ctr', label: 'CTR', center: true },
+  { key: 'cart', label: 'Положили в корзину', center: true },
+  { key: 'orders', label: 'Заказали товаров', center: true },
 ]
 
 /**
- * Учебный список РК: обновление, период и переход в деталку.
+ * Учебный список РК: обновление, период, статусы и переход в деталку.
  */
 export default function DemoAdvertisingCampaigns() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterStatus, setFilterStatus] = useState<CampaignStatusFilter[]>([...ALL_CAMPAIGN_STATUS_FILTERS])
+  const [filterType, setFilterType] = useState<string | null>(null)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+
+  const uniqueTypes = useMemo(
+    () => [...new Set(DEMO_CAMPAIGNS.map((campaign) => campaign.type))].sort((a, b) => a.localeCompare(b, 'ru')),
+    [],
+  )
+
+  const filteredCampaigns = useMemo(() => {
+    const searchLower = searchQuery.trim().toLowerCase()
+    return DEMO_CAMPAIGNS.filter((campaign) => {
+      if (!filterStatus.includes(campaign.status)) {
+        return false
+      }
+      if (filterType != null && campaign.type !== filterType) {
+        return false
+      }
+      if (searchLower.length === 0) {
+        return true
+      }
+      return campaign.name.toLowerCase().includes(searchLower) || campaign.id.includes(searchLower)
+    })
+  }, [filterStatus, filterType, searchQuery])
+
   return (
     <div style={{ ...demoPageWrap, padding: 0, backgroundColor: colors.bgGray }}>
       <div
@@ -92,9 +142,22 @@ export default function DemoAdvertisingCampaigns() {
           <Input
             placeholder="Поиск по ID кампании или названию"
             prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            allowClear
             style={{ maxWidth: 360, borderRadius: borderRadius.sm }}
           />
-          <CampaignStatusFilterCheckboxes value={[...DEFAULT_CAMPAIGN_STATUS_FILTERS]} />
+          <CampaignStatusFilterCheckboxes value={filterStatus} onChange={setFilterStatus} />
+          <Select
+            placeholder="Тип"
+            value={filterType ?? ''}
+            onChange={(value) => setFilterType(value === '' || value == null ? null : value)}
+            options={[
+              { value: '', label: 'Все типы' },
+              ...uniqueTypes.map((type) => ({ value: type, label: type })),
+            ]}
+            style={{ minWidth: 160, borderRadius: borderRadius.sm }}
+          />
           <div style={{ marginLeft: 'auto' }}>
             <Button type="default" icon={<SyncOutlined />} data-tour-id={ONBOARDING_TARGETS.CAMPAIGNS_REFRESH} style={{ borderRadius: borderRadius.sm }}>
               Обновить все РК
@@ -104,61 +167,88 @@ export default function DemoAdvertisingCampaigns() {
         <p style={{ fontSize: 11, color: colors.textSecondary, margin: `0 0 ${spacing.sm} 0` }}>
           Положили в корзину и заказали товаров — по рекламной статистике WB (fullstats) по артикулам РК.
         </p>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980, tableLayout: 'fixed' }}>
-            <thead>
-              <tr style={{ backgroundColor: colors.bgGray }}>
-                {HEADERS.map((label) => (
-                  <th key={label} style={{ padding: '8px 10px', textAlign: 'left', ...typography.body, ...FONT, fontWeight: 600, color: colors.textPrimary, borderBottom: `1px solid ${colors.borderHeader}` }}>
-                    {label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {ROWS.map((row, idx) => (
-                <tr key={row.id} style={{ backgroundColor: idx % 2 === 0 ? colors.bgWhite : colors.bgGrayLight }}>
-                  <td style={{ padding: '6px 10px', ...FONT }}>{row.createdAt}</td>
-                  <td style={{ padding: '6px 10px', ...FONT }}>{row.updatedAt}</td>
-                  <td style={{ padding: '6px 10px', ...FONT }}>
-                    <Link
-                      to={ONBOARDING_DEMO_CAMPAIGN_PATH}
-                      data-tour-id={idx === 0 ? ONBOARDING_TARGETS.CAMPAIGNS_NAME : undefined}
-                      style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}
-                    >
-                      {row.name}
-                    </Link>
-                  </td>
-                  <td style={{ padding: '6px 10px', ...FONT, color: colors.textSecondary }}>{row.id}</td>
-                  <td style={{ padding: '6px 10px', ...FONT }}>{row.type}</td>
-                  <td style={{ padding: '6px 10px', ...FONT, textAlign: 'center' }}>{row.articlesCount}</td>
-                  <td style={{ padding: '6px 10px', textAlign: 'center' }}>
-                    <span
+        {filteredCampaigns.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: spacing.xxl, ...typography.body, color: colors.textSecondary }}>
+            Нет рекламных кампаний за выбранный период
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980, tableLayout: 'fixed' }}>
+              <thead>
+                <tr style={{ backgroundColor: colors.bgGray }}>
+                  {HEADERS.map((column) => (
+                    <th
+                      key={column.key}
                       style={{
-                        display: 'inline-block',
-                        padding: '2px 8px',
-                        borderRadius: borderRadius.sm,
-                        backgroundColor: idx === 0 ? colors.success : colors.textMuted,
-                        color: '#fff',
-                        fontSize: 11,
-                        fontWeight: 500,
+                        ...thStyle,
+                        width: `${COL_WIDTHS_PCT[column.key]}%`,
+                        textAlign: column.center ? 'center' : 'left',
+                        ...typography.body,
+                        ...FONT,
+                        fontWeight: 600,
+                        color: colors.textPrimary,
                       }}
                     >
-                      {row.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '6px 10px', ...FONT, textAlign: 'center' }}>{row.views}</td>
-                  <td style={{ padding: '6px 10px', ...FONT, textAlign: 'center' }}>{row.clicks}</td>
-                  <td style={{ padding: '6px 10px', ...FONT, textAlign: 'center' }}>{row.costs}</td>
-                  <td style={{ padding: '6px 10px', ...FONT, textAlign: 'center' }}>{row.cpc}</td>
-                  <td style={{ padding: '6px 10px', ...FONT, textAlign: 'center' }}>{row.ctr}</td>
-                  <td style={{ padding: '6px 10px', ...FONT, textAlign: 'center' }}>{row.cart}</td>
-                  <td style={{ padding: '6px 10px', ...FONT, textAlign: 'center' }}>{row.orders}</td>
+                      {column.label}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filteredCampaigns.map((row, idx) => (
+                  <tr
+                    key={row.id}
+                    style={{
+                      backgroundColor:
+                        hoveredId === row.id ? colors.bgGray : idx % 2 === 0 ? colors.bgWhite : colors.bgGrayLight,
+                      transition: transitions.fast,
+                    }}
+                    onMouseEnter={() => setHoveredId(row.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                  >
+                    <td style={{ width: `${COL_WIDTHS_PCT.createdAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT }}>{row.createdAt}</td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.updatedAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT }}>{row.updatedAt}</td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.name}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT }}>
+                      <Link
+                        to={ONBOARDING_DEMO_CAMPAIGN_PATH}
+                        data-tour-id={row.id === DEMO_CAMPAIGN_WB_ID ? ONBOARDING_TARGETS.CAMPAIGNS_NAME : undefined}
+                        style={{ fontWeight: 500, color: colors.primary, textDecoration: 'none' }}
+                      >
+                        {row.name}
+                      </Link>
+                    </td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.id}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT, color: colors.textSecondary }}>{row.id}</td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.type}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT }}>{row.type}</td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.articlesCount}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT, textAlign: 'center' }}>{formatNum(row.articlesCount)}</td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.status}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, textAlign: 'center' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: borderRadius.sm,
+                          backgroundColor: STATUS_BG[row.status],
+                          color: '#fff',
+                          fontSize: 11,
+                          fontWeight: 500,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {STATUS_LABEL[row.status]}
+                      </span>
+                    </td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.views}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT, textAlign: 'center' }}>{formatNum(row.views)}</td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.clicks}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT, textAlign: 'center' }}>{formatNum(row.clicks)}</td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.costs}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT, textAlign: 'center' }}>{formatCur(row.costs)}</td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.cpc}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT, textAlign: 'center' }}>{formatCur(row.cpc)}</td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.ctr}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT, textAlign: 'center' }}>{formatPct(row.ctr)}</td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.cart}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT, textAlign: 'center' }}>{formatNum(row.cart)}</td>
+                    <td style={{ width: `${COL_WIDTHS_PCT.orders}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...FONT, textAlign: 'center' }}>{formatNum(row.orders)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )

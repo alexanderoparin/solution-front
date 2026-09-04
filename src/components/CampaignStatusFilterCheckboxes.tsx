@@ -5,6 +5,9 @@ export type CampaignStatusFilter = 'active' | 'paused' | 'finished'
 
 export const DEFAULT_CAMPAIGN_STATUS_FILTERS: CampaignStatusFilter[] = ['active', 'paused']
 
+/** Все статусы — в учебном кабинете галочки включены по умолчанию. */
+export const ALL_CAMPAIGN_STATUS_FILTERS: CampaignStatusFilter[] = ['active', 'paused', 'finished']
+
 const STATUS_CHECKBOXES: {
   value: CampaignStatusFilter
   label: string
