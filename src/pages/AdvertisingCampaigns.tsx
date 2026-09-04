@@ -42,6 +42,38 @@ type SortField =
   | 'orders'
 type SortOrder = 'asc' | 'desc'
 
+type CampaignStatusFilter = 'active' | 'paused' | 'finished'
+
+const DEFAULT_STATUS_FILTERS: CampaignStatusFilter[] = ['active', 'paused']
+
+const CAMPAIGN_STATUS_FILTER_OPTIONS: { value: CampaignStatusFilter; label: string }[] = [
+  { value: 'active', label: 'Активна' },
+  { value: 'paused', label: 'Приостановлена' },
+  { value: 'finished', label: 'Завершена' },
+]
+
+function campaignMatchesStatusFilters(campaign: Campaign, selected: CampaignStatusFilter[]): boolean {
+  if (selected.length === 0) {
+    return true
+  }
+  const statusName = (campaign.statusName ?? '').toLowerCase()
+  return selected.some((key) => {
+    if (key === 'active') {
+      return campaign.status === 9 || statusName.includes('актив')
+    }
+    if (key === 'finished') {
+      return campaign.status === 7 || statusName.includes('завершен')
+    }
+    if (campaign.status === 9 || campaign.status === 7) {
+      return false
+    }
+    if (statusName.includes('актив') || statusName.includes('завершен')) {
+      return false
+    }
+    return true
+  })
+}
+
 const thStyle = {
   textAlign: 'left' as const,
   padding: '8px 10px',
@@ -81,7 +113,7 @@ export default function AdvertisingCampaigns() {
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('createdAt')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'paused' | 'finished'>('all')
+  const [filterStatus, setFilterStatus] = useState<CampaignStatusFilter[]>(DEFAULT_STATUS_FILTERS)
   const [filterType, setFilterType] = useState<string | null>(null)
 
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>(() => {
@@ -198,9 +230,9 @@ export default function AdvertisingCampaigns() {
 
   const filteredCampaigns = useMemo(() => {
     let list = campaigns
-    if (filterStatus === 'active') list = list.filter((c) => c.status === 9)
-    else if (filterStatus === 'paused') list = list.filter((c) => c.status === 11)
-    else if (filterStatus === 'finished') list = list.filter((c) => c.status === 7)
+    if (filterStatus.length > 0) {
+      list = list.filter((c) => campaignMatchesStatusFilters(c, filterStatus))
+    }
     if (filterType != null) list = list.filter((c) => c.type === filterType)
     if (searchLower) {
       list = list.filter(
@@ -400,16 +432,14 @@ export default function AdvertisingCampaigns() {
                 style={{ maxWidth: 360, borderRadius: borderRadius.sm }}
               />
               <Select
+                mode="multiple"
+                allowClear
                 placeholder="Статус"
                 value={filterStatus}
-                onChange={setFilterStatus}
-                options={[
-                  { value: 'all', label: 'Все' },
-                  { value: 'active', label: 'Активна' },
-                  { value: 'paused', label: 'Приостановлена' },
-                  { value: 'finished', label: 'Завершена' },
-                ]}
-                style={{ minWidth: 160, borderRadius: borderRadius.sm }}
+                onChange={(value) => setFilterStatus(value as CampaignStatusFilter[])}
+                options={CAMPAIGN_STATUS_FILTER_OPTIONS}
+                maxTagCount="responsive"
+                style={{ minWidth: 220, borderRadius: borderRadius.sm }}
               />
               <Select
                 placeholder="Тип"

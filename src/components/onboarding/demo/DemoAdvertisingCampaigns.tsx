@@ -91,7 +91,17 @@ export default function DemoAdvertisingCampaigns() {
             prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
             style={{ maxWidth: 360, borderRadius: borderRadius.sm }}
           />
-          <Select defaultValue="all" options={[{ value: 'all', label: 'Все' }]} style={{ minWidth: 160 }} />
+          <Select
+            mode="multiple"
+            defaultValue={['active', 'paused']}
+            options={[
+              { value: 'active', label: 'Активна' },
+              { value: 'paused', label: 'Приостановлена' },
+              { value: 'finished', label: 'Завершена' },
+            ]}
+            maxTagCount="responsive"
+            style={{ minWidth: 220, borderRadius: borderRadius.sm }}
+          />
           <div style={{ marginLeft: 'auto' }}>
             <Button type="default" icon={<SyncOutlined />} data-tour-id={ONBOARDING_TARGETS.CAMPAIGNS_REFRESH} style={{ borderRadius: borderRadius.sm }}>
               Обновить все РК
