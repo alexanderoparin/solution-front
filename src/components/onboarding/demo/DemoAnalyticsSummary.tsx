@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button, Checkbox, DatePicker, Input, Popover, Tooltip } from 'antd'
 import {
   CaretDownOutlined,
@@ -11,6 +12,7 @@ import {
 import dayjs, { type Dayjs } from 'dayjs'
 import locale from 'antd/locale/ru_RU'
 import { ONBOARDING_TARGETS } from '../../../onboarding/targets'
+import { onboardingDemoArticlePath } from '../../../onboarding/demoPaths'
 import { DEMO_ARTICLES } from '../../../onboarding/demoConstants'
 import { generateDefaultPeriods } from '../../../utils/periodGenerator'
 import type { Period } from '../../../types/analytics'
@@ -673,7 +675,7 @@ function MetricBlock({
               <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
                 <DemoPhotoPlaceholder width={100} height={100} />
                 <div style={{ minWidth: 0 }}>
-                  <span style={{ color: colors.primary, fontWeight: 500 }}>{article.nmId}</span>
+                  <Link to={onboardingDemoArticlePath(article.nmId)} style={{ color: colors.primary, fontWeight: 500, textDecoration: 'none' }}>{article.nmId}</Link>
                   <div
                     style={{
                       fontSize: typography.bodySmall.fontSize,

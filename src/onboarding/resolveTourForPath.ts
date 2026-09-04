@@ -17,6 +17,9 @@ export function resolveOptionalTourIdForPath(pathname: string): OnboardingTourId
   if (pathname.startsWith('/analytics/products')) {
     return 'analyticsProducts'
   }
+  if (pathname.startsWith('/analytics/article/')) {
+    return 'analyticsArticle'
+  }
   if (pathname === '/analytics') {
     return 'analyticsSummary'
   }

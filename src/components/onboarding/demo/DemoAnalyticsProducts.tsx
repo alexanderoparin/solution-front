@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button, Checkbox, Input, Popover, Tooltip } from 'antd'
 import {
   CaretDownOutlined,
@@ -11,6 +12,7 @@ import {
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { ONBOARDING_TARGETS } from '../../../onboarding/targets'
+import { onboardingDemoArticlePath } from '../../../onboarding/demoPaths'
 import { DEMO_ARTICLES, type DemoArticle } from '../../../onboarding/demoConstants'
 import { DemoPhotoPlaceholder } from './DemoPhotoPlaceholder'
 import {
@@ -526,27 +528,29 @@ export default function DemoAnalyticsProducts() {
                         verticalAlign: 'top',
                       }}
                     >
-                      <span
+                      <Link
+                        to={onboardingDemoArticlePath(article.nmId)}
                         style={{
                           fontWeight: 700,
                           fontSize: 13,
                           color: colors.textPrimary,
                           marginBottom: 4,
                           display: 'inline-block',
+                          textDecoration: 'none',
                         }}
                       >
                         {article.title}
-                      </span>
+                      </Link>
                       <div style={{ color: colors.textSecondary, marginBottom: 2 }}>
                         {[article.subjectName, article.brand].filter(Boolean).join(' · ')}
                       </div>
                       <div style={{ color: colors.textSecondary, marginBottom: 2 }}>
                         Артикул WB:{' '}
-                        <span className="demo-products-table-link">{article.nmId}</span>
+                        <Link to={onboardingDemoArticlePath(article.nmId)} className="demo-products-table-link">{article.nmId}</Link>
                       </div>
                       <div style={{ color: colors.textSecondary, marginBottom: 4 }}>
                         Артикул продавца:{' '}
-                        <span className="demo-products-table-link">{article.vendorCode}</span>
+                        <Link to={onboardingDemoArticlePath(article.nmId)} className="demo-products-table-link">{article.vendorCode}</Link>
                       </div>
                     </td>
                     <td style={{ padding: '6px 6px', borderBottom: cellBorder, borderRight: cellBorder, textAlign: 'center', verticalAlign: 'top' }}>

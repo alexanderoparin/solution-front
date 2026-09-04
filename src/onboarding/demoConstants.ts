@@ -273,16 +273,28 @@ export const DEMO_ARTICLES: readonly DemoArticle[] = [
 ]
 
 export const DEMO_WAREHOUSES = [
-  { warehouseName: 'Коледино', amount: 142 },
-  { warehouseName: 'Казань', amount: 38 },
-  { warehouseName: 'Электросталь', amount: 21 },
+  { warehouseName: 'Коледино', amount: 96 },
+  { warehouseName: 'Рязань (Пожинки)', amount: 48 },
+  { warehouseName: 'Казань', amount: 28 },
+  { warehouseName: 'Электросталь', amount: 18 },
+  { warehouseName: 'Тула', amount: 11 },
 ] as const
 
 export const DEMO_WAREHOUSE_SIZES: Record<string, { techSize: string; amount: number }[]> = {
   Коледино: [
-    { techSize: 'S', amount: 28 },
-    { techSize: 'M', amount: 64 },
-    { techSize: 'L', amount: 50 },
+    { techSize: 'S', amount: 18 },
+    { techSize: 'M', amount: 42 },
+    { techSize: 'L', amount: 26 },
+    { techSize: 'XL', amount: 10 },
+  ],
+  'Рязань (Пожинки)': [
+    { techSize: 'S', amount: 8 },
+    { techSize: 'M', amount: 22 },
+    { techSize: 'L', amount: 18 },
+  ],
+  Казань: [
+    { techSize: 'M', amount: 16 },
+    { techSize: 'L', amount: 12 },
   ],
 }
 

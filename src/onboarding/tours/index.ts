@@ -1,5 +1,6 @@
 import { profileTour } from './profileTour'
 import { analyticsProductsTour } from './analyticsProductsTour'
+import { analyticsArticleTour } from './analyticsArticleTour'
 import { analyticsSummaryTour } from './analyticsSummaryTour'
 import { advertisingCampaignsTour } from './advertisingCampaignsTour'
 import { advertisingCampaignDetailTour } from './advertisingCampaignDetailTour'
@@ -12,6 +13,7 @@ import type { OnboardingTourDefinition, OnboardingTourId } from '../types'
 export const ONBOARDING_TOURS: Record<OnboardingTourId, OnboardingTourDefinition> = {
   profile: profileTour,
   analyticsProducts: analyticsProductsTour,
+  analyticsArticle: analyticsArticleTour,
   analyticsSummary: analyticsSummaryTour,
   advertisingCampaigns: advertisingCampaignsTour,
   advertisingCampaignDetail: advertisingCampaignDetailTour,

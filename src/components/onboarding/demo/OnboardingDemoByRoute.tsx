@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom'
 import DemoAnalyticsSummary from './DemoAnalyticsSummary'
 import DemoAnalyticsProducts from './DemoAnalyticsProducts'
+import DemoAnalyticsArticle from './DemoAnalyticsArticle'
 import DemoAdvertisingCampaigns from './DemoAdvertisingCampaigns'
 import DemoAdvertisingCampaignDetail from './DemoAdvertisingCampaignDetail'
 import DemoAdvertisingCampaignManage from './DemoAdvertisingCampaignManage'
@@ -21,12 +22,7 @@ export default function OnboardingDemoByRoute() {
     return <DemoAnalyticsProducts />
   }
   if (pathname.startsWith('/analytics/article/')) {
-    return (
-      <DemoGenericPlaceholder
-        title="Карточка товара"
-        description="После добавления кабинета здесь откроется подробная аналитика по артикулу."
-      />
-    )
+    return <DemoAnalyticsArticle />
   }
   if (pathname === '/advertising/campaigns') {
     return <DemoAdvertisingCampaigns />

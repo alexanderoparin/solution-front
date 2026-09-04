@@ -12,6 +12,22 @@ export const ONBOARDING_TARGETS = {
   PRODUCTS_ORDERS_BY_DAY: 'onboarding-products-orders-by-day',
   /** Колонка «Динамика» */
   PRODUCTS_DYNAMICS: 'onboarding-products-dynamics',
+  /** Шапка карточки товара (фото и название) */
+  ARTICLE_HEADER: 'onboarding-article-header',
+  /** Чекбоксы показателей на карточке товара */
+  ARTICLE_METRICS: 'onboarding-article-metrics',
+  /** Переключатель «График» */
+  ARTICLE_CHART: 'onboarding-article-chart',
+  /** Кнопка «Выгрузить» */
+  ARTICLE_EXPORT: 'onboarding-article-export',
+  /** DatePicker сравнения периодов */
+  ARTICLE_COMPARE: 'onboarding-article-compare',
+  /** Переключатель FBO / FBS на карточке товара */
+  ARTICLE_STOCK_FULFILLMENT: 'onboarding-article-stock-fulfillment',
+  /** Раскрытие склада по размерам */
+  ARTICLE_STOCK_EXPAND: 'onboarding-article-stock-expand',
+  /** Список РК на карточке товара */
+  ARTICLE_CAMPAIGNS: 'onboarding-article-campaigns',
   /** Кнопка «Фильтр» на /analytics (Сводная) */
   SUMMARY_FILTER: 'onboarding-summary-filter',
   /** Кнопка «+» — добавить период */

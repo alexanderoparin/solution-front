@@ -1,6 +1,7 @@
 export const ONBOARDING_TOUR_IDS = [
   'profile',
   'analyticsProducts',
+  'analyticsArticle',
   'analyticsSummary',
   'advertisingCampaigns',
   'advertisingCampaignDetail',
