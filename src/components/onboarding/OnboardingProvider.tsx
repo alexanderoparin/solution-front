@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { getStoredCabinetId, subscribeStoredCabinetId } from '../../api/cabinets'
+import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../../api/user'
 import {
   consumePendingTour,
   isOnboardingDemoMode,
@@ -51,7 +53,8 @@ function isBlockingModalOpen(): boolean {
 
 /**
  * Глобальный слой обучалки: активный тур, подсказка после «пропустить», автозапуск
- * при первом визите страницы в текущем кабинете, на учебной витрине и в профиле без кабинета.
+ * при первом визите страницы в текущем кабинете, на учебной витрине и в профиле
+ * (профиль — только после подтверждения почты).
  */
 export default function OnboardingProvider() {
   const location = useLocation()
@@ -59,7 +62,15 @@ export default function OnboardingProvider() {
   const [searchParams, setSearchParams] = useSearchParams()
   const startTour = useOnboardingStore((s) => s.startTour)
   const cancelTour = useOnboardingStore((s) => s.cancelTour)
+  const token = useAuthStore((s) => s.token)
   const role = useAuthStore((s) => s.role)
+  const { data: access } = useQuery({
+    queryKey: ACCESS_STATUS_QUERY_KEY,
+    queryFn: () => userApi.getAccessStatus(),
+    enabled: Boolean(token) && role !== 'ADMIN',
+    staleTime: ACCESS_STATUS_STALE_MS,
+  })
+  const emailConfirmed = access?.emailConfirmed === true
   const [cabinetId, setCabinetId] = useState<number | null>(() => getStoredCabinetId())
   const [demoMode, setDemoMode] = useState(() => isOnboardingDemoMode())
   const previousCabinetIdRef = useRef(cabinetId)
@@ -118,7 +129,11 @@ export default function OnboardingProvider() {
     if (tourId == null) {
       return
     }
-    // Профиль доступен без кабинета; аналитика и реклама — только с кабинетом или на учебной витрине.
+    // Профиль — после подтверждения почты, даже без кабинета.
+    // Аналитика и реклама — только с кабинетом или на учебной витрине.
+    if (tourId === 'profile' && !emailConfirmed) {
+      return
+    }
     if (!demoMode && cabinetId == null && tourId !== 'profile') {
       return
     }
@@ -163,7 +178,7 @@ export default function OnboardingProvider() {
       cancelled = true
       window.clearTimeout(timeoutId)
     }
-  }, [location.pathname, autoStartKey, demoMode, role, startTour, searchParams])
+  }, [location.pathname, autoStartKey, demoMode, emailConfirmed, role, startTour, searchParams])
 
   return (
     <>
