@@ -26,6 +26,12 @@ const accent = '#7C3AED'
 const border = '#E2E8F0'
 const textMuted = '#64748B'
 
+/** Услуги, входящие в PRO по промокоду, пока нет кабинета и cabinet-billing. */
+const PROMO_INCLUDED_SERVICES: CabinetBillingServiceStatusDto[] = [
+  { serviceCode: 'CAMPAIGN_MANAGE', name: 'Управление РК', connected: true, status: 'INCLUDED' },
+  { serviceCode: 'AB_TESTS', name: 'А/Б тесты', connected: true, status: 'INCLUDED' },
+]
+
 interface SubscriptionCardProps {
   subscription: ProfileSubscriptionSummary | null | undefined
 }
@@ -43,7 +49,7 @@ function serviceIcon(serviceCode: string) {
 }
 
 /**
- * Блок подписки в профиле: основной тариф кабинета и дополнительные услуги.
+ * Блок подписки в профиле: основной тариф (в т.ч. промокод без кабинета) и дополнительные услуги.
  */
 export default function SubscriptionCard({ subscription }: SubscriptionCardProps) {
   const navigate = useNavigate()
@@ -122,6 +128,11 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
   }
 
   const loading = cabinetsLoading || (cabinetId != null && billingPending)
+  const showSubscriptionDetails = billing != null || profilePromoActive
+  const services = billing?.services?.length
+    ? billing.services
+    : (onPro ? PROMO_INCLUDED_SERVICES : [])
+  const canManageBilling = Boolean(billing?.canManageBilling)
 
   return (
     <>
@@ -163,7 +174,7 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
           <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
             <Spin />
           </div>
-        ) : cabinetId == null || !billing ? (
+        ) : !showSubscriptionDetails ? (
           <Text type="secondary">Сначала создайте кабинет, чтобы управлять тарифами и услугами.</Text>
         ) : (
           <>
@@ -295,7 +306,7 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
                   Дополнительные услуги
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {(billing.services ?? []).map((svc) => {
+                  {services.map((svc) => {
                     const connected = onPro || svc.connected
                     return (
                       <div
@@ -338,7 +349,7 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
                         >
                           {onPro ? 'В PRO' : connected ? 'Подключен' : 'Не подключен'}
                         </span>
-                        {billing.canManageBilling ? (
+                        {canManageBilling ? (
                           <Button
                             size="small"
                             disabled={onPro}
@@ -368,6 +379,7 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
               }
             `}</style>
 
+            {cabinetId != null ? (
             <Button
               block
               size="large"
@@ -394,6 +406,11 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
                 <ArrowRightOutlined />
               </span>
             </Button>
+            ) : (
+              <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.45 }}>
+                Чтобы оформлять тарифы на кабинет, сначала добавьте кабинет.
+              </Text>
+            )}
           </>
         )}
       </Card>

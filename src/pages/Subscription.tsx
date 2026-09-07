@@ -6,7 +6,7 @@ import { BarChartOutlined, ExperimentOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { subscriptionApi } from '../api/subscription'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
-import type { CabinetBillingServiceStatusDto, CabinetDto, PaymentDto, PlanDto } from '../types/api'
+import type { CabinetBillingServiceStatusDto, CabinetDto, PaymentDto, PlanDto, UserProfileResponse } from '../types/api'
 import { getPaymentStatusLabel, getPaymentStatusColor } from '../utils/paymentStatus'
 import { useCampaignManageSubscriptionUi } from '../store/campaignManageSubscriptionUi'
 import Header from '../components/Header'
@@ -59,6 +59,15 @@ export default function Subscription() {
   const [abPacksOpen, setAbPacksOpen] = useState(false)
   const [cabinetId, setCabinetId] = useState<number | null>(() => getStoredCabinetId())
   const [payingPlanId, setPayingPlanId] = useState<number | null>(null)
+
+  const { data: profile } = useQuery<UserProfileResponse>({
+    queryKey: ['userProfile'],
+    queryFn: () => userApi.getProfile(),
+  })
+
+  const profilePromo = profile?.subscription
+  const profilePromoActive = Boolean(profilePromo?.promoCode)
+    || (profilePromo?.planCode === 'pro_month' && Boolean(profilePromo?.active) && Boolean(profilePromo?.expiresAt))
 
   const { data: cabinets = [], isLoading: cabinetsLoading } = useQuery<CabinetDto[]>({
     queryKey: ['myCabinets'],
@@ -246,7 +255,30 @@ export default function Subscription() {
 
           {effectiveCabinetId == null ? (
             <Card>
-              <Typography.Text type="secondary">Сначала создайте кабинет.</Typography.Text>
+              {profilePromoActive && profilePromo ? (
+                <>
+                  <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
+                    {profilePromo.planName}
+                  </Typography.Title>
+                  <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                    {profilePromo.freePlanHint
+                      ?? 'Полный доступ по промокоду: все разделы сервиса, Управление РК и А/Б тесты без ограничений.'}
+                  </Typography.Paragraph>
+                  <Typography.Paragraph style={{ marginBottom: 16 }}>
+                    Действует до{' '}
+                    <Typography.Text strong>
+                      {profilePromo.expiresAt
+                        ? dayjs(profilePromo.expiresAt).format('DD.MM.YYYY HH:mm')
+                        : 'бессрочно'}
+                    </Typography.Text>
+                  </Typography.Paragraph>
+                  <Typography.Text type="secondary">
+                    Чтобы оформлять тарифы на кабинет, сначала добавьте кабинет.
+                  </Typography.Text>
+                </>
+              ) : (
+                <Typography.Text type="secondary">Сначала создайте кабинет.</Typography.Text>
+              )}
               <div style={{ marginTop: 12 }}>
                 <Button type="primary" onClick={() => navigate('/profile')} style={{ background: accent, borderColor: accent }}>
                   К профилю
