@@ -31,15 +31,17 @@ export default function ConfirmEmail() {
         /* ignore */
       }
       try {
-        await queryClient.prefetchQuery({
+        await queryClient.invalidateQueries({ queryKey: ACCESS_STATUS_QUERY_KEY })
+        await queryClient.fetchQuery({
           queryKey: ACCESS_STATUS_QUERY_KEY,
           queryFn: () => userApi.getAccessStatus(),
           staleTime: ACCESS_STATUS_STALE_MS,
         })
       } catch {
-        /* AccessGuard повторит */
+        /* AccessGuard / OnboardingProvider повторят */
       }
       void queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+      void queryClient.invalidateQueries({ queryKey: ['cabinetsOverview'] })
       navigate(PROFILE_AFTER_CONFIRM, { replace: true })
     },
     onError: (error: unknown) => {

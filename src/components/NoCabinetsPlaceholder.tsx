@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button, Typography, message } from 'antd'
 import { PlusOutlined, AppstoreOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import { cabinetsApi, setStoredCabinetId } from '../api/cabinets'
 import type { CreateCabinetRequest } from '../types/api'
 import { getRequestFailureDescription } from '../utils/requestError'
@@ -28,10 +29,14 @@ export default function NoCabinetsPlaceholder({
 }: NoCabinetsPlaceholderProps) {
   const queryClient = useQueryClient()
   const [internalModalOpen, setInternalModalOpen] = useState(false)
+  const [requireWbName, setRequireWbName] = useState(false)
 
   const modalOpen = addModalOpen ?? internalModalOpen
 
   const setModalOpen = (open: boolean) => {
+    if (!open) {
+      setRequireWbName(false)
+    }
     if (onAddModalOpenChange) {
       onAddModalOpenChange(open)
     } else {
@@ -52,6 +57,10 @@ export default function NoCabinetsPlaceholder({
       onCreated?.()
     },
     onError: (err: unknown) => {
+      const status = (err as AxiosError).response?.status
+      if (status === 429) {
+        setRequireWbName(true)
+      }
       message.error(getRequestFailureDescription(err))
     },
   })
@@ -99,6 +108,7 @@ export default function NoCabinetsPlaceholder({
         <AddCabinetModal
           open={modalOpen}
           loading={createMutation.isPending}
+          requireWbName={requireWbName}
           onCancel={() => setModalOpen(false)}
           onSubmit={(values: CreateCabinetRequest) => createMutation.mutate(values)}
         />

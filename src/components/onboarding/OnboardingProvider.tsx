@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, subscribeStoredCabinetId } from '../../api/cabinets'
+import { EMAIL_CONFIRMED_MODAL_KEY } from '../../constants/emailConfirmStorage'
 import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../../api/user'
 import {
   consumePendingTour,
@@ -22,6 +23,17 @@ import OnboardingTour from './OnboardingTour'
 const AUTO_START_INITIAL_DELAY_MS = 400
 const AUTO_START_RETRY_MS = 300
 const AUTO_START_GIVE_UP_MS = 15000
+
+function peekEmailJustConfirmed(searchParams: URLSearchParams): boolean {
+  if (searchParams.get('emailConfirmed') === '1') {
+    return true
+  }
+  try {
+    return sessionStorage.getItem(EMAIL_CONFIRMED_MODAL_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 function parseTourParam(value: string | null): OnboardingTourId | null {
   return isOnboardingTourId(value) ? value : null
@@ -71,7 +83,22 @@ export default function OnboardingProvider() {
     enabled: Boolean(token) && role !== 'ADMIN',
     staleTime: ACCESS_STATUS_STALE_MS,
   })
-  const emailConfirmed = access?.emailConfirmed === true
+  const { data: profile } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: () => userApi.getProfile(),
+    enabled: Boolean(token) && role !== 'ADMIN',
+  })
+  const [emailJustConfirmed, setEmailJustConfirmed] = useState(false)
+  const emailConfirmed =
+    access?.emailConfirmed === true
+    || profile?.emailConfirmed === true
+    || emailJustConfirmed
+
+  useEffect(() => {
+    if (peekEmailJustConfirmed(searchParams)) {
+      setEmailJustConfirmed(true)
+    }
+  }, [searchParams])
   const { data: overview, isFetched: overviewFetched } = useQuery({
     queryKey: ['cabinetsOverview'],
     queryFn: () => cabinetsApi.getOverview(),

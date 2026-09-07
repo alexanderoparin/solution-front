@@ -14,7 +14,7 @@ import 'dayjs/locale/ru'
 import Header from '../../components/Header'
 import Breadcrumbs from '../../components/Breadcrumbs'
 import UsersManagementSection from '../../components/UsersManagementSection'
-import { userApi } from '../../api/user'
+import { ACCESS_STATUS_QUERY_KEY, userApi } from '../../api/user'
 import { adminApi } from '../../api/admin'
 import type { CreateDeletionRequestRequest, UpdateProfileRequest, UserProfileResponse } from '../../types/api'
 import { getRequestFailureDescription } from '../../utils/requestError'
@@ -353,11 +353,13 @@ export default function ProfilePage() {
         onAccepted={() => {
           setEmailConfirmedOpen(false)
           void queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+          void queryClient.invalidateQueries({ queryKey: ACCESS_STATUS_QUERY_KEY })
         }}
         onAddCabinet={() => {
           setEmailConfirmedOpen(false)
           setAddCabinetOpen(true)
           void queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+          void queryClient.invalidateQueries({ queryKey: ACCESS_STATUS_QUERY_KEY })
         }}
       />
 

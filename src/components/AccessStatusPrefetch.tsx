@@ -19,7 +19,8 @@ export default function AccessStatusPrefetch() {
   useEffect(() => {
     if (!token) return
 
-    void queryClient.prefetchQuery({
+    void queryClient.invalidateQueries({ queryKey: ACCESS_STATUS_QUERY_KEY })
+    void queryClient.fetchQuery({
       queryKey: ACCESS_STATUS_QUERY_KEY,
       queryFn: () => userApi.getAccessStatus(),
       staleTime: ACCESS_STATUS_STALE_MS,

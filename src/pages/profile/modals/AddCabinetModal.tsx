@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Modal, Form, Input, Select, Button, Typography, Space } from 'antd'
+import { useEffect, useState } from 'react'
+import { Modal, Form, Input, Select, Button, Typography, Space, Alert } from 'antd'
 import { KeyOutlined } from '@ant-design/icons'
 import type { CabinetTokenType, CreateCabinetRequest, MarketplaceType } from '../../../types/api'
 import TokenCreationGuideModal from './TokenCreationGuideModal'
@@ -19,6 +19,8 @@ const OZON_HINT =
 interface AddCabinetModalProps {
   open: boolean
   loading: boolean
+  /** После 429 WB: название обязательно, токен сохраняем без проверки. */
+  requireWbName?: boolean
   onCancel: () => void
   onSubmit: (values: CreateCabinetRequest) => void
 }
@@ -31,11 +33,23 @@ type FormValues = {
   ozonClientId?: string
 }
 
-export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: AddCabinetModalProps) {
+export default function AddCabinetModal({
+  open,
+  loading,
+  requireWbName = false,
+  onCancel,
+  onSubmit,
+}: AddCabinetModalProps) {
   const [form] = Form.useForm<FormValues>()
   const [guideOpen, setGuideOpen] = useState(false)
   const marketplaceType = Form.useWatch('marketplaceType', form) ?? 'WB'
   const isOzon = marketplaceType === 'OZON'
+
+  useEffect(() => {
+    if (requireWbName && !isOzon) {
+      void form.validateFields(['name']).catch(() => undefined)
+    }
+  }, [requireWbName, isOzon, form])
 
   const handleCancel = () => {
     setGuideOpen(false)
@@ -67,8 +81,19 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
       <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
         {isOzon
           ? 'Создайте кабинет Ozon. После создания автоматически запустится обновление каталога.'
-          : 'Укажите API-токен WB и его тип. Если не ввести название кабинета, оно подставится из ответа WB. После создания автоматически запустится обновление данных.'}
+          : requireWbName
+            ? 'Укажите название кабинета — сохраним токен без запроса к WB. Проверка подключения выполнится позже, когда снимутся лимиты API.'
+            : 'Укажите API-токен WB и его тип. Если не ввести название кабинета, оно подставится из ответа WB. После создания автоматически запустится обновление данных.'}
       </Text>
+      {requireWbName && !isOzon ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="Лимит запросов к WB API"
+          description="Название кабинета сейчас обязательно. Токен сохраним без проверки seller-info."
+        />
+      ) : null}
       <Form
         form={form}
         layout="vertical"
@@ -255,9 +280,17 @@ export default function AddCabinetModal({ open, loading, onCancel, onSubmit }: A
               />
             </Form.Item>
 
-            <Form.Item name="name" label="Название кабинета">
+            <Form.Item
+              name="name"
+              label="Название кабинета"
+              rules={
+                requireWbName
+                  ? [{ required: true, whitespace: true, message: 'Укажите название кабинета' }]
+                  : undefined
+              }
+            >
               <Input
-                placeholder="Необязательно — подставится из WB"
+                placeholder={requireWbName ? 'Обязательно — WB не отдал название из‑за лимита' : 'Необязательно — подставится из WB'}
                 autoComplete="off"
                 name="wb-cabinet-display-name"
                 data-form-type="other"
