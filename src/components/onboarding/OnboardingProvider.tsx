@@ -33,9 +33,25 @@ function canAutoStartNow(tourId: OnboardingTourId, scope: string): boolean {
   return !isTourFinished(tourId, scope)
 }
 
+/** Не стартовать тур поверх модалки («Принято», добавить кабинет и т.п.). */
+function isBlockingModalOpen(): boolean {
+  const wraps = document.querySelectorAll('.ant-modal-wrap')
+  for (let i = 0; i < wraps.length; i += 1) {
+    const wrap = wraps[i]
+    if (!(wrap instanceof HTMLElement)) {
+      continue
+    }
+    const style = window.getComputedStyle(wrap)
+    if (style.display !== 'none' && style.visibility !== 'hidden') {
+      return true
+    }
+  }
+  return false
+}
+
 /**
  * Глобальный слой обучалки: активный тур, подсказка после «пропустить», автозапуск
- * при первом визите страницы в текущем кабинете (и на учебной витрине).
+ * при первом визите страницы в текущем кабинете, на учебной витрине и в профиле без кабинета.
  */
 export default function OnboardingProvider() {
   const location = useLocation()
@@ -102,7 +118,8 @@ export default function OnboardingProvider() {
     if (tourId == null) {
       return
     }
-    if (!demoMode && cabinetId == null) {
+    // Профиль доступен без кабинета; аналитика и реклама — только с кабинетом или на учебной витрине.
+    if (!demoMode && cabinetId == null && tourId !== 'profile') {
       return
     }
     const scope = resolveOnboardingScope(cabinetId)
@@ -112,7 +129,7 @@ export default function OnboardingProvider() {
 
     let cancelled = false
     let timeoutId = 0
-    const startedAt = Date.now()
+    let waitStartedAt: number | null = null
 
     const tryStart = () => {
       if (cancelled) {
@@ -122,9 +139,17 @@ export default function OnboardingProvider() {
       if (!canAutoStartNow(tourId, currentScope)) {
         return
       }
+      if (isBlockingModalOpen()) {
+        waitStartedAt = null
+        timeoutId = window.setTimeout(tryStart, AUTO_START_RETRY_MS)
+        return
+      }
+      if (waitStartedAt == null) {
+        waitStartedAt = Date.now()
+      }
       const firstStep = getTour(tourId).steps[0]
       const hasTarget = firstStep != null && resolveTourTargetElements(firstStep).length > 0
-      if (hasTarget || Date.now() - startedAt >= AUTO_START_GIVE_UP_MS) {
+      if (hasTarget || Date.now() - waitStartedAt >= AUTO_START_GIVE_UP_MS) {
         if (hasTarget) {
           startTour(tourId)
         }

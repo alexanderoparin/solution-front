@@ -264,7 +264,7 @@ export default function Subscription() {
                     {profilePromo.freePlanHint
                       ?? 'Полный доступ по промокоду: все разделы сервиса, Управление РК и А/Б тесты без ограничений.'}
                   </Typography.Paragraph>
-                  <Typography.Paragraph style={{ marginBottom: 16 }}>
+                  <Typography.Paragraph style={{ marginBottom: 0 }}>
                     Действует до{' '}
                     <Typography.Text strong>
                       {profilePromo.expiresAt
@@ -272,9 +272,6 @@ export default function Subscription() {
                         : 'бессрочно'}
                     </Typography.Text>
                   </Typography.Paragraph>
-                  <Typography.Text type="secondary">
-                    Чтобы оформлять тарифы на кабинет, сначала добавьте кабинет.
-                  </Typography.Text>
                 </>
               ) : (
                 <Typography.Text type="secondary">Сначала создайте кабинет.</Typography.Text>

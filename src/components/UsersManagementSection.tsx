@@ -79,6 +79,9 @@ const DEFAULT_USER_SORT_DIR = SORT_DIRECTIONS.DESC
 const DEFAULT_CABINET_SORT_BY = CABINET_SORT_FIELDS.CABINET_ID
 const DEFAULT_CABINET_SORT_DIR = SORT_DIRECTIONS.DESC
 
+/** Только asc ↔ desc: иначе при дефолтном DESC клик «отменить сортировку» снова ставит DESC и колонка зависает. */
+const SORT_CYCLE_WITHOUT_CANCEL: SortOrder[] = ['ascend', 'descend', 'ascend']
+
 const isUserSortField = (field: string): field is UserSortField =>
   (Object.values(USER_SORT_FIELDS) as string[]).includes(field)
 
@@ -288,6 +291,7 @@ export default function UsersManagementSection({
         width: 68,
         align: 'right',
         sorter: true,
+        sortDirections: SORT_CYCLE_WITHOUT_CANCEL,
         sortOrder:
           cabinetSortBy === CABINET_SORT_FIELDS.CABINET_ID
             ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
@@ -301,6 +305,7 @@ export default function UsersManagementSection({
         ellipsis: true,
         align: 'left',
         sorter: true,
+        sortDirections: SORT_CYCLE_WITHOUT_CANCEL,
         sortOrder:
           cabinetSortBy === CABINET_SORT_FIELDS.CABINET_NAME
             ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
@@ -320,6 +325,7 @@ export default function UsersManagementSection({
         ellipsis: true,
         align: 'left',
         sorter: true,
+        sortDirections: SORT_CYCLE_WITHOUT_CANCEL,
         sortOrder:
           cabinetSortBy === CABINET_SORT_FIELDS.SELLER_EMAIL
             ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
@@ -366,6 +372,7 @@ export default function UsersManagementSection({
         width: 156,
         align: 'left',
         sorter: true,
+        sortDirections: SORT_CYCLE_WITHOUT_CANCEL,
         sortOrder:
           cabinetSortBy === CABINET_SORT_FIELDS.LAST_DATA_UPDATE_AT
             ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
@@ -378,6 +385,7 @@ export default function UsersManagementSection({
         width: 156,
         align: 'left',
         sorter: true,
+        sortDirections: SORT_CYCLE_WITHOUT_CANCEL,
         sortOrder:
           cabinetSortBy === CABINET_SORT_FIELDS.LAST_STOCKS_UPDATE_AT
             ? ((cabinetSortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder)
@@ -530,7 +538,7 @@ export default function UsersManagementSection({
       width: 80,
       align: 'right' as const,
       sorter: true,
-      sortDirections: ['ascend', 'descend'] as SortOrder[],
+      sortDirections: SORT_CYCLE_WITHOUT_CANCEL,
       sortOrder: sortBy === USER_SORT_FIELDS.ID
         ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
         : null,
@@ -540,6 +548,7 @@ export default function UsersManagementSection({
       dataIndex: 'email',
       key: 'email',
       sorter: true,
+      sortDirections: SORT_CYCLE_WITHOUT_CANCEL,
       sortOrder: sortBy === USER_SORT_FIELDS.EMAIL
         ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
         : null,
@@ -581,6 +590,7 @@ export default function UsersManagementSection({
         </Tag>
       ),
       sorter: true,
+      sortDirections: SORT_CYCLE_WITHOUT_CANCEL,
       sortOrder: sortBy === USER_SORT_FIELDS.IS_ACTIVE
         ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
         : null,
@@ -591,6 +601,7 @@ export default function UsersManagementSection({
       key: 'createdAt',
       render: (date: string) => dayjs(date).format('DD.MM.YYYY HH:mm'),
       sorter: true,
+      sortDirections: SORT_CYCLE_WITHOUT_CANCEL,
       sortOrder: sortBy === USER_SORT_FIELDS.CREATED_AT
         ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
         : null,
@@ -825,6 +836,11 @@ export default function UsersManagementSection({
             const order = resolvedSorter?.order
 
             if (!order) {
+              const field = (resolvedSorter?.field ?? resolvedSorter?.columnKey) as string | undefined
+              if (field && isCabinetSortField(field) && field === cabinetSortBy) {
+                setCabinetSortDir(cabinetSortDir === SORT_DIRECTIONS.DESC ? SORT_DIRECTIONS.ASC : SORT_DIRECTIONS.DESC)
+                return
+              }
               setCabinetSortBy(DEFAULT_CABINET_SORT_BY)
               setCabinetSortDir(DEFAULT_CABINET_SORT_DIR)
               return
@@ -883,6 +899,11 @@ export default function UsersManagementSection({
           const order = resolvedSorter?.order
 
           if (!order) {
+            const field = (resolvedSorter?.field ?? resolvedSorter?.columnKey) as string | undefined
+            if (field && isUserSortField(field) && field === sortBy) {
+              setSortDir(sortDir === SORT_DIRECTIONS.DESC ? SORT_DIRECTIONS.ASC : SORT_DIRECTIONS.DESC)
+              return
+            }
             setSortBy(DEFAULT_USER_SORT_BY)
             setSortDir(DEFAULT_USER_SORT_DIR)
             return

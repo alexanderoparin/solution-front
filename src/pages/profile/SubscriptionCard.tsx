@@ -380,37 +380,33 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
             `}</style>
 
             {cabinetId != null ? (
-            <Button
-              block
-              size="large"
-              onClick={() => navigate('/subscription')}
-              style={{
-                height: 48,
-                borderRadius: 12,
-                borderColor: accent,
-                color: accent,
-                fontWeight: 600,
-                paddingInline: 16,
-              }}
-            >
-              <span
+              <Button
+                block
+                size="large"
+                onClick={() => navigate('/subscription')}
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 10,
+                  height: 48,
+                  borderRadius: 12,
+                  borderColor: accent,
+                  color: accent,
+                  fontWeight: 600,
+                  paddingInline: 16,
                 }}
               >
-                <CreditCardOutlined />
-                Управление подпиской
-                <ArrowRightOutlined />
-              </span>
-            </Button>
-            ) : (
-              <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.45 }}>
-                Чтобы оформлять тарифы на кабинет, сначала добавьте кабинет.
-              </Text>
-            )}
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                  }}
+                >
+                  <CreditCardOutlined />
+                  Управление подпиской
+                  <ArrowRightOutlined />
+                </span>
+              </Button>
+            ) : null}
           </>
         )}
       </Card>
