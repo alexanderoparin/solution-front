@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { getStoredCabinetId, subscribeStoredCabinetId } from '../../api/cabinets'
+import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, subscribeStoredCabinetId } from '../../api/cabinets'
 import { ACCESS_STATUS_QUERY_KEY, ACCESS_STATUS_STALE_MS, userApi } from '../../api/user'
 import {
   consumePendingTour,
@@ -64,6 +64,7 @@ export default function OnboardingProvider() {
   const cancelTour = useOnboardingStore((s) => s.cancelTour)
   const token = useAuthStore((s) => s.token)
   const role = useAuthStore((s) => s.role)
+  const userId = useAuthStore((s) => s.userId)
   const { data: access } = useQuery({
     queryKey: ACCESS_STATUS_QUERY_KEY,
     queryFn: () => userApi.getAccessStatus(),
@@ -71,24 +72,55 @@ export default function OnboardingProvider() {
     staleTime: ACCESS_STATUS_STALE_MS,
   })
   const emailConfirmed = access?.emailConfirmed === true
+  const { data: overview, isFetched: overviewFetched } = useQuery({
+    queryKey: ['cabinetsOverview'],
+    queryFn: () => cabinetsApi.getOverview(),
+    enabled: Boolean(token) && role !== 'ADMIN' && emailConfirmed,
+    staleTime: 30_000,
+  })
   const [cabinetId, setCabinetId] = useState<number | null>(() => getStoredCabinetId())
   const [demoMode, setDemoMode] = useState(() => isOnboardingDemoMode())
-  const previousCabinetIdRef = useRef(cabinetId)
+  const accessibleCabinetIds = useMemo(
+    () => [
+      ...(overview?.owned ?? []).map((row) => row.id),
+      ...(overview?.granted ?? []).map((row) => row.id),
+    ],
+    [overview],
+  )
+  const effectiveCabinetId = useMemo(() => {
+    if (demoMode || !overviewFetched) {
+      return cabinetId
+    }
+    if (cabinetId != null && accessibleCabinetIds.includes(cabinetId)) {
+      return cabinetId
+    }
+    return accessibleCabinetIds[0] ?? null
+  }, [demoMode, overviewFetched, cabinetId, accessibleCabinetIds])
+  const previousCabinetIdRef = useRef(effectiveCabinetId)
 
   useEffect(() => subscribeStoredCabinetId(setCabinetId), [])
   useEffect(() => subscribeOnboardingDemoMode(setDemoMode), [])
 
   useEffect(() => {
+    if (demoMode || !overviewFetched || !emailConfirmed) {
+      return
+    }
+    if (cabinetId != null && !accessibleCabinetIds.includes(cabinetId)) {
+      setStoredCabinetId(null)
+    }
+  }, [demoMode, overviewFetched, emailConfirmed, cabinetId, accessibleCabinetIds])
+
+  useEffect(() => {
     if (demoMode) {
-      previousCabinetIdRef.current = cabinetId
+      previousCabinetIdRef.current = effectiveCabinetId
       return
     }
-    if (previousCabinetIdRef.current === cabinetId) {
+    if (previousCabinetIdRef.current === effectiveCabinetId) {
       return
     }
-    previousCabinetIdRef.current = cabinetId
+    previousCabinetIdRef.current = effectiveCabinetId
     cancelTour()
-  }, [cabinetId, demoMode, cancelTour])
+  }, [effectiveCabinetId, demoMode, cancelTour])
 
   useEffect(() => {
     const tourFromQuery = parseTourParam(searchParams.get('tour'))
@@ -98,7 +130,7 @@ export default function OnboardingProvider() {
       next.delete('tour')
       next.delete('force')
       setSearchParams(next, { replace: true })
-      const scope = resolveOnboardingScope(cabinetId)
+      const scope = resolveOnboardingScope(effectiveCabinetId, userId)
       if (force || !isTourFinished(tourFromQuery, scope)) {
         window.setTimeout(() => startTour(tourFromQuery), AUTO_START_INITIAL_DELAY_MS)
       }
@@ -106,7 +138,7 @@ export default function OnboardingProvider() {
     }
 
     const pending = consumePendingTour()
-    if (pending != null && !isTourFinished(pending, resolveOnboardingScope(cabinetId))) {
+    if (pending != null && !isTourFinished(pending, resolveOnboardingScope(effectiveCabinetId, userId))) {
       const tour = getTour(pending)
       if (!matchesTourPath(location.pathname, tour)) {
         navigate(`${tour.pathPrefix}?tour=${pending}`, { replace: true })
@@ -114,9 +146,9 @@ export default function OnboardingProvider() {
       }
       window.setTimeout(() => startTour(pending), AUTO_START_INITIAL_DELAY_MS)
     }
-  }, [location.pathname, navigate, searchParams, setSearchParams, startTour, cabinetId])
+  }, [location.pathname, navigate, searchParams, setSearchParams, startTour, effectiveCabinetId, userId])
 
-  const autoStartKey = demoMode ? 'demo' : String(cabinetId ?? '')
+  const autoStartKey = `${demoMode ? 'demo' : 'live'}:${userId ?? ''}:${effectiveCabinetId ?? ''}`
 
   useEffect(() => {
     if (role === 'ADMIN') {
@@ -134,10 +166,13 @@ export default function OnboardingProvider() {
     if (tourId === 'profile' && !emailConfirmed) {
       return
     }
-    if (!demoMode && cabinetId == null && tourId !== 'profile') {
+    if (tourId === 'profile' && !demoMode && !overviewFetched) {
       return
     }
-    const scope = resolveOnboardingScope(cabinetId)
+    if (!demoMode && effectiveCabinetId == null && tourId !== 'profile') {
+      return
+    }
+    const scope = resolveOnboardingScope(effectiveCabinetId, userId)
     if (!canAutoStartNow(tourId, scope)) {
       return
     }
@@ -150,7 +185,7 @@ export default function OnboardingProvider() {
       if (cancelled) {
         return
       }
-      const currentScope = resolveOnboardingScope(getStoredCabinetId())
+      const currentScope = resolveOnboardingScope(effectiveCabinetId, userId)
       if (!canAutoStartNow(tourId, currentScope)) {
         return
       }
@@ -178,7 +213,7 @@ export default function OnboardingProvider() {
       cancelled = true
       window.clearTimeout(timeoutId)
     }
-  }, [location.pathname, autoStartKey, demoMode, emailConfirmed, role, startTour, searchParams])
+  }, [location.pathname, autoStartKey, demoMode, emailConfirmed, overviewFetched, effectiveCabinetId, userId, role, startTour, searchParams])
 
   return (
     <>

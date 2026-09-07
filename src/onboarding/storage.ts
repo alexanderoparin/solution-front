@@ -1,4 +1,5 @@
-import { getStoredCabinetId } from '../api/cabinets'
+import { getStoredCabinetId } from '../api/cabinetSelection'
+import { useAuthStore } from '../store/authStore'
 import { isOnboardingTourId, type OnboardingTourId } from './types'
 
 const PREFIX = 'clicki.onboarding.'
@@ -52,18 +53,27 @@ export function subscribeOnboardingDemoMode(listener: (enabled: boolean) => void
   return () => window.removeEventListener(DEMO_MODE_EVENT, handler)
 }
 
+function currentUserId(): number | null {
+  return useAuthStore.getState().userId
+}
+
 /**
- * Ключ прогресса тура: отдельно для демо, для каждого кабинета и без кабинета.
+ * Ключ прогресса тура: пользователь + демо / кабинет / без кабинета.
+ * Другой аккаунт в том же браузере не наследует чужие completed/skipped.
  * Новый кабинет → туры этой страницы снова считаются непройденными.
  */
-export function resolveOnboardingScope(cabinetId: number | null = getStoredCabinetId()): string {
+export function resolveOnboardingScope(
+  cabinetId: number | null = getStoredCabinetId(),
+  userId: number | null = currentUserId(),
+): string {
+  const userPrefix = userId != null ? `user.${userId}.` : ''
   if (demoMode) {
-    return DEMO_SCOPE
+    return `${userPrefix}${DEMO_SCOPE}`
   }
   if (cabinetId != null) {
-    return `cabinet.${cabinetId}`
+    return `${userPrefix}cabinet.${cabinetId}`
   }
-  return GLOBAL_SCOPE
+  return `${userPrefix}${GLOBAL_SCOPE}`
 }
 
 export function isTourFinished(tourId: OnboardingTourId, scope: string = resolveOnboardingScope()): boolean {
