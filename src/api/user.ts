@@ -27,6 +27,7 @@ const USER_SORT_FIELD_TO_BACKEND: Record<UserSortField, string> = {
   isActive: 'IS_ACTIVE',
   ownerEmail: 'OWNER_EMAIL',
   createdAt: 'CREATED_AT',
+  lastSeenAt: 'LAST_SEEN_AT',
   lastDataUpdateAt: 'LAST_DATA_UPDATE_AT',
   lastDataUpdateRequestedAt: 'LAST_DATA_UPDATE_REQUESTED_AT',
 }
@@ -61,6 +62,12 @@ export const userApi = {
 
   createDeletionRequest: async (data: CreateDeletionRequestRequest): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>('/user/deletion-request', data)
+    return response.data
+  },
+
+  /** Сообщение о баге / предложение на корпоративную почту. */
+  submitBugReport: async (data: { message: string; pageUrl?: string }): Promise<MessageResponse> => {
+    const response = await apiClient.post<MessageResponse>('/feedback/bug-report', data)
     return response.data
   },
 

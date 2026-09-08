@@ -32,6 +32,12 @@ const PROMO_INCLUDED_SERVICES: CabinetBillingServiceStatusDto[] = [
   { serviceCode: 'AB_TESTS', name: 'А/Б тесты', connected: true, status: 'INCLUDED' },
 ]
 
+/** Доп. услуги на бесплатном доступе без кабинета — как после создания кабинета на FREE. */
+const DEFAULT_FREE_SERVICES: CabinetBillingServiceStatusDto[] = [
+  { serviceCode: 'CAMPAIGN_MANAGE', name: 'Управление РК', connected: false, status: 'NONE' },
+  { serviceCode: 'AB_TESTS', name: 'А/Б тесты', connected: false, status: 'NONE' },
+]
+
 interface SubscriptionCardProps {
   subscription: ProfileSubscriptionSummary | null | undefined
 }
@@ -97,7 +103,9 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
 
   const planName = isPromo
     ? (subscription?.planName ?? billing?.mainTariff?.name ?? 'PRO (промокод)')
-    : (billing?.mainTariff?.name ?? subscription?.planName ?? '—')
+    : (billing?.mainTariff?.name
+      ?? (subscription?.planCode === 'analytics_free' ? 'Бесплатный доступ' : subscription?.planName)
+      ?? 'Бесплатный доступ')
   const isActive = onPro || (billing != null
     ? !['NONE', 'EXPIRED', 'CANCELLED'].includes(String(billing.mainTariff.status ?? '').toUpperCase())
     : Boolean(subscription?.active))
@@ -128,10 +136,10 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
   }
 
   const loading = cabinetsLoading || (cabinetId != null && billingPending)
-  const showSubscriptionDetails = billing != null || profilePromoActive
+  const showSubscriptionDetails = billing != null || Boolean(subscription)
   const services = billing?.services?.length
     ? billing.services
-    : (onPro ? PROMO_INCLUDED_SERVICES : [])
+    : (onPro ? PROMO_INCLUDED_SERVICES : DEFAULT_FREE_SERVICES)
   const canManageBilling = Boolean(billing?.canManageBilling)
 
   return (

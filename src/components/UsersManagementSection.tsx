@@ -599,6 +599,7 @@ export default function UsersManagementSection({
       title: 'Дата создания',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      width: 160,
       render: (date: string) => dayjs(date).format('DD.MM.YYYY HH:mm'),
       sorter: true,
       sortDirections: SORT_CYCLE_WITHOUT_CANCEL,
@@ -610,8 +611,13 @@ export default function UsersManagementSection({
       title: 'Последний визит',
       dataIndex: 'lastSeenAt',
       key: 'lastSeenAt',
-      width: 140,
+      width: 160,
       render: (date?: string | null) => (date ? dayjs(date).format('DD.MM.YYYY HH:mm') : '—'),
+      sorter: true,
+      sortDirections: SORT_CYCLE_WITHOUT_CANCEL,
+      sortOrder: sortBy === USER_SORT_FIELDS.LAST_SEEN_AT
+        ? (sortDir === SORT_DIRECTIONS.ASC ? 'ascend' : 'descend') as SortOrder
+        : null,
     },
     {
       title: 'Действия',

@@ -274,7 +274,15 @@ export default function Subscription() {
                   </Typography.Paragraph>
                 </>
               ) : (
-                <Typography.Text type="secondary">Сначала создайте кабинет.</Typography.Text>
+                <>
+                  <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
+                    {profilePromo?.planName || 'Бесплатный доступ'}
+                  </Typography.Title>
+                  <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                    {profilePromo?.freePlanHint
+                      ?? 'Включает все основные функции сервиса: Товары, Сводная, Рекламные кампании и др.'}
+                  </Typography.Paragraph>
+                </>
               )}
               <div style={{ marginTop: 12 }}>
                 <Button type="primary" onClick={() => navigate('/profile')} style={{ background: accent, borderColor: accent }}>

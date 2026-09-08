@@ -5,6 +5,7 @@ export const USER_SORT_FIELDS = {
   IS_ACTIVE: 'isActive',
   OWNER_EMAIL: 'ownerEmail',
   CREATED_AT: 'createdAt',
+  LAST_SEEN_AT: 'lastSeenAt',
   LAST_DATA_UPDATE_AT: 'lastDataUpdateAt',
   LAST_DATA_UPDATE_REQUESTED_AT: 'lastDataUpdateRequestedAt',
 } as const

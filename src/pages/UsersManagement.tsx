@@ -166,6 +166,7 @@ export default function UsersManagement() {
       title: 'Дата создания',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      width: 160,
       render: (date: string) => dayjs(date).format('DD.MM.YYYY HH:mm'),
       sorter: (a: UserListItem, b: UserListItem) =>
         dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix(),
@@ -174,6 +175,7 @@ export default function UsersManagement() {
       title: 'Последний визит',
       dataIndex: 'lastSeenAt',
       key: 'lastSeenAt',
+      width: 160,
       render: (date?: string | null) => (date ? dayjs(date).format('DD.MM.YYYY HH:mm') : '—'),
       sorter: (a: UserListItem, b: UserListItem) =>
         dayjs(a.lastSeenAt ?? 0).unix() - dayjs(b.lastSeenAt ?? 0).unix(),

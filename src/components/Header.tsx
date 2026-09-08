@@ -6,6 +6,7 @@ import SiteLogo from './SiteLogo'
 import CampaignManageSubscriptionBadge from './campaignManageSubscription/CampaignManageSubscriptionBadge'
 import MarketplaceTypeTag from './MarketplaceTypeTag'
 import { landingColors } from '../styles/landing'
+import BugReportButton from './BugReportButton'
 import OnboardingHelpButton from './onboarding/OnboardingHelpButton'
 import { resolveTourIdForPath } from '../onboarding/resolveTourForPath'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
@@ -383,6 +384,7 @@ export default function Header({
           )
         )}
         <CampaignManageSubscriptionBadge />
+        <BugReportButton />
         <OnboardingHelpButton defaultTourId={resolveTourIdForPath(location.pathname)} />
         <Link
           to="/profile"
