@@ -65,9 +65,21 @@ export const userApi = {
     return response.data
   },
 
-  /** Сообщение о баге / предложение на корпоративную почту. */
-  submitBugReport: async (data: { message: string; pageUrl?: string }): Promise<MessageResponse> => {
-    const response = await apiClient.post<MessageResponse>('/feedback/bug-report', data)
+  /** Сообщение о баге / предложение на корпоративную почту (текст + скриншоты). */
+  submitBugReport: async (data: {
+    message: string
+    pageUrl?: string
+    files?: File[]
+  }): Promise<MessageResponse> => {
+    const formData = new FormData()
+    formData.append('message', data.message)
+    if (data.pageUrl) {
+      formData.append('pageUrl', data.pageUrl)
+    }
+    data.files?.forEach((file) => formData.append('files', file))
+    const response = await apiClient.post<MessageResponse>('/feedback/bug-report', formData, {
+      timeout: 60_000,
+    })
     return response.data
   },
 
