@@ -8,7 +8,7 @@ export const profileTour: OnboardingTourDefinition = {
     {
       targetId: ONBOARDING_TARGETS.SUBSCRIPTION_BADGE,
       fallbackTargetId: ONBOARDING_TARGETS.SUBSCRIPTION_CARD,
-      text: 'Отображение текущего статуса вашей подписки.',
+      text: 'Здесь отображается доступ к сервису. Тариф каждого кабинета смотрите на странице кабинета.',
       placement: 'bottom',
     },
     {

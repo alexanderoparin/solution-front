@@ -33,6 +33,7 @@ import Breadcrumbs from '../../components/Breadcrumbs'
 import MarketplaceTypeTag from '../../components/MarketplaceTypeTag'
 import { useAuthStore } from '../../store/authStore'
 import CabinetAccessPanel from './CabinetAccessPanel'
+import SubscriptionCard from '../profile/SubscriptionCard'
 import { getRequestFailureDescription } from '../../utils/requestError'
 import { buildScopeStatusTooltip, ScopeStatusIcon } from '../../utils/scopeStatusUi'
 import {
@@ -690,6 +691,12 @@ export default function CabinetDetailPage() {
                 </InfoBlock>
               )}
             </div>
+
+            <SubscriptionCard
+              layout="cabinet"
+              fixedCabinetId={cabinet.id}
+              cabinetName={cabinet.name}
+            />
 
             {cabinet.scopeStatuses && cabinet.scopeStatuses.length > 0 && (
               <Card

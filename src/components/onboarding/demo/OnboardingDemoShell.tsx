@@ -10,7 +10,7 @@ interface OnboardingDemoShellProps {
 
 /**
  * Обёртка учебной витрины: плашка «это пример».
- * Автозапуск тура страницы делает {@link OnboardingProvider} в scope `demo`.
+ * Автозапуск тура страницы делает {@link OnboardingProvider} (общий прогресс с реальным кабинетом).
  */
 export default function OnboardingDemoShell({ children, onCreated }: OnboardingDemoShellProps) {
   const cancelTour = useOnboardingStore((s) => s.cancelTour)

@@ -11,6 +11,7 @@ import { getPaymentStatusLabel, getPaymentStatusColor } from '../utils/paymentSt
 import { useCampaignManageSubscriptionUi } from '../store/campaignManageSubscriptionUi'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
+import MarketplaceTypeTag from '../components/MarketplaceTypeTag'
 import AbTestPacksModal from '../components/subscription/AbTestPacksModal'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -244,7 +245,15 @@ export default function Subscription() {
               style={{ minWidth: 260 }}
               loading={cabinetsLoading}
               value={effectiveCabinetId ?? undefined}
-              options={cabinets.map((c: CabinetDto) => ({ value: c.id, label: c.name }))}
+              options={cabinets.map((c: CabinetDto) => ({
+                value: c.id,
+                label: (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <MarketplaceTypeTag type={c.marketplaceType} size={16} />
+                    <span>{c.name}</span>
+                  </span>
+                ),
+              }))}
               onChange={(id) => {
                 setCabinetId(id)
                 setStoredCabinetId(id)
@@ -274,15 +283,9 @@ export default function Subscription() {
                   </Typography.Paragraph>
                 </>
               ) : (
-                <>
-                  <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
-                    {profilePromo?.planName || 'Бесплатный доступ'}
-                  </Typography.Title>
-                  <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                    {profilePromo?.freePlanHint
-                      ?? 'Включает все основные функции сервиса: Товары, Сводная, Рекламные кампании и др.'}
-                  </Typography.Paragraph>
-                </>
+                <Typography.Text type="secondary">
+                  После создания кабинета на него подключится бесплатный доступ.
+                </Typography.Text>
               )}
               <div style={{ marginTop: 12 }}>
                 <Button type="primary" onClick={() => navigate('/profile')} style={{ background: accent, borderColor: accent }}>

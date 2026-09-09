@@ -1,10 +1,8 @@
-import { getStoredCabinetId } from '../api/cabinetSelection'
 import { useAuthStore } from '../store/authStore'
 import { isOnboardingTourId, type OnboardingTourId } from './types'
 
 const PREFIX = 'clicki.onboarding.'
 const PENDING_KEY = `${PREFIX}pending`
-const DEMO_SCOPE = 'demo'
 const GLOBAL_SCOPE = 'global'
 const DEMO_MODE_EVENT = 'clicki:onboarding-demo-mode'
 
@@ -30,7 +28,7 @@ function writeFlag(key: string): void {
   }
 }
 
-/** Учебная витрина без своего кабинета: туры пишутся в отдельный scope `demo`. */
+/** Учебная витрина: влияет на UI, не на ключ прохождения тура. */
 export function setOnboardingDemoMode(enabled: boolean): void {
   demoMode = enabled
   if (typeof window !== 'undefined') {
@@ -58,26 +56,66 @@ function currentUserId(): number | null {
 }
 
 /**
- * Ключ прогресса тура: пользователь + демо / кабинет / без кабинета.
- * Другой аккаунт в том же браузере не наследует чужие completed/skipped.
- * Новый кабинет → туры этой страницы снова считаются непройденными.
+ * Прогресс тура — один на пользователя и страницу.
+ * Учебный кабинет и реальные кабинеты делят одну отметку «уже показывали».
  */
-export function resolveOnboardingScope(
-  cabinetId: number | null = getStoredCabinetId(),
-  userId: number | null = currentUserId(),
-): string {
-  const userPrefix = userId != null ? `user.${userId}.` : ''
-  if (demoMode) {
-    return `${userPrefix}${DEMO_SCOPE}`
+export function resolveOnboardingScope(userId: number | null = currentUserId()): string {
+  return userId != null ? `user.${userId}` : GLOBAL_SCOPE
+}
+
+function listStorageKeys(): string[] {
+  try {
+    const keys: string[] = []
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index)
+      if (key) {
+        keys.push(key)
+      }
+    }
+    return keys
+  } catch {
+    return []
   }
-  if (cabinetId != null) {
-    return `${userPrefix}cabinet.${cabinetId}`
+}
+
+/**
+ * Старые ключи: user.{id}.demo|global|cabinet.{id}.{tour}.completed|skipped.
+ * Если тур уже проходили в любом из них — считаем страницу закрытой.
+ */
+function migrateLegacyTourFlag(
+  tourId: OnboardingTourId,
+  scope: string,
+  userId: number | null,
+): 'completed' | 'skipped' | null {
+  const prefix = userId != null ? `${PREFIX}user.${userId}.` : PREFIX
+  const completedKey = tourKey(scope, tourId, 'completed')
+  const skippedKey = tourKey(scope, tourId, 'skipped')
+  let foundCompleted = false
+  let foundSkipped = false
+  for (const key of listStorageKeys()) {
+    if (!key.startsWith(prefix) || key === completedKey || key === skippedKey) {
+      continue
+    }
+    if (key.endsWith(`.${tourId}.completed`) && readFlag(key)) {
+      foundCompleted = true
+    }
+    if (key.endsWith(`.${tourId}.skipped`) && readFlag(key)) {
+      foundSkipped = true
+    }
   }
-  return `${userPrefix}${GLOBAL_SCOPE}`
+  if (!foundCompleted && !foundSkipped) {
+    return null
+  }
+  const suffix = foundCompleted ? 'completed' : 'skipped'
+  writeFlag(tourKey(scope, tourId, suffix))
+  return suffix
 }
 
 export function isTourFinished(tourId: OnboardingTourId, scope: string = resolveOnboardingScope()): boolean {
-  return readFlag(tourKey(scope, tourId, 'completed')) || readFlag(tourKey(scope, tourId, 'skipped'))
+  if (readFlag(tourKey(scope, tourId, 'completed')) || readFlag(tourKey(scope, tourId, 'skipped'))) {
+    return true
+  }
+  return migrateLegacyTourFlag(tourId, scope, currentUserId()) != null
 }
 
 export function markTourCompleted(tourId: OnboardingTourId, scope: string = resolveOnboardingScope()): void {

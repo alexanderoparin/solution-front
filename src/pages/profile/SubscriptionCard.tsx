@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Button, Card, Spin, Typography } from 'antd'
+import { useEffect, useMemo, useState } from 'react'
+import { Button, Card, Select, Spin, Typography } from 'antd'
 import {
   ArrowRightOutlined,
   BarChartOutlined,
@@ -11,8 +11,9 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import { cabinetsApi, getStoredCabinetId } from '../../api/cabinets'
+import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, subscribeStoredCabinetId } from '../../api/cabinets'
 import { subscriptionApi } from '../../api/subscription'
+import { userApi } from '../../api/user'
 import { useCampaignManageSubscriptionUi } from '../../store/campaignManageSubscriptionUi'
 import AbTestPacksModal from '../../components/subscription/AbTestPacksModal'
 import { ONBOARDING_TARGETS } from '../../onboarding/targets'
@@ -26,20 +27,21 @@ const accent = '#7C3AED'
 const border = '#E2E8F0'
 const textMuted = '#64748B'
 
-/** Услуги, входящие в PRO по промокоду, пока нет кабинета и cabinet-billing. */
+/** Услуги, входящие в PRO по промокоду (на каждый кабинет, пока промокод действует). */
 const PROMO_INCLUDED_SERVICES: CabinetBillingServiceStatusDto[] = [
   { serviceCode: 'CAMPAIGN_MANAGE', name: 'Управление РК', connected: true, status: 'INCLUDED' },
   { serviceCode: 'AB_TESTS', name: 'А/Б тесты', connected: true, status: 'INCLUDED' },
 ]
 
-/** Доп. услуги на бесплатном доступе без кабинета — как после создания кабинета на FREE. */
-const DEFAULT_FREE_SERVICES: CabinetBillingServiceStatusDto[] = [
-  { serviceCode: 'CAMPAIGN_MANAGE', name: 'Управление РК', connected: false, status: 'NONE' },
-  { serviceCode: 'AB_TESTS', name: 'А/Б тесты', connected: false, status: 'NONE' },
-]
-
 interface SubscriptionCardProps {
-  subscription: ProfileSubscriptionSummary | null | undefined
+  /** Сводка промокода с профиля; на странице кабинета можно не передавать. */
+  subscription?: ProfileSubscriptionSummary | null
+  /** Зафиксировать кабинет (страница управления кабинетом) — без селектора. */
+  fixedCabinetId?: number
+  /** Название кабинета, если список кабинетов не загружается. */
+  cabinetName?: string
+  /** Карточка на странице кабинета вместо вставки в профиль. */
+  layout?: 'profile' | 'cabinet'
 }
 
 function formatExpires(expiresAt: string | null | undefined): string {
@@ -55,25 +57,50 @@ function serviceIcon(serviceCode: string) {
 }
 
 /**
- * Блок подписки в профиле: основной тариф (в т.ч. промокод без кабинета) и дополнительные услуги.
+ * Тариф выбранного кабинета. FREE — с момента создания кабинета; промокод FULL_ACCESS — на все кабинеты.
  */
-export default function SubscriptionCard({ subscription }: SubscriptionCardProps) {
+export default function SubscriptionCard({
+  subscription: subscriptionProp,
+  fixedCabinetId,
+  cabinetName,
+  layout = 'profile',
+}: SubscriptionCardProps) {
   const navigate = useNavigate()
   const openPlans = useCampaignManageSubscriptionUi((s) => s.openPlans)
   const [abPacksOpen, setAbPacksOpen] = useState(false)
+  const [selectedCabinetId, setSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
+  const isCabinetLayout = layout === 'cabinet'
+
+  useEffect(() => {
+    if (fixedCabinetId != null) return
+    return subscribeStoredCabinetId(setSelectedCabinetId)
+  }, [fixedCabinetId])
+
+  const { data: profile } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: () => userApi.getProfile(),
+    enabled: subscriptionProp == null,
+    staleTime: 60_000,
+  })
+  const subscription = subscriptionProp ?? profile?.subscription
 
   const { data: cabinets = [], isLoading: cabinetsLoading } = useQuery({
     queryKey: ['myCabinets'],
     queryFn: () => cabinetsApi.list(),
+    enabled: fixedCabinetId == null,
   })
 
   const cabinetId = useMemo(() => {
-    const stored = getStoredCabinetId()
-    if (stored != null && cabinets.some((c) => c.id === stored)) {
-      return stored
+    if (fixedCabinetId != null) {
+      return fixedCabinetId
+    }
+    if (selectedCabinetId != null && cabinets.some((c) => c.id === selectedCabinetId)) {
+      return selectedCabinetId
     }
     return cabinets[0]?.id ?? null
-  }, [cabinets])
+  }, [fixedCabinetId, selectedCabinetId, cabinets])
+
+  const selectedCabinetName = cabinetName ?? cabinets.find((c) => c.id === cabinetId)?.name
 
   const {
     data: billing,
@@ -102,10 +129,8 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
     || profilePromoActive
 
   const planName = isPromo
-    ? (subscription?.planName ?? billing?.mainTariff?.name ?? 'PRO (промокод)')
-    : (billing?.mainTariff?.name
-      ?? (subscription?.planCode === 'analytics_free' ? 'Бесплатный доступ' : subscription?.planName)
-      ?? 'Бесплатный доступ')
+    ? (billing?.mainTariff?.name ?? subscription?.planName ?? 'PRO (промокод)')
+    : (billing?.mainTariff?.name ?? 'Бесплатный доступ')
   const isActive = onPro || (billing != null
     ? !['NONE', 'EXPIRED', 'CANCELLED'].includes(String(billing.mainTariff.status ?? '').toUpperCase())
     : Boolean(subscription?.active))
@@ -114,7 +139,7 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
     ? formatExpires(billing?.mainTariff?.expiresAt ?? subscription?.expiresAt)
     : billing
       ? formatExpires(billing.mainTariff.expiresAt)
-      : (subscription?.freePlanHint ? 'Бессрочно' : formatExpires(subscription?.expiresAt))
+      : formatExpires(subscription?.expiresAt)
   const autoRenewLabel = (billing?.mainTariff?.expiresAt || subscription?.expiresAt)
     ? (subscription?.autoRenew ? 'Включено' : 'Выключено')
     : '—'
@@ -135,25 +160,38 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
     }
   }
 
-  const loading = cabinetsLoading || (cabinetId != null && billingPending)
-  const showSubscriptionDetails = billing != null || Boolean(subscription)
+  const loading = (fixedCabinetId == null && cabinetsLoading) || (cabinetId != null && billingPending)
+  const showSubscriptionDetails = billing != null || profilePromoActive
   const services = billing?.services?.length
     ? billing.services
-    : (onPro ? PROMO_INCLUDED_SERVICES : DEFAULT_FREE_SERVICES)
+    : (onPro ? PROMO_INCLUDED_SERVICES : [])
   const canManageBilling = Boolean(billing?.canManageBilling)
 
-  return (
+  const subtitle = isCabinetLayout
+    ? (isPromo
+      ? 'Промокод действует на все ваши кабинеты, пока не истечёт.'
+      : 'Тариф и дополнительные услуги этого кабинета.')
+    : cabinetId != null && selectedCabinetName
+      ? (profilePromoActive
+        ? `Тариф кабинета «${selectedCabinetName}». Промокод действует на все ваши кабинеты.`
+        : `Тариф и услуги кабинета «${selectedCabinetName}».`)
+      : profilePromoActive
+        ? 'Промокод действует на каждый кабинет, пока не истечёт.'
+        : 'Бесплатный доступ подключается при создании кабинета.'
+
+  const body = (
     <>
-      <Card
-        data-tour-id={ONBOARDING_TARGETS.SUBSCRIPTION_CARD}
+      <div
         style={{
-          borderRadius: 16,
-          border: `1px solid ${border}`,
-          width: '100%',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap',
+          marginBottom: 20,
         }}
-        styles={{ body: { padding: 24 } }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
           <div
             style={{
               width: 40,
@@ -169,32 +207,46 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
             <CreditCardOutlined style={{ color: accent, fontSize: 18 }} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <Title level={4} style={{ margin: 0, fontSize: 20, lineHeight: '28px' }}>
+            <Title level={5} style={{ margin: 0, fontSize: 16, lineHeight: '24px' }}>
               Подписка
             </Title>
             <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.45 }}>
-              Здесь показаны ваши активные тарифы и подключенные услуги.
+              {subtitle}
             </Text>
           </div>
         </div>
+        {!isCabinetLayout && cabinets.length > 1 ? (
+          <Select
+            style={{ minWidth: 220, maxWidth: '100%' }}
+            value={cabinetId ?? undefined}
+            options={cabinets.map((c) => ({ value: c.id, label: c.name }))}
+            onChange={(id: number) => {
+              setSelectedCabinetId(id)
+              setStoredCabinetId(id)
+            }}
+          />
+        ) : null}
+      </div>
 
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-            <Spin />
-          </div>
-        ) : !showSubscriptionDetails ? (
-          <Text type="secondary">Сначала создайте кабинет, чтобы управлять тарифами и услугами.</Text>
-        ) : (
-          <>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1.6fr) minmax(280px, 1fr)',
-                gap: 16,
-                marginBottom: 16,
-              }}
-              className="profile-subscription-grid"
-            >
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+          <Spin />
+        </div>
+      ) : !showSubscriptionDetails ? (
+        <Text type="secondary">
+          После создания кабинета на него подключится бесплатный доступ (Товары, Сводная, Рекламные кампании).
+        </Text>
+      ) : (
+        <>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1.6fr) minmax(280px, 1fr)',
+              gap: 16,
+              marginBottom: 16,
+            }}
+            className="profile-subscription-grid"
+          >
               {/* Основной тариф */}
               <div
                 style={{
@@ -391,7 +443,10 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
               <Button
                 block
                 size="large"
-                onClick={() => navigate('/subscription')}
+                onClick={() => {
+                  setStoredCabinetId(cabinetId)
+                  navigate('/subscription')
+                }}
                 style={{
                   height: 48,
                   borderRadius: 12,
@@ -417,7 +472,27 @@ export default function SubscriptionCard({ subscription }: SubscriptionCardProps
             ) : null}
           </>
         )}
-      </Card>
+    </>
+  )
+
+  return (
+    <>
+      {isCabinetLayout ? (
+        <Card style={{ borderRadius: 16, border: `1px solid ${border}` }} styles={{ body: { padding: 24 } }}>
+          {body}
+        </Card>
+      ) : (
+        <section
+          data-tour-id={ONBOARDING_TARGETS.SUBSCRIPTION_CARD}
+          style={{
+            marginBottom: 24,
+            paddingBottom: 24,
+            borderBottom: `1px solid ${border}`,
+          }}
+        >
+          {body}
+        </section>
+      )}
 
       <AbTestPacksModal
         open={abPacksOpen}

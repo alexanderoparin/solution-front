@@ -22,7 +22,6 @@ import { useAuthStore } from '../../store/authStore'
 import { USER_MANAGEMENT_VIEW, type UserManagementView } from '../../constants/userManagementView'
 import UserInfoCard from './UserInfoCard'
 import SecurityCard from './SecurityCard'
-import SubscriptionCard from './SubscriptionCard'
 import CabinetsCard from './CabinetsCard'
 import EditProfileModal from './modals/EditProfileModal'
 import LogoutConfirmModal from './modals/LogoutConfirmModal'
@@ -218,14 +217,10 @@ export default function ProfilePage() {
             </Col>
             {!isAdmin && (
               <Col xs={24}>
-                <SubscriptionCard subscription={profile.subscription} />
-              </Col>
-            )}
-            {!isAdmin && (
-              <Col xs={24}>
                 <CabinetsCard
                   addCabinetOpen={addCabinetOpen}
                   onAddCabinetOpenChange={setAddCabinetOpen}
+                  subscription={profile.subscription}
                 />
               </Col>
             )}

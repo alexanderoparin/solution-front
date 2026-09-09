@@ -19,6 +19,7 @@ import {
   CloseCircleFilled,
   CopyOutlined,
   EllipsisOutlined,
+  GiftOutlined,
   QuestionCircleOutlined,
   ReloadOutlined,
   SearchOutlined,
@@ -29,7 +30,7 @@ import { cabinetsApi } from '../../api/cabinets'
 import { ACCESS_STATUS_QUERY_KEY } from '../../api/user'
 import NoCabinetsPlaceholder from '../../components/NoCabinetsPlaceholder'
 import { formatCabinetAccessSections } from '../../constants/cabinetAccessSections'
-import type { GrantedCabinetRowDto, OwnedCabinetRowDto, PendingCabinetInvitationRowDto, MarketplaceType } from '../../types/api'
+import type { GrantedCabinetRowDto, OwnedCabinetRowDto, PendingCabinetInvitationRowDto, MarketplaceType, ProfileSubscriptionSummary } from '../../types/api'
 import MarketplaceTypeTag from '../../components/MarketplaceTypeTag'
 import { invitationsApi } from '../../api/invitations'
 import { getRequestFailureDescription } from '../../utils/requestError'
@@ -45,6 +46,49 @@ const accent = '#7C3AED'
 function formatDateShort(value: string | null | undefined): string {
   if (!value) return '—'
   return dayjs(value).format('DD.MM.YYYY')
+}
+
+function isProfilePromoActive(subscription?: ProfileSubscriptionSummary | null): boolean {
+  if (!subscription) return false
+  if (subscription.promoCode) return true
+  return subscription.planCode === 'pro_month'
+    && subscription.active
+    && Boolean(subscription.expiresAt)
+}
+
+/** Краткое сообщение о промокоде в профиле (тариф кабинета — на странице кабинета). */
+function ProfilePromoNotice({ subscription }: { subscription?: ProfileSubscriptionSummary | null }) {
+  if (!isProfilePromoActive(subscription)) {
+    return null
+  }
+
+  const code = subscription?.promoCode
+  const until = subscription?.expiresAt
+    ? dayjs(subscription.expiresAt).format('DD.MM.YYYY HH:mm')
+    : null
+
+  return (
+    <div
+      data-tour-id={ONBOARDING_TARGETS.SUBSCRIPTION_CARD}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 20,
+        padding: '8px 12px',
+        borderRadius: 10,
+        background: '#F0FDF4',
+        border: '1px solid #BBF7D0',
+        maxWidth: '100%',
+      }}
+    >
+      <GiftOutlined style={{ color: '#16A34A', fontSize: 16, flexShrink: 0 }} />
+      <Text style={{ color: '#166534', fontSize: 14, lineHeight: 1.5 }}>
+        Активирован промокод{code ? ` ${code}` : ''}
+        {until ? `. Срок действия до ${until}` : ''}.
+      </Text>
+    </div>
+  )
 }
 
 function formatDateTime(value: string | null | undefined): string {
@@ -488,9 +532,14 @@ function SectionCountBadge({ count }: { count: number }) {
 interface CabinetsCardProps {
   addCabinetOpen?: boolean
   onAddCabinetOpenChange?: (open: boolean) => void
+  subscription?: ProfileSubscriptionSummary | null
 }
 
-export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }: CabinetsCardProps) {
+export default function CabinetsCard({
+  addCabinetOpen,
+  onAddCabinetOpenChange,
+  subscription,
+}: CabinetsCardProps) {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -575,6 +624,8 @@ export default function CabinetsCard({ addCabinetOpen, onAddCabinetOpenChange }:
           style={{ width: 280, maxWidth: '100%' }}
         />
       </div>
+
+      <ProfilePromoNotice subscription={subscription} />
 
       <div style={{ marginBottom: 24 }} data-tour-id={ONBOARDING_TARGETS.ADD_CABINET}>
         <NoCabinetsPlaceholder

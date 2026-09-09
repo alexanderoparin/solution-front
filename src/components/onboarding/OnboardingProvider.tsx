@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, subscribeStoredCabinetId } from '../../api/cabinets'
@@ -65,15 +65,14 @@ function isBlockingModalOpen(): boolean {
 
 /**
  * Глобальный слой обучалки: активный тур, подсказка после «пропустить», автозапуск
- * при первом визите страницы в текущем кабинете, на учебной витрине и в профиле
- * (профиль — только после подтверждения почты).
+ * один раз на страницу (учебный и реальный кабинет — общая отметка).
+ * Профиль — только после подтверждения почты.
  */
 export default function OnboardingProvider() {
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const startTour = useOnboardingStore((s) => s.startTour)
-  const cancelTour = useOnboardingStore((s) => s.cancelTour)
   const token = useAuthStore((s) => s.token)
   const role = useAuthStore((s) => s.role)
   const userId = useAuthStore((s) => s.userId)
@@ -123,8 +122,6 @@ export default function OnboardingProvider() {
     }
     return accessibleCabinetIds[0] ?? null
   }, [demoMode, overviewFetched, cabinetId, accessibleCabinetIds])
-  const previousCabinetIdRef = useRef(effectiveCabinetId)
-
   useEffect(() => subscribeStoredCabinetId(setCabinetId), [])
   useEffect(() => subscribeOnboardingDemoMode(setDemoMode), [])
 
@@ -138,18 +135,6 @@ export default function OnboardingProvider() {
   }, [demoMode, overviewFetched, emailConfirmed, cabinetId, accessibleCabinetIds])
 
   useEffect(() => {
-    if (demoMode) {
-      previousCabinetIdRef.current = effectiveCabinetId
-      return
-    }
-    if (previousCabinetIdRef.current === effectiveCabinetId) {
-      return
-    }
-    previousCabinetIdRef.current = effectiveCabinetId
-    cancelTour()
-  }, [effectiveCabinetId, demoMode, cancelTour])
-
-  useEffect(() => {
     const tourFromQuery = parseTourParam(searchParams.get('tour'))
     const force = searchParams.get('force') === '1'
     if (tourFromQuery != null) {
@@ -157,7 +142,7 @@ export default function OnboardingProvider() {
       next.delete('tour')
       next.delete('force')
       setSearchParams(next, { replace: true })
-      const scope = resolveOnboardingScope(effectiveCabinetId, userId)
+      const scope = resolveOnboardingScope(userId)
       if (force || !isTourFinished(tourFromQuery, scope)) {
         window.setTimeout(() => startTour(tourFromQuery), AUTO_START_INITIAL_DELAY_MS)
       }
@@ -165,7 +150,7 @@ export default function OnboardingProvider() {
     }
 
     const pending = consumePendingTour()
-    if (pending != null && !isTourFinished(pending, resolveOnboardingScope(effectiveCabinetId, userId))) {
+    if (pending != null && !isTourFinished(pending, resolveOnboardingScope(userId))) {
       const tour = getTour(pending)
       if (!matchesTourPath(location.pathname, tour)) {
         navigate(`${tour.pathPrefix}?tour=${pending}`, { replace: true })
@@ -173,9 +158,9 @@ export default function OnboardingProvider() {
       }
       window.setTimeout(() => startTour(pending), AUTO_START_INITIAL_DELAY_MS)
     }
-  }, [location.pathname, navigate, searchParams, setSearchParams, startTour, effectiveCabinetId, userId])
+  }, [location.pathname, navigate, searchParams, setSearchParams, startTour, userId])
 
-  const autoStartKey = `${demoMode ? 'demo' : 'live'}:${userId ?? ''}:${effectiveCabinetId ?? ''}`
+  const autoStartKey = `${demoMode ? 'demo' : 'live'}:${userId ?? ''}`
 
   useEffect(() => {
     if (role === 'ADMIN') {
@@ -199,7 +184,7 @@ export default function OnboardingProvider() {
     if (!demoMode && effectiveCabinetId == null && tourId !== 'profile') {
       return
     }
-    const scope = resolveOnboardingScope(effectiveCabinetId, userId)
+    const scope = resolveOnboardingScope(userId)
     if (!canAutoStartNow(tourId, scope)) {
       return
     }
@@ -212,7 +197,7 @@ export default function OnboardingProvider() {
       if (cancelled) {
         return
       }
-      const currentScope = resolveOnboardingScope(effectiveCabinetId, userId)
+      const currentScope = resolveOnboardingScope(userId)
       if (!canAutoStartNow(tourId, currentScope)) {
         return
       }
