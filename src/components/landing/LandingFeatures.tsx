@@ -37,6 +37,7 @@ export default function LandingFeatures() {
         }
         @media (max-width: 640px) {
           .landing-features-grid { grid-template-columns: 1fr; }
+          .landing-feature-card { padding: 18px !important; }
         }
       `}</style>
       <section id={LANDING_ANCHORS.features} style={{ ...landingSectionStyle({ paddingBottom: 56 }) }}>
@@ -46,6 +47,7 @@ export default function LandingFeatures() {
             {landingFeatures.map((feature, index) => (
               <div
                 key={feature.title}
+                className="landing-feature-card"
                 style={{
                   padding: 24,
                   borderRadius: landingRadii.lg,

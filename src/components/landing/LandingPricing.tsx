@@ -90,6 +90,8 @@ export default function LandingPricing({ onOpenLeadForm }: LandingPricingProps) 
         @media (max-width: 640px) {
           .landing-pricing-grid { grid-template-columns: 1fr; max-width: 420px; margin: 0 auto; }
           .landing-pricing-note { white-space: normal; }
+          .landing-pricing-title { min-height: 0; }
+          .landing-pricing-desc { min-height: 0; }
         }
         .landing-pricing-note {
           margin: 32px 0 0;

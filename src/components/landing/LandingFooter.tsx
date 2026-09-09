@@ -7,7 +7,7 @@ import { landingContainerStyle } from './landingShared'
 
 function FooterColumn({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 140 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 }}>
       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: landingColors.textOnDarkMuted }}>
         {title}
       </div>
@@ -87,11 +87,14 @@ export default function LandingFooter() {
             </FooterColumn>
           </div>
 
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 24, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}>
+          <div
+            className="landing-footer-bottom"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 24, display: 'flex', flexWrap: 'wrap', gap: 16, justifyContent: 'space-between', alignItems: 'center' }}
+          >
             <div style={{ fontSize: 13, color: landingColors.textOnDarkMuted }}>
               © {new Date().getFullYear()} {LEGAL_OPERATOR.siteBrandName}. {LEGAL_OPERATOR.shortName}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: landingColors.textOnDarkMuted, textAlign: 'right' }}>
+            <div className="landing-footer-contacts" style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, color: landingColors.textOnDarkMuted, textAlign: 'right' }}>
               <a href={`mailto:${LEGAL_OPERATOR.email}`} className="landing-footer-link" style={{ color: landingColors.textOnDarkMuted, textDecoration: 'none' }}>
                 {LEGAL_OPERATOR.email}
               </a>
@@ -108,6 +111,8 @@ export default function LandingFooter() {
         }
         @media (max-width: 520px) {
           .landing-footer-grid { grid-template-columns: 1fr !important; }
+          .landing-footer-bottom { flex-direction: column; align-items: flex-start !important; }
+          .landing-footer-contacts { text-align: left !important; }
         }
       `}</style>
     </>

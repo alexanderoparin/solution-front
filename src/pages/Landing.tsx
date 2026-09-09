@@ -24,6 +24,8 @@ export default function Landing() {
       className="landing-page"
       style={{
         minHeight: '100vh',
+        maxWidth: '100%',
+        overflowX: 'clip',
         backgroundColor: landingColors.cardBg,
         color: landingColors.textPrimary,
       }}
@@ -33,6 +35,9 @@ export default function Landing() {
         .landing-page * { box-sizing: border-box; }
         @media (max-width: 960px) {
           .landing-page section { padding-top: 48px !important; padding-bottom: 48px !important; }
+        }
+        @media (max-width: 640px) {
+          .landing-page section { padding-top: 40px !important; padding-bottom: 40px !important; }
         }
       `}</style>
       <LandingHeader />

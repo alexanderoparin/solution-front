@@ -146,6 +146,10 @@ export default function LandingServices({ onOpenLeadForm }: LandingServicesProps
         @media (max-width: 960px) {
           .landing-services-grid { grid-template-columns: 1fr; }
         }
+        @media (max-width: 640px) {
+          .landing-service-card .ant-card-body { padding: 20px !important; }
+          .landing-service-actions .ant-btn { width: 100%; }
+        }
       `}</style>
       <section id={LANDING_ANCHORS.services} style={{ ...landingSectionStyle({ paddingTop: 32, paddingBottom: 64 }), backgroundColor: landingColors.sectionBg }}>
         <div style={landingContainerStyle()}>

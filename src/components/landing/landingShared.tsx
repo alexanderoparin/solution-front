@@ -7,10 +7,11 @@ export function landingContainerStyle(extra?: CSSProperties): CSSProperties {
   return {
     maxWidth: landingLayout.maxWidth,
     margin: '0 auto',
-    paddingLeft: landingLayout.containerPaddingX,
-    paddingRight: landingLayout.containerPaddingX,
+    paddingLeft: 'clamp(16px, 4vw, 24px)',
+    paddingRight: 'clamp(16px, 4vw, 24px)',
     boxSizing: 'border-box',
     width: '100%',
+    minWidth: 0,
     ...extra,
   }
 }
@@ -75,7 +76,7 @@ export function LandingSectionTitle({
         <p
           style={{
             margin: '16px 0 0',
-            fontSize: 17,
+            fontSize: 'clamp(15px, 2.2vw, 17px)',
             lineHeight: 1.6,
             color: light ? landingColors.textOnDarkMuted : landingColors.textSecondary,
           }}

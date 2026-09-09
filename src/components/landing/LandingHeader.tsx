@@ -39,7 +39,13 @@ export default function LandingHeader() {
         .landing-nav-link:hover { color: ${landingColors.textOnDark}; }
         @media (max-width: 960px) {
           .landing-header-nav { display: none !important; }
+          .landing-header-cta { display: none !important; }
           .landing-header-burger { display: inline-flex !important; }
+        }
+        @media (max-width: 640px) {
+          .landing-header-inner { gap: 8px !important; }
+          .landing-header-login { padding-inline: 8px !important; }
+          .landing-header-logo img { height: 28px !important; width: auto !important; }
         }
       `}</style>
       <header
@@ -53,6 +59,7 @@ export default function LandingHeader() {
         }}
       >
         <div
+          className="landing-header-inner"
           style={{
             ...landingContainerStyle(),
             height: '100%',
@@ -62,7 +69,11 @@ export default function LandingHeader() {
             gap: 16,
           }}
         >
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
+          <Link
+            to="/"
+            className="landing-header-logo"
+            style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0, minWidth: 0 }}
+          >
             <SiteLogo variant="wordmark" size={36} />
           </Link>
 
@@ -71,11 +82,17 @@ export default function LandingHeader() {
           </nav>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-            <Button type="text" onClick={() => navigate('/login')} style={{ fontWeight: 500, color: landingColors.textOnDark }}>
+            <Button
+              type="text"
+              className="landing-header-login"
+              onClick={() => navigate('/login')}
+              style={{ fontWeight: 500, color: landingColors.textOnDark }}
+            >
               Войти
             </Button>
             <Button
               type="primary"
+              className="landing-header-cta"
               onClick={() => navigate('/register')}
               style={{
                 backgroundColor: landingColors.accent,

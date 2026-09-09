@@ -57,6 +57,47 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
         .landing-hero-inner {
           position: relative;
           z-index: 1;
+          min-width: 0;
+        }
+        .landing-hero-copy {
+          min-width: 0;
+        }
+        .landing-hero-title {
+          margin: 0 0 20px;
+          font-size: clamp(28px, 5vw, 46px);
+          font-weight: 800;
+          line-height: 1.15;
+          letter-spacing: -0.03em;
+          text-align: center;
+          overflow-wrap: break-word;
+        }
+        .landing-hero-subtitle {
+          margin: 0 0 32px;
+          font-size: 18px;
+          line-height: 1.65;
+          color: ${landingColors.textOnDarkMuted};
+          text-align: center;
+          white-space: pre-line;
+        }
+        .landing-hero-ctas {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          margin-bottom: 40px;
+          justify-content: center;
+        }
+        .landing-hero-badges {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 16px 20px;
+          align-items: flex-start;
+          justify-content: center;
+        }
+        .landing-hero-badge {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+          min-width: 0;
         }
         .landing-hero-grid {
           display: grid;
@@ -95,9 +136,19 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
           box-shadow: 0 16px 40px rgba(0,0,0,0.4);
         }
         @media (max-width: 960px) {
+          .landing-hero-section { padding-top: 48px; padding-bottom: 56px; }
           .landing-hero-grid { grid-template-columns: 1fr; gap: 32px; }
-          .landing-hero-visuals { min-height: 360px; max-width: 520px; margin: 0 auto; width: 100%; height: auto; }
+          .landing-hero-visuals { min-height: 320px; max-width: 520px; margin: 0 auto; width: 100%; height: auto; }
           .landing-hero-glow--right { right: -20%; top: 28%; }
+        }
+        @media (max-width: 640px) {
+          .landing-hero-section { padding-top: 32px; padding-bottom: 40px; }
+          .landing-hero-title { font-size: clamp(26px, 8vw, 32px); margin-bottom: 16px; }
+          .landing-hero-subtitle { font-size: 15px; margin-bottom: 24px; }
+          .landing-hero-ctas { flex-direction: column; align-items: stretch; margin-bottom: 28px; }
+          .landing-hero-ctas .ant-btn { width: 100%; padding-inline: 16px !important; }
+          .landing-hero-badges { flex-direction: column; gap: 12px; align-items: flex-start; }
+          .landing-hero-visuals { min-height: 220px; }
         }
       `}</style>
       <section className="landing-hero-section">
@@ -106,28 +157,19 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
         <div className="landing-hero-glow landing-hero-glow--center" aria-hidden />
         <div className="landing-hero-inner" style={landingContainerStyle()}>
           <div className="landing-hero-grid">
-            <div>
-              <div style={{ maxWidth: 600 }}>
-                <h1
-                  style={{
-                    margin: '0 0 20px',
-                    fontSize: 'clamp(32px, 5vw, 46px)',
-                    fontWeight: 800,
-                    lineHeight: 1.15,
-                    letterSpacing: '-0.03em',
-                    textAlign: 'center',
-                  }}
-                >
+            <div className="landing-hero-copy">
+              <div style={{ maxWidth: 600, margin: '0 auto' }}>
+                <h1 className="landing-hero-title">
                   {landingHero.titleBefore}
                   <br />
                   {landingHero.titlePreposition}&nbsp;
                   <span style={{ color: landingColors.accent }}>{landingHero.titleHighlight}</span>
                   {landingHero.titleAfter}
                 </h1>
-                <p style={{ margin: '0 0 32px', fontSize: 18, lineHeight: 1.65, color: landingColors.textOnDarkMuted, textAlign: 'center', whiteSpace: 'pre-line' }}>
+                <p className="landing-hero-subtitle">
                   {landingHero.subtitle}
                 </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 40, justifyContent: 'center' }}>
+                <div className="landing-hero-ctas">
                   <Button
                     type="primary"
                     size="large"
@@ -160,25 +202,13 @@ export default function LandingHero({ onOpenLeadForm }: LandingHeroProps) {
                   </Button>
                 </div>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'nowrap',
-                  gap: 20,
-                  alignItems: 'flex-start',
-                  width: 'max-content',
-                  maxWidth: '100%',
-                }}
-              >
+              <div className="landing-hero-badges">
                 {landingHero.trustBadges.map((badge) => (
-                  <div
-                    key={badge.title}
-                    style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexShrink: 0 }}
-                  >
+                  <div key={badge.title} className="landing-hero-badge">
                     <CheckCircleOutlined style={{ color: landingColors.accent, fontSize: 18, marginTop: 2, flexShrink: 0 }} />
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 16, whiteSpace: 'nowrap' }}>{badge.title}</div>
-                      <div style={{ fontSize: 13, color: landingColors.textOnDarkMuted, whiteSpace: 'nowrap' }}>
+                      <div style={{ fontWeight: 700, fontSize: 16 }}>{badge.title}</div>
+                      <div style={{ fontSize: 13, color: landingColors.textOnDarkMuted }}>
                         {badge.description}
                       </div>
                     </div>

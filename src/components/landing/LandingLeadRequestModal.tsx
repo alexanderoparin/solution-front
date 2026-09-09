@@ -107,6 +107,8 @@ export default function LandingLeadRequestModal({ request, onClose }: LandingLea
       footer={null}
       destroyOnClose
       width={480}
+      styles={{ body: { maxWidth: '100%' } }}
+      style={{ maxWidth: 'calc(100vw - 32px)' }}
     >
       <Form
         form={form}
