@@ -21,6 +21,7 @@ import {
   EllipsisOutlined,
   GiftOutlined,
   QuestionCircleOutlined,
+  TeamOutlined,
   ReloadOutlined,
   SearchOutlined,
 } from '@ant-design/icons'
@@ -56,9 +57,27 @@ function isProfilePromoActive(subscription?: ProfileSubscriptionSummary | null):
     && Boolean(subscription.expiresAt)
 }
 
-/** Краткое сообщение о промокоде в профиле (тариф кабинета — на странице кабинета). */
-function ProfilePromoNotice({ subscription }: { subscription?: ProfileSubscriptionSummary | null }) {
-  if (!isProfilePromoActive(subscription)) {
+const accessNoticeChipStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '8px 12px',
+  borderRadius: 10,
+  background: '#F0FDF4',
+  border: '1px solid #BBF7D0',
+  maxWidth: '100%',
+} as const
+
+/** Краткое сообщение о промокоде / клиенте агентства в профиле. */
+function ProfileAccessNotices({
+  subscription,
+  agencyManaged,
+}: {
+  subscription?: ProfileSubscriptionSummary | null
+  agencyManaged?: boolean
+}) {
+  const promoActive = isProfilePromoActive(subscription)
+  if (!promoActive && !agencyManaged) {
     return null
   }
 
@@ -68,25 +87,27 @@ function ProfilePromoNotice({ subscription }: { subscription?: ProfileSubscripti
     : null
 
   return (
-    <div
-      data-tour-id={ONBOARDING_TARGETS.SUBSCRIPTION_CARD}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 20,
-        padding: '8px 12px',
-        borderRadius: 10,
-        background: '#F0FDF4',
-        border: '1px solid #BBF7D0',
-        maxWidth: '100%',
-      }}
-    >
-      <GiftOutlined style={{ color: '#16A34A', fontSize: 16, flexShrink: 0 }} />
-      <Text style={{ color: '#166534', fontSize: 14, lineHeight: 1.5 }}>
-        Активирован промокод{code ? ` ${code}` : ''}
-        {until ? `. Срок действия до ${until}` : ''}.
-      </Text>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+      {promoActive ? (
+        <div data-tour-id={ONBOARDING_TARGETS.SUBSCRIPTION_CARD} style={accessNoticeChipStyle}>
+          <GiftOutlined style={{ color: '#16A34A', fontSize: 16, flexShrink: 0 }} />
+          <Text style={{ color: '#166534', fontSize: 14, lineHeight: 1.5 }}>
+            Активирован промокод{code ? ` ${code}` : ''}
+            {until ? `. Срок действия до ${until}` : ''}.
+          </Text>
+        </div>
+      ) : null}
+      {agencyManaged ? (
+        <div
+          data-tour-id={promoActive ? undefined : ONBOARDING_TARGETS.SUBSCRIPTION_CARD}
+          style={accessNoticeChipStyle}
+        >
+          <TeamOutlined style={{ color: '#16A34A', fontSize: 16, flexShrink: 0 }} />
+          <Text style={{ color: '#166534', fontSize: 14, lineHeight: 1.5 }}>
+            Клиент агентства: полный доступ без ограничений.
+          </Text>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -533,12 +554,14 @@ interface CabinetsCardProps {
   addCabinetOpen?: boolean
   onAddCabinetOpenChange?: (open: boolean) => void
   subscription?: ProfileSubscriptionSummary | null
+  agencyManaged?: boolean
 }
 
 export default function CabinetsCard({
   addCabinetOpen,
   onAddCabinetOpenChange,
   subscription,
+  agencyManaged,
 }: CabinetsCardProps) {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
@@ -625,7 +648,7 @@ export default function CabinetsCard({
         />
       </div>
 
-      <ProfilePromoNotice subscription={subscription} />
+      <ProfileAccessNotices subscription={subscription} agencyManaged={agencyManaged} />
 
       <div style={{ marginBottom: 24 }} data-tour-id={ONBOARDING_TARGETS.ADD_CABINET}>
         <NoCabinetsPlaceholder

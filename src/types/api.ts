@@ -114,6 +114,8 @@ export interface UserProfileResponse {
   createdAt?: string | null
   /** Сводка по тарифу */
   subscription?: ProfileSubscriptionSummary | null
+  /** Клиент агентства: полный доступ без отдельной подписки */
+  agencyManaged?: boolean | null
   /** Заявка на удаление аккаунта */
   deletionRequest?: AccountDeletionStatus | null
   /** @deprecated legacy-поле, может отсутствовать в новом API */

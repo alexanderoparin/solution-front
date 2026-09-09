@@ -221,6 +221,7 @@ export default function ProfilePage() {
                   addCabinetOpen={addCabinetOpen}
                   onAddCabinetOpenChange={setAddCabinetOpen}
                   subscription={profile.subscription}
+                  agencyManaged={profile.agencyManaged === true}
                 />
               </Col>
             )}
