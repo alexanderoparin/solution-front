@@ -85,6 +85,12 @@ const FUNNEL_ORDER: FunnelKey[] = ['general', 'advertising', 'pricing']
 const FONT_PAGE = { fontSize: '12px' as const }
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
 
+const articleRangePickerProps = {
+  allowClear: false,
+  inputReadOnly: true,
+  popupClassName: 'analytics-article-datepicker-dropdown',
+} as const
+
 /** Ширины колонок «Список РК» на странице артикула (% от таблицы, сумма 100). */
 const ARTICLE_RK_COL_WIDTHS_PCT = {
   createdAt: 8,
@@ -965,19 +971,193 @@ export default function AnalyticsArticle() {
 
   return (
     <>
+      <style>{`
+        @media (max-width: 900px) {
+          .analytics-article-page {
+            padding: 12px !important;
+          }
+          .analytics-article-hero,
+          .analytics-article-funnels {
+            padding: 12px !important;
+            margin-bottom: 16px !important;
+            box-shadow: none !important;
+          }
+          .analytics-article-hero-row {
+            flex-wrap: wrap;
+            gap: 12px !important;
+          }
+          .analytics-article-photo {
+            width: 88px !important;
+            min-width: 88px !important;
+            min-height: 120px !important;
+            align-self: flex-start !important;
+          }
+          .analytics-article-bundle {
+            flex: 1 1 100% !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            height: auto !important;
+            min-height: 0 !important;
+            gap: 8px !important;
+            padding-top: 10px;
+            border-top: 1px solid ${colors.borderLight};
+          }
+          .analytics-article-bundle-label {
+            writing-mode: horizontal-tb !important;
+            transform: none !important;
+            width: 100% !important;
+            height: auto !important;
+            justify-content: flex-start !important;
+            font-size: 12px !important;
+            line-height: 1.3 !important;
+          }
+          .analytics-article-bundle-scroll,
+          .analytics-article-bundle-scroll > div {
+            height: auto !important;
+            overflow: visible !important;
+          }
+          .analytics-article-bundle-list {
+            display: grid !important;
+            grid-template-columns: 1fr !important;
+            width: 100% !important;
+            height: auto !important;
+            gap: 8px !important;
+          }
+          .analytics-article-bundle-col {
+            display: contents !important;
+            width: auto !important;
+            height: auto !important;
+          }
+          .analytics-article-bundle-col > div {
+            display: none !important;
+          }
+          .analytics-article-bundle-item {
+            height: auto !important;
+            min-height: 52px;
+            padding: 6px 8px !important;
+            border: 1px solid ${colors.borderLight} !important;
+            border-radius: 10px !important;
+            gap: 8px !important;
+          }
+          .analytics-article-bundle-thumb {
+            width: 44px !important;
+            height: 44px !important;
+          }
+          .analytics-article-funnel-toolbar {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .analytics-article-funnel-toolbar-left,
+          .analytics-article-funnel-actions {
+            width: 100%;
+            gap: 8px 12px !important;
+          }
+          .analytics-article-funnel-toolbar-left .analytics-article-range-picker-wrap {
+            width: 220px;
+            max-width: 100%;
+            flex: 0 0 auto;
+          }
+          .analytics-article-funnel-toolbar-left .analytics-article-range-picker-wrap .ant-picker {
+            width: 100%;
+          }
+          .analytics-article-datepicker-dropdown .ant-picker-panels {
+            flex-direction: column !important;
+          }
+          .analytics-article-datepicker-dropdown .ant-picker-panel-container {
+            max-width: calc(100vw - 24px);
+          }
+          .analytics-article-funnel-toolbar-left .ant-checkbox-wrapper {
+            white-space: nowrap;
+          }
+          .analytics-article-funnel-actions {
+            justify-content: space-between;
+          }
+          .analytics-article-export-label {
+            display: none;
+          }
+          .analytics-article-funnel-import {
+            display: none !important;
+          }
+          .analytics-article-funnel-table {
+            width: max-content !important;
+            min-width: 720px;
+            table-layout: auto !important;
+          }
+          .analytics-article-funnel-table th,
+          .analytics-article-funnel-table td {
+            width: auto !important;
+            min-width: 72px;
+          }
+          .analytics-article-funnel-table th:first-child,
+          .analytics-article-funnel-table td:first-child {
+            min-width: 92px;
+          }
+          .analytics-article-compare {
+            padding: 12px !important;
+            margin-bottom: 16px !important;
+            box-shadow: none !important;
+          }
+          .analytics-article-compare-row {
+            flex-direction: column !important;
+            gap: 16px !important;
+          }
+          .analytics-article-compare-funnels {
+            flex: 1 1 auto !important;
+            width: 100%;
+            overflow: visible !important;
+          }
+          .analytics-article-compare-head {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .analytics-article-compare-periods {
+            flex-direction: column !important;
+            width: 100%;
+            justify-content: stretch !important;
+            gap: 8px !important;
+          }
+          .analytics-article-compare-periods .ant-picker {
+            width: 220px !important;
+            max-width: 100%;
+          }
+          .analytics-article-compare-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+          .analytics-article-compare-grid table th,
+          .analytics-article-compare-grid table td {
+            padding: 8px 6px !important;
+          }
+          .analytics-article-compare-stocks {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            width: 100%;
+            border-left: none !important;
+            padding-left: 0 !important;
+            padding-top: 16px;
+            border-top: 1px solid ${colors.borderLight};
+          }
+        }
+      `}</style>
       <Header
         workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
         cabinetSelectProps={cabinetSelectProps}
       />
       <Breadcrumbs />
-      <div style={{ 
+      <div
+        className="analytics-article-page"
+        style={{ 
         padding: `${spacing.lg} ${spacing.md}`, 
         width: '100%',
         backgroundColor: colors.bgGray,
         minHeight: '100vh'
       }}>
       {/* Шапка артикула: крупное фото вплотную к границам, название, категория·бренд, артикулы; при участии в акции WB — плашка «В акции»; справа — товары в связке */}
-      <div style={{
+      <div
+        className="analytics-article-hero"
+        style={{
         backgroundColor: colors.bgWhite,
         border: `1px solid ${colors.borderLight}`,
         borderRadius: borderRadius.md,
@@ -993,7 +1173,9 @@ export default function AnalyticsArticle() {
         e.currentTarget.style.boxShadow = shadows.md
       }}
       >
-        <div style={{
+        <div
+          className="analytics-article-hero-row"
+          style={{
           display: 'flex',
           gap: spacing.lg,
           alignItems: 'stretch'
@@ -1003,6 +1185,7 @@ export default function AnalyticsArticle() {
               href={productPageUrl ?? article.article.productUrl}
               target="_blank"
               rel="noopener noreferrer"
+              className="analytics-article-photo"
               style={{
                 display: 'block',
                 flexShrink: 0,
@@ -1149,7 +1332,9 @@ export default function AnalyticsArticle() {
             for (let i = 0; i < list.length; i += 2) pairs.push(list.slice(i, i + 2))
             const bundleScrollAreaHeight = bundleLinkedH + BUNDLE_LINKED_SCROLLBAR_GUTTER_PX
             return (
-            <div style={{
+            <div
+              className="analytics-article-bundle"
+              style={{
               flex: 1,
               minWidth: 0,
               height: bundleScrollAreaHeight,
@@ -1157,7 +1342,9 @@ export default function AnalyticsArticle() {
               alignItems: 'stretch',
               gap: 8
             }}>
-              <div style={{
+              <div
+                className="analytics-article-bundle-label"
+                style={{
                 width: 36,
                 display: 'flex',
                 alignItems: 'center',
@@ -1173,6 +1360,7 @@ export default function AnalyticsArticle() {
                 В связке
               </div>
               <div
+                className="analytics-article-bundle-scroll"
                 style={{
                   flex: 1,
                   minWidth: 0,
@@ -1191,6 +1379,7 @@ export default function AnalyticsArticle() {
                   }}
                 >
                   <div
+                    className="analytics-article-bundle-list"
                     style={{
                       display: 'flex',
                       flexDirection: 'row',
@@ -1202,6 +1391,7 @@ export default function AnalyticsArticle() {
                 {pairs.map((pair, colIndex) => (
                   <div
                     key={colIndex}
+                    className="analytics-article-bundle-col"
                     style={{
                       flexShrink: 0,
                       width: bundlePhotoW + bundleColTextMinW,
@@ -1216,6 +1406,7 @@ export default function AnalyticsArticle() {
                       return (
                       <a
                         key={item.nmId}
+                        className="analytics-article-bundle-item"
                         onClick={(e) => {
                           e.preventDefault()
                           navigate(`/analytics/article/${item.nmId}`)
@@ -1248,6 +1439,7 @@ export default function AnalyticsArticle() {
                           <img
                             src={bundleThumbUrl}
                             alt=""
+                            className="analytics-article-bundle-thumb"
                             style={{
                               width: bundlePhotoW,
                               height: bundlePhotoH,
@@ -1258,7 +1450,10 @@ export default function AnalyticsArticle() {
                             onError={(ev) => { ev.currentTarget.style.display = 'none' }}
                           />
                         ) : (
-                          <div style={{ width: bundlePhotoW, height: bundlePhotoH, backgroundColor: colors.bgGrayLight, borderRadius: 4, flexShrink: 0 }} />
+                          <div
+                            className="analytics-article-bundle-thumb"
+                            style={{ width: bundlePhotoW, height: bundlePhotoH, backgroundColor: colors.bgGrayLight, borderRadius: 4, flexShrink: 0 }}
+                          />
                         )}
                         <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                           <div style={{ fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1284,7 +1479,9 @@ export default function AnalyticsArticle() {
       </div>
 
       {/* Блоки воронок */}
-      <div style={{
+      <div
+        className="analytics-article-funnels"
+        style={{
         backgroundColor: colors.bgWhite,
         border: `1px solid ${colors.borderLight}`,
         borderRadius: borderRadius.md,
@@ -1301,7 +1498,9 @@ export default function AnalyticsArticle() {
       }}
       >
         <div style={{ overflowX: 'auto', width: '100%' }}>
-          <div style={{
+          <div
+            className="analytics-article-funnel-toolbar"
+            style={{
             display: 'flex',
             marginBottom: spacing.md,
             alignItems: 'center',
@@ -1309,7 +1508,8 @@ export default function AnalyticsArticle() {
             flexWrap: 'wrap',
             justifyContent: 'space-between'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
+            <div className="analytics-article-funnel-toolbar-left" style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
+              <div className="analytics-article-range-picker-wrap" style={{ width: 220, maxWidth: '100%' }}>
               <DatePicker.RangePicker
                 locale={locale.DatePicker}
                 value={dateRange}
@@ -1320,8 +1520,10 @@ export default function AnalyticsArticle() {
                 }}
                 format="DD.MM.YYYY"
                 separator="→"
-                style={{ width: 220 }}
+                style={{ width: '100%' }}
+                {...articleRangePickerProps}
               />
+              </div>
               <Checkbox
                 checked={selectedFunnelKeys.includes('general')}
                 onChange={() => toggleFunnel('general')}
@@ -1343,7 +1545,7 @@ export default function AnalyticsArticle() {
                 </Checkbox>
               )}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
+            <div className="analytics-article-funnel-actions" style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, ...typography.body }}>
                 <Switch
                   checked={showChart}
@@ -1359,7 +1561,7 @@ export default function AnalyticsArticle() {
                   onClick={handleExportFunnelsExcel}
                   disabled={!article}
                 >
-                  Выгрузить
+                  <span className="analytics-article-export-label">Выгрузить</span>
                 </Button>
               </Tooltip>
               {!isOzonCabinet && (
@@ -1379,6 +1581,7 @@ export default function AnalyticsArticle() {
                   />
                   <Tooltip title="Загрузите выгрузку «Воронка продаж» из ЛК WB (лист «Товары»). Импортируются только строки текущего артикула.">
                     <Button
+                      className="analytics-article-funnel-import"
                       icon={<UploadOutlined />}
                       loading={funnelImportMutation.isPending}
                       disabled={!article || funnelImportMutation.isPending}
@@ -1400,7 +1603,7 @@ export default function AnalyticsArticle() {
               position: 'relative',
             }}
           >
-          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
+          <table className="analytics-article-funnel-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
             <thead>
               <tr>
                 <th style={{
@@ -1887,7 +2090,9 @@ export default function AnalyticsArticle() {
       {article && period1Data && period2Data && (() => {
         const allStocks = stocksFulfillment === 'FBS' ? (article?.fbsStocks ?? []) : (article?.stocks ?? [])
         return (
-          <div style={{
+          <div
+            className="analytics-article-compare"
+            style={{
             backgroundColor: colors.bgWhite,
             border: `1px solid ${colors.borderLight}`,
             borderRadius: borderRadius.md,
@@ -1907,13 +2112,17 @@ export default function AnalyticsArticle() {
           }}
           >
             {/* Внутренний контейнер с двумя колонками */}
-            <div style={{
+            <div
+              className="analytics-article-compare-row"
+              style={{
               display: 'flex',
               gap: spacing.lg,
               alignItems: 'stretch'
             }}>
               {/* Левая колонка: Сравнение периодов */}
-              <div style={{
+              <div
+                className="analytics-article-compare-funnels"
+                style={{
                 flex: '0 1 75%',
                 display: 'flex',
                 flexDirection: 'column',
@@ -1921,7 +2130,9 @@ export default function AnalyticsArticle() {
                 overflow: 'hidden'
               }}>
               {/* Заголовок и периоды в одной строке */}
-              <div style={{
+              <div
+                className="analytics-article-compare-head"
+                style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -1941,8 +2152,9 @@ export default function AnalyticsArticle() {
                   Сравнение периодов
                 </h2>
                 
-                {/* Выбор периодов */}
-                <div style={{
+                <div
+                  className="analytics-article-compare-periods"
+                  style={{
                   display: 'flex',
                   gap: spacing.lg,
                   alignItems: 'center',
@@ -1959,7 +2171,8 @@ export default function AnalyticsArticle() {
                     }}
                     format="DD.MM.YYYY"
                     separator="→"
-                    style={{ width: 240 }}
+                    style={{ width: 220 }}
+                    {...articleRangePickerProps}
                   />
                   <DatePicker.RangePicker
                     locale={locale.DatePicker}
@@ -1971,13 +2184,15 @@ export default function AnalyticsArticle() {
                     }}
                     format="DD.MM.YYYY"
                     separator="→"
-                    style={{ width: 240 }}
+                    style={{ width: 220 }}
+                    {...articleRangePickerProps}
                   />
                 </div>
               </div>
 
-              {/* Сравнение по общей воронке и рекламе - два блока рядом */}
-              <div style={{
+              <div
+                className="analytics-article-compare-grid"
+                style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
                 gap: spacing.lg,
@@ -2993,7 +3208,9 @@ export default function AnalyticsArticle() {
               </div>
 
               {/* Правая колонка: Остатки */}
-              <div style={{
+              <div
+                className="analytics-article-compare-stocks"
+                style={{
                 flex: '0 1 25%',
                 display: 'flex',
                 flexDirection: 'column',
@@ -3459,6 +3676,7 @@ export default function AnalyticsArticle() {
                   separator="→"
                   placeholder={['Дата начала', 'Дата окончания']}
                   style={{ width: 220 }}
+                  {...articleRangePickerProps}
                 />
               </span>
             </div>

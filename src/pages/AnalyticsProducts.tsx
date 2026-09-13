@@ -729,6 +729,10 @@ export default function AnalyticsProducts() {
           font-weight: 600;
           text-transform: none;
         }
+        .analytics-products-import {
+          margin-left: auto;
+          flex-shrink: 0;
+        }
         @media (max-width: 900px) {
           .analytics-products-shell {
             padding: 12px 0 !important;
@@ -768,8 +772,7 @@ export default function AnalyticsProducts() {
           .products-filter-label-full { display: none; }
           .products-filter-label-short { display: inline; }
           .analytics-products-import {
-            order: 2;
-            margin-left: auto !important;
+            display: none !important;
           }
           .products-filter-panel {
             width: min(400px, calc(100vw - 32px)) !important;
@@ -819,6 +822,7 @@ export default function AnalyticsProducts() {
               gap: spacing.md,
               alignItems: 'center',
               marginBottom: spacing.sm,
+              width: '100%',
             }}
           >
             <Input
@@ -1014,6 +1018,7 @@ export default function AnalyticsProducts() {
               </Checkbox>
             </Tooltip>
             </div>
+            </div>
             {!isOzonCabinet && (
               <>
                 <input
@@ -1029,20 +1034,19 @@ export default function AnalyticsProducts() {
                     }
                   }}
                 />
-                <Tooltip title="Загрузите выгрузку «Воронка продаж» из ЛК WB (лист «Товары»). Импортируются все артикулы кабинета из файла.">
-                  <Button
-                    icon={<UploadOutlined />}
-                    loading={funnelBulkImportMutation.isPending}
-                    disabled={selectedCabinetId == null || funnelBulkImportMutation.isPending}
-                    onClick={() => funnelBulkImportInputRef.current?.click()}
-                    aria-label="Импорт воронки из Excel для всех артикулов"
-                    className="analytics-products-import"
-                    style={{ marginLeft: 'auto' }}
-                  />
-                </Tooltip>
+                <span className="analytics-products-import">
+                  <Tooltip title="Загрузите выгрузку «Воронка продаж» из ЛК WB (лист «Товары»). Импортируются все артикулы кабинета из файла.">
+                    <Button
+                      icon={<UploadOutlined />}
+                      loading={funnelBulkImportMutation.isPending}
+                      disabled={selectedCabinetId == null || funnelBulkImportMutation.isPending}
+                      onClick={() => funnelBulkImportInputRef.current?.click()}
+                      aria-label="Импорт воронки из Excel для всех артикулов"
+                    />
+                  </Tooltip>
+                </span>
               </>
             )}
-            </div>
           </div>
 
           {/* Выбранные артикулы ВБ под фильтром — на всю ширину; по клику «ещё» раскрывается весь список */}
