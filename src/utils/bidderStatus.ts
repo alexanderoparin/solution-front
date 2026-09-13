@@ -4,6 +4,7 @@ export type BidderStatus =
   | 'WAITING'
   | 'RUNNING'
   | 'SLOT_LIMIT'
+  | 'NO_BUDGET'
   | 'NO_ACCESS'
   | 'NO_SLOTS'
 
@@ -12,6 +13,7 @@ const BIDDER_STATUS_LABELS: Record<BidderStatus, string> = {
   WAITING: 'Ожидает слот',
   RUNNING: 'Работает',
   SLOT_LIMIT: 'Лимит слота',
+  NO_BUDGET: 'Нет бюджета',
   NO_ACCESS: 'Нет доступа',
   NO_SLOTS: 'Нет слотов',
 }
@@ -21,6 +23,7 @@ const BIDDER_STATUS_COLORS: Record<BidderStatus, string> = {
   WAITING: '#7c3aed',
   RUNNING: '#16a34a',
   SLOT_LIMIT: '#ea580c',
+  NO_BUDGET: '#dc2626',
   NO_ACCESS: '#dc2626',
   NO_SLOTS: '#64748b',
 }
@@ -46,6 +49,12 @@ export function bidderStatusColor(status: BidderStatus | string | null | undefin
 export function bidderStatusIcon(status: BidderStatus | string | null | undefined): string {
   const parsed = typeof status === 'string' ? parseBidderStatus(status) : status
   if (parsed === 'RUNNING') return '▷ '
-  if (parsed === 'OFF' || parsed === 'SLOT_LIMIT') return 'II '
+  if (parsed === 'OFF' || parsed === 'SLOT_LIMIT' || parsed === 'NO_BUDGET') return 'II '
   return ''
+}
+
+/** Расписание включено, но РК сейчас не в RUNNING (ждёт слот / лимит / нет бюджета). */
+export function isBidderWaitingLike(status: BidderStatus | string | null | undefined): boolean {
+  const parsed = typeof status === 'string' ? parseBidderStatus(status) : status
+  return parsed === 'WAITING' || parsed === 'SLOT_LIMIT' || parsed === 'NO_BUDGET'
 }

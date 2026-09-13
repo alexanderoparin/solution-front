@@ -14,6 +14,7 @@ import {
   bidderStatusColor,
   bidderStatusIcon,
   bidderStatusLabel,
+  isBidderWaitingLike,
   type BidderStatus,
 } from '../../../utils/bidderStatus'
 import { colors, typography, spacing, borderRadius, shadows, transitions } from '../../../styles/analytics'
@@ -78,7 +79,7 @@ const DEMO_BIDDER_STATUS: Record<string, BidderStatus> = {
   [DEMO_CAMPAIGN_WB_ID]: 'RUNNING',
   '45678901': 'OFF',
   '23456789': 'SLOT_LIMIT',
-  '12345678': 'OFF',
+  '12345678': 'NO_BUDGET',
   '34567890': 'WAITING',
 }
 
@@ -113,7 +114,7 @@ export default function DemoBidderCampaigns() {
       if (filterStatus === 'running' && bidderStatus !== 'RUNNING') {
         return false
       }
-      if (filterStatus === 'waiting' && bidderStatus !== 'WAITING') {
+      if (filterStatus === 'waiting' && !isBidderWaitingLike(bidderStatus)) {
         return false
       }
       if (filterStatus === 'off' && bidderStatus !== 'OFF') {

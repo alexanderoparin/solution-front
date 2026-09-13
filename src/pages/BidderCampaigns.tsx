@@ -16,7 +16,7 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { useCampaignManagePaywall } from '../hooks/useCampaignManagePaywall'
-import { bidderStatusColor, bidderStatusIcon, bidderStatusLabel, parseBidderStatus } from '../utils/bidderStatus'
+import { bidderStatusColor, bidderStatusIcon, bidderStatusLabel, isBidderWaitingLike, parseBidderStatus } from '../utils/bidderStatus'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 type BidderStatusFilter = 'all' | 'running' | 'waiting' | 'off'
@@ -334,7 +334,7 @@ export default function BidderCampaigns() {
   const filteredCampaigns = useMemo(() => {
     let list = campaigns
     if (filterStatus === 'running') list = list.filter((c) => parseBidderStatus(c.bidderStatus) === 'RUNNING')
-    else if (filterStatus === 'waiting') list = list.filter((c) => parseBidderStatus(c.bidderStatus) === 'WAITING')
+    else if (filterStatus === 'waiting') list = list.filter((c) => isBidderWaitingLike(c.bidderStatus))
     else if (filterStatus === 'off') list = list.filter((c) => parseBidderStatus(c.bidderStatus) === 'OFF')
     if (filterType != null) list = list.filter((c) => c.type === filterType)
     if (searchLower) {
