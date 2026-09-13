@@ -40,6 +40,7 @@ export default function EditProfileModal({
 
   return (
     <Modal
+      className="profile-modal"
       title={isAdmin ? 'Изменить имя' : 'Редактирование профиля'}
       open={open}
       destroyOnClose

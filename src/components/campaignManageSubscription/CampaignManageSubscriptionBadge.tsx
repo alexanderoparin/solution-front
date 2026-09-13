@@ -47,6 +47,7 @@ export default function CampaignManageSubscriptionBadge() {
 
   return (
     <div
+      className="header-subscription-badge"
       data-tour-id={ONBOARDING_TARGETS.SUBSCRIPTION_BADGE}
       style={{
         background: 'rgba(124, 58, 237, 0.22)',

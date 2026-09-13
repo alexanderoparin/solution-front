@@ -46,6 +46,7 @@ function GuideStep({ number, children, image, imageAlt }: GuideStepProps) {
 export default function TokenCreationGuideModal({ open, onClose }: TokenCreationGuideModalProps) {
   return (
     <Modal
+      className="profile-modal"
       title="Как создать токен WB"
       open={open}
       onCancel={onClose}

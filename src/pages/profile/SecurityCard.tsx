@@ -55,7 +55,7 @@ function SecurityActionRow({
   }
 
   return (
-    <button type="button" onClick={onClick} disabled={disabled} style={rowStyle}>
+    <button type="button" className="security-action-row" onClick={onClick} disabled={disabled} style={rowStyle}>
       <div
         style={{
           width: 40,
@@ -162,6 +162,11 @@ export default function SecurityCard({ profile, onLogoutClick, onDeleteClick }: 
           margin-top: auto;
           padding-top: 4px;
         }
+        @media (max-width: 640px) {
+          .security-action-row {
+            padding: 10px !important;
+          }
+        }
       `}</style>
       <Card
         className="security-card"
@@ -228,6 +233,7 @@ export default function SecurityCard({ profile, onLogoutClick, onDeleteClick }: 
       </Card>
 
       <Modal
+        className="profile-modal"
         title="Смена пароля"
         open={passwordModalOpen}
         destroyOnClose

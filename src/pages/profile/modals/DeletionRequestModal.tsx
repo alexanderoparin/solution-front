@@ -33,6 +33,7 @@ export default function DeletionRequestModal({
 
   return (
     <Modal
+      className="profile-modal"
       title="Удаление аккаунта"
       open={open}
       destroyOnClose

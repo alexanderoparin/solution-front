@@ -59,6 +59,7 @@ export default function AddCabinetModal({
 
   return (
     <Modal
+      className="profile-modal"
       title="Новый кабинет"
       open={open}
       destroyOnClose

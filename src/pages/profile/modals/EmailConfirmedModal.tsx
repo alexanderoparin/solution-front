@@ -21,6 +21,7 @@ export default function EmailConfirmedModal({
 }: EmailConfirmedModalProps) {
   return (
     <Modal
+      className="profile-modal"
       open={open}
       centered
       closable={false}

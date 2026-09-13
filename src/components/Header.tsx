@@ -223,6 +223,7 @@ export default function Header({
 
   return (
     <div
+      className="app-header"
       style={{
         backgroundColor: landingColors.darkBg,
         borderBottom: 'none',
@@ -235,7 +236,7 @@ export default function Header({
         zIndex: 100,
       }}
     >
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px' }} data-tour-id={ONBOARDING_TARGETS.MAIN_NAV}>
+      <div className="app-header-nav" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }} data-tour-id={ONBOARDING_TARGETS.MAIN_NAV}>
         <SiteLogo variant="wordmark" size={32} to="/analytics/products" title="Аналитика — Товары" />
 
         {/* Аналитика */}
@@ -252,13 +253,14 @@ export default function Header({
           <Button
             type="text"
             icon={<BarChartOutlined />}
+            aria-label="Аналитика"
             style={{
               ...buttonStyle,
               color: navColor(isAnalyticsActive),
               fontWeight: navWeight(isAnalyticsActive),
             }}
           >
-            Аналитика
+            <span className="app-header-nav-label">Аналитика</span>
             <DownOutlined style={{ fontSize: 10 }} />
           </Button>
         </Dropdown>
@@ -271,20 +273,21 @@ export default function Header({
           <Button
             type="text"
             icon={<RiseOutlined />}
+            aria-label="Реклама"
             style={{
               ...buttonStyle,
               color: navColor(isAdvertisingActive),
               fontWeight: navWeight(isAdvertisingActive),
             }}
           >
-            Реклама
+            <span className="app-header-nav-label">Реклама</span>
             <DownOutlined style={{ fontSize: 10 }} />
           </Button>
         </Dropdown>
 
       </div>
 
-      <Space size="middle" align="center">
+      <Space className="app-header-right" size="middle" align="center">
         {!isProfilePage && workContextCabinetSelect && (
           <>
             <Select
@@ -388,6 +391,7 @@ export default function Header({
         <OnboardingHelpButton defaultTourId={resolveTourIdForPath(location.pathname)} />
         <Link
           to="/profile"
+          aria-label="Профиль"
           className="ant-btn ant-btn-text ant-btn-color-default ant-btn-variant-text"
           style={{
             ...buttonStyle,
@@ -399,7 +403,7 @@ export default function Header({
           <span className="ant-btn-icon">
             <UserOutlined />
           </span>
-          <span>Профиль</span>
+          <span className="app-header-profile-label">Профиль</span>
         </Link>
       </Space>
     </div>

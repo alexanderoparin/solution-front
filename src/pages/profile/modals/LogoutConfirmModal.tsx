@@ -10,6 +10,7 @@ interface LogoutConfirmModalProps {
 export default function LogoutConfirmModal({ open, onCancel, onConfirm }: LogoutConfirmModalProps) {
   return (
     <Modal
+      className="profile-modal"
       title="Выход из системы"
       open={open}
       onCancel={onCancel}

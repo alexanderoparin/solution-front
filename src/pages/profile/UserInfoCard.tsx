@@ -82,9 +82,32 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
         .user-info-footer {
           margin-top: auto;
         }
+        .user-info-footer-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+          min-height: 40px;
+        }
+        .user-info-email-box {
+          flex: 1 1 auto;
+          min-width: 0;
+          height: 40px;
+          border-radius: 10px;
+          border: 1px solid #E2E8F0;
+          background: #FFFFFF;
+          padding: 0 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          box-sizing: border-box;
+        }
         @media (max-width: 640px) {
           .user-info-top-row {
             grid-template-columns: 1fr;
+            gap: 12px;
           }
           .user-info-email-row {
             flex-wrap: wrap;
@@ -92,6 +115,22 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
           .user-info-email-resend {
             width: 100%;
             min-width: 0;
+          }
+          .user-info-email-box {
+            height: auto;
+            min-height: 40px;
+            flex-wrap: wrap;
+            padding: 8px 12px;
+          }
+          .user-info-footer-row {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .user-info-footer-row .ant-btn {
+            width: 100%;
+          }
+          .user-info-meta-divider {
+            display: none !important;
           }
         }
       `}</style>
@@ -163,20 +202,8 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
           <Text type="secondary">Email</Text>
           <div className="user-info-email-row">
             <div
-              style={{
-                flex: '1 1 auto',
-                minWidth: 0,
-                height: 40,
-                borderRadius: 10,
-                border: `1px solid ${border}`,
-                background: emailConfirmed ? '#F0FDF4' : '#FFFFFF',
-                padding: '0 12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                boxSizing: 'border-box',
-              }}
+              className="user-info-email-box"
+              style={{ background: emailConfirmed ? '#F0FDF4' : '#FFFFFF' }}
             >
               <Text style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {profile.email}
@@ -207,16 +234,7 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
         <div className="user-info-footer">
           <Divider style={{ margin: '16px 0' }} />
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 12,
-              flexWrap: 'wrap',
-              minHeight: 40,
-            }}
-          >
+          <div className="user-info-footer-row">
             <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Text type="secondary">Статус</Text>
@@ -234,7 +252,7 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
                 </span>
               </div>
 
-              <span style={{ width: 1, height: 18, background: border, display: 'inline-block' }} />
+              <span className="user-info-meta-divider" style={{ width: 1, height: 18, background: border, display: 'inline-block' }} />
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Text type="secondary">Дата регистрации:</Text>

@@ -86,6 +86,7 @@ export default function Breadcrumbs() {
 
   return (
     <div
+      className="profile-breadcrumbs"
       style={{
         backgroundColor: '#fff',
         borderBottom: '1px solid #E2E8F0',

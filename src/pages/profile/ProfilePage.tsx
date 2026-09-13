@@ -192,15 +192,17 @@ export default function ProfilePage() {
       <Header />
       <Breadcrumbs />
       <div
+        className="profile-page"
         style={{
           width: '100%',
           padding: 24,
           minHeight: '100vh',
           backgroundColor: '#F8FAFC',
+          overflowX: 'hidden',
         }}
       >
         <div style={{ maxWidth: 1240, margin: '0 auto' }}>
-          <Row gutter={[24, 24]} style={{ marginBottom: 24 }} wrap>
+          <Row gutter={{ xs: 12, sm: 16, lg: 24 }} style={{ marginBottom: 24 }} wrap>
             <Col xs={24} lg={16} style={{ minWidth: 0, display: 'flex' }}>
               <UserInfoCard
                 profile={profile}
@@ -242,6 +244,7 @@ export default function ProfilePage() {
               }}
             >
               <div
+                className="profile-admin-actions"
                 style={{
                   display: 'flex',
                   flexWrap: 'wrap',

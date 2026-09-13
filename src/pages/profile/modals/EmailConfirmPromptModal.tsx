@@ -49,6 +49,7 @@ export default function EmailConfirmPromptModal({
 
   return (
     <Modal
+      className="profile-modal"
       title="Подтверждение email"
       open={open}
       onCancel={onCancel}

@@ -266,7 +266,7 @@ function ApiTokenCell({ cabinetId, masked }: { cabinetId: number; masked: string
 
   return (
     <ColumnValue>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: '100%' }}>
+      <span className="profile-api-token" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: '100%' }}>
         <Text
           code
           style={{
@@ -429,45 +429,69 @@ function OwnedCabinetRow({ row }: { row: OwnedCabinetRowDto }) {
   ]
 
   return (
-    <div style={subgridCard()}>
-      <CabinetIdentity
-        name={row.name}
-        marketplaceType={row.marketplaceType}
-        badgeLabel="Создан вами"
-        badgeColor="#15803D"
-        badgeBg="#DCFCE7"
-        to={`/cabinets/${row.id}`}
-      />
-      <ColumnValue>{formatDateShort(row.createdAt)}</ColumnValue>
-      <ValidationCell at={row.lastValidatedAt} valid={row.apiKeyValid} />
-      <DataUpdateCell
-        at={row.lastDataUpdateAt}
-        onRefresh={() => refreshMutation.mutate()}
-        refreshing={refreshMutation.isPending}
-        canRefresh={canRefresh}
-        remainingLabel={remainingLabel}
-      />
-      <ApiTokenCell cabinetId={row.id} masked={row.apiKeyMasked} />
-      <RowActionsMenu items={menuItems} />
+    <div className="profile-cabinets-row" style={subgridCard()}>
+      <div className="profile-cabinets-identity">
+        <CabinetIdentity
+          name={row.name}
+          marketplaceType={row.marketplaceType}
+          badgeLabel="Создан вами"
+          badgeColor="#15803D"
+          badgeBg="#DCFCE7"
+          to={`/cabinets/${row.id}`}
+        />
+      </div>
+      <div data-label="Создан">
+        <ColumnValue>{formatDateShort(row.createdAt)}</ColumnValue>
+      </div>
+      <div data-label="Последняя проверка">
+        <ValidationCell at={row.lastValidatedAt} valid={row.apiKeyValid} />
+      </div>
+      <div data-label="Обновление данных">
+        <DataUpdateCell
+          at={row.lastDataUpdateAt}
+          onRefresh={() => refreshMutation.mutate()}
+          refreshing={refreshMutation.isPending}
+          canRefresh={canRefresh}
+          remainingLabel={remainingLabel}
+        />
+      </div>
+      <div data-label="API-токен">
+        <ApiTokenCell cabinetId={row.id} masked={row.apiKeyMasked} />
+      </div>
+      <div className="profile-cabinets-menu">
+        <RowActionsMenu items={menuItems} />
+      </div>
     </div>
   )
 }
 
 function GrantedCabinetRow({ row }: { row: GrantedCabinetRowDto }) {
   return (
-    <div style={subgridCard()}>
-      <CabinetIdentity
-        name={row.name}
-        marketplaceType={row.marketplaceType}
-        badgeLabel="Доступ предоставлен"
-        badgeColor={accent}
-        badgeBg="#EDE9FE"
-      />
-      <ColumnValue>{formatDateShort(row.accessFrom)}</ColumnValue>
-      <ColumnValue>{formatAccessUntil(row.accessUntil)}</ColumnValue>
-      <ValidationCell at={row.lastValidatedAt} valid={row.apiKeyValid} />
-      <DataUpdateCell at={row.lastDataUpdateAt} />
-      <ColumnValue>{formatCabinetAccessSections(row.sections)}</ColumnValue>
+    <div className="profile-cabinets-row" style={subgridCard()}>
+      <div className="profile-cabinets-identity">
+        <CabinetIdentity
+          name={row.name}
+          marketplaceType={row.marketplaceType}
+          badgeLabel="Доступ предоставлен"
+          badgeColor={accent}
+          badgeBg="#EDE9FE"
+        />
+      </div>
+      <div data-label="Доступ с">
+        <ColumnValue>{formatDateShort(row.accessFrom)}</ColumnValue>
+      </div>
+      <div data-label="Доступ до">
+        <ColumnValue>{formatAccessUntil(row.accessUntil)}</ColumnValue>
+      </div>
+      <div data-label="Последняя проверка">
+        <ValidationCell at={row.lastValidatedAt} valid={row.apiKeyValid} />
+      </div>
+      <div data-label="Обновление данных">
+        <DataUpdateCell at={row.lastDataUpdateAt} />
+      </div>
+      <div data-label="Разделы">
+        <ColumnValue>{formatCabinetAccessSections(row.sections)}</ColumnValue>
+      </div>
     </div>
   )
 }
@@ -488,18 +512,26 @@ function PendingInvitationRow({
   const inviter = row.inviterName || row.inviterEmail || '—'
   const busy = accepting || declining
   return (
-    <div style={subgridCard('#FFFBEB')}>
-      <CabinetIdentity
-        name={row.cabinetName}
-        marketplaceType={row.marketplaceType}
-        badgeLabel="Ожидает принятия"
-        badgeColor="#B45309"
-        badgeBg="#FEF3C7"
-      />
-      <ColumnValue>{inviter}</ColumnValue>
-      <ColumnValue>{formatCabinetAccessSections(row.sections)}</ColumnValue>
-      <ColumnValue>{formatAccessUntil(row.accessUntil)}</ColumnValue>
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+    <div className="profile-cabinets-row" style={subgridCard('#FFFBEB')}>
+      <div className="profile-cabinets-identity">
+        <CabinetIdentity
+          name={row.cabinetName}
+          marketplaceType={row.marketplaceType}
+          badgeLabel="Ожидает принятия"
+          badgeColor="#B45309"
+          badgeBg="#FEF3C7"
+        />
+      </div>
+      <div data-label="Кто пригласил">
+        <ColumnValue>{inviter}</ColumnValue>
+      </div>
+      <div data-label="Разделы">
+        <ColumnValue>{formatCabinetAccessSections(row.sections)}</ColumnValue>
+      </div>
+      <div data-label="Доступ до">
+        <ColumnValue>{formatAccessUntil(row.accessUntil)}</ColumnValue>
+      </div>
+      <div className="profile-cabinets-invite-actions" style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <Popconfirm
             title="Отклонить приглашение?"
             description="Доступ к кабинету не будет предоставлен."
@@ -611,6 +643,81 @@ export default function CabinetsCard({
   const pendingInvitations = data?.pendingInvitations ?? []
 
   return (
+    <>
+      <style>{`
+        .profile-cabinets-search {
+          width: 280px;
+          max-width: 100%;
+        }
+        @media (max-width: 900px) {
+          .profile-cabinets-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .profile-cabinets-search {
+            width: 100%;
+          }
+          .profile-cabinets-add .ant-btn {
+            width: 100%;
+          }
+          .profile-cabinets-title.ant-typography {
+            font-size: 18px !important;
+          }
+          .profile-cabinets-table {
+            display: flex !important;
+            flex-direction: column;
+            gap: 12px;
+          }
+          .profile-cabinets-table-header {
+            display: none !important;
+          }
+          .profile-cabinets-row {
+            position: relative;
+            display: flex !important;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            padding: 14px;
+          }
+          .profile-cabinets-row:has(.profile-cabinets-menu) {
+            padding-right: 44px;
+          }
+          .profile-cabinets-row > [data-label] {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+          }
+          .profile-cabinets-row > [data-label]::before {
+            content: attr(data-label);
+            font-size: 12px;
+            line-height: 16px;
+            color: #64748B;
+            font-weight: 400;
+          }
+          .profile-cabinets-menu {
+            position: absolute;
+            top: 8px;
+            right: 4px;
+          }
+          .profile-cabinets-invite-actions {
+            flex-wrap: wrap;
+            justify-content: stretch !important;
+            width: 100%;
+          }
+          .profile-cabinets-invite-actions .ant-btn {
+            flex: 1 1 140px;
+          }
+          .profile-api-token {
+            max-width: 100%;
+            min-width: 0;
+          }
+          .profile-api-token .ant-typography {
+            white-space: normal !important;
+            word-break: break-all;
+          }
+        }
+      `}</style>
     <Card
       styles={{ body: { padding: 24 } }}
       style={{
@@ -619,6 +726,7 @@ export default function CabinetsCard({
       }}
     >
       <div
+        className="profile-cabinets-toolbar"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -628,29 +736,29 @@ export default function CabinetsCard({
           marginBottom: 16,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <AppstoreOutlined style={{ fontSize: 18, color: '#1E293B' }} />
-          <Title level={4} style={{ margin: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <AppstoreOutlined style={{ fontSize: 18, color: '#1E293B', flexShrink: 0 }} />
+          <Title className="profile-cabinets-title" level={4} style={{ margin: 0 }}>
             Управление кабинетами
           </Title>
           <Tooltip title="Здесь отображаются ваши кабинеты Wildberries, доступы к чужим кабинетам и ожидающие приглашения.">
-            <QuestionCircleOutlined style={{ color: '#94A3B8', fontSize: 14, cursor: 'help' }} />
+            <QuestionCircleOutlined style={{ color: '#94A3B8', fontSize: 14, cursor: 'help', flexShrink: 0 }} />
           </Tooltip>
         </div>
         <Input
+          className="profile-cabinets-search"
           allowClear
           prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
           placeholder="Поиск по кабинетам"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           onClear={() => setSearchInput('')}
-          style={{ width: 280, maxWidth: '100%' }}
         />
       </div>
 
       <ProfileAccessNotices subscription={subscription} agencyManaged={agencyManaged} />
 
-      <div style={{ marginBottom: 24 }} data-tour-id={ONBOARDING_TARGETS.ADD_CABINET}>
+      <div className="profile-cabinets-add" style={{ marginBottom: 24 }} data-tour-id={ONBOARDING_TARGETS.ADD_CABINET}>
         <NoCabinetsPlaceholder
           variant="button"
           withModal={false}
@@ -680,8 +788,8 @@ export default function CabinetsCard({
                 onAddModalOpenChange={onAddCabinetOpenChange}
               />
             ) : (
-              <div style={tableGrid(OWNED_COLUMNS)}>
-                <div style={subgridHeader()}>
+              <div className="profile-cabinets-table" style={tableGrid(OWNED_COLUMNS)}>
+                <div className="profile-cabinets-table-header" style={subgridHeader()}>
                   <ColumnHeader>Кабинет</ColumnHeader>
                   <ColumnHeader>Создан</ColumnHeader>
                   <ColumnHeader>Последняя проверка</ColumnHeader>
@@ -713,8 +821,8 @@ export default function CabinetsCard({
                     </Text>
                     <SectionCountBadge count={pendingInvitations.length} />
                   </div>
-                  <div style={tableGrid(PENDING_COLUMNS)}>
-                    <div style={subgridHeader()}>
+                  <div className="profile-cabinets-table" style={tableGrid(PENDING_COLUMNS)}>
+                    <div className="profile-cabinets-table-header" style={subgridHeader()}>
                       <ColumnHeader>Кабинет</ColumnHeader>
                       <ColumnHeader>Кто пригласил</ColumnHeader>
                       <ColumnHeader>Разделы</ColumnHeader>
@@ -738,8 +846,8 @@ export default function CabinetsCard({
               {granted.length === 0 && pendingInvitations.length === 0 ? (
                 <Text type="secondary">Вам ещё не предоставили доступ к чужим кабинетам.</Text>
               ) : granted.length > 0 ? (
-                <div style={tableGrid(GRANTED_COLUMNS)}>
-                  <div style={subgridHeader()}>
+                <div className="profile-cabinets-table" style={tableGrid(GRANTED_COLUMNS)}>
+                  <div className="profile-cabinets-table-header" style={subgridHeader()}>
                     <ColumnHeader>Кабинет</ColumnHeader>
                     <ColumnHeader>Доступ с</ColumnHeader>
                     <ColumnHeader>Доступ до</ColumnHeader>
@@ -769,5 +877,6 @@ export default function CabinetsCard({
         onAddModalOpenChange={onAddCabinetOpenChange}
       />
     </Card>
+    </>
   )
 }

@@ -19,6 +19,7 @@ export default function EmailConfirmAfterRegisterModal({
 }: EmailConfirmAfterRegisterModalProps) {
   return (
     <Modal
+      className="profile-modal"
       open={open}
       centered
       closable={false}

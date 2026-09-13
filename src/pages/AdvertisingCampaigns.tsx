@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Spin, Input, Select, DatePicker, Button, Tooltip, message } from 'antd'
+import { Spin, Input, Select, DatePicker, Button, Tooltip, message, Pagination } from 'antd'
 import {
   SearchOutlined,
   CaretUpOutlined,
@@ -28,6 +28,8 @@ import { ONBOARDING_TARGETS } from '../onboarding/targets'
 dayjs.locale('ru')
 
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
+const DEFAULT_PAGE_SIZE = 20
+const PAGE_SIZE_OPTIONS = ['20', '50', '100']
 
 type SortField =
   | 'createdAt'
@@ -45,28 +47,6 @@ type SortField =
   | 'cart'
   | 'orders'
 type SortOrder = 'asc' | 'desc'
-
-function campaignMatchesStatusFilters(campaign: Campaign, selected: CampaignStatusFilter[]): boolean {
-  if (selected.length === 0) {
-    return false
-  }
-  const statusName = (campaign.statusName ?? '').toLowerCase()
-  return selected.some((key) => {
-    if (key === 'active') {
-      return campaign.status === 9 || statusName.includes('актив')
-    }
-    if (key === 'finished') {
-      return campaign.status === 7 || statusName.includes('завершен')
-    }
-    if (campaign.status === 9 || campaign.status === 7) {
-      return false
-    }
-    if (statusName.includes('актив') || statusName.includes('завершен')) {
-      return false
-    }
-    return true
-  })
-}
 
 const thStyle = {
   textAlign: 'left' as const,
@@ -109,6 +89,8 @@ export default function AdvertisingCampaigns() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [filterStatus, setFilterStatus] = useState<CampaignStatusFilter[]>(DEFAULT_CAMPAIGN_STATUS_FILTERS)
   const [filterType, setFilterType] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>(() => {
     const to = dayjs().subtract(1, 'day')
@@ -171,17 +153,42 @@ export default function AdvertisingCampaigns() {
     },
   })
 
-  const { data: campaigns = [], isLoading: campaignsLoading, isError: campaignsError, error: campaignsErr } = useQuery({
-    queryKey: ['advertising-campaigns', isAdmin ? selectedSellerId : null, selectedCabinetId, dateFromStr, dateToStr],
+  const { data: campaignsPage, isLoading: campaignsLoading, isError: campaignsError, error: campaignsErr } = useQuery({
+    queryKey: [
+      'advertising-campaigns-page',
+      isAdmin ? selectedSellerId : null,
+      selectedCabinetId,
+      dateFromStr,
+      dateToStr,
+      page,
+      pageSize,
+      sortField,
+      sortOrder,
+      filterStatus,
+      filterType,
+      campaignSearchQuery,
+    ],
     queryFn: () =>
-      analyticsApi.getCampaigns(
-        isAdmin ? selectedSellerId ?? undefined : undefined,
-        selectedCabinetId ?? undefined,
-        dateFromStr,
-        dateToStr
-      ),
+      analyticsApi.getCampaignsPage({
+        sellerId: isAdmin ? selectedSellerId ?? undefined : undefined,
+        cabinetId: selectedCabinetId ?? undefined,
+        dateFrom: dateFromStr,
+        dateTo: dateToStr,
+        page: page - 1,
+        size: pageSize,
+        sortBy: sortField,
+        sortDir: sortOrder,
+        search: campaignSearchQuery,
+        type: filterType,
+        statuses: filterStatus,
+      }),
     enabled: selectedCabinetId != null,
+    placeholderData: (previous) => previous,
   })
+
+  const campaigns = campaignsPage?.content ?? []
+  const campaignsTotal = campaignsPage?.totalElements ?? 0
+  const uniqueTypes = campaignsPage?.types ?? []
 
   const backendErrorMessage =
     (campaignsError && (campaignsErr as any)?.response?.data?.error) ||
@@ -216,97 +223,18 @@ export default function AdvertisingCampaigns() {
         }
       : undefined
 
-  const searchLower = campaignSearchQuery.trim().toLowerCase()
-  const uniqueTypes = useMemo(
-    () => Array.from(new Set(campaigns.map((c) => c.type).filter((t): t is string => t != null && t !== ''))).sort(),
-    [campaigns]
-  )
-
-  const filteredCampaigns = useMemo(() => {
-    let list = campaigns.filter((c) => campaignMatchesStatusFilters(c, filterStatus))
-    if (filterType != null) list = list.filter((c) => c.type === filterType)
-    if (searchLower) {
-      list = list.filter(
-        (c) =>
-          c.name.toLowerCase().includes(searchLower) ||
-          String(c.id).includes(campaignSearchQuery.trim())
-      )
-    }
-    const sorted = [...list].sort((a, b) => {
-      let aVal: string | number | null | undefined
-      let bVal: string | number | null | undefined
-      switch (sortField) {
-        case 'createdAt':
-          aVal = a.createdAt ? new Date(a.createdAt).getTime() : 0
-          bVal = b.createdAt ? new Date(b.createdAt).getTime() : 0
-          break
-        case 'updatedAt':
-          aVal = a.updatedAt ? new Date(a.updatedAt).getTime() : 0
-          bVal = b.updatedAt ? new Date(b.updatedAt).getTime() : 0
-          break
-        case 'name':
-          aVal = (a.name ?? '').toLowerCase()
-          bVal = (b.name ?? '').toLowerCase()
-          break
-        case 'id':
-          aVal = a.id
-          bVal = b.id
-          break
-        case 'type':
-          aVal = (a.type ?? '').toLowerCase()
-          bVal = (b.type ?? '').toLowerCase()
-          break
-        case 'articlesCount':
-          aVal = a.articlesCount ?? 0
-          bVal = b.articlesCount ?? 0
-          break
-        case 'status':
-          aVal = a.status ?? -1
-          bVal = b.status ?? -1
-          break
-        case 'views':
-          aVal = a.views ?? 0
-          bVal = b.views ?? 0
-          break
-        case 'clicks':
-          aVal = a.clicks ?? 0
-          bVal = b.clicks ?? 0
-          break
-        case 'ctr':
-          aVal = a.ctr ?? 0
-          bVal = b.ctr ?? 0
-          break
-        case 'cpc':
-          aVal = a.cpc ?? 0
-          bVal = b.cpc ?? 0
-          break
-        case 'costs':
-          aVal = a.costs ?? 0
-          bVal = b.costs ?? 0
-          break
-        case 'cart':
-          aVal = a.cart ?? 0
-          bVal = b.cart ?? 0
-          break
-        case 'orders':
-          aVal = a.orders ?? 0
-          bVal = b.orders ?? 0
-          break
-        default:
-          return 0
-      }
-      const aNum = typeof aVal === 'number'
-      const bNum = typeof bVal === 'number'
-      if (aNum && bNum) {
-        return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
-      }
-      const sa = String(aVal ?? '')
-      const sb = String(bVal ?? '')
-      const cmp = sa.localeCompare(sb, 'ru')
-      return sortOrder === 'asc' ? cmp : -cmp
-    })
-    return sorted
-  }, [campaigns, filterStatus, filterType, searchLower, campaignSearchQuery, sortField, sortOrder])
+  useEffect(() => {
+    setPage(1)
+  }, [
+    selectedCabinetId,
+    dateFromStr,
+    dateToStr,
+    filterStatus,
+    filterType,
+    campaignSearchQuery,
+    sortField,
+    sortOrder,
+  ])
 
   const formatCampaignDate = (dateStr: string) =>
     dateStr ? dayjs(dateStr).format('DD.MM.YYYY') : '-'
@@ -456,7 +384,7 @@ export default function AdvertisingCampaigns() {
             <div style={{ textAlign: 'center', padding: spacing.xxl }}>
               <Spin />
             </div>
-          ) : filteredCampaigns.length === 0 ? (
+          ) : campaignsTotal === 0 ? (
             <div
               style={{
                 textAlign: 'center',
@@ -468,12 +396,13 @@ export default function AdvertisingCampaigns() {
               {emptyStateMessage}
             </div>
           ) : (
-            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', width: '100%' }}>
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
               <p style={{ fontSize: 11, color: colors.textSecondary, margin: `0 0 ${spacing.sm}px 0` }}>
                 {isOzonCabinet
                   ? 'Положили в корзину — по product-stats Ozon Performance; заказы и остальные метрики — дневная статистика по кампании.'
                   : 'Положили в корзину и заказали товаров — по рекламной статистике WB (fullstats) по артикулам РК.'}
               </p>
+              <div style={{ flex: 1, minHeight: 0, overflow: 'auto', width: '100%' }}>
               <div style={{ overflowX: 'auto', width: '100%' }}>
               <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 980 }}>
                 <thead>
@@ -495,7 +424,7 @@ export default function AdvertisingCampaigns() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCampaigns.map((c, idx) => (
+                  {campaigns.map((c, idx) => (
                     <tr
                       key={c.id}
                       style={{
@@ -552,6 +481,33 @@ export default function AdvertisingCampaigns() {
                   ))}
                 </tbody>
               </table>
+              </div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  paddingTop: spacing.md,
+                  flexShrink: 0,
+                }}
+              >
+                <Pagination
+                  current={page}
+                  pageSize={pageSize}
+                  total={campaignsTotal}
+                  showSizeChanger
+                  pageSizeOptions={PAGE_SIZE_OPTIONS}
+                  showTotal={(total, range) => `${range[0]}–${range[1]} из ${total}`}
+                  locale={{ items_per_page: '/ стр.' }}
+                  onChange={(nextPage, nextSize) => {
+                    if (nextSize !== pageSize) {
+                      setPageSize(nextSize)
+                      setPage(1)
+                      return
+                    }
+                    setPage(nextPage)
+                  }}
+                />
               </div>
             </div>
           )}

@@ -13,6 +13,7 @@ import type {
   Campaign,
   CampaignDetail,
   CampaignNote,
+  CampaignPageResponse,
   NormQueryClustersResponse,
 } from '../types/analytics'
 
@@ -143,6 +144,44 @@ export const analyticsApi = {
     const query = searchParams.toString()
     const params = query ? `?${query}` : ''
     const response = await apiClient.get<Campaign[]>(`/advertising/campaigns${params}`)
+    return response.data
+  },
+
+  /**
+   * Постраничный список РК: фильтры и сортировка на сервере.
+   */
+  getCampaignsPage: async (options: {
+    sellerId?: number
+    cabinetId?: number
+    dateFrom?: string
+    dateTo?: string
+    page: number
+    size: number
+    sortBy: string
+    sortDir: 'asc' | 'desc'
+    search?: string
+    type?: string | null
+    statuses: string[]
+  }): Promise<CampaignPageResponse> => {
+    const searchParams = new URLSearchParams()
+    if (options.sellerId != null) searchParams.set('sellerId', String(options.sellerId))
+    if (options.cabinetId != null) searchParams.set('cabinetId', String(options.cabinetId))
+    if (options.dateFrom) searchParams.set('dateFrom', options.dateFrom)
+    if (options.dateTo) searchParams.set('dateTo', options.dateTo)
+    searchParams.set('page', String(options.page))
+    searchParams.set('size', String(options.size))
+    searchParams.set('sortBy', options.sortBy)
+    searchParams.set('sortDir', options.sortDir)
+    if (options.search?.trim()) searchParams.set('search', options.search.trim())
+    if (options.type) searchParams.set('type', options.type)
+    if (options.statuses.length === 0) {
+      searchParams.append('statuses', '')
+    } else {
+      options.statuses.forEach((status) => searchParams.append('statuses', status))
+    }
+    const response = await apiClient.get<CampaignPageResponse>(
+      `/advertising/campaigns/page?${searchParams.toString()}`
+    )
     return response.data
   },
 

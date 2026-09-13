@@ -175,6 +175,16 @@ export interface Campaign {
   bidderStatus?: BidderStatus | string | null
 }
 
+/** Постраничный список РК с серверной сортировкой и фильтрами. */
+export interface CampaignPageResponse {
+  content: Campaign[]
+  totalElements: number
+  totalPages: number
+  size: number
+  number: number
+  types: string[]
+}
+
 /** Срез рекламы кампании по дню и appType из WB fullstats (сайт / Android / iOS). */
 export interface CampaignAdvertisingPlatformSlice {
   appType: number
