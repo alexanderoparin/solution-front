@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, type CSSProperties } from 'react'
+import { useState, useMemo, useCallback, useEffect, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
-import { Spin, Input, Select, DatePicker, message, Alert, Switch } from 'antd'
+import { Spin, Input, Select, DatePicker, message, Alert, Switch, Pagination } from 'antd'
 import { SearchOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { campaignManageApi } from '../api/campaignManage'
 import { cabinetsApi } from '../api/cabinets'
-import type { Campaign } from '../types/analytics'
+import type { Campaign, CampaignPageResponse } from '../types/analytics'
 import { colors, typography, spacing, borderRadius, transitions, shadows } from '../styles/analytics'
 import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
@@ -16,7 +16,7 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { useCampaignManagePaywall } from '../hooks/useCampaignManagePaywall'
-import { bidderStatusColor, bidderStatusIcon, bidderStatusLabel, isBidderWaitingLike, parseBidderStatus } from '../utils/bidderStatus'
+import { bidderStatusColor, bidderStatusIcon, bidderStatusLabel, parseBidderStatus } from '../utils/bidderStatus'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 type BidderStatusFilter = 'all' | 'running' | 'waiting' | 'off'
@@ -24,11 +24,11 @@ type BidderStatusFilter = 'all' | 'running' | 'waiting' | 'off'
 dayjs.locale('ru')
 
 const FONT_PAGE_SMALL = { fontSize: '11px' as const }
+const DEFAULT_PAGE_SIZE = 20
+const PAGE_SIZE_OPTIONS = ['20', '50', '100']
 
 type SortField = 'createdAt' | 'updatedAt' | 'name' | 'id' | 'type' | 'articlesCount' | 'status'
 type SortOrder = 'asc' | 'desc'
-
-const FINISHED_STATUS = 7
 
 const thStyle = {
   textAlign: 'left' as const,
@@ -110,6 +110,8 @@ export default function BidderCampaigns() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [filterStatus, setFilterStatus] = useState<BidderStatusFilter>('all')
   const [filterType, setFilterType] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
   const [pollUntil, setPollUntil] = useState<number | null>(null)
   const [loadingAdvertId, setLoadingAdvertId] = useState<number | null>(null)
 
@@ -150,7 +152,20 @@ export default function BidderCampaigns() {
   const dateFromStr = dateRange[0].format('YYYY-MM-DD')
   const dateToStr = dateRange[1].format('YYYY-MM-DD')
 
-  const queryKey = ['bidder-campaigns', isAdmin ? selectedSellerId : null, selectedCabinetId, dateFromStr, dateToStr] as const
+  const queryKey = [
+    'bidder-campaigns-page',
+    isAdmin ? selectedSellerId : null,
+    selectedCabinetId,
+    dateFromStr,
+    dateToStr,
+    page,
+    pageSize,
+    sortField,
+    sortOrder,
+    filterStatus,
+    filterType,
+    campaignSearchQuery,
+  ] as const
   const capabilitiesQueryKey = [
     'bidder-control-capabilities',
     isAdmin ? selectedSellerId : null,
@@ -176,44 +191,62 @@ export default function BidderCampaigns() {
 
   const controlBlocked = controlCapabilities != null && !controlCapabilities.canControl
 
-  const { data: campaignsRaw = [], isLoading: campaignsLoading, isError: campaignsError, error: campaignsErr } = useQuery({
+  const { data: campaignsPage, isLoading: campaignsLoading, isError: campaignsError, error: campaignsErr } = useQuery({
     queryKey,
     queryFn: () =>
-      analyticsApi.getCampaigns(
-        isAdmin ? selectedSellerId ?? undefined : undefined,
-        selectedCabinetId ?? undefined,
-        dateFromStr,
-        dateToStr
-      ),
+      analyticsApi.getCampaignsPage({
+        sellerId: isAdmin ? selectedSellerId ?? undefined : undefined,
+        cabinetId: selectedCabinetId ?? undefined,
+        dateFrom: dateFromStr,
+        dateTo: dateToStr,
+        page: page - 1,
+        size: pageSize,
+        sortBy: sortField === 'status' ? 'bidderStatus' : sortField,
+        sortDir: sortOrder,
+        search: campaignSearchQuery,
+        type: filterType,
+        excludeFinished: true,
+        bidderStatus: filterStatus,
+      }),
     enabled: selectedCabinetId != null,
+    placeholderData: (previous) => previous,
     refetchInterval: pollUntil != null && Date.now() < pollUntil ? 2000 : false,
   })
 
-  const campaigns = useMemo(
-    () => campaignsRaw.filter((c) => c.status !== FINISHED_STATUS),
-    [campaignsRaw]
+  const campaigns = campaignsPage?.content ?? []
+  const campaignsTotal = campaignsPage?.totalElements ?? 0
+  const uniqueTypes = campaignsPage?.types ?? []
+
+  const patchCampaignInPage = useCallback(
+    (advertId: number, patch: (campaign: Campaign) => Campaign) => {
+      queryClient.setQueryData<CampaignPageResponse>(queryKey, (old) => {
+        if (old == null) return old
+        return {
+          ...old,
+          content: old.content.map((c) => (c.id === advertId ? patch(c) : c)),
+        }
+      })
+    },
+    [queryClient, queryKey],
   )
 
   const patchCampaignScheduleInCache = useCallback(
     (advertId: number, enabled: boolean) => {
-      queryClient.setQueryData<Campaign[]>(queryKey, (old) =>
-        old?.map((c) => {
-          if (c.id !== advertId) return c
-          if (isOzonCabinet) {
-            return { ...c, bidderStatus: enabled ? 'RUNNING' : 'OFF' }
-          }
-          if (!enabled) {
-            return { ...c, bidderStatus: 'OFF' }
-          }
-          const status = parseBidderStatus(c.bidderStatus)
-          if (status === 'OFF' || status === null) {
-            return { ...c, bidderStatus: 'WAITING' }
-          }
-          return c
-        }),
-      )
+      patchCampaignInPage(advertId, (c) => {
+        if (isOzonCabinet) {
+          return { ...c, bidderStatus: enabled ? 'RUNNING' : 'OFF' }
+        }
+        if (!enabled) {
+          return { ...c, bidderStatus: 'OFF' }
+        }
+        const status = parseBidderStatus(c.bidderStatus)
+        if (status === 'OFF' || status === null) {
+          return { ...c, bidderStatus: 'WAITING' }
+        }
+        return c
+      })
     },
-    [queryClient, queryKey, isOzonCabinet],
+    [patchCampaignInPage, isOzonCabinet],
   )
 
   const startMutation = useMutation({
@@ -232,7 +265,7 @@ export default function BidderCampaigns() {
     onMutate: async (advertId) => {
       setLoadingAdvertId(advertId)
       await queryClient.cancelQueries({ queryKey })
-      const previous = queryClient.getQueryData<Campaign[]>(queryKey)
+      const previous = queryClient.getQueryData<CampaignPageResponse>(queryKey)
       patchCampaignScheduleInCache(advertId, true)
       return { previous }
     },
@@ -271,7 +304,7 @@ export default function BidderCampaigns() {
     onMutate: async (advertId) => {
       setLoadingAdvertId(advertId)
       await queryClient.cancelQueries({ queryKey })
-      const previous = queryClient.getQueryData<Campaign[]>(queryKey)
+      const previous = queryClient.getQueryData<CampaignPageResponse>(queryKey)
       patchCampaignScheduleInCache(advertId, false)
       return { previous }
     },
@@ -315,6 +348,19 @@ export default function BidderCampaigns() {
     [isAdmin, workContext.applyWorkContextCabinet, setSellerCabinetId],
   )
 
+  useEffect(() => {
+    setPage(1)
+  }, [
+    selectedCabinetId,
+    dateFromStr,
+    dateToStr,
+    filterStatus,
+    filterType,
+    campaignSearchQuery,
+    sortField,
+    sortOrder,
+  ])
+
   const cabinetSelectProps =
     !isAdmin && cabinets.length > 0
       ? {
@@ -324,73 +370,6 @@ export default function BidderCampaigns() {
           loading: cabinetsLoadingState,
         }
       : undefined
-
-  const searchLower = campaignSearchQuery.trim().toLowerCase()
-  const uniqueTypes = useMemo(
-    () => Array.from(new Set(campaigns.map((c) => c.type).filter((t): t is string => t != null && t !== ''))).sort(),
-    [campaigns]
-  )
-
-  const filteredCampaigns = useMemo(() => {
-    let list = campaigns
-    if (filterStatus === 'running') list = list.filter((c) => parseBidderStatus(c.bidderStatus) === 'RUNNING')
-    else if (filterStatus === 'waiting') list = list.filter((c) => isBidderWaitingLike(c.bidderStatus))
-    else if (filterStatus === 'off') list = list.filter((c) => parseBidderStatus(c.bidderStatus) === 'OFF')
-    if (filterType != null) list = list.filter((c) => c.type === filterType)
-    if (searchLower) {
-      list = list.filter(
-        (c) =>
-          c.name.toLowerCase().includes(searchLower) ||
-          String(c.id).includes(campaignSearchQuery.trim())
-      )
-    }
-    const sorted = [...list].sort((a, b) => {
-      let aVal: string | number
-      let bVal: string | number
-      switch (sortField) {
-        case 'createdAt':
-          aVal = a.createdAt ? new Date(a.createdAt).getTime() : 0
-          bVal = b.createdAt ? new Date(b.createdAt).getTime() : 0
-          break
-        case 'updatedAt':
-          aVal = a.updatedAt ? new Date(a.updatedAt).getTime() : 0
-          bVal = b.updatedAt ? new Date(b.updatedAt).getTime() : 0
-          break
-        case 'name':
-          aVal = (a.name ?? '').toLowerCase()
-          bVal = (b.name ?? '').toLowerCase()
-          break
-        case 'id':
-          aVal = a.id
-          bVal = b.id
-          break
-        case 'type':
-          aVal = (a.type ?? '').toLowerCase()
-          bVal = (b.type ?? '').toLowerCase()
-          break
-        case 'articlesCount':
-          aVal = a.articlesCount ?? 0
-          bVal = b.articlesCount ?? 0
-          break
-        case 'status':
-          aVal = a.bidderStatus ?? ''
-          bVal = b.bidderStatus ?? ''
-          break
-        default:
-          return 0
-      }
-      const aNum = typeof aVal === 'number'
-      const bNum = typeof bVal === 'number'
-      if (aNum && bNum) {
-        return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number)
-      }
-      const sa = String(aVal ?? '')
-      const sb = String(bVal ?? '')
-      const cmp = sa.localeCompare(sb, 'ru')
-      return sortOrder === 'asc' ? cmp : -cmp
-    })
-    return sorted
-  }, [campaigns, filterStatus, filterType, searchLower, campaignSearchQuery, sortField, sortOrder])
 
   const formatCampaignDate = (dateStr: string) => (dateStr ? dayjs(dateStr).format('DD.MM.YYYY') : '-')
   const formatCampaignDateTime = (dateStr: string | null | undefined) =>
@@ -580,7 +559,7 @@ export default function BidderCampaigns() {
               <div style={{ textAlign: 'center', padding: spacing.xxl }}>
                 <Spin />
               </div>
-            ) : filteredCampaigns.length === 0 ? (
+            ) : campaignsTotal === 0 ? (
               <div
                 style={{
                   textAlign: 'center',
@@ -592,6 +571,7 @@ export default function BidderCampaigns() {
                 {emptyStateMessage}
               </div>
             ) : (
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
               <div style={{ flex: 1, minHeight: 0, overflow: 'auto', width: '100%' }}>
                 <div style={{ overflowX: 'auto', width: '100%' }}>
                   <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 900 }}>
@@ -656,7 +636,7 @@ export default function BidderCampaigns() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredCampaigns.map((c, idx) => (
+                      {campaigns.map((c, idx) => (
                         <tr
                           key={c.id}
                           style={{
@@ -719,6 +699,33 @@ export default function BidderCampaigns() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  paddingTop: spacing.md,
+                  flexShrink: 0,
+                }}
+              >
+                <Pagination
+                  current={page}
+                  pageSize={pageSize}
+                  total={campaignsTotal}
+                  showSizeChanger
+                  pageSizeOptions={PAGE_SIZE_OPTIONS}
+                  showTotal={(total, range) => `${range[0]}–${range[1]} из ${total}`}
+                  locale={{ items_per_page: '/ стр.' }}
+                  onChange={(nextPage, nextSize) => {
+                    if (nextSize !== pageSize) {
+                      setPageSize(nextSize)
+                      setPage(1)
+                      return
+                    }
+                    setPage(nextPage)
+                  }}
+                />
+              </div>
               </div>
             )}
           </div>

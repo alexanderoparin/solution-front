@@ -161,7 +161,9 @@ export const analyticsApi = {
     sortDir: 'asc' | 'desc'
     search?: string
     type?: string | null
-    statuses: string[]
+    statuses?: string[]
+    excludeFinished?: boolean
+    bidderStatus?: string | null
   }): Promise<CampaignPageResponse> => {
     const searchParams = new URLSearchParams()
     if (options.sellerId != null) searchParams.set('sellerId', String(options.sellerId))
@@ -174,10 +176,16 @@ export const analyticsApi = {
     searchParams.set('sortDir', options.sortDir)
     if (options.search?.trim()) searchParams.set('search', options.search.trim())
     if (options.type) searchParams.set('type', options.type)
-    if (options.statuses.length === 0) {
-      searchParams.append('statuses', '')
-    } else {
-      options.statuses.forEach((status) => searchParams.append('statuses', status))
+    if (options.excludeFinished) searchParams.set('excludeFinished', 'true')
+    if (options.bidderStatus && options.bidderStatus !== 'all') {
+      searchParams.set('bidderStatus', options.bidderStatus)
+    }
+    if (options.statuses != null) {
+      if (options.statuses.length === 0) {
+        searchParams.append('statuses', '')
+      } else {
+        options.statuses.forEach((status) => searchParams.append('statuses', status))
+      }
     }
     const response = await apiClient.get<CampaignPageResponse>(
       `/advertising/campaigns/page?${searchParams.toString()}`

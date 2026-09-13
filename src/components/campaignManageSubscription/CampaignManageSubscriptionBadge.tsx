@@ -24,17 +24,20 @@ export default function CampaignManageSubscriptionBadge() {
 
   let line1 = 'Бесплатный доступ'
   let line2 = 'Перейти на PRO'
+  let shortLabel = 'PRO'
   let onLine2Click: () => void = () => navigate('/subscription')
 
   if (campaignManage.status === 'PRO' || onPro) {
     line1 = proTariffLabel
     const days = proDaysRemaining ?? campaignManage.daysRemaining ?? 0
     line2 = days > 0 ? `Осталось ${campaignManageDaysLabel(days)}` : 'Осталось менее дня'
+    shortLabel = 'PRO'
     onLine2Click = () => navigate('/profile')
   } else if (campaignManage.status === 'ACTIVE') {
     line1 = 'Управление РК подключено'
     const days = campaignManage.daysRemaining ?? 0
     line2 = days > 0 ? `Осталось ${campaignManageDaysLabel(days)}` : 'Осталось менее дня'
+    shortLabel = 'РК'
     onLine2Click = openPlans
   } else if (campaignManage.status === 'EXPIRED') {
     line1 = 'Управление РК'
@@ -42,40 +45,24 @@ export default function CampaignManageSubscriptionBadge() {
     line2 = ago > 0
       ? `Закончилось ${campaignManageDaysLabel(ago)} назад`
       : 'Закончилось сегодня'
+    shortLabel = 'РК'
     onLine2Click = () => navigate('/subscription')
   }
 
   return (
-    <div
+    <button
+      type="button"
       className="header-subscription-badge"
       data-tour-id={ONBOARDING_TARGETS.SUBSCRIPTION_BADGE}
-      style={{
-        background: 'rgba(124, 58, 237, 0.22)',
-        border: '1px solid rgba(167, 139, 250, 0.4)',
-        borderRadius: 10,
-        padding: '6px 12px',
-        maxWidth: 220,
-        lineHeight: 1.35,
-      }}
+      title={`${line1}. ${line2}`}
+      aria-label={`${line1}. ${line2}`}
+      onClick={onLine2Click}
     >
-      <div style={{ fontSize: 12, color: '#E9D5FF', fontWeight: 500 }}>{line1}</div>
-      <button
-        type="button"
-        onClick={onLine2Click}
-        style={{
-          margin: 0,
-          padding: 0,
-          border: 'none',
-          background: 'none',
-          cursor: 'pointer',
-          fontSize: 12,
-          textAlign: 'left',
-          color: '#C4B5FD',
-          fontWeight: 600,
-        }}
-      >
-        {line2}
-      </button>
-    </div>
+      <span className="header-subscription-badge-full">
+        <span className="header-subscription-badge-title">{line1}</span>
+        <span className="header-subscription-badge-action">{line2}</span>
+      </span>
+      <span className="header-subscription-badge-short">{shortLabel}</span>
+    </button>
   )
 }

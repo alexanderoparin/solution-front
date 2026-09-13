@@ -236,7 +236,7 @@ export default function Header({
         zIndex: 100,
       }}
     >
-      <div className="app-header-nav" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }} data-tour-id={ONBOARDING_TARGETS.MAIN_NAV}>
+      <div className="app-header-nav" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }} data-tour-id={ONBOARDING_TARGETS.MAIN_NAV}>
         <SiteLogo variant="wordmark" size={32} to="/analytics/products" title="Аналитика — Товары" />
 
         {/* Аналитика */}
@@ -261,7 +261,7 @@ export default function Header({
             }}
           >
             <span className="app-header-nav-label">Аналитика</span>
-            <DownOutlined style={{ fontSize: 10 }} />
+            <DownOutlined className="app-header-nav-chevron" style={{ fontSize: 10 }} />
           </Button>
         </Dropdown>
 
@@ -281,13 +281,13 @@ export default function Header({
             }}
           >
             <span className="app-header-nav-label">Реклама</span>
-            <DownOutlined style={{ fontSize: 10 }} />
+            <DownOutlined className="app-header-nav-chevron" style={{ fontSize: 10 }} />
           </Button>
         </Dropdown>
 
       </div>
 
-      <Space className="app-header-right" size="middle" align="center">
+      <Space className="app-header-right" size="middle" align="center" style={{ flex: '0 0 auto' }}>
         {!isProfilePage && workContextCabinetSelect && (
           <>
             <Select
