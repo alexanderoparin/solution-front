@@ -651,17 +651,19 @@ export default function CabinetsCard({
         }
         @media (max-width: 900px) {
           .profile-cabinets-toolbar {
-            flex-direction: column;
-            align-items: stretch;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            flex-wrap: nowrap !important;
+            gap: 12px !important;
           }
           .profile-cabinets-search {
-            width: 100%;
+            width: 100% !important;
           }
           .profile-cabinets-add .ant-btn {
             width: 100%;
           }
           .profile-cabinets-title.ant-typography {
-            font-size: 18px !important;
+            font-size: 16px !important;
           }
           .profile-cabinets-table {
             display: flex !important;
@@ -674,19 +676,34 @@ export default function CabinetsCard({
           .profile-cabinets-row {
             position: relative;
             display: flex !important;
-            flex-direction: column;
-            align-items: stretch;
-            gap: 10px;
-            padding: 14px;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            justify-content: flex-start !important;
+            gap: 8px !important;
+            padding: 14px !important;
+            text-align: left;
           }
           .profile-cabinets-row:has(.profile-cabinets-menu) {
-            padding-right: 44px;
+            padding-right: 44px !important;
+          }
+          .profile-cabinets-identity {
+            width: 100%;
+            padding-bottom: 10px;
+            margin-bottom: 2px;
+            border-bottom: 1px solid #E2E8F0;
+          }
+          .profile-cabinets-identity > div {
+            justify-content: flex-start;
+            width: 100%;
           }
           .profile-cabinets-row > [data-label] {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
+            display: grid !important;
+            grid-template-columns: minmax(108px, 38%) minmax(0, 1fr);
+            gap: 4px 12px;
+            align-items: center;
+            width: 100%;
             min-width: 0;
+            text-align: left;
           }
           .profile-cabinets-row > [data-label]::before {
             content: attr(data-label);
@@ -694,6 +711,10 @@ export default function CabinetsCard({
             line-height: 16px;
             color: #64748B;
             font-weight: 400;
+          }
+          .profile-cabinets-row > [data-label] > * {
+            min-width: 0;
+            text-align: left;
           }
           .profile-cabinets-menu {
             position: absolute;
@@ -704,6 +725,7 @@ export default function CabinetsCard({
             flex-wrap: wrap;
             justify-content: stretch !important;
             width: 100%;
+            margin-top: 4px;
           }
           .profile-cabinets-invite-actions .ant-btn {
             flex: 1 1 140px;
@@ -713,8 +735,9 @@ export default function CabinetsCard({
             min-width: 0;
           }
           .profile-api-token .ant-typography {
-            white-space: normal !important;
-            word-break: break-all;
+            white-space: nowrap !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
         }
       `}</style>
