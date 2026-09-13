@@ -221,6 +221,104 @@ export default function Header({
   const navColor = (activeNav: boolean) => (activeNav ? active : muted)
   const navWeight = (activeNav: boolean) => (activeNav ? 600 : 500)
 
+  const cabinetControl = !isProfilePage && workContextCabinetSelect ? (
+    <>
+      <Select
+        className="header-select-field header-select-field--dark"
+        showSearch
+        optionFilterProp="searchText"
+        value={workContextCabinetSelect.value}
+        onChange={(v) => {
+          const newCabinetId = Number(v)
+          handleCabinetSwitch(
+            workContextCabinetSelect.value,
+            newCabinetId,
+            workContextCabinetSelect.options.length,
+            () => workContextCabinetSelect.onChange(newCabinetId),
+          )
+        }}
+        style={{ minWidth: 280, maxWidth: 420 }}
+        placeholder={workContextCabinetSelect.placeholder ?? 'Кабинет'}
+        options={workContextCabinetSelect.options}
+        loading={workContextCabinetSelect.loading}
+        allowClear={false}
+      />
+      {headerRightExtra}
+    </>
+  ) : !isProfilePage && !workContextCabinetSelect && sellerSelectProps && sellerSelectProps.sellers.length > 0 ? (
+    <>
+      <Select
+        className="header-select-field header-select-field--dark"
+        value={sellerSelectProps.selectedSellerId}
+        onChange={sellerSelectProps.onSellerChange}
+        style={{ minWidth: 200 }}
+        placeholder="Продавец"
+        options={sellerSelectProps.sellers.map((s) => ({ label: s.email, value: s.id }))}
+        loading={sellerSelectProps.loading}
+      />
+      {headerRightExtra}
+    </>
+  ) : !isProfilePage && !workContextCabinetSelect && cabinetSelectProps && cabinetSelectProps.cabinets.length > 0 ? (
+    cabinetSelectProps.cabinets.length > 1 ? (
+      <Dropdown
+        menu={{
+          items: cabinetSelectProps.cabinets.map((c) => ({
+            key: String(c.id),
+            label: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span>{c.name}</span>
+                <MarketplaceTypeTag type={c.marketplaceType} />
+              </span>
+            ),
+            onClick: () =>
+              handleCabinetSwitch(
+                cabinetSelectProps.selectedCabinetId,
+                c.id,
+                cabinetSelectProps.cabinets.length,
+                () => cabinetSelectProps.onCabinetChange(c.id),
+              ),
+          })),
+        }}
+        trigger={['click']}
+        disabled={cabinetSelectProps.loading}
+      >
+        <span
+          className="app-header-cabinet-trigger"
+          style={{
+            ...fieldBorderStyle,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            fontSize: '14px',
+            color: onDark,
+            fontWeight: 500,
+            cursor: 'pointer',
+          }}
+        >
+          <span className="app-header-cabinet-name">{selectedCabinetName ?? '—'}</span>
+          <MarketplaceTypeTag type={selectedCabinetMarketplace} onDark />
+          <DownOutlined style={{ fontSize: 10, color: muted }} />
+        </span>
+      </Dropdown>
+    ) : (
+      <span
+        className="app-header-cabinet-trigger"
+        style={{
+          ...fieldBorderStyle,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          fontSize: '14px',
+          color: onDark,
+          fontWeight: 500,
+        }}
+      >
+        <span className="app-header-cabinet-name">{selectedCabinetName ?? '—'}</span>
+        <MarketplaceTypeTag type={selectedCabinetMarketplace} onDark />
+      </span>
+    )
+  ) : null
+
   return (
     <div
       className="app-header"
@@ -287,125 +385,30 @@ export default function Header({
 
       </div>
 
-      <Space className="app-header-right" size="middle" align="center" style={{ flex: '0 0 auto' }}>
-        {!isProfilePage && workContextCabinetSelect && (
-          <>
-            <Select
-              className="header-select-field header-select-field--dark"
-              showSearch
-              optionFilterProp="searchText"
-              value={workContextCabinetSelect.value}
-              onChange={(v) => {
-                const newCabinetId = Number(v)
-                handleCabinetSwitch(
-                  workContextCabinetSelect.value,
-                  newCabinetId,
-                  workContextCabinetSelect.options.length,
-                  () => workContextCabinetSelect.onChange(newCabinetId),
-                )
-              }}
-              style={{ minWidth: 280, maxWidth: 420 }}
-              placeholder={workContextCabinetSelect.placeholder ?? 'Кабинет'}
-              options={workContextCabinetSelect.options}
-              loading={workContextCabinetSelect.loading}
-              allowClear={false}
-            />
-            {headerRightExtra}
-          </>
-        )}
-        {!isProfilePage && !workContextCabinetSelect && sellerSelectProps && sellerSelectProps.sellers.length > 0 && (
-          <>
-            <Select
-              className="header-select-field header-select-field--dark"
-              value={sellerSelectProps.selectedSellerId}
-              onChange={sellerSelectProps.onSellerChange}
-              style={{ minWidth: 200 }}
-              placeholder="Продавец"
-              options={sellerSelectProps.sellers.map((s) => ({ label: s.email, value: s.id }))}
-              loading={sellerSelectProps.loading}
-            />
-            {headerRightExtra}
-          </>
-        )}
-        {!isProfilePage && !workContextCabinetSelect && cabinetSelectProps && cabinetSelectProps.cabinets.length > 0 && (
-          cabinetSelectProps.cabinets.length > 1 ? (
-            <Dropdown
-              menu={{
-                items: cabinetSelectProps.cabinets.map((c) => ({
-                  key: String(c.id),
-                  label: (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                      <span>{c.name}</span>
-                      <MarketplaceTypeTag type={c.marketplaceType} />
-                    </span>
-                  ),
-                  onClick: () =>
-                    handleCabinetSwitch(
-                      cabinetSelectProps.selectedCabinetId,
-                      c.id,
-                      cabinetSelectProps.cabinets.length,
-                      () => cabinetSelectProps.onCabinetChange(c.id),
-                    ),
-                })),
-              }}
-              trigger={['click']}
-              disabled={cabinetSelectProps.loading}
-            >
-              <span
-                style={{
-                  ...fieldBorderStyle,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  fontSize: '14px',
-                  color: onDark,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                }}
-              >
-                {selectedCabinetName ?? '—'}
-                <MarketplaceTypeTag type={selectedCabinetMarketplace} onDark />
-                <span style={{ color: muted, fontWeight: 400 }}>({cabinetSelectProps.cabinets.length})</span>
-                <DownOutlined style={{ fontSize: 10, color: muted }} />
-              </span>
-            </Dropdown>
-          ) : (
-            <span
-              style={{
-                ...fieldBorderStyle,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: '14px',
-                color: onDark,
-                fontWeight: 500,
-              }}
-            >
-              {selectedCabinetName ?? '—'}
-              <MarketplaceTypeTag type={selectedCabinetMarketplace} onDark />
+      <div className="app-header-end">
+        {cabinetControl ? <div className="app-header-cabinet">{cabinetControl}</div> : null}
+        <Space className="app-header-right" size="middle" align="center" style={{ flex: '0 0 auto' }}>
+          <CampaignManageSubscriptionBadge />
+          <BugReportButton />
+          <OnboardingHelpButton defaultTourId={resolveTourIdForPath(location.pathname)} />
+          <Link
+            to="/profile"
+            aria-label="Профиль"
+            className="ant-btn ant-btn-text ant-btn-color-default ant-btn-variant-text"
+            style={{
+              ...buttonStyle,
+              color: navColor(isProfileActive),
+              fontWeight: navWeight(isProfileActive),
+              textDecoration: 'none',
+            }}
+          >
+            <span className="ant-btn-icon">
+              <UserOutlined />
             </span>
-          )
-        )}
-        <CampaignManageSubscriptionBadge />
-        <BugReportButton />
-        <OnboardingHelpButton defaultTourId={resolveTourIdForPath(location.pathname)} />
-        <Link
-          to="/profile"
-          aria-label="Профиль"
-          className="ant-btn ant-btn-text ant-btn-color-default ant-btn-variant-text"
-          style={{
-            ...buttonStyle,
-            color: navColor(isProfileActive),
-            fontWeight: navWeight(isProfileActive),
-            textDecoration: 'none',
-          }}
-        >
-          <span className="ant-btn-icon">
-            <UserOutlined />
-          </span>
-          <span className="app-header-profile-label">Профиль</span>
-        </Link>
-      </Space>
+            <span className="app-header-profile-label">Профиль</span>
+          </Link>
+        </Space>
+      </div>
     </div>
   )
 }

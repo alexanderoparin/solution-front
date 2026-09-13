@@ -139,6 +139,19 @@ function MiniChart({ values, height = 32 }: { values: number[]; height?: number 
   )
 }
 
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
+
 export default function AnalyticsProducts() {
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role)
@@ -616,6 +629,152 @@ export default function AnalyticsProducts() {
         .products-table-link:hover { color: ${colors.primaryHover}; text-decoration: underline; }
         .products-table-link--img { display: block; opacity: 1; }
         .products-table-link--img:hover { opacity: 0.85; }
+        .products-filter-label-short { display: none; }
+        .products-card {
+          display: flex;
+          gap: 12px;
+          padding: 12px;
+          border: 1px solid ${colors.border};
+          border-radius: 12px;
+          background: ${colors.bgWhite};
+          cursor: pointer;
+        }
+        .products-card-photo {
+          flex-shrink: 0;
+          width: 56px;
+          height: 80px;
+          border-radius: 8px;
+          overflow: hidden;
+          background: ${colors.bgGray};
+        }
+        .products-card-photo img,
+        .products-card-photo-empty {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .products-card-body { min-width: 0; flex: 1; }
+        .products-card-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 8px;
+        }
+        .products-card-title {
+          font-weight: 700;
+          font-size: 13px;
+          line-height: 1.35;
+          color: ${colors.textPrimary} !important;
+        }
+        .products-card-meta {
+          font-size: 12px;
+          line-height: 1.4;
+          color: ${colors.textSecondary};
+          margin-top: 2px;
+        }
+        .products-card-promo {
+          display: inline-block;
+          margin-left: 8px;
+          padding: 1px 6px;
+          border-radius: 4px;
+          font-size: 11px;
+          font-weight: 500;
+          background: ${colors.successLight};
+          color: ${colors.success};
+        }
+        .products-card-stats {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          margin-top: 8px;
+          font-size: 12px;
+          color: ${colors.textPrimary};
+        }
+        .products-card-stats-left {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px 12px;
+          min-width: 0;
+        }
+        .products-card-chart-wrap {
+          margin-left: auto;
+          flex-shrink: 0;
+        }
+        .products-card-chart {
+          display: inline-flex;
+          align-items: flex-end;
+          padding: 4px 2px 0;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+        }
+        .products-card-orders-popup {
+          min-width: 160px;
+        }
+        .products-card-orders-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          font-size: 13px;
+          line-height: 1.5;
+          text-transform: capitalize;
+        }
+        .products-card-orders-total {
+          margin-top: 6px;
+          padding-top: 6px;
+          border-top: 1px solid ${colors.borderLight};
+          font-weight: 600;
+          text-transform: none;
+        }
+        @media (max-width: 900px) {
+          .analytics-products-shell {
+            padding: 12px 0 !important;
+          }
+          .analytics-products-panel {
+            padding: 12px !important;
+            box-shadow: none !important;
+          }
+          .analytics-products-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .analytics-products-search {
+            max-width: none !important;
+            width: 100%;
+          }
+          .analytics-products-filters {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px 12px;
+            width: 100%;
+          }
+          .analytics-products-checks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            width: 100%;
+            order: 3;
+          }
+          .analytics-products-checks .ant-checkbox-wrapper {
+            font-size: 13px;
+            white-space: nowrap;
+            margin-inline-end: 0 !important;
+          }
+          .products-filter-label-full { display: none; }
+          .products-filter-label-short { display: inline; }
+          .analytics-products-import {
+            order: 2;
+            margin-left: auto !important;
+          }
+          .products-filter-panel {
+            width: min(400px, calc(100vw - 32px)) !important;
+          }
+        }
       `}</style>
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header
@@ -624,6 +783,7 @@ export default function AnalyticsProducts() {
         />
         <Breadcrumbs />
         <div
+          className="analytics-products-shell"
           style={{
             flex: 1,
             minHeight: 0,
@@ -635,6 +795,7 @@ export default function AnalyticsProducts() {
           }}
         >
           <div
+            className="analytics-products-panel"
             style={{
               flex: 1,
               minHeight: 0,
@@ -651,6 +812,7 @@ export default function AnalyticsProducts() {
           >
           <div style={{ width: '100%', minWidth: 0 }}>
           <div
+            className="analytics-products-toolbar"
             style={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -665,6 +827,7 @@ export default function AnalyticsProducts() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               allowClear
+              className="analytics-products-search"
               style={{
                 maxWidth: 360,
                 borderRadius: borderRadius.sm,
@@ -672,7 +835,7 @@ export default function AnalyticsProducts() {
               }}
               classNames={{ input: undefined }}
             />
-            <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
+            <div className="analytics-products-filters" style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
             <Popover
               content={
                 (() => {
@@ -686,7 +849,7 @@ export default function AnalyticsProducts() {
                       )
                     : filterListArticles
                   return (
-                    <div style={{ width: 400, maxHeight: 'min(520px, calc(100vh - 160px))', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <div className="products-filter-panel" style={{ width: 400, maxHeight: 'min(520px, calc(100vh - 160px))', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                       <Input
                         placeholder={isOzonCabinet ? 'Поиск по offer_id или product_id' : 'Поиск по арт. продавца или WB'}
                         prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
@@ -824,18 +987,21 @@ export default function AnalyticsProducts() {
                 )}
               </Button>
             </Popover>
+            <div className="analytics-products-checks" style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
             <Checkbox
               checked={onlyWithPhoto}
               onChange={(e) => setOnlyWithPhoto(e.target.checked)}
             >
-              Только с фото
+              <span className="products-filter-label-full">Только с фото</span>
+              <span className="products-filter-label-short">С фото</span>
             </Checkbox>
             {!isOzonCabinet && (
             <Checkbox
               checked={onlyPriority}
               onChange={(e) => setOnlyPriority(e.target.checked)}
             >
-              Только приоритетные
+              <span className="products-filter-label-full">Только приоритетные</span>
+              <span className="products-filter-label-short">Приоритетные</span>
             </Checkbox>
             )}
             <Tooltip title="Только артикулы, привязанные к незавершённым рекламным кампаниям кабинета">
@@ -843,7 +1009,8 @@ export default function AnalyticsProducts() {
                 checked={onlyInAdvertising}
                 onChange={(e) => setOnlyInAdvertising(e.target.checked)}
               >
-                Только в рекламе
+                <span className="products-filter-label-full">Только в рекламе</span>
+                <span className="products-filter-label-short">В рекламе</span>
               </Checkbox>
             </Tooltip>
             </div>
@@ -869,11 +1036,13 @@ export default function AnalyticsProducts() {
                     disabled={selectedCabinetId == null || funnelBulkImportMutation.isPending}
                     onClick={() => funnelBulkImportInputRef.current?.click()}
                     aria-label="Импорт воронки из Excel для всех артикулов"
+                    className="analytics-products-import"
                     style={{ marginLeft: 'auto' }}
                   />
                 </Tooltip>
               </>
             )}
+            </div>
           </div>
 
           {/* Выбранные артикулы ВБ под фильтром — на всю ширину; по клику «ещё» раскрывается весь список */}
@@ -1222,6 +1391,7 @@ function ProductsTable({
   onScroll,
   onReorderRows,
 }: ProductsTableProps) {
+  const compact = useIsNarrow(900)
   const showPriorityColumn = !isOzonCabinet
   const [scrollbarWidth, setScrollbarWidth] = useState(0)
   const dragFromIndexRef = useRef<number | null>(null)
@@ -1305,6 +1475,39 @@ function ProductsTable({
     if (related && (e.currentTarget as HTMLElement).contains(related)) return
     setDragOverRowIndex(null)
   }, [])
+
+  if (compact) {
+    return (
+      <div
+        ref={containerRef}
+        className="products-cards-wrapper"
+        onScroll={onScroll}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          width: '100%',
+        }}
+      >
+        {visibleArticles.map((article) => (
+          <ProductCard
+            key={article.nmId}
+            article={article}
+            last7Dates={last7Dates}
+            last7DaysPeriod={last7DaysPeriod}
+            selectedCabinetId={selectedCabinetId}
+            selectedSellerId={selectedSellerId}
+            showRatingColumn={showRatingColumn}
+            showPriorityColumn={showPriorityColumn}
+            isOzonCabinet={isOzonCabinet}
+          />
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -1457,23 +1660,14 @@ interface ProductRowProps {
   isDragOver: boolean
 }
 
-function ProductRow({
-  article,
-  last7Dates,
-  last7DaysPeriod,
-  selectedCabinetId,
-  selectedSellerId,
-  showRatingColumn,
-  showPriorityColumn,
-  isOzonCabinet,
-  rowIndex,
-  onDragHandleStart,
-  onDragHandleEnd,
-  onRowDragOver,
-  onRowDrop,
-  onRowDragLeave,
-  isDragOver,
-}: ProductRowProps) {
+function useProductRowData(
+  article: ArticleSummary,
+  last7Dates: string[],
+  last7DaysPeriod: Period,
+  selectedCabinetId: number | null,
+  selectedSellerId: number | undefined,
+  isOzonCabinet: boolean,
+) {
   const navigate = useNavigate()
   const [isPriority, setIsPriority] = useState(Boolean(article.isPriority))
   const [prioritySaving, setPrioritySaving] = useState(false)
@@ -1552,7 +1746,6 @@ function ProductRow({
   const goToArticle = () => navigate(`/analytics/article/${article.nmId}`)
   const marketplaceProductUrl = isOzonCabinet ? OZON_CATALOG_URL(article.nmId) : WB_CATALOG_URL(article.nmId)
   const articlePath = `/analytics/article/${article.nmId}`
-
   const stopProp = (e: React.MouseEvent) => e.stopPropagation()
 
   const togglePriority = async (checked: boolean) => {
@@ -1577,6 +1770,235 @@ function ProductRow({
       setPrioritySaving(false)
     }
   }
+
+  return {
+    isPriority,
+    prioritySaving,
+    togglePriority,
+    isLoading,
+    inPromotion,
+    promotionTooltip,
+    rating,
+    fboTotal,
+    fbsTotal,
+    sizesLabel,
+    firstStockWarehouse,
+    dailyByDate,
+    last7Values,
+    goToArticle,
+    marketplaceProductUrl,
+    articlePath,
+    stopProp,
+  }
+}
+
+interface ProductCardProps {
+  article: ArticleSummary
+  last7Dates: string[]
+  last7DaysPeriod: Period
+  selectedCabinetId: number | null
+  selectedSellerId: number | undefined
+  showRatingColumn: boolean
+  showPriorityColumn: boolean
+  isOzonCabinet: boolean
+}
+
+function ProductCard({
+  article,
+  last7Dates,
+  last7DaysPeriod,
+  selectedCabinetId,
+  selectedSellerId,
+  showRatingColumn,
+  showPriorityColumn,
+  isOzonCabinet,
+}: ProductCardProps) {
+  const {
+    isPriority,
+    prioritySaving,
+    togglePriority,
+    isLoading,
+    inPromotion,
+    promotionTooltip,
+    rating,
+    fboTotal,
+    fbsTotal,
+    dailyByDate,
+    last7Values,
+    goToArticle,
+    marketplaceProductUrl,
+    articlePath,
+    stopProp,
+  } = useProductRowData(
+    article,
+    last7Dates,
+    last7DaysPeriod,
+    selectedCabinetId,
+    selectedSellerId,
+    isOzonCabinet,
+  )
+
+  const created = article.wbCreatedAt ? dayjs(article.wbCreatedAt).format('DD.MM.YY') : '—'
+  const subtitle = isOzonCabinet
+    ? (article.offerId ? `Offer ID: ${article.offerId}` : '—')
+    : ([article.subjectName, article.brand].filter(Boolean).join(' · ') || '—')
+  const ordersTotal = last7Values.reduce((sum, value) => sum + value, 0)
+
+  return (
+    <article
+      className="products-card"
+      role="button"
+      tabIndex={0}
+      onClick={goToArticle}
+      onKeyDown={(e) => e.key === 'Enter' && goToArticle()}
+    >
+      <a
+        href={marketplaceProductUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={stopProp}
+        className="products-card-photo"
+      >
+        {article.photoTm ? (
+          <img src={article.photoTm} alt="" />
+        ) : (
+          <span className="products-card-photo-empty" />
+        )}
+      </a>
+      <div className="products-card-body">
+        <div className="products-card-head">
+          <Link to={articlePath} onClick={stopProp} className="products-table-link products-card-title">
+            {article.title || '—'}
+          </Link>
+          {showPriorityColumn && (
+            <Checkbox
+              checked={isPriority}
+              disabled={prioritySaving || selectedCabinetId == null}
+              onClick={stopProp}
+              onChange={(e) => {
+                e.stopPropagation()
+                void togglePriority(e.target.checked)
+              }}
+            />
+          )}
+        </div>
+        <div className="products-card-meta">{subtitle}</div>
+        <div className="products-card-meta">
+          {isOzonCabinet ? 'Product ID' : 'Артикул WB'}:{' '}
+          <Link to={articlePath} onClick={stopProp} className="products-table-link">{article.nmId}</Link>
+        </div>
+        {!isOzonCabinet && (
+          <div className="products-card-meta">
+            Артикул продавца:{' '}
+            <Link to={articlePath} onClick={stopProp} className="products-table-link">
+              {article.vendorCode ?? '—'}
+            </Link>
+          </div>
+        )}
+        <div className="products-card-meta">
+          Создан {created}
+          {inPromotion && (
+            <span className="products-card-promo" title={promotionTooltip || undefined}>В акции</span>
+          )}
+        </div>
+        <div className="products-card-stats">
+          <div className="products-card-stats-left">
+          <span>FBO {isLoading && !isOzonCabinet ? '…' : fboTotal.toLocaleString('ru-RU')}</span>
+          <span>FBS {isLoading && !isOzonCabinet ? '…' : fbsTotal.toLocaleString('ru-RU')}</span>
+          {showRatingColumn && (
+            <span>
+              {isLoading && !hasMeaningfulArticleRating(rating) ? (
+                '…'
+              ) : hasMeaningfulArticleRating(rating) ? (
+                <>
+                  <StarFilled style={{ color: '#FBBF24', fontSize: 11, marginRight: 3 }} />
+                  {isOzonCabinet ? formatOzonContentRating(rating) : formatArticleRating(rating)}
+                </>
+              ) : (
+                '—'
+              )}
+            </span>
+          )}
+          </div>
+          <span className="products-card-chart-wrap" onClick={stopProp} role="presentation">
+            <Popover
+              trigger="click"
+              placement="topRight"
+              title="Заказы за 7 дней"
+              content={
+                <div className="products-card-orders-popup">
+                  {last7Dates.map((date) => (
+                    <div key={date} className="products-card-orders-row">
+                      <span>{dayjs(date).format('dd, DD.MM')}</span>
+                      <span>{(dailyByDate.get(date) ?? 0).toLocaleString('ru-RU')}</span>
+                    </div>
+                  ))}
+                  <div className="products-card-orders-row products-card-orders-total">
+                    <span>Всего</span>
+                    <span>{ordersTotal.toLocaleString('ru-RU')}</span>
+                  </div>
+                </div>
+              }
+            >
+              <button
+                type="button"
+                className="products-card-chart"
+                aria-label="Заказы по дням"
+                onClick={stopProp}
+              >
+                {isLoading ? <Spin size="small" /> : <MiniChart values={last7Values} height={22} />}
+              </button>
+            </Popover>
+          </span>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function ProductRow({
+  article,
+  last7Dates,
+  last7DaysPeriod,
+  selectedCabinetId,
+  selectedSellerId,
+  showRatingColumn,
+  showPriorityColumn,
+  isOzonCabinet,
+  rowIndex,
+  onDragHandleStart,
+  onDragHandleEnd,
+  onRowDragOver,
+  onRowDrop,
+  onRowDragLeave,
+  isDragOver,
+}: ProductRowProps) {
+  const {
+    isPriority,
+    prioritySaving,
+    togglePriority,
+    isLoading,
+    inPromotion,
+    promotionTooltip,
+    rating,
+    fboTotal,
+    fbsTotal,
+    sizesLabel,
+    firstStockWarehouse,
+    dailyByDate,
+    last7Values,
+    goToArticle,
+    marketplaceProductUrl,
+    articlePath,
+    stopProp,
+  } = useProductRowData(
+    article,
+    last7Dates,
+    last7DaysPeriod,
+    selectedCabinetId,
+    selectedSellerId,
+    isOzonCabinet,
+  )
 
   return (
     <tr

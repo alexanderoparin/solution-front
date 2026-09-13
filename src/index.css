@@ -46,6 +46,14 @@ body {
   color: #CBD5E1 !important;
 }
 
+.app-header-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
 .header-subscription-badge {
   appearance: none;
   margin: 0;
@@ -218,9 +226,15 @@ body {
     padding: 8px 10px !important;
     gap: 6px;
     min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .app-header-end {
+    display: contents;
   }
 
   .app-header-nav {
+    order: 1;
     flex: 1 1 auto !important;
     gap: 0 !important;
     min-width: 0;
@@ -233,9 +247,43 @@ body {
   }
 
   .app-header-right {
+    order: 2;
     gap: 2px !important;
     flex: 0 0 auto !important;
     flex-wrap: nowrap !important;
+    margin-left: auto;
+  }
+
+  .app-header-cabinet {
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    margin-top: 2px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .app-header-cabinet .ant-select {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .app-header-cabinet-trigger {
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    padding: 4px 10px !important;
+  }
+
+  .app-header-cabinet-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .header-subscription-badge {

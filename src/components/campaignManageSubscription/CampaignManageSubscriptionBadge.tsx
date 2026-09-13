@@ -24,7 +24,7 @@ export default function CampaignManageSubscriptionBadge() {
 
   let line1 = 'Бесплатный доступ'
   let line2 = 'Перейти на PRO'
-  let shortLabel = 'PRO'
+  let shortLabel = 'FREE'
   let onLine2Click: () => void = () => navigate('/subscription')
 
   if (campaignManage.status === 'PRO' || onPro) {
