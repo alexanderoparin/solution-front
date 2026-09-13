@@ -76,6 +76,7 @@ interface InfoBlockProps {
 function InfoBlock({ label, children, action }: InfoBlockProps) {
   return (
     <Card
+      className="cabinet-info-block"
       style={{
         height: '100%',
         borderRadius: 16,
@@ -93,11 +94,11 @@ function InfoBlock({ label, children, action }: InfoBlockProps) {
         },
       }}
     >
-      <Text type="secondary" style={{ fontSize: 13 }}>
+      <Text type="secondary" className="cabinet-info-block-label" style={{ fontSize: 13 }}>
         {label}
       </Text>
-      <div style={{ flex: 1, minHeight: 56 }}>{children}</div>
-      {action}
+      <div className="cabinet-info-block-main">{children}</div>
+      <div className="cabinet-info-block-action">{action}</div>
     </Card>
   )
 }
@@ -301,7 +302,7 @@ export default function CabinetDetailPage() {
       <div style={{ minHeight: '100vh', background: '#F8FAFC' }}>
         <Header />
         <Breadcrumbs />
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: 24 }}>
+        <div className="cabinet-detail-page" style={{ maxWidth: 960, margin: '0 auto', padding: 24 }}>
           <Alert type="error" message="Некорректный идентификатор кабинета" showIcon />
         </div>
       </div>
@@ -312,7 +313,7 @@ export default function CabinetDetailPage() {
     <div style={{ minHeight: '100vh', background: '#F8FAFC' }}>
       <Header />
       <Breadcrumbs />
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px' }}>
+      <div className="cabinet-detail-page" style={{ maxWidth: 1200, margin: '0 auto', padding: '24px' }}>
         <div style={{ marginBottom: 16 }}>
           <Link to="/profile" style={{ color: accent, fontSize: 14 }}>
             ← К списку кабинетов
@@ -344,6 +345,10 @@ export default function CabinetDetailPage() {
         ) : cabinet ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             <style>{`
+              .cabinet-info-block-main {
+                flex: 1;
+                min-height: 56px;
+              }
               .cabinet-info-grid {
                 display: grid;
                 grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -354,11 +359,80 @@ export default function CabinetDetailPage() {
                 .cabinet-info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
               }
               @media (max-width: 640px) {
-                .cabinet-info-grid { grid-template-columns: 1fr; }
+                .cabinet-detail-page {
+                  padding: 12px !important;
+                }
+                .cabinet-detail-hero {
+                  flex-direction: column !important;
+                  align-items: stretch !important;
+                  gap: 12px !important;
+                }
+                .cabinet-detail-hero .ant-typography {
+                  font-size: 18px !important;
+                }
+                .cabinet-detail-actions {
+                  width: 100%;
+                }
+                .cabinet-detail-actions.ant-space {
+                  display: flex !important;
+                  flex-direction: column !important;
+                  width: 100%;
+                }
+                .cabinet-detail-actions .ant-space-item,
+                .cabinet-detail-actions .ant-btn {
+                  width: 100%;
+                }
+                .cabinet-info-grid {
+                  grid-template-columns: 1fr;
+                  gap: 8px;
+                }
+                .cabinet-info-block.ant-card {
+                  height: auto !important;
+                  border-radius: 12px;
+                }
+                .cabinet-info-block .ant-card-body {
+                  height: auto !important;
+                  display: grid !important;
+                  grid-template-columns: minmax(0, 1fr) auto;
+                  grid-template-areas:
+                    "label action"
+                    "value action";
+                  gap: 4px 10px !important;
+                  padding: 12px 14px !important;
+                  align-items: center;
+                }
+                .cabinet-info-block-label {
+                  grid-area: label;
+                  font-size: 12px !important;
+                }
+                .cabinet-info-block-main {
+                  grid-area: value;
+                  flex: none !important;
+                  min-height: 0 !important;
+                }
+                .cabinet-info-block-action {
+                  grid-area: action;
+                  align-self: center;
+                  max-width: 48%;
+                }
+                .cabinet-info-block-action .ant-tooltip-disabled-compatible-wrapper,
+                .cabinet-info-block-action > span {
+                  display: inline-flex !important;
+                  width: auto !important;
+                  max-width: 100%;
+                }
+                .cabinet-info-block-action .ant-btn {
+                  width: auto !important;
+                  height: 32px;
+                  padding: 0 10px;
+                  font-size: 13px;
+                  white-space: nowrap;
+                }
               }
             `}</style>
 
             <div
+              className="cabinet-detail-hero"
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -377,7 +451,7 @@ export default function CabinetDetailPage() {
                 </Text>
               </div>
               {!isAdmin && (
-                <Space wrap>
+                <Space className="cabinet-detail-actions" wrap>
                   <Button icon={<EditOutlined />} onClick={() => openEditName(cabinet)}>
                     Переименовать кабинет
                   </Button>
@@ -740,6 +814,7 @@ export default function CabinetDetailPage() {
       </div>
 
       <Modal
+        className="profile-modal"
         title="Переименовать кабинет"
         open={editOpen}
         destroyOnClose
@@ -775,6 +850,7 @@ export default function CabinetDetailPage() {
       </Modal>
 
       <Modal
+        className="profile-modal"
         title="Изменить токен"
         open={tokenEditOpen}
         destroyOnClose
@@ -824,6 +900,7 @@ export default function CabinetDetailPage() {
       </Modal>
 
       <Modal
+        className="profile-modal"
         title="Performance API credentials"
         open={performanceEditOpen}
         destroyOnClose

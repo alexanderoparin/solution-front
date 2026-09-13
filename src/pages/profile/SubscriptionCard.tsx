@@ -182,6 +182,7 @@ export default function SubscriptionCard({
   const body = (
     <>
       <div
+        className="subscription-card-head"
         style={{
           display: 'flex',
           alignItems: 'flex-start',
@@ -249,6 +250,7 @@ export default function SubscriptionCard({
           >
               {/* Основной тариф */}
               <div
+                className="subscription-tariff-card"
                 style={{
                   border: `1px solid ${border}`,
                   borderRadius: 14,
@@ -314,7 +316,7 @@ export default function SubscriptionCard({
                         : planDescription}
                   </Text>
                 </div>
-                <div
+                <div className="subscription-tariff-meta"
                   style={{
                     borderLeft: `1px solid ${border}`,
                     paddingLeft: 16,
@@ -354,6 +356,7 @@ export default function SubscriptionCard({
 
               {/* Дополнительные услуги */}
               <div
+                className="subscription-services-card"
                 style={{
                   border: `1px solid ${border}`,
                   borderRadius: 14,
@@ -371,6 +374,7 @@ export default function SubscriptionCard({
                     return (
                       <div
                         key={svc.serviceCode}
+                        className="subscription-service-row"
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -379,6 +383,7 @@ export default function SubscriptionCard({
                         }}
                       >
                         <div
+                          className="subscription-service-icon"
                           style={{
                             width: 32,
                             height: 32,
@@ -392,10 +397,11 @@ export default function SubscriptionCard({
                         >
                           {serviceIcon(svc.serviceCode)}
                         </div>
-                        <div style={{ flex: '1 1 100px', minWidth: 0, fontWeight: 600, color: '#0F172A' }}>
+                        <div className="subscription-service-name" style={{ flex: '1 1 100px', minWidth: 0, fontWeight: 600, color: '#0F172A' }}>
                           {svc.name}
                         </div>
                         <span
+                          className="subscription-service-status"
                           style={{
                             display: 'inline-flex',
                             padding: '2px 10px',
@@ -411,6 +417,7 @@ export default function SubscriptionCard({
                         </span>
                         {canManageBilling ? (
                           <Button
+                            className="subscription-service-btn"
                             size="small"
                             disabled={onPro}
                             onClick={() => onConnectService(svc)}
@@ -435,6 +442,58 @@ export default function SubscriptionCard({
               @media (max-width: 900px) {
                 .profile-subscription-grid {
                   grid-template-columns: 1fr !important;
+                  gap: 12px !important;
+                  margin-bottom: 12px !important;
+                }
+                .subscription-card .ant-card-body {
+                  padding: 14px !important;
+                }
+                .subscription-card-head {
+                  margin-bottom: 12px !important;
+                  gap: 8px !important;
+                }
+                .subscription-tariff-card {
+                  flex-direction: column !important;
+                  padding: 14px !important;
+                  gap: 12px !important;
+                }
+                .subscription-tariff-meta {
+                  border-left: none !important;
+                  border-top: 1px solid ${border};
+                  padding-left: 0 !important;
+                  padding-top: 12px;
+                  min-width: 0 !important;
+                  flex-direction: row !important;
+                  justify-content: flex-start !important;
+                  gap: 24px !important;
+                }
+                .subscription-services-card {
+                  padding: 14px !important;
+                }
+                .subscription-service-row {
+                  display: grid !important;
+                  grid-template-columns: 32px minmax(0, 1fr) auto;
+                  grid-template-areas:
+                    "icon name status"
+                    "btn btn btn";
+                  align-items: center;
+                  column-gap: 10px;
+                  row-gap: 8px;
+                  flex-wrap: nowrap !important;
+                }
+                .subscription-service-icon {
+                  grid-area: icon;
+                }
+                .subscription-service-name {
+                  grid-area: name;
+                  flex: none !important;
+                }
+                .subscription-service-status {
+                  grid-area: status;
+                }
+                .subscription-service-btn {
+                  grid-area: btn;
+                  width: 100% !important;
                 }
               }
             `}</style>
@@ -478,7 +537,7 @@ export default function SubscriptionCard({
   return (
     <>
       {isCabinetLayout ? (
-        <Card style={{ borderRadius: 16, border: `1px solid ${border}` }} styles={{ body: { padding: 24 } }}>
+        <Card className="subscription-card" style={{ borderRadius: 16, border: `1px solid ${border}` }} styles={{ body: { padding: 24 } }}>
           {body}
         </Card>
       ) : (

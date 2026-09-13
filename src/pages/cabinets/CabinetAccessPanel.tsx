@@ -10,6 +10,7 @@ import {
   Popconfirm,
   Popover,
   Select,
+  Spin,
   Table,
   Tabs,
   Tag,
@@ -142,7 +143,7 @@ function AccessUntilCell({ row, loading, onChange }: AccessUntilCellProps) {
   return (
     <DatePicker
       size="small"
-      style={{ minWidth: 132 }}
+      className="cabinet-access-until-picker"
       format="DD.MM.YYYY"
       placeholder="Бессрочно"
       allowClear
@@ -163,17 +164,13 @@ interface SectionsCellProps {
 function SectionsList({ selected }: { selected: CabinetAccessSection[] }) {
   const selectedSet = new Set(selected)
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, lineHeight: 1.25 }}>
+    <div className="cabinet-access-sections-list">
       {CABINET_ACCESS_SECTION_OPTIONS.map((option) => {
         const enabled = selectedSet.has(option.value)
         return (
           <span
             key={option.value}
-            style={{
-              fontSize: 11,
-              color: enabled ? '#15803D' : '#94A3B8',
-              fontWeight: enabled ? 500 : 400,
-            }}
+            className={enabled ? 'is-enabled' : undefined}
           >
             {option.label}
           </span>
@@ -217,7 +214,7 @@ function SectionsCell({ row, loading, onChange }: SectionsCellProps) {
       onOpenChange={openEditor}
       placement="bottomLeft"
       content={
-        <div style={{ width: 220 }}>
+        <div style={{ width: 220, maxWidth: 'calc(100vw - 48px)' }}>
           <Checkbox.Group
             style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
             options={CABINET_ACCESS_SECTION_OPTIONS}
@@ -258,6 +255,156 @@ function SectionsCell({ row, loading, onChange }: SectionsCellProps) {
         <SectionsList selected={sections} />
       </button>
     </Popover>
+  )
+}
+
+interface AccessActionsProps {
+  row: CabinetAccessEntryDto
+  block?: boolean
+  revokeGrantPending: boolean
+  revokeInvitationPending: boolean
+  resendInvitationPending: boolean
+  reinviteFromGrantPending: boolean
+  onRevokeGrant: (id: number) => void
+  onRevokeInvitation: (id: number) => void
+  onResendInvitation: (id: number) => void
+  onReinviteFromGrant: (id: number) => void
+}
+
+/** Кнопки отзыва и повторной отправки приглашения. */
+function AccessActions({
+  row,
+  block = false,
+  revokeGrantPending,
+  revokeInvitationPending,
+  resendInvitationPending,
+  reinviteFromGrantPending,
+  onRevokeGrant,
+  onRevokeInvitation,
+  onResendInvitation,
+  onReinviteFromGrant,
+}: AccessActionsProps) {
+  const buttonProps = block
+    ? { type: 'default' as const, size: 'middle' as const, block: true }
+    : { type: 'link' as const, size: 'small' as const }
+
+  if (row.kind === 'GRANT' && row.statusLabel === 'Активен') {
+    return (
+      <Popconfirm
+        title="Отозвать доступ?"
+        description="Пользователь потеряет доступ к кабинету."
+        okText="Отозвать"
+        cancelText="Отмена"
+        onConfirm={() => onRevokeGrant(row.id)}
+      >
+        <Button {...buttonProps} danger icon={<StopOutlined />} loading={revokeGrantPending}>
+          Отозвать
+        </Button>
+      </Popconfirm>
+    )
+  }
+  if (row.kind === 'INVITATION' && row.invitationStatus === 'PENDING') {
+    return (
+      <Popconfirm
+        title="Отозвать приглашение?"
+        okText="Отозвать"
+        cancelText="Отмена"
+        onConfirm={() => onRevokeInvitation(row.id)}
+      >
+        <Button {...buttonProps} danger icon={<StopOutlined />} loading={revokeInvitationPending}>
+          Отозвать
+        </Button>
+      </Popconfirm>
+    )
+  }
+  if (canResendInvitation(row)) {
+    return (
+      <Popconfirm
+        title="Отправить приглашение снова?"
+        description="На этот email уйдёт новое письмо со ссылкой."
+        okText="Отправить"
+        cancelText="Отмена"
+        onConfirm={() => onResendInvitation(row.id)}
+      >
+        <Button {...buttonProps} icon={<SendOutlined />} loading={resendInvitationPending}>
+          Отправить снова
+        </Button>
+      </Popconfirm>
+    )
+  }
+  if (canReinviteFromGrant(row)) {
+    return (
+      <Popconfirm
+        title="Отправить приглашение снова?"
+        description="На этот email уйдёт новое письмо со ссылкой."
+        okText="Отправить"
+        cancelText="Отмена"
+        onConfirm={() => onReinviteFromGrant(row.id)}
+      >
+        <Button {...buttonProps} icon={<SendOutlined />} loading={reinviteFromGrantPending}>
+          Отправить снова
+        </Button>
+      </Popconfirm>
+    )
+  }
+  return null
+}
+
+interface AccessEntryCardProps {
+  row: CabinetAccessEntryDto
+  updatingUntil: boolean
+  updatingSections: boolean
+  onAccessUntilChange: (row: CabinetAccessEntryDto, value: Dayjs | null) => void
+  onSectionsChange: (row: CabinetAccessEntryDto, sections: CabinetAccessSection[]) => void
+  actions: Omit<AccessActionsProps, 'row' | 'block'>
+}
+
+/** Карточка доступа для узкого экрана вместо строки таблицы. */
+function AccessEntryCard({
+  row,
+  updatingUntil,
+  updatingSections,
+  onAccessUntilChange,
+  onSectionsChange,
+  actions,
+}: AccessEntryCardProps) {
+  const hasDistinctName = Boolean(row.userName?.trim()) && row.userName !== row.userEmail
+  const actionButton = <AccessActions row={row} block {...actions} />
+
+  return (
+    <div className="cabinet-access-card">
+      <div className="cabinet-access-card-head">
+        <div className="cabinet-access-card-user">
+          <Text strong>{row.userName?.trim() || row.userEmail}</Text>
+          {hasDistinctName && (
+            <Text type="secondary" className="cabinet-access-card-email">
+              {row.userEmail}
+            </Text>
+          )}
+        </div>
+        <Tag color={statusTagColor(row)}>{row.statusLabel}</Tag>
+      </div>
+
+      <div className="cabinet-access-card-sections">
+        <span className="cabinet-access-card-label">Разделы</span>
+        <SectionsCell row={row} loading={updatingSections} onChange={onSectionsChange} />
+      </div>
+
+      <div className="cabinet-access-card-dates">
+        <div className="cabinet-access-card-date">
+          <span className="cabinet-access-card-label">С</span>
+          <span className="cabinet-access-card-value">{formatDate(row.accessFrom)}</span>
+        </div>
+        <div className="cabinet-access-card-date">
+          <span className="cabinet-access-card-label">До</span>
+          <div className="cabinet-access-card-value">
+            <AccessUntilCell row={row} loading={updatingUntil} onChange={onAccessUntilChange} />
+          </div>
+        </div>
+      </div>
+
+      {actionButton ? <div className="cabinet-access-card-actions">{actionButton}</div> : null}
+    </div>
   )
 }
 
@@ -395,6 +542,20 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
 
   const filteredEntries = useMemo(() => filterByTab(entries, activeTab), [entries, activeTab])
 
+  const accessActionHandlers = useMemo(
+    () => ({
+      revokeGrantPending: revokeGrantMutation.isPending,
+      revokeInvitationPending: revokeInvitationMutation.isPending,
+      resendInvitationPending: resendInvitationMutation.isPending,
+      reinviteFromGrantPending: reinviteFromGrantMutation.isPending,
+      onRevokeGrant: (id: number) => revokeGrantMutation.mutate(id),
+      onRevokeInvitation: (id: number) => revokeInvitationMutation.mutate(id),
+      onResendInvitation: (id: number) => resendInvitationMutation.mutate(id),
+      onReinviteFromGrant: (id: number) => reinviteFromGrantMutation.mutate(id),
+    }),
+    [revokeGrantMutation, revokeInvitationMutation, resendInvitationMutation, reinviteFromGrantMutation],
+  )
+
   const tabCounts = useMemo(
     () => ({
       all: entries.length,
@@ -469,93 +630,12 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
       {
         title: 'Действия',
         key: 'actions',
-        render: (_: unknown, row: CabinetAccessEntryDto) => {
-          if (row.kind === 'GRANT' && row.statusLabel === 'Активен') {
-            return (
-              <Popconfirm
-                title="Отозвать доступ?"
-                description="Пользователь потеряет доступ к кабинету."
-                okText="Отозвать"
-                cancelText="Отмена"
-                onConfirm={() => revokeGrantMutation.mutate(row.id)}
-              >
-                <Button
-                  type="link"
-                  danger
-                  size="small"
-                  icon={<StopOutlined />}
-                  loading={revokeGrantMutation.isPending}
-                >
-                  Отозвать
-                </Button>
-              </Popconfirm>
-            )
-          }
-          if (row.kind === 'INVITATION' && row.invitationStatus === 'PENDING') {
-            return (
-              <Popconfirm
-                title="Отозвать приглашение?"
-                okText="Отозвать"
-                cancelText="Отмена"
-                onConfirm={() => revokeInvitationMutation.mutate(row.id)}
-              >
-                <Button
-                  type="link"
-                  danger
-                  size="small"
-                  icon={<StopOutlined />}
-                  loading={revokeInvitationMutation.isPending}
-                >
-                  Отозвать
-                </Button>
-              </Popconfirm>
-            )
-          }
-          if (canResendInvitation(row)) {
-            return (
-              <Popconfirm
-                title="Отправить приглашение снова?"
-                description="На этот email уйдёт новое письмо со ссылкой."
-                okText="Отправить"
-                cancelText="Отмена"
-                onConfirm={() => resendInvitationMutation.mutate(row.id)}
-              >
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<SendOutlined />}
-                  loading={resendInvitationMutation.isPending}
-                >
-                  Отправить снова
-                </Button>
-              </Popconfirm>
-            )
-          }
-          if (canReinviteFromGrant(row)) {
-            return (
-              <Popconfirm
-                title="Отправить приглашение снова?"
-                description="На этот email уйдёт новое письмо со ссылкой."
-                okText="Отправить"
-                cancelText="Отмена"
-                onConfirm={() => reinviteFromGrantMutation.mutate(row.id)}
-              >
-                <Button
-                  type="link"
-                  size="small"
-                  icon={<SendOutlined />}
-                  loading={reinviteFromGrantMutation.isPending}
-                >
-                  Отправить снова
-                </Button>
-              </Popconfirm>
-            )
-          }
-          return null
-        },
+        render: (_: unknown, row: CabinetAccessEntryDto) => (
+          <AccessActions row={row} {...accessActionHandlers} />
+        ),
       },
     ],
-    [revokeGrantMutation, revokeInvitationMutation, resendInvitationMutation, reinviteFromGrantMutation, updatingUntilKey, updatingSectionsKey, handleAccessUntilChange, handleSectionsChange],
+    [accessActionHandlers, updatingUntilKey, updatingSectionsKey, handleAccessUntilChange, handleSectionsChange],
   )
 
   const tabItems = [
@@ -566,8 +646,181 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
   ]
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+    <div className="cabinet-access-panel">
+      <style>{`
+        .cabinet-access-until-picker {
+          min-width: 132px;
+        }
+        .cabinet-access-sections-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+          line-height: 1.25;
+        }
+        .cabinet-access-sections-list span {
+          font-size: 11px;
+          color: #94A3B8;
+          font-weight: 400;
+        }
+        .cabinet-access-sections-list span.is-enabled {
+          color: #15803D;
+          font-weight: 500;
+        }
+        .cabinet-access-cards {
+          display: none;
+        }
+        @media (max-width: 900px) {
+          .cabinet-access-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .cabinet-access-toolbar .ant-btn {
+            width: 100%;
+          }
+          .cabinet-access-tabs {
+            margin-bottom: 12px !important;
+          }
+          .cabinet-access-tabs .ant-tabs-nav {
+            margin-bottom: 12px;
+          }
+          .cabinet-access-tabs .ant-tabs-nav-wrap {
+            overflow: visible;
+          }
+          .cabinet-access-tabs .ant-tabs-nav-list {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+            width: 100% !important;
+            transform: none !important;
+          }
+          .cabinet-access-tabs .ant-tabs-nav-operations {
+            display: none !important;
+          }
+          .cabinet-access-tabs .ant-tabs-ink-bar {
+            display: none;
+          }
+          .cabinet-access-tabs .ant-tabs-tab,
+          .cabinet-access-tabs .ant-tabs-tab + .ant-tabs-tab {
+            margin: 0 !important;
+            padding: 8px 6px;
+            font-size: 13px;
+            justify-content: center;
+            text-align: center;
+            border-bottom: 2px solid transparent;
+          }
+          .cabinet-access-tabs .ant-tabs-tab-active {
+            border-bottom-color: #7C3AED;
+          }
+          .cabinet-access-table {
+            display: none;
+          }
+          .cabinet-access-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+          .cabinet-access-card {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 14px;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            background: #fff;
+          }
+          .cabinet-access-card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 10px;
+            margin-bottom: 2px;
+            border-bottom: 1px solid #F1F5F9;
+          }
+          .cabinet-access-card-user {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+          }
+          .cabinet-access-card-email {
+            font-size: 12px;
+            word-break: break-all;
+          }
+          .cabinet-access-card-head .ant-tag {
+            margin-inline-end: 0;
+            margin-top: 2px;
+            flex-shrink: 0;
+          }
+          .cabinet-access-card-sections {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 8px;
+          }
+          .cabinet-access-card-sections .cabinet-access-card-label {
+            line-height: 1.3;
+            padding-top: 0;
+          }
+          .cabinet-access-card-sections > button,
+          .cabinet-access-card-sections > .cabinet-access-sections-list {
+            display: flex;
+            flex: 1;
+            min-width: 0;
+            width: auto;
+            text-align: left;
+            align-items: flex-start;
+          }
+          .cabinet-access-card .cabinet-access-sections-list {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-items: baseline;
+            gap: 2px 10px;
+            width: 100%;
+          }
+          .cabinet-access-card .cabinet-access-sections-list span {
+            font-size: 11px;
+            line-height: 1.3;
+            white-space: nowrap;
+          }
+          .cabinet-access-card-dates {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 8px 12px;
+            align-items: center;
+          }
+          .cabinet-access-card-date {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+          }
+          .cabinet-access-card-label {
+            font-size: 12px;
+            line-height: 16px;
+            color: #64748B;
+            flex-shrink: 0;
+          }
+          .cabinet-access-card-value {
+            min-width: 0;
+            font-size: 13px;
+            line-height: 20px;
+            color: #1E293B;
+          }
+          .cabinet-access-card-actions .ant-btn {
+            width: 100%;
+          }
+          .cabinet-access-until-picker {
+            min-width: 0;
+            width: 100%;
+          }
+          .cabinet-access-until-picker.ant-picker {
+            width: 100%;
+          }
+        }
+      `}</style>
+      <div className="cabinet-access-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <Text strong style={{ fontSize: 16 }}>
           Доступы к кабинету
         </Text>
@@ -582,23 +835,51 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
       </div>
 
       <Tabs
+        className="cabinet-access-tabs"
+        size="small"
+        tabBarGutter={0}
         activeKey={activeTab}
         onChange={(key) => setActiveTab(key as AccessTab)}
         items={tabItems}
         style={{ marginBottom: 16 }}
       />
 
-      <Table
-        rowKey={(row) => `${row.kind}-${row.id}`}
-        columns={columns}
-        dataSource={filteredEntries}
-        loading={isLoading || isFetching}
-        pagination={false}
-        locale={{ emptyText: 'Нет записей' }}
-        size="middle"
-      />
+      <div className="cabinet-access-table">
+        <Table
+          rowKey={(row) => `${row.kind}-${row.id}`}
+          columns={columns}
+          dataSource={filteredEntries}
+          loading={isLoading || isFetching}
+          pagination={false}
+          locale={{ emptyText: 'Нет записей' }}
+          size="middle"
+        />
+      </div>
+
+      <div className="cabinet-access-cards">
+        <Spin spinning={isLoading || isFetching}>
+          {filteredEntries.length === 0 && !isLoading ? (
+            <Text type="secondary">Нет записей</Text>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {filteredEntries.map((row) => (
+                <AccessEntryCard
+                  key={`${row.kind}-${row.id}`}
+                  row={row}
+                  updatingUntil={updatingUntilKey === `${row.kind}-${row.id}`}
+                  updatingSections={updatingSectionsKey === `${row.kind}-${row.id}`}
+                  onAccessUntilChange={handleAccessUntilChange}
+                  onSectionsChange={handleSectionsChange}
+                  actions={accessActionHandlers}
+                />
+              ))}
+            </div>
+          )}
+        </Spin>
+      </div>
 
       <Modal
+        className="profile-modal"
         title="Выдать доступ"
         open={grantModalOpen}
         destroyOnClose
