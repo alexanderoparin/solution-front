@@ -63,6 +63,21 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
           gap: 8px;
           min-width: 0;
         }
+        .user-info-name-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+        .user-info-name-row .ant-input-affix-wrapper,
+        .user-info-name-row .ant-input {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+        .user-info-name-row .ant-tag {
+          flex-shrink: 0;
+          margin-inline-end: 0;
+        }
         .user-info-roles {
           display: flex;
           flex-wrap: wrap;
@@ -109,6 +124,9 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
             grid-template-columns: 1fr;
             gap: 12px;
           }
+          .user-info-name-row {
+            gap: 8px;
+          }
           .user-info-email-row {
             flex-wrap: wrap;
           }
@@ -152,30 +170,31 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
         <div className="user-info-top-row">
           <div className="user-info-field">
             <Text type="secondary">Имя</Text>
-            <Input
-              value={displayName}
-              placeholder="—"
-              readOnly
-              style={{ borderRadius: 10, height: 40, width: '100%' }}
-            />
-          </div>
-
-          <div className="user-info-field">
-            <Text type="secondary" style={isAdmin ? { visibility: 'hidden' } : undefined}>
-              Роли
-            </Text>
-            <div
-              className="user-info-roles"
-              style={{ justifyContent: isAdmin ? 'flex-end' : 'flex-start' }}
-            >
+            <div className="user-info-name-row">
+              <Input
+                value={displayName}
+                placeholder="—"
+                readOnly
+                style={{ borderRadius: 10, height: 40, width: '100%' }}
+              />
               {isAdmin ? (
                 <Tag
                   color={USER_ROLE_TAG_COLORS[profile.role as UserRole] ?? 'red'}
-                  style={{ padding: '6px 16px', borderRadius: 12, fontWeight: 600, lineHeight: '20px', margin: 0 }}
+                  style={{ padding: '6px 12px', borderRadius: 12, fontWeight: 600, lineHeight: '20px', margin: 0 }}
                 >
                   {userRoleLabel(profile.role)}
                 </Tag>
-              ) : accountTypes.length === 0 ? (
+              ) : null}
+            </div>
+          </div>
+
+          {!isAdmin ? (
+          <div className="user-info-field">
+            <Text type="secondary">
+              Роли
+            </Text>
+            <div className="user-info-roles">
+              {accountTypes.length === 0 ? (
                 <Tag style={{ margin: 0 }}>—</Tag>
               ) : (
                 accountTypes.map((type) => (
@@ -196,6 +215,7 @@ export default function UserInfoCard({ profile, onEdit, onEmailConfirmPrompt }: 
               )}
             </div>
           </div>
+          ) : null}
         </div>
 
         <div className="user-info-field" style={{ marginTop: 16 }}>

@@ -741,6 +741,20 @@ export default function UsersManagementSection({
 
   return (
     <>
+      <style>{`
+        .users-mgmt-scroll {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior-x: contain;
+        }
+        .users-mgmt-scroll .ant-table-container,
+        .users-mgmt-scroll .ant-table-content {
+          overflow-x: auto !important;
+        }
+      `}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <Space wrap align="center">
           <Input
@@ -801,6 +815,7 @@ export default function UsersManagementSection({
         </div>
       )}
       {showCabinetsTable ? (
+        <div className="users-mgmt-scroll">
         <Table<ManagedCabinetRowDto>
           size="small"
           tableLayout="fixed"
@@ -865,7 +880,9 @@ export default function UsersManagementSection({
             boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
           }}
         />
+        </div>
       ) : (
+      <div className="users-mgmt-scroll">
       <Table
         columns={columns}
         dataSource={users}
@@ -944,12 +961,14 @@ export default function UsersManagementSection({
               }
             : undefined
         }
+        scroll={{ x: 1200 }}
         style={{
           backgroundColor: '#FFFFFF',
           borderRadius: '8px',
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
         }}
       />
+      </div>
       )}
       <Modal
         title="Создать пользователя"

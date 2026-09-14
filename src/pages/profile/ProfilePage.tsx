@@ -198,10 +198,11 @@ export default function ProfilePage() {
           padding: 24,
           minHeight: '100vh',
           backgroundColor: '#F8FAFC',
-          overflowX: 'hidden',
+          minWidth: 0,
+          overflowX: 'auto',
         }}
       >
-        <div style={{ maxWidth: 1240, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1240, margin: '0 auto', minWidth: 0 }}>
           <Row gutter={{ xs: 12, sm: 16, lg: 24 }} style={{ marginBottom: 24 }} wrap>
             <Col xs={24} lg={16} style={{ minWidth: 0, display: 'flex' }}>
               <UserInfoCard
@@ -305,9 +306,17 @@ export default function ProfilePage() {
                 onChange={(value) => setUsersBlockView(value as UserManagementView)}
               />
             }
+            styles={{
+              body: {
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                minWidth: 0,
+              },
+            }}
             style={{
               borderRadius: 16,
               border: `1px solid ${border}`,
+              minWidth: 0,
             }}
           >
             <UsersManagementSection

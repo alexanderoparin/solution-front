@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Card,
@@ -96,10 +96,24 @@ function formatAbCell(row: CabinetBillingOverviewDto): string {
   return a.activated ? 'подключено' : 'не подключено'
 }
 
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
+
 export default function AdminPlansAndSubscriptions() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role)
+  const isNarrow = useIsNarrow(900)
   const [planForm] = Form.useForm()
   const [extendForm] = Form.useForm()
   const [editingPlan, setEditingPlan] = useState<PlanDto | null>(null)
@@ -408,7 +422,7 @@ export default function AdminPlansAndSubscriptions() {
       title: '',
       key: 'actions',
       width: 220,
-      fixed: 'right' as const,
+      ...(isNarrow ? {} : { fixed: 'right' as const }),
       render: (_: unknown, row: CabinetBillingOverviewDto) => (
         <Space size={0}>
           <Button type="link" size="small" icon={<CreditCardOutlined />} onClick={() => openAssign(row)}>
@@ -487,9 +501,48 @@ export default function AdminPlansAndSubscriptions() {
 
   return (
     <>
+      <style>{`
+        .admin-plans-scroll {
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior-x: contain;
+        }
+        @media (max-width: 900px) {
+          .admin-plans-page {
+            padding: 12px !important;
+            min-width: 0;
+          }
+          .admin-plans-page h4.ant-typography {
+            margin-top: 8px !important;
+            margin-bottom: 12px !important;
+            font-size: 20px !important;
+          }
+          .admin-plans-search {
+            max-width: none !important;
+            width: 100% !important;
+          }
+          .admin-plans-toolbar {
+            flex-direction: column;
+            align-items: stretch !important;
+          }
+          .admin-plans-toolbar .ant-select {
+            width: 100% !important;
+          }
+          .admin-plans-page .ant-card-body {
+            padding: 12px !important;
+          }
+          .admin-plans-page .ant-tabs-nav {
+            margin-bottom: 12px;
+          }
+        }
+      `}</style>
       <Header />
       <Breadcrumbs />
       <div
+        className="admin-plans-page"
         style={{
           width: '100%',
           padding: 24,
@@ -497,9 +550,10 @@ export default function AdminPlansAndSubscriptions() {
           backgroundColor: '#F8FAFC',
           display: 'flex',
           justifyContent: 'center',
+          minWidth: 0,
         }}
       >
-        <div style={{ width: '100%', maxWidth: 1200 }}>
+        <div style={{ width: '100%', maxWidth: 1200, minWidth: 0 }}>
           <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 24 }}>
             Тарифы и услуги
           </Typography.Title>
@@ -512,6 +566,7 @@ export default function AdminPlansAndSubscriptions() {
                 children: (
                   <Card>
                     <div
+                      className="admin-plans-toolbar"
                       style={{
                         marginBottom: 16,
                         display: 'flex',
@@ -535,6 +590,7 @@ export default function AdminPlansAndSubscriptions() {
                         Добавить план
                       </Button>
                     </div>
+                    <div className="admin-plans-scroll">
                     <Table
                       rowKey="id"
                       loading={plansLoading}
@@ -544,6 +600,7 @@ export default function AdminPlansAndSubscriptions() {
                       size="small"
                       scroll={{ x: 1000 }}
                     />
+                    </div>
                   </Card>
                 ),
               },
@@ -554,6 +611,7 @@ export default function AdminPlansAndSubscriptions() {
                   <Card>
                     <Space direction="vertical" style={{ width: '100%' }} size="middle">
                       <Input.Search
+                        className="admin-plans-search"
                         placeholder="Поиск по кабинету или email"
                         allowClear
                         value={billingSearchInput}
@@ -562,15 +620,16 @@ export default function AdminPlansAndSubscriptions() {
                           setBillingSearch(value.trim())
                           setBillingPage(0)
                         }}
-                        style={{ maxWidth: 420 }}
+                        style={{ maxWidth: 420, width: '100%' }}
                       />
+                      <div className="admin-plans-scroll">
                       <Table
                         rowKey="cabinetId"
                         loading={billingLoading || billingFetching}
                         columns={billingColumns}
                         dataSource={billingRows}
                         size="small"
-                        scroll={{ x: 1000 }}
+                        scroll={{ x: 1200 }}
                         onChange={(pagination, _filters, sorter) => {
                           const s = Array.isArray(sorter) ? sorter[0] : sorter
                           const key = String(s?.columnKey ?? s?.field ?? '')
@@ -610,6 +669,7 @@ export default function AdminPlansAndSubscriptions() {
                           pageSizeOptions: ['10', '20', '50'],
                         }}
                       />
+                      </div>
                     </Space>
                   </Card>
                 ),
@@ -627,8 +687,9 @@ export default function AdminPlansAndSubscriptions() {
         }
         open={detailRow != null}
         onClose={() => setDetailRow(null)}
-        width={720}
+        width={isNarrow ? '100%' : 720}
         destroyOnClose
+        styles={isNarrow ? { body: { padding: 16 } } : undefined}
       >
         {detailRow && (
           <Space direction="vertical" style={{ width: '100%' }} size="large">
@@ -644,6 +705,7 @@ export default function AdminPlansAndSubscriptions() {
             </div>
             <div>
               <Typography.Title level={5}>Подписки кабинета</Typography.Title>
+              <div className="admin-plans-scroll">
               <Table
                 rowKey="id"
                 loading={cabinetSubsLoading}
@@ -651,10 +713,13 @@ export default function AdminPlansAndSubscriptions() {
                 dataSource={cabinetSubscriptions}
                 pagination={false}
                 size="small"
+                scroll={{ x: 640 }}
               />
+              </div>
             </div>
             <div>
               <Typography.Title level={5}>Платежи владельца</Typography.Title>
+              <div className="admin-plans-scroll">
               <Table
                 rowKey="id"
                 loading={paymentsLoading}
@@ -662,7 +727,9 @@ export default function AdminPlansAndSubscriptions() {
                 dataSource={payments}
                 pagination={false}
                 size="small"
+                scroll={{ x: 720 }}
               />
+              </div>
             </div>
           </Space>
         )}
@@ -677,7 +744,7 @@ export default function AdminPlansAndSubscriptions() {
         }}
         onOk={handlePlanSubmit}
         confirmLoading={createPlanMutation.isPending || updatePlanMutation.isPending}
-        width={520}
+        width={isNarrow ? 'calc(100vw - 24px)' : 520}
       >
         <Form form={planForm} layout="vertical">
           <Form.Item name="name" label="Название" rules={[{ required: true }]}>
@@ -730,6 +797,7 @@ export default function AdminPlansAndSubscriptions() {
         onCancel={() => setExtendModalOpen(false)}
         onOk={handleExtendSubmit}
         confirmLoading={extendMutation.isPending}
+        width={isNarrow ? 'calc(100vw - 24px)' : undefined}
       >
         <Form form={extendForm} layout="vertical">
           <Form.Item name="cabinetId" hidden rules={[{ required: true }]}>

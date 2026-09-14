@@ -309,6 +309,7 @@ body {
 
   .profile-page {
     padding: 12px !important;
+    min-width: 0;
   }
 
   .profile-page .ant-card-head {
