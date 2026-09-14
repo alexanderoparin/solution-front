@@ -45,7 +45,7 @@ function AppRoutes() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

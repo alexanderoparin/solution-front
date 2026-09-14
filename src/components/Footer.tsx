@@ -33,6 +33,14 @@ export default function Footer() {
     >
       <style>{`
         .app-footer .footer-link:hover { color: ${ACCENT_HOVER}; opacity: 0.9; }
+        @media (max-width: 900px) {
+          .app-footer {
+            padding: 16px 16px 20px !important;
+          }
+          .app-footer > div {
+            gap: 16px !important;
+          }
+        }
       `}</style>
       <div
         style={{

@@ -82,93 +82,143 @@ export default function Login() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%)',
-      }}
-    >
-      <Card
+    <>
+      <style>{`
+        @media (max-width: 900px) {
+          .auth-login-page {
+            align-items: center !important;
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            padding: 16px !important;
+          }
+          .auth-login-card {
+            box-shadow: none !important;
+            border: none !important;
+            background: transparent !important;
+          }
+          .auth-login-card .ant-card-body {
+            padding: 4px 4px 16px !important;
+          }
+          .auth-login-brand {
+            margin-bottom: 28px !important;
+          }
+          .auth-login-page .ant-input,
+          .auth-login-page .ant-input-affix-wrapper,
+          .auth-login-page .ant-input-affix-wrapper input {
+            font-size: 16px !important;
+          }
+          .auth-login-page .ant-input-affix-wrapper {
+            min-height: 48px;
+            border-radius: 10px !important;
+          }
+          .auth-login-submit {
+            height: 48px !important;
+            font-size: 16px !important;
+            border-radius: 10px !important;
+          }
+          .auth-login-links a {
+            display: inline-block;
+            padding: 6px 0;
+          }
+        }
+      `}</style>
+      <div
+        className="auth-login-page"
         style={{
-          width: '100%',
-          maxWidth: 400,
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%)',
+          padding: 24,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 32 }}>
-          <SiteLogo to="/" borderRadius={10} />
-          <div style={{ textAlign: 'center' }}>
-            <Title level={2} style={{ marginBottom: 4, color: '#1E293B', margin: 0 }}>
-              {LEGAL_OPERATOR.siteBrandName}
-            </Title>
-            <Text type="secondary" style={{ color: '#64748B', fontSize: 14 }}>
-              Управление рекламными кампаниями Wildberries
-            </Text>
-          </div>
-        </div>
-
-        <Form
-          name="login"
-          onFinish={onFinish}
-          layout="vertical"
-          size="large"
-          autoComplete="off"
+        <Card
+          className="auth-login-card"
+          style={{
+            width: '100%',
+            maxWidth: 400,
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          }}
         >
-          <Form.Item
-            name="email"
-            rules={[
-              { required: true, message: 'Введите email' },
-              { type: 'email', message: 'Введите корректный email' },
-            ]}
-          >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder="Email"
-              autoComplete="email"
-            />
-          </Form.Item>
+          <div className="auth-login-brand" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 40, marginBottom: 32 }}>
+            <SiteLogo to="/" size={88} borderRadius={14} />
+            <div style={{ textAlign: 'center' }}>
+              <Title level={2} style={{ marginBottom: 4, color: '#1E293B', margin: 0 }}>
+                {LEGAL_OPERATOR.siteBrandName}
+              </Title>
+              <Text type="secondary" style={{ color: '#64748B', fontSize: 14, display: 'block' }}>
+                Управление рекламными
+                <br />
+                кампаниями Wildberries
+              </Text>
+            </div>
+          </div>
 
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: 'Введите пароль' }]}
+          <Form
+            name="login"
+            onFinish={onFinish}
+            layout="vertical"
+            size="large"
+            autoComplete="off"
           >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="Пароль"
-              autoComplete="current-password"
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loginMutation.isPending}
-              block
-              style={{
-                backgroundColor: '#7C3AED',
-                borderColor: '#7C3AED',
-                height: 44,
-              }}
+            <Form.Item
+              name="email"
+              rules={[
+                { required: true, message: 'Введите email' },
+                { type: 'email', message: 'Введите корректный email' },
+              ]}
             >
-              Войти
-            </Button>
-          </Form.Item>
-        </Form>
+              <Input
+                prefix={<UserOutlined />}
+                placeholder="Email"
+                autoComplete="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+              />
+            </Form.Item>
 
-        <div style={{ textAlign: 'center', marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div>
-            <Text type="secondary" style={{ marginRight: 4 }}>Нет аккаунта?</Text>
-            <Link to="/register" style={{ color: '#6D28D9', fontWeight: 600 }}>Зарегистрироваться</Link>
+            <Form.Item
+              name="password"
+              rules={[{ required: true, message: 'Введите пароль' }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined />}
+                placeholder="Пароль"
+                autoComplete="current-password"
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <Button
+                className="auth-login-submit"
+                type="primary"
+                htmlType="submit"
+                loading={loginMutation.isPending}
+                block
+                style={{
+                  backgroundColor: '#7C3AED',
+                  borderColor: '#7C3AED',
+                  height: 44,
+                }}
+              >
+                Войти
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <div className="auth-login-links" style={{ textAlign: 'center', marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div>
+              <Text type="secondary" style={{ marginRight: 4 }}>Нет аккаунта?</Text>
+              <Link to="/register" style={{ color: '#6D28D9', fontWeight: 600 }}>Зарегистрироваться</Link>
+            </div>
+            <div>
+              <Link to="/forgot-password" style={{ color: '#64748B', fontSize: 13 }}>Забыли пароль?</Link>
+            </div>
           </div>
-          <div>
-            <Link to="/forgot-password" style={{ color: '#64748B', fontSize: 13 }}>Забыли пароль?</Link>
-          </div>
-        </div>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </>
   )
 }
