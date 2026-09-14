@@ -66,11 +66,11 @@ const tdOverflowStyle = { overflow: 'hidden', wordBreak: 'break-word' as const, 
 /** Ширины колонок таблицы в % (сумма 100), чтобы заполнение было примерно равномерным */
 const COL_WIDTHS_PCT = {
   createdAt: 8,
-  updatedAt: 8,
+  updatedAt: 7,
   name: 11,
-  id: 6,
-  type: 8,
-  articlesCount: 7,
+  id: 7,
+  type: 6,
+  articlesCount: 6,
   status: 8,
   views: 6,
   clicks: 6,
@@ -273,6 +273,55 @@ export default function AdvertisingCampaigns() {
 
   return (
     <>
+      <style>{`
+        .campaigns-col-label-short { display: none; }
+        .campaigns-updated-value-split { display: none; }
+        .campaigns-updated-title-rest::before { content: ' '; }
+        @media (max-width: 900px) {
+          .campaigns-toolbar {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .campaigns-toolbar-left {
+            width: 100%;
+          }
+          .campaigns-type-refresh {
+            width: 100%;
+            margin-left: 0 !important;
+            gap: 8px !important;
+          }
+          .campaigns-type-refresh .ant-select {
+            flex: 1 1 0;
+            min-width: 0 !important;
+          }
+          .campaigns-col-label-full { display: none; }
+          .campaigns-col-label-short {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.25;
+          }
+          .campaigns-updated-title {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.25;
+          }
+          .campaigns-updated-title-rest::before {
+            content: none;
+          }
+          .campaigns-updated-value-full { display: none; }
+          .campaigns-updated-value-split {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.25;
+          }
+          .campaigns-col-updated {
+            min-width: 72px;
+            white-space: normal !important;
+            word-break: normal !important;
+          }
+        }
+      `}</style>
       <Header
         workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
         cabinetSelectProps={cabinetSelectProps}
@@ -311,6 +360,7 @@ export default function AdvertisingCampaigns() {
             }}
           >
           <div
+            className="campaigns-toolbar"
             style={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -321,6 +371,7 @@ export default function AdvertisingCampaigns() {
             }}
           >
             <div
+              className="campaigns-toolbar-left"
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -351,6 +402,11 @@ export default function AdvertisingCampaigns() {
                 style={{ maxWidth: 360, borderRadius: borderRadius.sm }}
               />
               <CampaignStatusFilterCheckboxes value={filterStatus} onChange={setFilterStatus} />
+            </div>
+            <div
+              className="campaigns-type-refresh"
+              style={{ display: 'flex', alignItems: 'center', gap: spacing.md, marginLeft: 'auto', flexShrink: 0, minWidth: 0 }}
+            >
               <Select
                 placeholder="Тип"
                 value={filterType ?? ''}
@@ -361,8 +417,6 @@ export default function AdvertisingCampaigns() {
                 ]}
                 style={{ minWidth: 160, borderRadius: borderRadius.sm }}
               />
-            </div>
-            <div style={{ marginLeft: 'auto', flexShrink: 0 }}>
               <Tooltip
                 title="Обновление выполняется в фоновом режиме и может занять некоторое время."
               >
@@ -373,7 +427,7 @@ export default function AdvertisingCampaigns() {
                   loading={promotionSyncMutation.isPending}
                   disabled={selectedCabinetId == null}
                   onClick={() => promotionSyncMutation.mutate()}
-                  style={{ borderRadius: borderRadius.sm }}
+                  style={{ borderRadius: borderRadius.sm, flexShrink: 0 }}
                 >
                   Обновить все РК
                 </Button>
@@ -408,11 +462,25 @@ export default function AdvertisingCampaigns() {
                 <thead>
                   <tr style={{ backgroundColor: colors.bgGray }}>
                     <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.createdAt}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('createdAt')}>Дата создания <SortIcon field="createdAt" /></th>
-                    <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.updatedAt}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('updatedAt')}>Дата обновления <SortIcon field="updatedAt" /></th>
+                    <th className="campaigns-col-updated" style={{ ...thStyle, width: `${COL_WIDTHS_PCT.updatedAt}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('updatedAt')}>
+                      <span className="campaigns-updated-title">
+                        <span>Дата</span>
+                        <span className="campaigns-updated-title-rest">обновления</span>
+                      </span>
+                      {' '}
+                      <SortIcon field="updatedAt" />
+                    </th>
                     <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.name}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('name')}>Кампания <SortIcon field="name" /></th>
                     <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.id}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('id')}>ID <SortIcon field="id" /></th>
                     <th style={{ ...thStyle, width: `${COL_WIDTHS_PCT.type}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('type')}>Тип <SortIcon field="type" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.articlesCount}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('articlesCount')}>Количество артикулов <SortIcon field="articlesCount" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.articlesCount}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('articlesCount')}>
+                      <span className="campaigns-col-label-full">Количество артикулов </span>
+                      <span className="campaigns-col-label-short">
+                        <span>Кол-во</span>
+                        <span>артикулов</span>
+                      </span>
+                      <SortIcon field="articlesCount" />
+                    </th>
                     <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.status}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('status')}>Статус <SortIcon field="status" /></th>
                     <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.views}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('views')}>Просмотры <SortIcon field="views" /></th>
                     <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.clicks}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('clicks')}>Клики <SortIcon field="clicks" /></th>
@@ -439,7 +507,19 @@ export default function AdvertisingCampaigns() {
                       }}
                     >
                       <td style={{ width: `${COL_WIDTHS_PCT.createdAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDate(c.createdAt)}</td>
-                      <td style={{ width: `${COL_WIDTHS_PCT.updatedAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>{formatCampaignDateTime(c.updatedAt)}</td>
+                      <td className="campaigns-col-updated" style={{ width: `${COL_WIDTHS_PCT.updatedAt}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>
+                        {c.updatedAt ? (
+                          <>
+                            <span className="campaigns-updated-value-full">{formatCampaignDateTime(c.updatedAt)}</span>
+                            <span className="campaigns-updated-value-split">
+                              <span>{dayjs(c.updatedAt).format('DD.MM.YYYY')}</span>
+                              <span>{dayjs(c.updatedAt).format('HH:mm')}</span>
+                            </span>
+                          </>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
                       <td style={{ width: `${COL_WIDTHS_PCT.name}%`, padding: '6px 10px', borderBottom: `1px solid ${colors.border}`, ...tdOverflowStyle, ...typography.body, ...FONT_PAGE_SMALL }}>
                         <Link
                           to={`/advertising/campaigns/${c.id}`}

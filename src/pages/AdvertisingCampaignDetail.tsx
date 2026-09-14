@@ -40,6 +40,25 @@ import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 dayjs.locale('ru')
 
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
+
+const campaignRangePickerProps = {
+  allowClear: false,
+  inputReadOnly: true,
+  popupClassName: 'campaign-detail-datepicker-dropdown',
+} as const
+
 const COMBO_PHOTO_SIZE = 80
 const CLUSTERS_PAGE_SIZE = 20
 const CLUSTERS_EXPORT_PAGE_SIZE = 100
@@ -296,6 +315,8 @@ export default function AdvertisingCampaignDetail() {
   }, [clusterSearch])
   const [selectedFunnelKeys, setSelectedFunnelKeys] = useState<FunnelKey[]>(['general', 'advertising'])
   const [showChart, setShowChart] = useState(false)
+  const isNarrow = useIsNarrow(900)
+  const funnelDateFormat = isNarrow ? 'DD.MM' : 'DD.MM.YYYY'
   const [period1, setPeriod1] = useState<[Dayjs, Dayjs]>(() => {
     const stored = readStoredComparePeriods()
     return stored?.period1 ?? defaultComparePeriod1()
@@ -1053,12 +1074,211 @@ export default function AdvertisingCampaignDetail() {
 
   return (
     <>
+      <style>{`
+        @media (max-width: 900px) {
+          .campaign-detail-page {
+            padding: 12px !important;
+          }
+          .campaign-detail-hero,
+          .campaign-detail-funnels,
+          .campaign-detail-compare,
+          .campaign-detail-compare-summary,
+          .campaign-detail-clusters {
+            padding: 12px !important;
+            margin-bottom: 16px !important;
+            box-shadow: none !important;
+          }
+          .campaign-detail-hero-title {
+            gap: 8px !important;
+            margin-bottom: 12px !important;
+          }
+          .campaign-detail-hero-title h1 {
+            font-size: 18px !important;
+            line-height: 1.25 !important;
+            flex: 1 1 100%;
+            min-width: 0;
+          }
+          .campaign-detail-manage-link {
+            margin-left: 0 !important;
+          }
+          .campaign-detail-goal-row {
+            overflow: visible !important;
+            padding-bottom: 0 !important;
+          }
+          .campaign-detail-goal-inner {
+            min-width: 0 !important;
+            width: 100%;
+            flex-wrap: wrap !important;
+            gap: 12px !important;
+          }
+          .campaign-detail-goal {
+            width: 100% !important;
+          }
+          .campaign-detail-articles {
+            flex-wrap: wrap;
+            width: 100%;
+          }
+          .campaign-detail-combo-photo {
+            width: 56px !important;
+            height: 56px !important;
+          }
+          .campaign-detail-combo-photo + div {
+            min-height: 56px !important;
+          }
+          .campaign-detail-funnel-toolbar {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .campaign-detail-funnel-toolbar-left {
+            flex-direction: column;
+            align-items: stretch !important;
+            width: 100%;
+            gap: 10px !important;
+          }
+          .campaign-detail-funnel-period-row {
+            width: 100%;
+            justify-content: space-between !important;
+          }
+          .campaign-detail-funnel-period-row .campaign-detail-range-picker-wrap {
+            width: 220px;
+            max-width: calc(100% - 96px);
+            flex: 0 1 220px;
+          }
+          .campaign-detail-funnel-period-row .campaign-detail-range-picker-wrap .ant-picker {
+            width: 100%;
+          }
+          .campaign-detail-funnel-checks {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            gap: 0 !important;
+          }
+          .campaign-detail-funnel-checks .ant-checkbox-wrapper {
+            flex: 1 1 0;
+            justify-content: center;
+            margin-inline-end: 0 !important;
+            white-space: nowrap;
+          }
+          .campaign-detail-funnel-actions {
+            display: none !important;
+          }
+          .campaign-detail-datepicker-dropdown .ant-picker-panels {
+            flex-direction: column !important;
+          }
+          .campaign-detail-datepicker-dropdown .ant-picker-panel-container {
+            max-width: calc(100vw - 24px);
+          }
+          .campaign-detail-funnel-table {
+            width: max-content !important;
+            min-width: 720px;
+            table-layout: auto !important;
+          }
+          .campaign-detail-funnel-table th,
+          .campaign-detail-funnel-table td {
+            width: auto !important;
+            min-width: 72px;
+          }
+          .campaign-detail-funnel-table th:first-child,
+          .campaign-detail-funnel-table td:first-child {
+            position: sticky !important;
+            left: 0 !important;
+            min-width: 48px !important;
+            width: 52px !important;
+            max-width: 52px !important;
+            padding-left: 4px !important;
+            padding-right: 4px !important;
+            box-sizing: border-box;
+            box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.18);
+          }
+          .campaign-detail-funnel-table th:first-child {
+            z-index: 4 !important;
+            background-color: ${colors.bgWhite};
+          }
+          .campaign-detail-funnel-table td:first-child {
+            z-index: 3 !important;
+            background-color: ${colors.bgWhite};
+          }
+          .campaign-detail-funnel-table tr:last-child td:first-child {
+            background-color: ${colors.bgGray};
+          }
+          .campaign-detail-compare-period-head {
+            display: flex !important;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px !important;
+            width: 100%;
+          }
+          .campaign-detail-compare-period-head .campaign-detail-range-picker-wrap {
+            width: 220px;
+            max-width: 100%;
+          }
+          .campaign-detail-compare-period-head .campaign-detail-range-picker-wrap .ant-picker {
+            width: 100%;
+          }
+          .campaign-detail-compare-table {
+            width: max-content !important;
+            min-width: 720px;
+            table-layout: auto !important;
+          }
+          .campaign-detail-compare-summary-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 16px !important;
+          }
+          .campaign-detail-compare-funnels {
+            flex: 1 1 auto !important;
+            width: 100%;
+            min-width: 0 !important;
+          }
+          .campaign-detail-compare-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+          .campaign-detail-compare-grid table th,
+          .campaign-detail-compare-grid table td {
+            padding: 8px 6px !important;
+          }
+          .campaign-detail-compare-stocks {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            width: 100%;
+            height: auto !important;
+          }
+          .campaign-detail-compare-stocks-list {
+            flex: none !important;
+            overflow: visible !important;
+            min-height: 0 !important;
+            max-height: none !important;
+          }
+          .campaign-detail-clusters-toolbar {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .campaign-detail-clusters-toolbar-left {
+            width: 100%;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .campaign-detail-clusters-toolbar-left .campaign-detail-range-picker-wrap,
+          .campaign-detail-clusters-toolbar-left .ant-input-search {
+            width: 100% !important;
+            max-width: none !important;
+          }
+          .campaign-detail-clusters-export {
+            display: none !important;
+          }
+        }
+      `}</style>
       <Header
         workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
         cabinetSelectProps={cabinetSelectProps}
       />
       <Breadcrumbs />
       <div
+        className="campaign-detail-page"
         style={{
           padding: spacing.lg,
           backgroundColor: colors.bgGray,
@@ -1073,6 +1293,7 @@ export default function AdvertisingCampaignDetail() {
           <>
             {/* Блок 1: название, статус, артикулы — как в инфо об артикуле: тень, закругление */}
             <div
+              className="campaign-detail-hero"
               style={{
                 backgroundColor: colors.bgWhite,
                 border: `1px solid ${colors.borderLight}`,
@@ -1089,7 +1310,7 @@ export default function AdvertisingCampaignDetail() {
                 e.currentTarget.style.boxShadow = shadows.md
               }}
             >
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
+              <div className="campaign-detail-hero-title" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
                 <h1 style={{ ...typography.h2, margin: 0, color: colors.textPrimary }}>{campaign.name}</h1>
                 <span
                   style={{
@@ -1109,6 +1330,7 @@ export default function AdvertisingCampaignDetail() {
                   {campaign.articlesCount} шт.
                 </span>
                 <Link
+                  className="campaign-detail-manage-link"
                   to={`/advertising/campaigns/${campaign.id}/manage`}
                   data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_MANAGE}
                   style={{ marginLeft: 'auto', color: colors.primary, fontSize: 13, textDecoration: 'none', display: isOzonCabinet ? 'none' : undefined }}
@@ -1118,8 +1340,9 @@ export default function AdvertisingCampaignDetail() {
               </div>
 
               {/* Цель на РК слева, артикулы комбо в одну строку справа */}
-              <div style={{ overflowX: 'auto', paddingBottom: spacing.sm }}>
+              <div className="campaign-detail-goal-row" style={{ overflowX: 'auto', paddingBottom: spacing.sm }}>
                 <div
+                  className="campaign-detail-goal-inner"
                   style={{
                     display: 'flex',
                     gap: spacing.lg,
@@ -1128,6 +1351,7 @@ export default function AdvertisingCampaignDetail() {
                   }}
                 >
                   <div
+                    className="campaign-detail-goal"
                     style={{
                       width: 240,
                       flexShrink: 0,
@@ -1170,6 +1394,7 @@ export default function AdvertisingCampaignDetail() {
                     )}
                   </div>
                   <div
+                    className="campaign-detail-articles"
                     data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_ARTICLES}
                     style={{ display: 'flex', gap: spacing.lg, alignItems: 'flex-start' }}
                   >
@@ -1295,6 +1520,7 @@ export default function AdvertisingCampaignDetail() {
             <>
             {/* Блок 2 — Воронки + выбор артикула */}
             <div
+              className="campaign-detail-funnels"
               style={{
                 backgroundColor: colors.bgWhite,
                 border: `1px solid ${colors.borderLight}`,
@@ -1304,28 +1530,36 @@ export default function AdvertisingCampaignDetail() {
                 boxShadow: shadows.md,
               }}
             >
-              <div style={{ overflowX: 'auto', width: '100%' }}>
-                <div style={{ display: 'flex', marginBottom: spacing.md, alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
+              <div style={{ width: '100%' }}>
+                <div
+                  className="campaign-detail-funnel-toolbar"
+                  style={{ display: 'flex', marginBottom: spacing.md, alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap', justifyContent: 'space-between' }}
+                >
+                  <div className="campaign-detail-funnel-toolbar-left" style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
+                    <div className="campaign-detail-funnel-period-row" style={{ display: 'flex', alignItems: 'center', gap: spacing.md, minWidth: 0 }}>
+                    <div className="campaign-detail-range-picker-wrap" style={{ width: 220, maxWidth: '100%' }}>
                     <DatePicker.RangePicker
                       locale={locale.DatePicker}
                       value={dateRange}
                       onChange={(dates) => dates?.[0] && dates?.[1] && setDateRange([dates[0], dates[1]])}
                       format="DD.MM.YYYY"
                       separator="→"
-                      style={{ width: 220 }}
+                      style={{ width: '100%' }}
+                      {...campaignRangePickerProps}
                     />
-                    <span data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_METRICS} style={{ display: 'inline-flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
+                    </div>
+                    <span data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_CHART} className="campaign-detail-funnel-chart-switch" style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexShrink: 0, ...typography.body }}>
+                      <Switch checked={showChart} onChange={setShowChart} size="small" />
+                      <span>График</span>
+                    </span>
+                    </div>
+                    <span data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_METRICS} className="campaign-detail-funnel-checks" style={{ display: 'inline-flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
                     <Checkbox checked={selectedFunnelKeys.includes('general')} onChange={() => toggleFunnel('general')}>Общая</Checkbox>
                     <Checkbox checked={selectedFunnelKeys.includes('advertising')} onChange={() => toggleFunnel('advertising')}>Реклама</Checkbox>
                     <Checkbox checked={selectedFunnelKeys.includes('pricing')} onChange={() => toggleFunnel('pricing')}>Цены</Checkbox>
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
-                    <span data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_CHART} style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, ...typography.body }}>
-                      <Switch checked={showChart} onChange={setShowChart} size="small" />
-                      <span>График</span>
-                    </span>
+                  <div className="campaign-detail-funnel-actions" style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
                     <Button type="primary" icon={<DownloadOutlined />} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_EXPORT} onClick={handleExportFunnelsExcel} disabled={!funnelDailyData?.length}>
                       Выгрузить
                     </Button>
@@ -1361,10 +1595,10 @@ export default function AdvertisingCampaignDetail() {
                     ref={funnelTableWrapRef}
                     style={{ maxHeight: 438, overflowY: 'auto', overflowX: 'auto', position: 'relative' }}
                   >
-                    <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
+                    <table className="campaign-detail-funnel-table" style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' }}>
                       <thead>
                         <tr style={{ fontWeight: 700 }}>
-                          <th style={{ textAlign: 'center', padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 700, position: 'sticky', top: 0, left: 0, backgroundColor: colors.bgWhite, zIndex: 2, width: 90, boxShadow: `0 1px 0 0 ${colors.border}` }}>Дата</th>
+                          <th style={{ textAlign: 'center', padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 700, position: 'sticky', top: 0, left: 0, backgroundColor: colors.bgWhite, zIndex: 4, width: 90, boxShadow: `0 1px 0 0 ${colors.border}` }}>Дата</th>
                           {metricsWithFunnel.map(({ funnelKey, m }, index) => {
                             const isGeneral = funnelKey === 'general'
                             const isAdvertising = funnelKey === 'advertising'
@@ -1431,8 +1665,8 @@ export default function AdvertisingCampaignDetail() {
                               })
                             }}
                           >
-                            <td style={{ padding: '6px 8px', borderTop: dateIndex === 0 ? 'none' : undefined, borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 500, position: 'sticky', left: 0, backgroundColor: colors.bgWhite, zIndex: 1 }}>
-                              {dayjs(date).format('DD.MM.YYYY')}
+                            <td style={{ padding: '6px 8px', borderTop: dateIndex === 0 ? 'none' : undefined, borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 500, position: 'sticky', left: 0, backgroundColor: colors.bgWhite, zIndex: 3 }} title={dayjs(date).format('DD.MM.YYYY')}>
+                              {dayjs(date).format(funnelDateFormat)}
                             </td>
                             {metricsWithFunnel.map(({ funnelKey, m }, index) => {
                               const v = getMetricValueForDate(funnelDailyData, m.key, date)
@@ -1482,8 +1716,8 @@ export default function AdvertisingCampaignDetail() {
                           </tr>
                         ))}
                         <tr style={{ backgroundColor: colors.bgGray }}>
-                          <td style={{ padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, borderTop: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 700, position: 'sticky', left: 0, backgroundColor: colors.bgGray, zIndex: 1 }}>
-                            Весь период
+                          <td style={{ padding: '6px 8px', borderBottom: `1px solid ${colors.border}`, borderRight: `2px solid ${colors.border}`, borderTop: `2px solid ${colors.border}`, fontSize: 12, fontWeight: 700, position: 'sticky', left: 0, backgroundColor: colors.bgGray, zIndex: 3 }} title="Весь период">
+                            {isNarrow ? 'Итого' : 'Весь период'}
                           </td>
                           {metricsWithFunnel.map(({ m }, index) => {
                             const v = getPeriodTotalValue(m.key)
@@ -1518,6 +1752,7 @@ export default function AdvertisingCampaignDetail() {
 
             {viewMode === 'clusters' && (
             <div
+              className="campaign-detail-clusters"
               style={{
                 backgroundColor: colors.bgWhite,
                 border: `1px solid ${colors.borderLight}`,
@@ -1527,16 +1762,19 @@ export default function AdvertisingCampaignDetail() {
                 boxShadow: shadows.md,
               }}
             >
-              <div style={{ display: 'flex', marginBottom: spacing.md, alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
+              <div className="campaign-detail-clusters-toolbar" style={{ display: 'flex', marginBottom: spacing.md, alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                <div className="campaign-detail-clusters-toolbar-left" style={{ display: 'flex', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' }}>
+                  <div className="campaign-detail-range-picker-wrap" style={{ width: 220, maxWidth: '100%' }}>
                   <DatePicker.RangePicker
                     locale={locale.DatePicker}
                     value={dateRange}
                     onChange={(dates) => dates?.[0] && dates?.[1] && setDateRange([dates[0], dates[1]])}
                     format="DD.MM.YYYY"
                     separator="→"
-                    style={{ width: 220, flexShrink: 0 }}
+                    style={{ width: '100%' }}
+                    {...campaignRangePickerProps}
                   />
+                  </div>
                   <Input.Search
                     placeholder="Искать кластер"
                     allowClear
@@ -1546,6 +1784,7 @@ export default function AdvertisingCampaignDetail() {
                   />
                 </div>
                 <Button
+                  className="campaign-detail-clusters-export"
                   type="primary"
                   icon={<DownloadOutlined />}
                   loading={clustersExporting}
@@ -1594,7 +1833,7 @@ export default function AdvertisingCampaignDetail() {
             )}
 
             {/* Блок 3 — Сравнение периодов: два блока один под другим (период 1, период 2) */}
-            <div style={{ backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, marginBottom: spacing.lg, boxShadow: shadows.md }}>
+            <div className="campaign-detail-compare" style={{ backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, marginBottom: spacing.lg, boxShadow: shadows.md }}>
               <h2 style={{ ...typography.h2, margin: '0 0 16px 0', fontSize: 16, color: colors.textPrimary, display: 'flex', alignItems: 'center', gap: 8 }}>
                 Сравнение периодов
                 {comparePeriodsDataLoading && <Spin size="small" />}
@@ -1602,20 +1841,25 @@ export default function AdvertisingCampaignDetail() {
               {([{ period: 1, periodDates: period1, setPeriod: setPeriod1, aggKey: 'p1' as const, total: totalPeriod1 }, { period: 2, periodDates: period2, setPeriod: setPeriod2, aggKey: 'p2' as const, total: totalPeriod2 }] as const).map(({ period, periodDates, setPeriod, aggKey, total }) => (
                 <div key={period} style={{ marginBottom: period === 1 ? spacing.xl : 0 }}>
                   <div
+                    className="campaign-detail-compare-period-head"
                     data-tour-id={period === 1 ? ONBOARDING_TARGETS.CAMPAIGN_DETAIL_COMPARE_PERIODS : undefined}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}
                   >
                     <span style={{ ...typography.body, fontWeight: 600, color: colors.textPrimary }}>Период {period}</span>
+                    <div className="campaign-detail-range-picker-wrap" style={{ width: 220, maxWidth: '100%' }}>
                     <DatePicker.RangePicker
                       locale={locale.DatePicker}
                       value={periodDates}
                       onChange={(dates) => dates?.[0] && dates?.[1] && setPeriod([dates[0], dates[1]])}
                       format="DD.MM.YYYY"
                       separator="→"
-                      style={{ width: 220 }}
+                      style={{ width: '100%' }}
+                      {...campaignRangePickerProps}
                     />
+                    </div>
                   </div>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, tableLayout: 'fixed' }}>
+                  <div style={{ overflowX: 'auto', width: '100%' }}>
+                  <table className="campaign-detail-compare-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, tableLayout: 'fixed' }}>
                     <colgroup>
                       <col style={{ width: 120 }} />
                       <col span={FUNNELS.general.metrics.length + FUNNELS.advertising.metrics.length} />
@@ -1692,6 +1936,7 @@ export default function AdvertisingCampaignDetail() {
                       </tr>
                     </tbody>
                   </table>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1699,7 +1944,7 @@ export default function AdvertisingCampaignDetail() {
             {/* Блок 4 + 5 в один ряд: слева — сравнение периодов (суммарно), справа — остатки (оформление как в «Инфа по артикулу»).
                 Сравнение периодов рендерим всегда — даже если за один из периодов нет данных. Пустые значения показываем
                 как «-», а блок Остатков остаётся справа в фиксированной ширине, не растягиваясь на всё. */}
-            <div style={{ display: 'flex', gap: spacing.lg, alignItems: 'stretch', marginBottom: spacing.lg, flexWrap: 'wrap', backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, boxShadow: shadows.md }}>
+            <div className="campaign-detail-compare-summary campaign-detail-compare-summary-row" style={{ display: 'flex', gap: spacing.lg, alignItems: 'stretch', marginBottom: spacing.lg, flexWrap: 'wrap', backgroundColor: colors.bgWhite, border: `1px solid ${colors.borderLight}`, borderRadius: borderRadius.md, padding: spacing.lg, boxShadow: shadows.md }}>
               {(() => {
                 const getVal = (key: string, tot: typeof totalPeriod1) => {
                   if (!tot) return null
@@ -1741,12 +1986,12 @@ export default function AdvertisingCampaignDetail() {
                 const thPeriod = { textAlign: 'center' as const, padding: spacing.md, borderBottom: `2px solid ${colors.borderHeader}`, ...typography.body, fontSize: 12, fontWeight: 600 }
                 const tdCell = { padding: spacing.md, borderBottom: `1px solid ${colors.border}`, ...typography.body, fontSize: 12 }
                 return (
-                <div style={{ flex: '0 1 75%', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                <div className="campaign-detail-compare-funnels" style={{ flex: '0 1 75%', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
                   <h2 style={{ ...typography.h2, margin: '0 0 12px 0', fontSize: 16, color: colors.textPrimary, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    Сравнение периодов (суммарно по рекламной кампании)
+                    {isNarrow ? 'Сравнение периодов (суммарно)' : 'Сравнение периодов (суммарно по рекламной кампании)'}
                     {comparePeriodsDataLoading && <Spin size="small" />}
                   </h2>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg, alignContent: 'start' }}>
+                  <div className="campaign-detail-compare-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: spacing.lg, alignContent: 'start' }}>
                     {/* Таблица: Общая воронка */}
                     <div>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -1807,7 +2052,7 @@ export default function AdvertisingCampaignDetail() {
               {/* Блок 5 — Остатки. Шапка собрана в одном flex-wrap-контейнере: при недостатке места
                   «не вмещающиеся» элементы (в первую очередь бейдж «Всего N» и селект артикула)
                   естественным образом переносятся на следующую строку и не теряются. */}
-              <div style={{ flex: '1 1 280px', minWidth: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <div className="campaign-detail-compare-stocks" style={{ flex: '1 1 280px', minWidth: 280, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: spacing.xs }}>
                   <FboFbsStocksSwitch
                     tourTargetId={ONBOARDING_TARGETS.CAMPAIGN_DETAIL_STOCK_FULFILLMENT}
@@ -1941,7 +2186,7 @@ export default function AdvertisingCampaignDetail() {
                 {(() => {
                   const stocks = stocksFulfillment === 'FBS' ? (stockArticle?.fbsStocks ?? []) : (stockArticle?.stocks ?? [])
                   return stocks.length > 0 ? (
-                  <div style={{ flex: '1 1 0', overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+                  <div className="campaign-detail-compare-stocks-list" style={{ flex: '1 1 0', overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead>
                         <tr style={{ backgroundColor: colors.primaryLight }}>
@@ -2407,6 +2652,7 @@ function ComboProductItem({ article, photoSize }: { article: ArticleSummary; pho
       }}
     >
       <div
+        className="campaign-detail-combo-photo"
         style={{
           width: photoSize,
           height: photoSize,

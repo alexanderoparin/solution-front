@@ -1476,9 +1476,7 @@ export default function AnalyticsSummary() {
                           }}>
                             {article.photoTm && (
                               <a
-                                href={`https://www.wildberries.ru/catalog/${article.nmId}/detail.aspx`}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                href={`/analytics/article/${article.nmId}`}
                                 style={{
                                   display: 'inline-block',
                                   cursor: 'pointer',
@@ -1511,8 +1509,6 @@ export default function AnalyticsSummary() {
                             <div style={{ minWidth: 0 }}>
                               <a
                                 href={`/analytics/article/${article.nmId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
                                 style={{
                                   color: colors.primary,
                                   textDecoration: 'none',
