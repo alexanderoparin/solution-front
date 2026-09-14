@@ -38,6 +38,19 @@ type NoteFileEntry = { uid: string; file: File }
 
 dayjs.locale('ru')
 
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
+
 // Определение воронок и их метрик
 const FUNNELS = {
   general: {
@@ -225,6 +238,8 @@ export default function AnalyticsArticle() {
   const defaultDateTo = yesterday
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([defaultDateFrom, defaultDateTo])
   const [showChart, setShowChart] = useState(false)
+  const isNarrow = useIsNarrow(900)
+  const funnelDateFormat = isNarrow ? 'DD.MM' : 'DD.MM.YYYY'
 
   const rangeDates = useMemo(() => getDatesInRange(dateRange[0], dateRange[1]), [dateRange])
   /** Даты для блока воронок: сверху «сегодня» (самая новая), далее по нисходящей */
@@ -985,12 +1000,43 @@ export default function AnalyticsArticle() {
           .analytics-article-hero-row {
             flex-wrap: wrap;
             gap: 12px !important;
+            align-items: flex-start !important;
+          }
+          .analytics-article-hero-main {
+            flex: 1 1 100% !important;
+            display: grid !important;
+            grid-template-columns: 88px 1fr !important;
+            grid-template-areas:
+              "photo info"
+              "goal goal" !important;
+            gap: 12px !important;
+            align-items: start !important;
+          }
+          .analytics-article-hero-main:not(:has(.analytics-article-photo)) {
+            grid-template-columns: minmax(0, 1fr) !important;
+            grid-template-areas:
+              "info"
+              "goal" !important;
           }
           .analytics-article-photo {
+            grid-area: photo;
             width: 88px !important;
             min-width: 88px !important;
             min-height: 120px !important;
-            align-self: flex-start !important;
+            align-self: start !important;
+          }
+          .analytics-article-hero-info {
+            grid-area: info;
+            min-width: 0 !important;
+            overflow-wrap: anywhere;
+          }
+          .analytics-article-goal {
+            grid-area: goal;
+            max-width: 100% !important;
+            margin-top: 0 !important;
+          }
+          .analytics-article-goal textarea {
+            max-width: 100% !important;
           }
           .analytics-article-bundle {
             flex: 1 1 100% !important;
@@ -1055,8 +1101,8 @@ export default function AnalyticsArticle() {
           }
           .analytics-article-funnel-toolbar-left .analytics-article-range-picker-wrap {
             width: 220px;
-            max-width: 100%;
-            flex: 0 0 auto;
+            max-width: calc(100% - 96px);
+            flex: 0 1 220px;
           }
           .analytics-article-funnel-toolbar-left .analytics-article-range-picker-wrap .ant-picker {
             width: 100%;
@@ -1067,15 +1113,33 @@ export default function AnalyticsArticle() {
           .analytics-article-datepicker-dropdown .ant-picker-panel-container {
             max-width: calc(100vw - 24px);
           }
-          .analytics-article-funnel-toolbar-left .ant-checkbox-wrapper {
+          .analytics-article-funnel-toolbar-left {
+            flex-direction: column;
+            align-items: stretch !important;
+          }
+          .analytics-article-funnel-period-row {
+            width: 100%;
+            justify-content: space-between !important;
+          }
+          .analytics-article-funnel-checks {
+            width: 100%;
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0 !important;
+          }
+          .analytics-article-funnel-checks .ant-checkbox-wrapper {
+            flex: 1 1 0;
+            justify-content: center;
+            margin-inline-end: 0 !important;
             white-space: nowrap;
           }
           .analytics-article-funnel-actions {
-            justify-content: space-between;
+            display: none !important;
           }
-          .analytics-article-export-label {
-            display: none;
-          }
+          .analytics-article-funnel-export,
+          .analytics-article-export-label,
           .analytics-article-funnel-import {
             display: none !important;
           }
@@ -1091,7 +1155,26 @@ export default function AnalyticsArticle() {
           }
           .analytics-article-funnel-table th:first-child,
           .analytics-article-funnel-table td:first-child {
-            min-width: 92px;
+            position: sticky !important;
+            left: 0 !important;
+            min-width: 48px !important;
+            width: 52px !important;
+            max-width: 52px !important;
+            padding-left: 4px !important;
+            padding-right: 4px !important;
+            box-sizing: border-box;
+            box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.18);
+          }
+          .analytics-article-funnel-table th:first-child {
+            z-index: 4 !important;
+            background-color: ${colors.bgWhite};
+          }
+          .analytics-article-funnel-table td:first-child {
+            z-index: 3 !important;
+            background-color: ${colors.bgWhite};
+          }
+          .analytics-article-funnel-table tr:last-child td:first-child {
+            background-color: ${colors.bgGray};
           }
           .analytics-article-compare {
             padding: 12px !important;
@@ -1113,14 +1196,20 @@ export default function AnalyticsArticle() {
             gap: 10px !important;
           }
           .analytics-article-compare-periods {
-            flex-direction: column !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
             width: 100%;
             justify-content: stretch !important;
             gap: 8px !important;
           }
-          .analytics-article-compare-periods .ant-picker {
-            width: 220px !important;
-            max-width: 100%;
+          .analytics-article-compare-periods .analytics-article-range-picker-wrap {
+            width: 220px;
+            max-width: calc(50% - 4px);
+            flex: 1 1 0;
+            min-width: 0;
+          }
+          .analytics-article-compare-periods .analytics-article-range-picker-wrap .ant-picker {
+            width: 100%;
           }
           .analytics-article-compare-grid {
             grid-template-columns: 1fr !important;
@@ -1134,10 +1223,17 @@ export default function AnalyticsArticle() {
             flex: 1 1 auto !important;
             min-width: 0 !important;
             width: 100%;
+            height: auto !important;
             border-left: none !important;
             padding-left: 0 !important;
             padding-top: 16px;
             border-top: 1px solid ${colors.borderLight};
+          }
+          .analytics-article-compare-stocks-list {
+            flex: none !important;
+            overflow: visible !important;
+            min-height: 0 !important;
+            max-height: none !important;
           }
         }
       `}</style>
@@ -1180,6 +1276,23 @@ export default function AnalyticsArticle() {
           gap: spacing.lg,
           alignItems: 'stretch'
         }}>
+          <div
+            className="analytics-article-hero-main"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: articleHeaderPhotoUrl
+                ? `${ARTICLE_HEADER_PHOTO_WIDTH}px minmax(0, 1fr)`
+                : 'minmax(0, 1fr)',
+              gridTemplateAreas: articleHeaderPhotoUrl
+                ? '"photo info" "photo goal"'
+                : '"info" "goal"',
+              columnGap: spacing.lg,
+              rowGap: spacing.sm,
+              alignItems: 'stretch',
+              minWidth: 0,
+              flex: '1 1 auto',
+            }}
+          >
           {articleHeaderPhotoUrl && (
             <a
               href={productPageUrl ?? article.article.productUrl}
@@ -1188,6 +1301,7 @@ export default function AnalyticsArticle() {
               className="analytics-article-photo"
               style={{
                 display: 'block',
+                gridArea: 'photo',
                 flexShrink: 0,
                 alignSelf: 'stretch',
                 width: ARTICLE_HEADER_PHOTO_WIDTH,
@@ -1223,7 +1337,7 @@ export default function AnalyticsArticle() {
               />
             </a>
           )}
-          <div style={{ flex: '0 1 auto', minWidth: 0 }}>
+          <div className="analytics-article-hero-info" style={{ gridArea: 'info', minWidth: 0 }}>
             <div style={{
               ...typography.body,
               ...FONT_PAGE,
@@ -1253,9 +1367,34 @@ export default function AnalyticsArticle() {
                 {article.article.vendorCode ?? '-'}
               </span>
             </div>
+            {article.inWbPromotion && !isOzonCabinet && (
+              <span
+                title={(article.wbPromotionNames?.length ?? 0) > 0
+                  ? (article.wbPromotionNames ?? []).map((n, i) => {
+                      const t = article.wbPromotionTypes?.[i]
+                      return t ? `${n} (${t})` : n
+                    }).join('\n')
+                  : undefined}
+                style={{
+                  display: 'inline-block',
+                  padding: '2px 8px',
+                  borderRadius: borderRadius.sm,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  backgroundColor: colors.successLight,
+                  color: colors.success,
+                  cursor: (article.wbPromotionNames?.length ?? 0) > 0 ? 'help' : undefined,
+                }}
+              >
+                В акции
+              </span>
+            )}
+          </div>
             <div
+              className="analytics-article-goal"
               style={{
-                marginTop: spacing.sm,
+                gridArea: 'goal',
+                marginTop: 0,
                 maxWidth: 560,
                 padding: spacing.sm,
                 borderRadius: borderRadius.md,
@@ -1296,28 +1435,6 @@ export default function AnalyticsArticle() {
                 <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>Сохранение…</div>
               )}
             </div>
-            {article.inWbPromotion && !isOzonCabinet && (
-              <span
-                title={(article.wbPromotionNames?.length ?? 0) > 0
-                  ? (article.wbPromotionNames ?? []).map((n, i) => {
-                      const t = article.wbPromotionTypes?.[i]
-                      return t ? `${n} (${t})` : n
-                    }).join('\n')
-                  : undefined}
-                style={{
-                  display: 'inline-block',
-                  padding: '2px 8px',
-                  borderRadius: borderRadius.sm,
-                  fontSize: 11,
-                  fontWeight: 500,
-                  backgroundColor: colors.successLight,
-                  color: colors.success,
-                  cursor: (article.wbPromotionNames?.length ?? 0) > 0 ? 'help' : undefined,
-                }}
-              >
-                В акции
-              </span>
-            )}
           </div>
 
           {/* Товары в связке: справа от основного, 2 ряда × колонки, горизонтальный скролл; размер превью — BUNDLE_* константы */}
@@ -1509,6 +1626,7 @@ export default function AnalyticsArticle() {
             justifyContent: 'space-between'
           }}>
             <div className="analytics-article-funnel-toolbar-left" style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
+              <div className="analytics-article-funnel-period-row" style={{ display: 'flex', alignItems: 'center', gap: spacing.md, minWidth: 0 }}>
               <div className="analytics-article-range-picker-wrap" style={{ width: 220, maxWidth: '100%' }}>
               <DatePicker.RangePicker
                 locale={locale.DatePicker}
@@ -1524,29 +1642,7 @@ export default function AnalyticsArticle() {
                 {...articleRangePickerProps}
               />
               </div>
-              <Checkbox
-                checked={selectedFunnelKeys.includes('general')}
-                onChange={() => toggleFunnel('general')}
-              >
-                Общая
-              </Checkbox>
-              <Checkbox
-                checked={selectedFunnelKeys.includes('advertising')}
-                onChange={() => toggleFunnel('advertising')}
-              >
-                Реклама
-              </Checkbox>
-              {!isOzonCabinet && (
-                <Checkbox
-                  checked={selectedFunnelKeys.includes('pricing')}
-                  onChange={() => toggleFunnel('pricing')}
-                >
-                  Цены
-                </Checkbox>
-              )}
-            </div>
-            <div className="analytics-article-funnel-actions" style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, ...typography.body }}>
+              <span className="analytics-article-funnel-chart-switch" style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexShrink: 0, ...typography.body }}>
                 <Switch
                   checked={showChart}
                   onChange={setShowChart}
@@ -1554,6 +1650,32 @@ export default function AnalyticsArticle() {
                 />
                 <span>График</span>
               </span>
+              </div>
+              <div className="analytics-article-funnel-checks" style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
+                <Checkbox
+                  checked={selectedFunnelKeys.includes('general')}
+                  onChange={() => toggleFunnel('general')}
+                >
+                  Общая
+                </Checkbox>
+                <Checkbox
+                  checked={selectedFunnelKeys.includes('advertising')}
+                  onChange={() => toggleFunnel('advertising')}
+                >
+                  Реклама
+                </Checkbox>
+                {!isOzonCabinet && (
+                  <Checkbox
+                    checked={selectedFunnelKeys.includes('pricing')}
+                    onChange={() => toggleFunnel('pricing')}
+                  >
+                    Цены
+                  </Checkbox>
+                )}
+              </div>
+            </div>
+            <div className="analytics-article-funnel-actions" style={{ display: 'flex', alignItems: 'center', gap: spacing.lg }}>
+              <span className="analytics-article-funnel-export">
               <Tooltip title="Выгрузить таблицу воронок за выбранный период в Excel.">
                 <Button
                   type="primary"
@@ -1564,6 +1686,7 @@ export default function AnalyticsArticle() {
                   <span className="analytics-article-export-label">Выгрузить</span>
                 </Button>
               </Tooltip>
+              </span>
               {!isOzonCabinet && (
                 <>
                   <input
@@ -1617,7 +1740,7 @@ export default function AnalyticsArticle() {
                   top: 0,
                   left: 0,
                   backgroundColor: colors.bgWhite,
-                  zIndex: 2,
+                  zIndex: 4,
                   width: '90px',
                   boxShadow: `0 1px 0 0 ${colors.border}`
                 }}>
@@ -1788,9 +1911,11 @@ export default function AnalyticsArticle() {
                       position: 'sticky',
                       left: 0,
                       backgroundColor: colors.bgWhite,
-                      zIndex: 1
-                    }}>
-                      {dayjs(date).format('DD.MM.YYYY')}
+                      zIndex: 3
+                    }}
+                    title={dayjs(date).format('DD.MM.YYYY')}
+                    >
+                      {dayjs(date).format(funnelDateFormat)}
                     </td>
                     {FUNNELS[selectedFunnel1].metrics.map((metric, index) => {
                       const value = getMetricValueForDate(metric.key, date)
@@ -1984,9 +2109,11 @@ export default function AnalyticsArticle() {
                   position: 'sticky',
                   left: 0,
                   backgroundColor: colors.bgGray,
-                  zIndex: 1
-                }}>
-                  Весь период
+                  zIndex: 3
+                }}
+                title="Весь период"
+                >
+                  {isNarrow ? 'Итого' : 'Весь период'}
                 </td>
                 {FUNNELS[selectedFunnel1].metrics.map((metric, index) => {
                   const totalValue = getMetricTotalForPeriod(metric.key)
@@ -2161,6 +2288,7 @@ export default function AnalyticsArticle() {
                   flex: '1 1 auto',
                   justifyContent: 'flex-end'
                 }}>
+                  <div className="analytics-article-range-picker-wrap" style={{ width: 220, maxWidth: '100%' }}>
                   <DatePicker.RangePicker
                     locale={locale.DatePicker}
                     value={period1}
@@ -2171,9 +2299,11 @@ export default function AnalyticsArticle() {
                     }}
                     format="DD.MM.YYYY"
                     separator="→"
-                    style={{ width: 220 }}
+                    style={{ width: '100%' }}
                     {...articleRangePickerProps}
                   />
+                  </div>
+                  <div className="analytics-article-range-picker-wrap" style={{ width: 220, maxWidth: '100%' }}>
                   <DatePicker.RangePicker
                     locale={locale.DatePicker}
                     value={period2}
@@ -2184,9 +2314,10 @@ export default function AnalyticsArticle() {
                     }}
                     format="DD.MM.YYYY"
                     separator="→"
-                    style={{ width: 220 }}
+                    style={{ width: '100%' }}
                     {...articleRangePickerProps}
                   />
+                  </div>
                 </div>
               </div>
 
@@ -3339,7 +3470,9 @@ export default function AnalyticsArticle() {
                       нет данных
                     </div>
                   ) : (
-                    <div style={{
+                    <div
+                      className="analytics-article-compare-stocks-list"
+                      style={{
                       flex: '1 1 0',
                       overflowY: 'auto',
                       overflowX: 'hidden',
