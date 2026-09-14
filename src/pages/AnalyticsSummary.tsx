@@ -36,6 +36,19 @@ import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 dayjs.locale('ru')
 
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
+
 interface PeriodItemProps {
   period: Period
   periodsCount: number
@@ -45,49 +58,47 @@ interface PeriodItemProps {
 }
 
 function PeriodItem({ period, periodsCount, onPeriodChange, onRemovePeriod, datePickerTourId }: PeriodItemProps) {
-  const [isHovered, setIsHovered] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const isNarrow = useIsNarrow(900)
 
   return (
     <div
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className="summary-period-item"
       style={{
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
         alignItems: 'center',
         maxWidth: '220px',
-        position: 'relative'
+        position: 'relative',
+        minWidth: 0,
       }}
     >
-      <div style={{ fontSize: '12px', color: '#64748B', marginBottom: '4px', textAlign: 'center' }}>{period.name}</div>
-      <DatePicker.RangePicker
-        locale={locale.DatePicker}
-        data-tour-id={datePickerTourId}
-        value={[dayjs(period.dateFrom), dayjs(period.dateTo)]}
-        onChange={(dates) => {
-          if (dates && dates[0] && dates[1]) {
-            onPeriodChange(period.id, dates)
-            setPickerOpen(false)
-          }
+      <div
+        className="summary-period-item-head"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          position: 'relative',
+          minHeight: 24,
+          marginBottom: 4,
         }}
-        allowClear={false}
-        format="DD.MM.YYYY"
-        separator="→"
-        open={pickerOpen}
-        onOpenChange={(open) => {
-          setPickerOpen(open)
-        }}
-      />
-      {periodsCount > 2 && isHovered && (
+      >
+      <div className="summary-period-item-name" style={{ fontSize: '12px', color: '#64748B', textAlign: 'center' }}>{period.name}</div>
+      {periodsCount > 2 && (
         <Tooltip title="Удалить период">
           <button
+            type="button"
+            className="summary-period-item-remove"
             onClick={() => onRemovePeriod(period.id)}
+            aria-label="Удалить период"
             style={{
               position: 'absolute',
-              top: '-8px',
-              right: '-8px',
+              top: '50%',
+              right: 0,
+              transform: 'translateY(-50%)',
               width: '24px',
               height: '24px',
               borderRadius: borderRadius.full,
@@ -121,6 +132,30 @@ function PeriodItem({ period, periodsCount, onPeriodChange, onRemovePeriod, date
           </button>
         </Tooltip>
       )}
+      </div>
+      <div className="summary-period-item-picker" style={{ width: 220, maxWidth: '100%' }}>
+      <DatePicker.RangePicker
+        locale={locale.DatePicker}
+        data-tour-id={datePickerTourId}
+        value={[dayjs(period.dateFrom), dayjs(period.dateTo)]}
+        onChange={(dates) => {
+          if (dates && dates[0] && dates[1]) {
+            onPeriodChange(period.id, dates)
+            setPickerOpen(false)
+          }
+        }}
+        allowClear={false}
+        inputReadOnly
+        popupClassName="analytics-summary-datepicker-dropdown"
+        format={isNarrow ? 'DD.MM.YY' : 'DD.MM.YYYY'}
+        separator="→"
+        style={{ width: '100%' }}
+        open={pickerOpen}
+        onOpenChange={(open) => {
+          setPickerOpen(open)
+        }}
+      />
+      </div>
     </div>
   )
 }
@@ -240,6 +275,10 @@ export default function AnalyticsSummary() {
     return generateDefaultPeriods()
   })
 
+  const isNarrow = useIsNarrow(900)
+  const maxPeriods = isNarrow ? 4 : 5
+  const visiblePeriods = useMemo(() => periods.slice(0, maxPeriods), [periods, maxPeriods])
+
   const handlePeriodChange = (periodId: number, dates: [Dayjs | null, Dayjs | null] | null) => {
     if (!dates || !dates[0] || !dates[1]) return
     
@@ -267,7 +306,7 @@ export default function AnalyticsSummary() {
   }
 
   const handleAddPeriod = () => {
-    if (periods.length >= 5) return
+    if (periods.length >= maxPeriods) return
     
     // Находим самую раннюю дату начала среди всех периодов
     const earliestDate = periods.reduce((earliest, period) => {
@@ -372,7 +411,7 @@ export default function AnalyticsSummary() {
       setError(null)
       const excludedArray = Array.from(excludedNmIds)
       const data = await analyticsApi.getSummary({
-        periods,
+        periods: visiblePeriods,
         excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
         sellerId: selectedSellerId,
         cabinetId: selectedCabinetId ?? undefined,
@@ -389,7 +428,7 @@ export default function AnalyticsSummary() {
     } finally {
       setLoading(false)
     }
-  }, [excludedNmIds, periods, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, onlyInAdvertising, isAdmin])
+  }, [excludedNmIds, visiblePeriods, selectedSellerId, selectedCabinetId, onlyWithPhoto, onlyPriority, onlyInAdvertising, isAdmin])
 
   const queryClient = useQueryClient()
   const selectedSeller = useMemo(
@@ -610,7 +649,7 @@ export default function AnalyticsSummary() {
       const excludedArray = Array.from(excludedNmIds)
       const data = await analyticsRequestQueue.add(() =>
         analyticsApi.getMetricGroup(metricName, {
-          periods,
+          periods: visiblePeriods,
           excludedNmIds: excludedArray.length > 0 ? excludedArray : undefined,
           sellerId: selectedSellerId,
           cabinetId: selectedCabinetId ?? undefined,
@@ -650,10 +689,11 @@ export default function AnalyticsSummary() {
     })
   }
 
-  const formatValue = (value: number | null): string => {
+  const formatValue = (value: number | null, metricKey?: string): string => {
     if (value === null || value === undefined) return '-'
     if (typeof value === 'number') {
-      return value.toLocaleString('ru-RU')
+      const displayValue = isNarrow && metricKey === 'costs' ? Math.round(value) : value
+      return displayValue.toLocaleString('ru-RU')
     }
     return String(value)
   }
@@ -667,12 +707,6 @@ export default function AnalyticsSummary() {
     if (value === null || value === undefined) return '-%'
     const sign = value >= 0 ? '+' : ''
     return `${sign}${value.toFixed(2)}%`
-  }
-
-  const formatPeriodDates = (period: Period): string => {
-    const dateFrom = dayjs(period.dateFrom).format('DD.MM')
-    const dateTo = dayjs(period.dateTo).format('DD.MM')
-    return `${dateFrom} - ${dateTo}`
   }
 
   const showInitialLoader =
@@ -793,6 +827,140 @@ export default function AnalyticsSummary() {
 
   return (
     <>
+      <style>{`
+        .summary-period-item-remove {
+          opacity: 0;
+          pointer-events: none;
+        }
+        .summary-period-item:hover .summary-period-item-remove {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .summary-filter-label-short { display: none; }
+        .summary-metric-photo {
+          width: 100px;
+          height: 100px;
+        }
+        @media (max-width: 900px) {
+          .analytics-summary-page {
+            padding: 12px !important;
+          }
+          .summary-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+            margin-bottom: 16px !important;
+          }
+          .summary-toolbar-search-filter {
+            min-width: 0 !important;
+            width: 100%;
+          }
+          .summary-search {
+            width: auto !important;
+            max-width: none !important;
+            flex: 1 1 0;
+            min-width: 0;
+          }
+          .summary-checks {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            gap: 0 !important;
+            flex-wrap: nowrap;
+          }
+          .summary-checks .ant-checkbox-wrapper {
+            flex: 1 1 0;
+            justify-content: center;
+            margin-inline-end: 0 !important;
+            white-space: nowrap;
+            font-size: 13px;
+          }
+          .summary-filter-label-full { display: none; }
+          .summary-filter-label-short { display: inline; }
+          .summary-filter-panel {
+            width: min(400px, calc(100vw - 32px)) !important;
+          }
+          .summary-periods {
+            width: 100%;
+            gap: 8px !important;
+          }
+          .summary-periods-row {
+            width: 100%;
+            gap: 8px !important;
+            flex-wrap: wrap !important;
+            justify-content: flex-start !important;
+          }
+          .summary-period-item {
+            flex: 0 0 calc((100% - 8px) / 2) !important;
+            width: calc((100% - 8px) / 2) !important;
+            max-width: calc((100% - 8px) / 2) !important;
+            min-width: 0 !important;
+          }
+          .summary-period-item-picker {
+            width: 100% !important;
+          }
+          .summary-period-item-remove {
+            opacity: 1;
+            pointer-events: auto;
+          }
+          .summary-add-period {
+            margin-top: 0 !important;
+            min-height: 0 !important;
+            align-self: flex-end;
+            flex: 0 0 auto;
+          }
+          .summary-add-period-btn {
+            margin-top: 0 !important;
+          }
+          .analytics-summary-datepicker-dropdown .ant-picker-panels {
+            flex-direction: column !important;
+          }
+          .analytics-summary-datepicker-dropdown .ant-picker-panel-container {
+            max-width: calc(100vw - 24px);
+          }
+          .summary-table-wrap {
+            margin: 0 -4px;
+          }
+          .summary-table {
+            font-family: inherit;
+          }
+          .summary-table th {
+            font-family: inherit !important;
+          }
+          .summary-table th,
+          .summary-table td {
+            padding: 8px 6px !important;
+          }
+          .summary-period-dates {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1.25;
+            font-family: inherit !important;
+            font-size: 14px;
+            font-weight: 400;
+            font-variant-numeric: proportional-nums;
+            font-feature-settings: normal;
+            letter-spacing: normal;
+            white-space: normal;
+          }
+          .summary-period-dates-sep {
+            display: none;
+          }
+          .summary-metric-photo {
+            width: 52px !important;
+            height: 52px !important;
+            flex-shrink: 0;
+          }
+          .summary-article-cell {
+            gap: 8px !important;
+          }
+          .summary-metrics-panel {
+            padding: 12px !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
       <Header
         workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
         cabinetSelectProps={
@@ -834,7 +1002,7 @@ export default function AnalyticsSummary() {
         }
       />
       <Breadcrumbs />
-      <div style={{ 
+      <div className="analytics-summary-page" style={{ 
         padding: `${spacing.lg} ${spacing.md}`, 
         width: '100%',
         backgroundColor: colors.bgGray,
@@ -842,14 +1010,15 @@ export default function AnalyticsSummary() {
       }}>
       {/* Шапка: поиск, фильтр, периоды — часть страницы, без отдельного блока */}
       <div style={{ marginBottom: spacing.lg }}>
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.xl }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, minWidth: 280 }}>
+        <div className="summary-toolbar" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.xl }}>
+          <div className="summary-toolbar-search-filter" style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, minWidth: 280 }}>
             <Input
               placeholder="Поиск по артикулу или названию"
               prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
               value={articleSearchText}
               onChange={(e) => setArticleSearchText(e.target.value)}
               allowClear
+              className="summary-search"
               style={{
                 width: 360,
                 maxWidth: 360,
@@ -861,7 +1030,7 @@ export default function AnalyticsSummary() {
             {originalArticles.length > 0 ? (
               <Popover
                 content={
-                  <div style={{ width: '400px', maxHeight: 'min(520px, calc(100vh - 160px))', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div className="summary-filter-panel" style={{ width: '400px', maxHeight: 'min(520px, calc(100vh - 160px))', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                     <Input
                       placeholder="Поиск по артикулу или названию"
                       prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
@@ -1001,42 +1170,49 @@ export default function AnalyticsSummary() {
                 </span>
               </Tooltip>
             )}
+            </div>
+          </div>
+            <div className="summary-checks" style={{ display: 'flex', alignItems: 'center', gap: spacing.md }}>
             <Checkbox
               checked={onlyWithPhoto}
               onChange={(e) => setOnlyWithPhoto(e.target.checked)}
             >
-              Только с фото
+              <span className="summary-filter-label-full">Только с фото</span>
+              <span className="summary-filter-label-short">С фото</span>
             </Checkbox>
             {!isOzonCabinet && (
               <Checkbox checked={onlyPriority} onChange={(e) => setOnlyPriority(e.target.checked)}>
-                Только приоритетные
+                <span className="summary-filter-label-full">Только приоритетные</span>
+                <span className="summary-filter-label-short">Приоритетные</span>
               </Checkbox>
             )}
             <Tooltip title="Только артикулы, привязанные к незавершённым рекламным кампаниям кабинета">
               <Checkbox checked={onlyInAdvertising} onChange={(e) => setOnlyInAdvertising(e.target.checked)}>
-                Только в рекламе
+                <span className="summary-filter-label-full">Только в рекламе</span>
+                <span className="summary-filter-label-short">В рекламе</span>
               </Checkbox>
             </Tooltip>
             </div>
-          </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.sm }}>
+        <div className="summary-periods" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.sm }}>
           <div style={{ fontSize: 14, fontWeight: 400, color: colors.textPrimary, textAlign: 'center', whiteSpace: 'nowrap' }}>
             Выберите периоды для сравнения
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          {periods.map((period, periodIndex) => (
+          <div className="summary-periods-row" style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          {visiblePeriods.map((period, periodIndex) => (
             <PeriodItem
               key={period.id}
               period={period}
-              periodsCount={periods.length}
+              periodsCount={visiblePeriods.length}
               onPeriodChange={handlePeriodChange}
               onRemovePeriod={handleRemovePeriod}
               datePickerTourId={periodIndex === 1 ? ONBOARDING_TARGETS.SUMMARY_PERIOD_DATES : undefined}
             />
           ))}
-          {periods.length < 5 && (
-            <div style={{
+          {visiblePeriods.length < maxPeriods && (
+            <div
+              className="summary-add-period"
+              style={{
               display: 'flex',
               flexDirection: 'column',
               gap: '8px',
@@ -1047,6 +1223,7 @@ export default function AnalyticsSummary() {
               <Tooltip title="Добавить период">
                 <button
                   type="button"
+                  className="summary-add-period-btn"
                   data-tour-id={ONBOARDING_TARGETS.SUMMARY_ADD_PERIOD}
                   onClick={handleAddPeriod}
                   style={{
@@ -1111,7 +1288,9 @@ export default function AnalyticsSummary() {
           </div>
         </div>
       ) : (
-      <div style={{
+      <div
+        className="summary-metrics-panel"
+        style={{
         backgroundColor: colors.bgWhite,
         border: `1px solid ${colors.borderLight}`,
         borderRadius: borderRadius.md,
@@ -1121,12 +1300,12 @@ export default function AnalyticsSummary() {
         width: '100%',
         boxSizing: 'border-box'
       }}>
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', minWidth: 0 }}>
-          <table style={{ width: '100%', minWidth: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <div className="summary-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', minWidth: 0 }}>
+          <table className="summary-table" style={{ width: '100%', minWidth: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
               <col style={{ width: `${METRIC_COLUMN_WIDTH_PERCENT}%` }} />
-              {periods.map((period) => (
-                <col key={period.id} style={{ width: `${(100 - METRIC_COLUMN_WIDTH_PERCENT) / periods.length}%` }} />
+              {visiblePeriods.map((period) => (
+                <col key={period.id} style={{ width: `${(100 - METRIC_COLUMN_WIDTH_PERCENT) / visiblePeriods.length}%` }} />
               ))}
             </colgroup>
             <thead>
@@ -1140,17 +1319,20 @@ export default function AnalyticsSummary() {
                 }}>
                   Метрика
                 </th>
-                {periods.map(period => (
+                {visiblePeriods.map(period => (
                   <th key={period.id} style={{
                     textAlign: 'center',
                     padding: spacing.md,
                     borderBottom: `2px solid ${colors.border}`,
                     ...typography.h3,
                     fontWeight: 600,
-                    whiteSpace: 'nowrap',
                     boxSizing: 'border-box'
                   }}>
-                    {formatPeriodDates(period)}
+                    <span className="summary-period-dates">
+                      <span>{dayjs(period.dateFrom).format('DD.MM')}</span>
+                      <span className="summary-period-dates-sep"> – </span>
+                      <span>{dayjs(period.dateTo).format('DD.MM')}</span>
+                    </span>
                   </th>
                 ))}
               </tr>
@@ -1231,9 +1413,9 @@ export default function AnalyticsSummary() {
                           {metricNameRu}
                         </div>
                       </td>
-                      {periods.map((period, periodIndex) => {
+                      {visiblePeriods.map((period, periodIndex) => {
                         const value = getMetricValue(period.id)
-                        const prevValue = periodIndex > 0 ? getMetricValue(periods[periodIndex - 1].id) : null
+                        const prevValue = periodIndex > 0 ? getMetricValue(visiblePeriods[periodIndex - 1].id) : null
                         const changePercent = prevValue != null && prevValue !== 0 && value != null
                           ? ((Number(value) - Number(prevValue)) / Number(prevValue)) * 100
                           : null
@@ -1254,7 +1436,7 @@ export default function AnalyticsSummary() {
                             verticalAlign: 'middle'
                           }}>
                             <div style={{ fontWeight: 500 }}>
-                              {isPercent ? formatPercent(value) : formatValue(value)}
+                              {isPercent ? formatPercent(value) : formatValue(value, metricKey)}
                             </div>
                             {changePercent !== null && (
                               <div style={{
@@ -1285,7 +1467,9 @@ export default function AnalyticsSummary() {
                           verticalAlign: 'middle',
                           boxSizing: 'border-box'
                         }}>
-                          <div style={{
+                          <div
+                            className="summary-article-cell"
+                            style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: spacing.md
@@ -1310,6 +1494,7 @@ export default function AnalyticsSummary() {
                                 <img
                                   src={article.photoTm}
                                   alt={`Товар ${article.nmId}`}
+                                  className="summary-metric-photo"
                                   style={{
                                     width: '100px',
                                     height: '100px',
@@ -1370,7 +1555,7 @@ export default function AnalyticsSummary() {
                             </div>
                           </div>
                         </td>
-                        {periods.map(period => {
+                        {visiblePeriods.map(period => {
                           const periodData = article.periods.find(p => p.periodId === period.id)
                           const value = periodData?.value ?? null
                           const changePercent = periodData?.changePercent ?? null
@@ -1390,7 +1575,7 @@ export default function AnalyticsSummary() {
                               verticalAlign: 'middle'
                             }}>
                               <div style={{ ...typography.number, fontWeight: 400 }}>
-                                {isEmpty ? '-' : (isPercent ? formatPercent(value as number) : formatValue(value as number))}
+                                {isEmpty ? '-' : (isPercent ? formatPercent(value as number) : formatValue(value as number, metricKey))}
                               </div>
                               {changePercent !== null && (
                                 <div style={{
@@ -1409,7 +1594,7 @@ export default function AnalyticsSummary() {
                     ))}
                     {isExpanded && metricGroup && (!metricGroup.articles || metricGroup.articles.length === 0) && (
                       <tr key={`${metricKey}-no-data`}>
-                        <td colSpan={periods.length + 1} style={{ padding: spacing.xl, textAlign: 'center', color: colors.textMuted, borderBottom: `1px solid ${colors.borderLight}` }}>
+                        <td colSpan={visiblePeriods.length + 1} style={{ padding: spacing.xl, textAlign: 'center', color: colors.textMuted, borderBottom: `1px solid ${colors.borderLight}` }}>
                           Нет данных
                         </td>
                       </tr>
