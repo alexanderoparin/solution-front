@@ -31,6 +31,21 @@ import {
   formatStopLabel,
 } from '../utils/abTestLabels'
 
+dayjs.locale('ru')
+
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
+
 const accent = '#7C3AED'
 /** Минимальный интервал ротации по времени для базового токена (fullstats ≤ 1/час). */
 const BASIC_TOKEN_MIN_INTERVAL_MINUTES = 60
@@ -109,6 +124,7 @@ function CreateAbTestModal({
   onNeedPaywall?: () => void
 }) {
   const queryClient = useQueryClient()
+  const isNarrow = useIsNarrow(900)
   const isBasicToken = (tokenType ?? 'BASIC') === 'BASIC'
   const [nmId, setNmId] = useState<number | null>(null)
   const [advertIds, setAdvertIds] = useState<number[]>([])
@@ -245,7 +261,8 @@ function CreateAbTestModal({
       title="Новый А/Б-тест"
       open={open}
       onCancel={onClose}
-      width={720}
+      width={isNarrow ? 'calc(100vw - 24px)' : 720}
+      styles={isNarrow ? { body: { maxHeight: '70vh', overflowY: 'auto' } } : undefined}
       destroyOnClose
       confirmLoading={createMutation.isPending}
       footer={
@@ -789,15 +806,16 @@ function AbTestCard({
   cabinetId?: number | null
   tourAnchors?: boolean
 }) {
+  const dateFmt = 'DD.MM.YY HH:mm'
   const advertLabel =
     item.advertIds?.length ? `рк ${item.advertIds.join(', ')}` : 'рк —'
   const dateLabel =
     item.status === 'PENDING_START'
-      ? `Создан: ${item.startedAt ? dayjs(item.startedAt).format('DD.MM.YYYY HH:mm') : '—'}`
+      ? `Создан: ${item.startedAt ? dayjs(item.startedAt).format(dateFmt) : '—'}`
       : item.status === 'ENABLED'
-        ? `Запущен: ${item.startedAt ? dayjs(item.startedAt).format('DD.MM.YYYY HH:mm') : '—'}`
-        : `Работал: ${item.startedAt ? dayjs(item.startedAt).format('DD.MM.YYYY HH:mm') : '—'} — ${
-            item.finishedAt ? dayjs(item.finishedAt).format('DD.MM.YYYY HH:mm') : '—'
+        ? `Запущен: ${item.startedAt ? dayjs(item.startedAt).format(dateFmt) : '—'}`
+        : `Работал: ${item.startedAt ? dayjs(item.startedAt).format(dateFmt) : '—'} — ${
+            item.finishedAt ? dayjs(item.finishedAt).format(dateFmt) : '—'
           }`
 
   const statusBadge =
@@ -809,6 +827,7 @@ function AbTestCard({
 
   return (
     <div
+      className="ab-test-card"
       style={{
         display: 'flex',
         gap: 16,
@@ -820,6 +839,7 @@ function AbTestCard({
       }}
     >
       <div
+        className="ab-test-card-photos"
         data-tour-id={tourAnchors ? ONBOARDING_TARGETS.AB_TEST_VARIANTS : undefined}
         style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxWidth: 360 }}
       >
@@ -893,21 +913,23 @@ function AbTestCard({
           </Link>
         ))}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="ab-test-card-main" style={{ flex: 1, minWidth: 0, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+      <div className="ab-test-card-info" style={{ flex: 1, minWidth: 0 }}>
         <Link
+          className="ab-test-card-title"
           to={`/advertising/ab-test/${item.id}`}
           data-tour-id={tourAnchors ? ONBOARDING_TARGETS.AB_TEST_TITLE : undefined}
           style={{ color: colors.textPrimary, fontWeight: 600, fontSize: 15 }}
         >
           {item.title ?? `Артикул ${item.nmId}`}
         </Link>
-        <div style={{ color: '#64748B', fontSize: 13, marginTop: 4 }}>
+        <div className="ab-test-card-ids" style={{ color: '#64748B', fontSize: 13, marginTop: 4 }}>
           {item.nmId} · {advertLabel}
         </div>
-        <div style={{ color: '#64748B', fontSize: 13, marginTop: 4 }}>{dateLabel}</div>
-        <div style={{ color: '#64748B', fontSize: 13, marginTop: 4 }}>{formatRotationLabel(item)}</div>
-        <div style={{ color: '#64748B', fontSize: 13, marginTop: 2 }}>{formatStopLabel(item)}</div>
-        <div style={{ color: '#64748B', fontSize: 13, marginTop: 2 }}>{formatFinishLabel(item)}</div>
+        <div className="ab-test-card-meta" style={{ color: '#64748B', fontSize: 13, marginTop: 4 }}>{dateLabel}</div>
+        <div className="ab-test-card-meta" style={{ color: '#64748B', fontSize: 13, marginTop: 4 }}>{formatRotationLabel(item)}</div>
+        <div className="ab-test-card-meta" style={{ color: '#64748B', fontSize: 13, marginTop: 2 }}>{formatStopLabel(item)}</div>
+        <div className="ab-test-card-meta" style={{ color: '#64748B', fontSize: 13, marginTop: 2 }}>{formatFinishLabel(item)}</div>
         {item.insightLabel ? (
           <div style={{ marginTop: 8, fontSize: 13, color: '#64748B' }}>{item.insightLabel}</div>
         ) : null}
@@ -928,6 +950,7 @@ function AbTestCard({
         })()}
       </div>
       <div
+        className="ab-test-card-status"
         data-tour-id={tourAnchors ? ONBOARDING_TARGETS.AB_TEST_STATUS : undefined}
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}
       >
@@ -961,6 +984,7 @@ function AbTestCard({
             disabled={item.status === 'DISABLED' || item.status === 'PENDING_START'}
           />
         )}
+      </div>
       </div>
     </div>
   )
@@ -1068,14 +1092,74 @@ export default function AbTests() {
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bgGray }}>
+      <style>{`
+        @media (max-width: 900px) {
+          .ab-tests-page {
+            padding: 12px 12px 32px !important;
+          }
+          .ab-tests-toolbar {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 10px !important;
+            margin: 12px 0 !important;
+          }
+          .ab-tests-toolbar-left {
+            width: 100%;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px !important;
+          }
+          .ab-tests-toolbar-left .ant-btn {
+            width: 100%;
+          }
+          .ab-tests-filter,
+          .ab-tests-filter .ant-segmented {
+            width: 100%;
+          }
+          .ab-tests-filter .ant-segmented-item {
+            flex: 1;
+            justify-content: center;
+          }
+          .ab-test-card {
+            flex-direction: column !important;
+            gap: 12px !important;
+            padding: 12px !important;
+          }
+          .ab-test-card-main {
+            flex-direction: column !important;
+            gap: 10px !important;
+            width: 100%;
+            order: 1;
+          }
+          .ab-test-card-status {
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            width: 100%;
+          }
+          .ab-test-card-photos {
+            order: 2;
+            max-width: none !important;
+            width: 100%;
+          }
+          .ab-test-card-title {
+            display: block;
+            overflow-wrap: anywhere;
+          }
+          .ab-test-card-ids,
+          .ab-test-card-meta {
+            overflow-wrap: anywhere;
+          }
+        }
+      `}</style>
       <Header
         cabinetSelectProps={cabinetSelectProps}
         workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
       />
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px 48px' }}>
+      <div className="ab-tests-page" style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px 48px' }}>
         <Breadcrumbs />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div className="ab-tests-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0', gap: 16, flexWrap: 'wrap' }}>
+          <div className="ab-tests-toolbar-left" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -1093,7 +1177,7 @@ export default function AbTests() {
             ) : null}
           </div>
           {!isOzonCabinet && (
-          <span data-tour-id={ONBOARDING_TARGETS.AB_TEST_FILTER}>
+          <span className="ab-tests-filter" data-tour-id={ONBOARDING_TARGETS.AB_TEST_FILTER}>
           <Segmented
             value={filter}
             onChange={(v) => setFilter(v as 'active' | 'all')}

@@ -31,6 +31,19 @@ import type { CabinetTokenType } from '../types/api'
 const BASIC_TOKEN_MIN_INTERVAL_MINUTES = 60
 const AB_TESTS_LIST_PATH = '/advertising/ab-test'
 
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
+
 function formatPct(value: number | null | undefined): string {
   if (value == null) return '—'
   return `${Number(value).toFixed(2)}%`
@@ -57,6 +70,7 @@ export default function AbTestDetail() {
   const isAdmin = role === 'ADMIN'
   const workContext = useWorkContextForAdmin(isAdmin)
   const [editOpen, setEditOpen] = useState(false)
+  const isNarrow = useIsNarrow(900)
 
   const { data: myCabinets = [] } = useQuery({
     queryKey: ['cabinets'],
@@ -138,11 +152,76 @@ export default function AbTestDetail() {
 
   return (
     <div style={{ minHeight: '100vh', background: colors.bgGray }}>
+      <style>{`
+        @media (max-width: 900px) {
+          .ab-test-detail-page {
+            padding: 12px 12px 32px !important;
+          }
+          .ab-test-detail-title {
+            font-size: 20px !important;
+            line-height: 1.25 !important;
+            overflow-wrap: anywhere;
+            margin: 12px 0 6px !important;
+          }
+          .ab-test-detail-settings {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 6px !important;
+            margin-bottom: 16px !important;
+            font-size: 13px !important;
+          }
+          .ab-test-detail-variants {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .ab-test-detail-variant {
+            display: flex !important;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 8px 12px;
+            padding: 12px !important;
+          }
+          .ab-test-detail-variant-badge {
+            flex: 1 0 100%;
+            height: auto !important;
+            min-height: 18px;
+            margin-bottom: 0 !important;
+          }
+          .ab-test-detail-variant-photo-wrap {
+            flex: 0 0 112px;
+            width: 112px;
+          }
+          .ab-test-detail-variant-photo-wrap img {
+            width: 100% !important;
+          }
+          .ab-test-detail-variant-stats {
+            flex: 1 1 0;
+            min-width: 0;
+          }
+          .ab-test-detail-variant-ctr {
+            margin-top: 0 !important;
+            margin-bottom: 4px !important;
+          }
+          .ab-test-metric {
+            gap: 8px;
+          }
+          .ab-test-metric-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          .ab-test-metric-value {
+            flex-shrink: 0;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+          }
+        }
+      `}</style>
       <Header
         cabinetSelectProps={cabinetSelectProps}
         workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
       />
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px 48px' }}>
+      <div className="ab-test-detail-page" style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px 48px' }}>
         <Breadcrumbs />
         {isLoading || !test ? (
           <div style={{ textAlign: 'center', padding: 48 }}>
@@ -150,12 +229,13 @@ export default function AbTestDetail() {
           </div>
         ) : (
           <>
-            <h1 style={{ fontSize: 22, fontWeight: 700, margin: '16px 0 8px' }}>{test.title ?? `Артикул ${test.nmId}`}</h1>
-            <div style={{ color: '#64748B', marginBottom: 8 }}>
+            <h1 className="ab-test-detail-title" style={{ fontSize: 22, fontWeight: 700, margin: '16px 0 8px' }}>{test.title ?? `Артикул ${test.nmId}`}</h1>
+            <div style={{ color: '#64748B', marginBottom: 8, overflowWrap: 'anywhere' }}>
               {test.nmId}
               {test.advertIds?.length ? ` · рк ${test.advertIds.join(', ')}` : ''}
             </div>
             <div
+              className="ab-test-detail-settings"
               data-tour-id={ONBOARDING_TARGETS.AB_TEST_DETAIL_SETTINGS}
               style={{
                 display: 'flex',
@@ -186,10 +266,13 @@ export default function AbTestDetail() {
               ) : null}
             </div>
             <div
+              className="ab-test-detail-variants"
               data-tour-id={ONBOARDING_TARGETS.AB_TEST_DETAIL_VARIANTS}
               style={{
                 display: 'grid',
-                gridTemplateColumns: `repeat(${Math.min(test.variants.length, 5)}, minmax(140px, 1fr))`,
+                gridTemplateColumns: isNarrow
+                  ? '1fr'
+                  : `repeat(${Math.min(test.variants.length, 5)}, minmax(140px, 1fr))`,
                 gap: 16,
               }}
             >
@@ -205,6 +288,7 @@ export default function AbTestDetail() {
                   return (
                     <div
                       key={v.id}
+                      className="ab-test-detail-variant"
                       style={{
                         background: '#fff',
                         border: `1px solid ${colors.border}`,
@@ -213,7 +297,7 @@ export default function AbTestDetail() {
                         opacity: v.paused ? 0.7 : v.activeOnWb ? 1 : 0.85,
                       }}
                     >
-                      <div style={{ height: 22, marginBottom: 6 }}>
+                      <div className="ab-test-detail-variant-badge" style={{ height: 22, marginBottom: 6 }}>
                         {v.activeOnWb && !v.paused ? (
                           <span
                             data-tour-id={v.id === activeOnWbId ? ONBOARDING_TARGETS.AB_TEST_DETAIL_ACTIVE_WB : undefined}
@@ -223,7 +307,7 @@ export default function AbTestDetail() {
                           </span>
                         ) : null}
                       </div>
-                      <div style={{ position: 'relative' }}>
+                      <div className="ab-test-detail-variant-photo-wrap" style={{ position: 'relative' }}>
                         <AbTestVariantImage
                           testId={test.id}
                           variantId={v.id}
@@ -232,6 +316,7 @@ export default function AbTestDetail() {
                           previewUrl={v.previewUrl}
                           sellerId={selectedSellerId}
                           cabinetId={selectedCabinetId}
+                          className="ab-test-detail-variant-photo"
                           style={{
                             width: '100%',
                             aspectRatio: '3/4',
@@ -285,7 +370,8 @@ export default function AbTestDetail() {
                           </div>
                         ) : null}
                       </div>
-                      <div style={{ marginTop: 10, fontWeight: 700, marginBottom: 8 }}>
+                      <div className="ab-test-detail-variant-stats">
+                      <div className="ab-test-detail-variant-ctr" style={{ marginTop: 10, fontWeight: 700, marginBottom: 8 }}>
                         <Tooltip title={METRIC_HINTS.CTR}>
                           <span
                             style={{
@@ -340,6 +426,7 @@ export default function AbTestDetail() {
                           </Button>
                         </Tooltip>
                       )}
+                      </div>
                     </div>
                   )
                 })
@@ -351,6 +438,7 @@ export default function AbTestDetail() {
               tokenType={selectedTokenType}
               sellerId={selectedSellerId}
               cabinetId={selectedCabinetId}
+              isNarrow={isNarrow}
               onClose={() => setEditOpen(false)}
             />
           </>
@@ -369,6 +457,7 @@ function EditAbTestSettingsModal({
   tokenType,
   sellerId,
   cabinetId,
+  isNarrow,
   onClose,
 }: {
   open: boolean
@@ -376,6 +465,7 @@ function EditAbTestSettingsModal({
   tokenType?: CabinetTokenType | null
   sellerId?: number
   cabinetId?: number | null
+  isNarrow: boolean
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
@@ -457,7 +547,7 @@ function EditAbTestSettingsModal({
       cancelText="Отмена"
       confirmLoading={mutation.isPending}
       destroyOnClose
-      width={480}
+      width={isNarrow ? 'calc(100vw - 24px)' : 480}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <div>
@@ -472,7 +562,7 @@ function EditAbTestSettingsModal({
           </Radio.Group>
           {rotationMode === 'ROTATION_BY_VIEWS' ? (
             <InputNumber
-              style={{ width: 220, marginTop: 8 }}
+              style={{ width: isNarrow ? '100%' : 220, marginTop: 8 }}
               min={1}
               step={100}
               value={rotationViewsThreshold}
@@ -481,7 +571,7 @@ function EditAbTestSettingsModal({
             />
           ) : (
             <Select
-              style={{ width: 220, marginTop: 8 }}
+              style={{ width: isNarrow ? '100%' : 220, marginTop: 8 }}
               value={rotationIntervalMinutes}
               onChange={setRotationIntervalMinutes}
               options={intervalOptions}
@@ -496,12 +586,12 @@ function EditAbTestSettingsModal({
             onChange={(e) => setStopMode(e.target.value)}
             style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
           >
-            <Radio value="TRUST_US">Доверить Clicki (достаточно данных / есть лидер)</Radio>
+            <Radio value="TRUST_US" style={{ whiteSpace: 'normal' }}>Доверить Clicki (достаточно данных / есть лидер)</Radio>
             <Radio value="BY_DURATION">По истечении срока</Radio>
           </Radio.Group>
           {stopMode === 'BY_DURATION' ? (
             <Select
-              style={{ width: 220, marginTop: 8 }}
+              style={{ width: isNarrow ? '100%' : 220, marginTop: 8 }}
               value={durationDays}
               onChange={setDurationDays}
               options={[1, 3, 7, 14].map((d) => ({ value: d, label: `${d} дн.` }))}
@@ -516,8 +606,8 @@ function EditAbTestSettingsModal({
             onChange={(e) => setFinishAction(e.target.value)}
             style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
           >
-            <Radio value="KEEP_WINNER">Оставить фото-победитель</Radio>
-            <Radio value="RESTORE_ORIGINAL">Просто провести тест (вернуть исходное)</Radio>
+            <Radio value="KEEP_WINNER" style={{ whiteSpace: 'normal' }}>Оставить фото-победитель</Radio>
+            <Radio value="RESTORE_ORIGINAL" style={{ whiteSpace: 'normal' }}>Просто провести тест (вернуть исходное)</Radio>
           </Radio.Group>
         </div>
       </div>
@@ -535,9 +625,9 @@ function MetricRow({ label, value, accent }: { label: string; value: string; acc
     label
   )
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '2px 0' }}>
-      <span style={{ color: '#64748B' }}>{labelNode}</span>
-      <span style={{ fontWeight: 600, color: accent ? '#16A34A' : colors.textPrimary }}>{value}</span>
+    <div className="ab-test-metric" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, fontSize: 13, padding: '2px 0' }}>
+      <span className="ab-test-metric-label" style={{ color: '#64748B', minWidth: 0 }}>{labelNode}</span>
+      <span className="ab-test-metric-value" style={{ fontWeight: 600, color: accent ? '#16A34A' : colors.textPrimary }}>{value}</span>
     </div>
   )
 }

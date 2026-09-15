@@ -11,6 +11,7 @@ type AbTestVariantImageProps = {
   sellerId?: number
   cabinetId?: number | null
   alt?: string
+  className?: string
   style?: CSSProperties
 }
 
@@ -27,6 +28,7 @@ export default function AbTestVariantImage({
   sellerId,
   cabinetId,
   alt = '',
+  className,
   style,
 }: AbTestVariantImageProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
@@ -82,7 +84,7 @@ export default function AbTestVariantImage({
   const src = hasLocalImage ? blobUrl ?? '' : photoUrl ?? previewUrl ?? ''
 
   return (
-    <span ref={rootRef} style={{ display: 'inline-block', lineHeight: 0 }}>
+    <span ref={rootRef} className={className} style={{ display: 'block', lineHeight: 0, width: '100%' }}>
       <img src={src} alt={alt} style={style} />
     </span>
   )
