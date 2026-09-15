@@ -1290,7 +1290,7 @@ export default function AnalyticsArticle() {
               rowGap: spacing.sm,
               alignItems: 'stretch',
               minWidth: 0,
-              flex: '1 1 auto',
+              flex: '0 1 auto',
             }}
           >
           {articleHeaderPhotoUrl && (
@@ -1452,7 +1452,7 @@ export default function AnalyticsArticle() {
             <div
               className="analytics-article-bundle"
               style={{
-              flex: 1,
+              flex: '1 1 0%',
               minWidth: 0,
               height: bundleScrollAreaHeight,
               display: 'flex',
