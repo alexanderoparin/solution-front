@@ -221,6 +221,32 @@ body {
   display: none;
 }
 
+.campaign-manage-history .ant-table-cell {
+  overflow: hidden;
+}
+
+.campaign-manage-history-date {
+  white-space: nowrap;
+}
+
+.campaign-manage-history-datetime {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.campaign-manage-history .ant-table-tbody .campaign-manage-history-user {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.campaign-manage-history-message {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 @media (max-width: 768px) {
   .app-header {
     padding: 8px 10px !important;
@@ -344,6 +370,148 @@ body {
   }
 
   .profile-modal.ant-modal {
+    max-width: calc(100vw - 24px) !important;
+    margin: 12px auto;
+    top: 12px;
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .campaign-manage-page {
+    padding: 12px !important;
+    min-width: 0;
+  }
+
+  .campaign-manage-hero-top {
+    align-items: flex-start !important;
+  }
+
+  .campaign-manage-hero-top h1 {
+    font-size: 18px !important;
+    overflow-wrap: anywhere;
+  }
+
+  .campaign-manage-stats-link {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  .campaign-manage-auto-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .campaign-manage-auto-budget,
+  .campaign-manage-auto-actions {
+    flex: 0 0 auto !important;
+  }
+
+  .campaign-manage-auto-fields {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .campaign-manage-auto-fields > div {
+    min-width: 0;
+  }
+
+  .campaign-manage-auto-promo {
+    grid-column: 1 / -1;
+  }
+
+  .campaign-manage-auto-budget .ant-checkbox-wrapper {
+    white-space: normal;
+    align-items: flex-start;
+  }
+
+  .campaign-manage-auto-actions {
+    width: 100% !important;
+    max-width: none !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .campaign-manage-auto-actions .ant-btn,
+  .campaign-manage-auto-actions .campaign-manage-action-row {
+    width: 100%;
+  }
+
+  .campaign-manage-schedule-head {
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .campaign-manage-chart-head {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .campaign-manage-chart-head h2 {
+    font-size: 16px !important;
+    flex-shrink: 0;
+  }
+
+  .campaign-manage-chart-head .ant-picker {
+    width: 168px !important;
+    min-width: 0 !important;
+    flex: 0 0 auto;
+  }
+
+  .campaign-manage-chart-head .ant-picker-input > input {
+    font-size: 12px;
+  }
+
+  .campaign-budget-datepicker-dropdown {
+    left: 12px !important;
+    right: 12px !important;
+    min-width: 0 !important;
+  }
+
+  .campaign-budget-datepicker-dropdown .ant-picker-panel-container {
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  .campaign-budget-datepicker-dropdown .ant-picker-panels {
+    flex-direction: column !important;
+  }
+
+  .campaign-budget-datepicker-dropdown .ant-picker-panels > .ant-picker-panel:last-child {
+    display: none;
+  }
+
+  .campaign-budget-datepicker-dropdown .ant-picker-panel {
+    width: 100%;
+  }
+
+  .campaign-manage-calendar-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .campaign-manage-history {
+    overflow-x: hidden;
+  }
+
+  .campaign-manage-history .ant-table-thead > tr > th,
+  .campaign-manage-history .ant-table-tbody > tr > td {
+    padding: 8px 6px !important;
+  }
+
+  .campaign-manage-history-date {
+    white-space: normal;
+  }
+
+  .campaign-manage-modal.ant-modal {
     max-width: calc(100vw - 24px) !important;
     margin: 12px auto;
     top: 12px;

@@ -178,12 +178,9 @@ function capTargetRect(rect: Rect, tooltipHeight: number, chromeBottom = 4): Rec
   const maxHeight = isNarrowViewport()
     ? Math.max(56, vh - tooltipHeight - GAP - MARGIN * 2 - chromeBottom)
     : rect.height
-  const top = Math.max(chromeBottom, rect.top)
-  const height = Math.min(rect.height, maxHeight, Math.max(40, vh - top - MARGIN))
   return {
     ...rect,
-    top,
-    height: Math.max(40, height),
+    height: Math.min(rect.height, maxHeight),
   }
 }
 
@@ -281,13 +278,31 @@ export default function OnboardingTour() {
       setOverlayClickBlocked(false)
     }, OVERLAY_CLICK_GUARD_MS)
     const el = resolveTourTargetElements(step)
+    const tooltipHeight = tooltipRef.current?.offsetHeight || ESTIMATED_TOOLTIP_HEIGHT
     if (el.length > 0) {
-      scrollTargetsIntoView(el, { placement: step.placement ?? 'bottom' })
+      scrollTargetsIntoView(el, {
+        placement: step.placement ?? 'bottom',
+        tooltipHeight,
+      })
     }
-    const timer = window.setTimeout(remeasure, 280)
+    const retryScroll = () => {
+      const again = resolveTourTargetElements(step)
+      if (again.length > 0) {
+        scrollTargetsIntoView(again, {
+          placement: step.placement ?? 'bottom',
+          tooltipHeight: tooltipRef.current?.offsetHeight || tooltipHeight,
+        })
+      }
+      remeasure()
+    }
+    const rafId = window.requestAnimationFrame(retryScroll)
+    const timer = window.setTimeout(retryScroll, 120)
+    const timer2 = window.setTimeout(remeasure, 320)
     remeasure()
     return () => {
+      window.cancelAnimationFrame(rafId)
       window.clearTimeout(timer)
+      window.clearTimeout(timer2)
       window.clearTimeout(unblockTimer)
     }
   }, [activeTourId, stepIndex, remeasure, completeTour, nextStep])

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import dayjs, { type Dayjs } from 'dayjs'
 import { DatePicker, message } from 'antd'
 import locale from 'antd/locale/ru_RU'
@@ -15,6 +16,15 @@ export default function CampaignBudgetChartPeriodPicker({
   onChange,
   disabled,
 }: CampaignBudgetChartPeriodPickerProps) {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 900px)').matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 900px)')
+    const onChangeMq = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChangeMq)
+    return () => mediaQuery.removeEventListener('change', onChangeMq)
+  }, [])
   const pickerValue: [Dayjs, Dayjs] = [value[0].startOf('day'), value[1].startOf('day')]
 
   return (
@@ -23,9 +33,12 @@ export default function CampaignBudgetChartPeriodPicker({
       value={pickerValue}
       disabled={disabled}
       allowClear={false}
-      format="DD.MM.YYYY"
+      popupClassName="campaign-budget-datepicker-dropdown"
+      placement={narrow ? 'bottomLeft' : undefined}
+      inputReadOnly={narrow}
+      format={narrow ? 'DD.MM.YY' : 'DD.MM.YYYY'}
       placeholder={['Начало', 'Конец']}
-      style={{ width: 220, borderRadius: borderRadius.sm }}
+      style={{ width: narrow ? 168 : 220, maxWidth: '100%', borderRadius: borderRadius.sm }}
       onChange={(dates) => {
         if (dates == null || dates[0] == null || dates[1] == null) {
           return

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { CloseOutlined } from '@ant-design/icons'
 import { message } from 'antd'
 import type { CampaignScheduleSlot } from '../../types/analytics'
@@ -12,14 +12,49 @@ import {
 import { findOverlappingSlot } from '../../utils/campaignSlotOverlap'
 import { colors, borderRadius, spacing } from '../../styles/analytics'
 
-const HOUR_HEIGHT = 24
-const HALF_HEIGHT = HOUR_HEIGHT / 2
 const HOURS = 24
-const GRID_HEIGHT = HOURS * HOUR_HEIGHT
-const TIME_COLUMN_WIDTH = 36
-const DAY_MIN_WIDTH = 56
-const CALENDAR_MIN_WIDTH = TIME_COLUMN_WIDTH + DAY_MIN_WIDTH * 7
-const DAY_HEADER_HEIGHT = 26
+
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
+
+function minutesToY(minutes: number, hourHeight: number): number {
+  return (minutes / 60) * hourHeight
+}
+
+function yToMinutes(y: number, hourHeight: number): number {
+  return snapMinutes(Math.max(0, Math.min(24 * 60, (y / hourHeight) * 60)))
+}
+
+function slotStyle(top: number, height: number, hourHeight: number, compact: boolean): CSSProperties {
+  return {
+    position: 'absolute',
+    left: compact ? 0 : 1,
+    right: compact ? 0 : 1,
+    top,
+    height: Math.max(hourHeight / 2, height),
+    backgroundColor: 'rgba(124, 58, 237, 0.35)',
+    border: `1px solid ${colors.primary}`,
+    borderRadius: compact ? 3 : borderRadius.sm,
+    fontSize: compact ? 9 : 11,
+    padding: compact ? '1px 1px' : '2px 3px',
+    lineHeight: 1.15,
+    overflow: 'hidden',
+    cursor: 'pointer',
+    boxSizing: 'border-box',
+    zIndex: 2,
+    userSelect: 'none',
+  }
+}
 
 export interface SlotCreateRange {
   dayOfWeek: number
@@ -48,35 +83,6 @@ interface DragState {
   currentMinutes: number
 }
 
-function slotStyle(top: number, height: number): CSSProperties {
-  return {
-    position: 'absolute',
-    left: 1,
-    right: 1,
-    top,
-    height: Math.max(HALF_HEIGHT, height),
-    backgroundColor: 'rgba(124, 58, 237, 0.35)',
-    border: `1px solid ${colors.primary}`,
-    borderRadius: borderRadius.sm,
-    fontSize: 11,
-    padding: '2px 3px',
-    lineHeight: 1.25,
-    overflow: 'hidden',
-    cursor: 'pointer',
-    boxSizing: 'border-box',
-    zIndex: 2,
-    userSelect: 'none',
-  }
-}
-
-function minutesToY(minutes: number): number {
-  return (minutes / 60) * HOUR_HEIGHT
-}
-
-function yToMinutes(y: number): number {
-  return snapMinutes(Math.max(0, Math.min(24 * 60, (y / HOUR_HEIGHT) * 60)))
-}
-
 export default function CampaignWeekCalendar({
   slots,
   disabled,
@@ -86,6 +92,16 @@ export default function CampaignWeekCalendar({
   onEditSlot,
   onDeleteSlot,
 }: CampaignWeekCalendarProps) {
+  const compact = useIsNarrow(900)
+  const hourHeight = compact ? 16 : 24
+  const timeColumnWidth = compact ? 26 : 36
+  const dayMinWidth = compact ? 40 : 56
+  const calendarMinWidth = timeColumnWidth + dayMinWidth * 7
+  const dayHeaderHeight = compact ? 22 : 26
+  const gridHeight = HOURS * hourHeight
+  const hourHeightRef = useRef(hourHeight)
+  hourHeightRef.current = hourHeight
+
   const gridRef = useRef<HTMLDivElement>(null)
   /** Актуальное состояние drag для window-слушателей (без stale closure). */
   const dragRef = useRef<DragState | null>(null)
@@ -150,7 +166,7 @@ export default function CampaignWeekCalendar({
     const dayIndex = Math.floor((e.clientX - gridRect.left) / dayWidth)
     const day = Math.min(7, Math.max(1, dayIndex + 1))
     const y = e.clientY - gridRect.top
-    const minutes = yToMinutes(y)
+    const minutes = yToMinutes(y, hourHeightRef.current)
     const next: DragState = {
       ...current,
       day: current.mode === 'create' ? day : current.day,
@@ -180,7 +196,7 @@ export default function CampaignWeekCalendar({
   const onDayMouseDown = (day: number, e: React.MouseEvent) => {
     if (disabled || (e.target as HTMLElement).closest('[data-slot]')) return
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    const minutes = yToMinutes(e.clientY - rect.top)
+    const minutes = yToMinutes(e.clientY - rect.top, hourHeight)
     startDrag({ mode: 'create', day, startMinutes: minutes, currentMinutes: minutes })
   }
 
@@ -188,32 +204,32 @@ export default function CampaignWeekCalendar({
     if (!drag || drag.day !== day) return null
     const a = Math.min(drag.startMinutes, drag.currentMinutes)
     const b = Math.max(drag.startMinutes, drag.currentMinutes) + SLOT_STEP_MINUTES
-    return { top: minutesToY(a), height: minutesToY(b) - minutesToY(a) }
+    return { top: minutesToY(a, hourHeight), height: minutesToY(b, hourHeight) - minutesToY(a, hourHeight) }
   }
 
   return (
-    <div>
+    <div style={{ overflowX: compact ? 'visible' : 'auto', WebkitOverflowScrolling: 'touch' }}>
       <div
         style={{
           display: 'flex',
-          minWidth: CALENDAR_MIN_WIDTH,
+          minWidth: compact ? 0 : calendarMinWidth,
           borderBottom: `1px solid ${colors.borderLight}`,
           backgroundColor: colors.bgWhite,
         }}
       >
-        <div style={{ width: TIME_COLUMN_WIDTH, flexShrink: 0 }} />
+        <div style={{ width: timeColumnWidth, flexShrink: 0 }} />
         <div style={{ flex: 1, display: 'flex', minWidth: 0 }}>
           {DAY_LABELS.map((label) => (
             <div
               key={label}
               style={{
                 flex: 1,
-                minWidth: DAY_MIN_WIDTH,
+                minWidth: compact ? 0 : dayMinWidth,
                 textAlign: 'center',
                 fontWeight: 600,
-                fontSize: 11,
-                height: DAY_HEADER_HEIGHT,
-                lineHeight: `${DAY_HEADER_HEIGHT}px`,
+                fontSize: compact ? 10 : 11,
+                height: dayHeaderHeight,
+                lineHeight: `${dayHeaderHeight}px`,
                 borderLeft: `1px solid ${colors.borderLight}`,
               }}
             >
@@ -225,28 +241,29 @@ export default function CampaignWeekCalendar({
       <div
         data-tour-id={tourTargetId}
         style={{
-          height: GRID_HEIGHT,
+          height: gridHeight,
           overflow: 'hidden',
           border: `1px solid ${colors.borderLight}`,
           borderTop: 'none',
           borderRadius: `0 0 ${borderRadius.sm} ${borderRadius.sm}`,
         }}
       >
-        <div style={{ display: 'flex', minWidth: CALENDAR_MIN_WIDTH }}>
-          <div style={{ width: TIME_COLUMN_WIDTH, flexShrink: 0 }}>
+        <div style={{ display: 'flex', minWidth: compact ? 0 : calendarMinWidth }}>
+          <div style={{ width: timeColumnWidth, flexShrink: 0 }}>
             {Array.from({ length: HOURS }, (_, h) => (
               <div
                 key={h}
                 style={{
-                  height: HOUR_HEIGHT,
-                  fontSize: 9,
+                  height: hourHeight,
+                  fontSize: compact ? 8 : 9,
                   color: colors.textSecondary,
                   textAlign: 'right',
                   paddingRight: 2,
                   boxSizing: 'border-box',
+                  lineHeight: `${hourHeight}px`,
                 }}
               >
-                {String(h).padStart(2, '0')}:00
+                {compact ? String(h).padStart(2, '0') : `${String(h).padStart(2, '0')}:00`}
               </div>
             ))}
           </div>
@@ -256,9 +273,9 @@ export default function CampaignWeekCalendar({
               const daySlots = slots.filter((s) => s.dayOfWeek === day)
               const preview = previewForDay(day)
               return (
-                <div key={day} style={{ flex: 1, minWidth: DAY_MIN_WIDTH, borderLeft: `1px solid ${colors.borderLight}` }}>
+                <div key={day} style={{ flex: 1, minWidth: compact ? 0 : dayMinWidth, borderLeft: `1px solid ${colors.borderLight}` }}>
                   <div
-                    style={{ position: 'relative', height: GRID_HEIGHT, backgroundColor: colors.bgGray }}
+                    style={{ position: 'relative', height: gridHeight, backgroundColor: colors.bgGray }}
                     onMouseDown={(e) => onDayMouseDown(day, e)}
                   >
                     {Array.from({ length: HOURS }, (_, h) => (
@@ -266,10 +283,10 @@ export default function CampaignWeekCalendar({
                         key={h}
                         style={{
                           position: 'absolute',
-                          top: h * HOUR_HEIGHT,
+                          top: h * hourHeight,
                           left: 0,
                           right: 0,
-                          height: HOUR_HEIGHT,
+                          height: hourHeight,
                           borderTop: `1px solid ${colors.borderLight}`,
                           pointerEvents: 'none',
                         }}
@@ -278,21 +295,21 @@ export default function CampaignWeekCalendar({
                     {preview ? (
                       <div
                         style={{
-                          ...slotStyle(preview.top, preview.height),
+                          ...slotStyle(preview.top, preview.height, hourHeight, compact),
                           backgroundColor: 'rgba(124, 58, 237, 0.2)',
                           pointerEvents: 'none',
                         }}
                       />
                     ) : null}
                     {daySlots.map((slot) => {
-                      const top = minutesToY(parseTimeToMinutes(slot.startTime))
-                      const bottom = minutesToY(parseTimeToMinutes(slot.endTime))
+                      const top = minutesToY(parseTimeToMinutes(slot.startTime), hourHeight)
+                      const bottom = minutesToY(parseTimeToMinutes(slot.endTime), hourHeight)
                       const height = bottom - top
                       return (
                         <div
                           key={slot.id}
                           data-slot
-                          style={slotStyle(top, height)}
+                          style={slotStyle(top, height, hourHeight, compact)}
                           onClick={(e) => {
                             e.stopPropagation()
                             onEditSlot(slot)
@@ -347,9 +364,11 @@ export default function CampaignWeekCalendar({
                             }}
                           />
                           <div>
-                            {slot.startTime}–{slot.endTime}
+                            {compact
+                              ? `${slot.startTime.slice(0, 5)}–${slot.endTime.slice(0, 5)}`
+                              : `${slot.startTime}–${slot.endTime}`}
                             <br />
-                            {slot.budgetRub} ₽
+                            {compact ? slot.budgetRub : `${slot.budgetRub} ₽`}
                           </div>
                           <div
                             style={{ height: 6, cursor: 'ns-resize', margin: '0 -4px -2px', position: 'absolute', bottom: 0, left: 0, right: 0 }}
@@ -374,10 +393,12 @@ export default function CampaignWeekCalendar({
           </div>
         </div>
       </div>
-      <p style={{ fontSize: 11, color: colors.textSecondary, marginTop: spacing.sm }}>
+      <p style={{ fontSize: compact ? 10 : 11, color: colors.textSecondary, marginTop: compact ? 8 : spacing.sm }}>
         {disabled
           ? 'Управление расписанием недоступно (ограничение API WB).'
-          : 'Кликните или перетащите по пустой ячейке, чтобы создать слот (шаг 30 мин). Слоты в один день не должны пересекаться. Клик по слоту — редактирование. Крестик или правый клик — удалить.'}
+          : compact
+            ? 'Нажмите пустую ячейку — слот. Клик по слоту — правка, крестик — удалить.'
+            : 'Кликните или перетащите по пустой ячейке, чтобы создать слот (шаг 30 мин). Слоты в один день не должны пересекаться. Клик по слоту — редактирование. Крестик или правый клик — удалить.'}
       </p>
     </div>
   )

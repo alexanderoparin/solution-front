@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ComposedChart,
   Line,
@@ -29,6 +29,20 @@ const STOP_COLOR = '#64748B'
 const TOP_UP_BAR_HALF_WIDTH_MS = 18 * 60 * 1000
 
 const CHART_HEIGHT = 280
+const CHART_HEIGHT_COMPACT = 220
+
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
 
 interface CampaignBudgetChartProps {
   data: CampaignBudgetChartData | undefined
@@ -51,6 +65,14 @@ interface TopUpMarker {
 
 function formatRub(value: number): string {
   return `${Math.round(value).toLocaleString('ru-RU')} ₽`
+}
+
+function formatRubAxis(value: number, compact: boolean): string {
+  const rounded = Math.round(value)
+  if (compact) {
+    return `${rounded.toLocaleString('ru-RU')}`
+  }
+  return `${rounded.toLocaleString('ru-RU')} ₽`
 }
 
 function computeYMax(budgets: number[], topUpBands: TopUpMarker[]): number {
@@ -141,6 +163,7 @@ function buildTopUpMarkers(data: CampaignBudgetChartData, rows: ChartRow[]): Top
 }
 
 export default function CampaignBudgetChart({ data, loading }: CampaignBudgetChartProps) {
+  const compact = useIsNarrow(900)
   const { rows, topUps, xDomain, yMax, startMarkers, stopMarkers } = useMemo(() => {
     if (!data) {
       return {
@@ -188,17 +211,29 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
   }
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 16, marginBottom: 12, fontSize: 12, color: colors.textSecondary }}>
-        <LegendItem color={BUDGET_LINE} label="Бюджет" line />
-        <LegendItem color={TOP_UP_COLOR} label="Пополнено" bar />
-        <LegendItem color={BUDGET_LINE} label="РК запущена" symbol="▷" />
-        <LegendItem color={STOP_COLOR} label="РК приостановлена" symbol="Ⅱ" />
-        <LegendItem color={ACTIVE_BG} label="Активна (фон)" box />
-        <LegendItem color={INACTIVE_BG} label="Не активна (фон)" box />
+    <div className="campaign-budget-chart">
+      <div
+        className="campaign-budget-legend"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: compact ? '1fr 1fr' : 'repeat(3, max-content)',
+          justifyContent: compact ? 'stretch' : 'end',
+          columnGap: compact ? 10 : 16,
+          rowGap: compact ? 8 : 10,
+          marginBottom: compact ? 10 : 12,
+          fontSize: compact ? 11 : 12,
+          color: colors.textSecondary,
+        }}
+      >
+        <LegendItem color={BUDGET_LINE} label="Бюджет" line compact={compact} />
+        <LegendItem color={TOP_UP_COLOR} label="Пополнено" bar compact={compact} />
+        <LegendItem color={BUDGET_LINE} label={compact ? 'Запуск' : 'РК запущена'} symbol="▷" compact={compact} />
+        <LegendItem color={STOP_COLOR} label={compact ? 'Пауза' : 'РК приостановлена'} symbol="Ⅱ" compact={compact} />
+        <LegendItem color={ACTIVE_BG} label={compact ? 'Активна' : 'Активна (фон)'} box compact={compact} />
+        <LegendItem color={INACTIVE_BG} label={compact ? 'Неактивна' : 'Не активна (фон)'} box compact={compact} />
       </div>
-      <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
-        <ComposedChart data={rows} margin={{ top: 12, right: 12, left: 4, bottom: 4 }}>
+      <ResponsiveContainer width="100%" height={compact ? CHART_HEIGHT_COMPACT : CHART_HEIGHT}>
+        <ComposedChart data={rows} margin={{ top: 8, right: compact ? 4 : 12, left: compact ? -8 : 4, bottom: 0 }}>
           {data.intervals.map((interval, idx) => (
             <ReferenceArea
               key={`interval-${interval.from}-${idx}`}
@@ -230,15 +265,15 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
             dataKey="ts"
             type="number"
             domain={xDomain}
-            tickFormatter={(ts) => dayjs(ts).format('DD.MM\nHH:mm')}
-            tick={{ fontSize: 10, fill: colors.textSecondary }}
+            tickFormatter={(ts) => dayjs(ts).format(compact ? 'DD.MM' : 'DD.MM\nHH:mm')}
+            tick={{ fontSize: compact ? 9 : 10, fill: colors.textSecondary }}
             interval="preserveStartEnd"
           />
           <YAxis
-            tickFormatter={formatRub}
+            tickFormatter={(value: number) => formatRubAxis(value, compact)}
             allowDecimals={false}
-            tick={{ fontSize: 11, fill: colors.textSecondary }}
-            width={72}
+            tick={{ fontSize: compact ? 10 : 11, fill: colors.textSecondary }}
+            width={compact ? 40 : 72}
             domain={[0, yMax]}
           />
           <Tooltip
@@ -323,8 +358,17 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
           ))}
         </ComposedChart>
       </ResponsiveContainer>
-      <p style={{ fontSize: 12, color: colors.textMuted, marginTop: 8, marginBottom: 0 }}>
-        По событиям из журнала · {dayjs(data.periodFrom).format('DD.MM HH:mm')} — {dayjs(data.periodTo).format('DD.MM HH:mm')}
+      <p
+        style={{
+          fontSize: compact ? 11 : 12,
+          color: colors.textMuted,
+          marginTop: compact ? 6 : 8,
+          marginBottom: 0,
+          lineHeight: 1.35,
+        }}
+      >
+        По событиям из журнала · {dayjs(data.periodFrom).format(compact ? 'DD.MM HH:mm' : 'DD.MM HH:mm')} —{' '}
+        {dayjs(data.periodTo).format(compact ? 'DD.MM HH:mm' : 'DD.MM HH:mm')}
       </p>
     </div>
   )
@@ -337,6 +381,7 @@ function LegendItem({
   bar,
   box,
   symbol,
+  compact,
 }: {
   color: string
   label: string
@@ -344,16 +389,17 @@ function LegendItem({
   bar?: boolean
   box?: boolean
   symbol?: string
+  compact?: boolean
 }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      {line && <span style={{ width: 18, height: 3, backgroundColor: color, borderRadius: 2 }} />}
-      {bar && <span style={{ width: 10, height: 14, backgroundColor: color, borderRadius: 2 }} />}
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: compact ? 5 : 6, minWidth: 0 }}>
+      {line && <span style={{ width: compact ? 14 : 18, height: 3, backgroundColor: color, borderRadius: 2, flexShrink: 0 }} />}
+      {bar && <span style={{ width: compact ? 8 : 10, height: compact ? 12 : 14, backgroundColor: color, borderRadius: 2, flexShrink: 0 }} />}
       {box && (
         <span
           style={{
-            width: 14,
-            height: 10,
+            width: compact ? 12 : 14,
+            height: compact ? 9 : 10,
             backgroundColor: color,
             borderRadius: 2,
             border: `1px solid ${colors.borderLight}`,
@@ -361,8 +407,8 @@ function LegendItem({
           }}
         />
       )}
-      {symbol && <span style={{ color, fontWeight: 700, fontSize: 13 }}>{symbol}</span>}
-      {label}
+      {symbol && <span style={{ color, fontWeight: 700, fontSize: compact ? 12 : 13, flexShrink: 0 }}>{symbol}</span>}
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
     </span>
   )
 }

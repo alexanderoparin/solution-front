@@ -47,6 +47,7 @@ export default function CampaignSlotModal({
 
   return (
     <Modal
+      className="campaign-manage-modal"
       open={open}
       title={title}
       onCancel={onCancel}

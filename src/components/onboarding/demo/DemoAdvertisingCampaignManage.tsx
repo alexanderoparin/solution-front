@@ -28,7 +28,7 @@ export default function DemoAdvertisingCampaignManage() {
   const chartData = useMemo(() => buildDemoBudgetChart(new Date().toISOString()), [])
 
   return (
-    <div style={demoPageWrap}>
+    <div style={demoPageWrap} className="campaign-manage-page">
       <div style={cardStyle}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
           <h1 style={{ ...typography.h2, margin: 0 }}>{DEMO_CAMPAIGN_NAME}</h1>
@@ -63,13 +63,13 @@ export default function DemoAdvertisingCampaignManage() {
       </div>
 
       <div style={cardStyle}>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'stretch', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 260 }} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET}>
+        <div className="campaign-manage-auto-row" style={{ display: 'flex', gap: 16, alignItems: 'stretch', flexWrap: 'wrap' }}>
+          <div className="campaign-manage-auto-budget" style={{ flex: '1 1 280px', minWidth: 0 }} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET}>
             <h2 style={{ ...typography.h2, fontSize: 16, margin: '0 0 12px' }}>Автопополнение бюджета</h2>
             <Checkbox checked={autoEnabled} onChange={(e) => setAutoEnabled(e.target.checked)}>
               Пополнять бюджет автоматически
             </Checkbox>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginTop: 12 }}>
+            <div className="campaign-manage-auto-fields" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginTop: 12 }}>
               <div>
                 <div style={{ fontSize: 12, color: colors.textSecondary }}>Сумма пополнения, ₽</div>
                 <InputNumber style={{ width: '100%' }} defaultValue={2000} min={100} />
@@ -89,12 +89,14 @@ export default function DemoAdvertisingCampaignManage() {
             </div>
           </div>
           <div
+            className="campaign-manage-auto-actions"
             style={{
-              flexShrink: 0,
+              flex: '0 1 220px',
+              maxWidth: 220,
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'flex-end',
-              width: 220,
+              justifyContent: 'flex-start',
+              gap: 8,
             }}
           >
             <Button
@@ -121,6 +123,7 @@ export default function DemoAdvertisingCampaignManage() {
             <span style={{ fontSize: 13, color: colors.textSecondary }}>{scheduleEnabled ? 'Вкл' : 'Выкл'}</span>
           </Space>
         </div>
+        <div className="campaign-manage-calendar-wrap">
         <CampaignWeekCalendar
           tourTargetId={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_SCHEDULE_GRID}
           slots={DEMO_SCHEDULE_SLOTS}
@@ -130,6 +133,7 @@ export default function DemoAdvertisingCampaignManage() {
           onEditSlot={() => undefined}
           onDeleteSlot={() => undefined}
         />
+        </div>
       </div>
 
       <div style={cardStyle} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_BUDGET_CHART}>

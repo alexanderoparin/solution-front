@@ -79,6 +79,37 @@ function formatControlError(err: unknown): string {
   return ax.response?.data?.error || ax.response?.data?.message || 'Не удалось выполнить действие'
 }
 
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
+
+/** Дата журнала: на узком экране две строки `дд:мм` / `чч:мм`, иначе `гггг-мм-дд чч:мм`. */
+function ChangeLogDateTimeCell({ value, compact }: { value: string | undefined; compact: boolean }) {
+  if (!value) return '—'
+  const parsed = dayjs(value)
+  if (!parsed.isValid()) {
+    return value.replace('T', ' ').slice(0, 16)
+  }
+  if (!compact) {
+    return parsed.format('YYYY-MM-DD HH:mm')
+  }
+  return (
+    <span className="campaign-manage-history-datetime">
+      <span>{parsed.format('DD:MM')}</span>
+      <span>{parsed.format('HH:mm')}</span>
+    </span>
+  )
+}
+
 /** Подпись источника пополнения (без промо — оно в чекбоксе). */
 function formatBalanceSourceLabel(s: {
   label: string
@@ -122,6 +153,7 @@ const cardStyle = {
 export default function AdvertisingCampaignManage() {
   const { id } = useParams<{ id: string }>()
   const advertId = Number(id)
+  const isNarrow = useIsNarrow(900)
   const queryClient = useQueryClient()
   const role = useAuthStore((s) => s.role)
   const isAdmin = role === 'ADMIN'
@@ -146,7 +178,7 @@ export default function AdvertisingCampaignManage() {
 
   const manageKey = ['campaign-manage', advertId, selectedSellerId, selectedCabinetId] as const
 
-  const { data: manage, isLoading, refetch } = useQuery({
+  const { data: manage, isLoading } = useQuery({
     queryKey: manageKey,
     queryFn: () => campaignManageApi.getManage(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
     enabled: Number.isFinite(advertId) && selectedCabinetId != null,
@@ -524,13 +556,26 @@ export default function AdvertisingCampaignManage() {
 
   const historyColumns = [
     {
-      title: 'Дата и время',
+      title: isNarrow ? 'Дата' : 'Дата и время',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (v: string) => (v ? v.replace('T', ' ').slice(0, 16) : '—'),
+      width: isNarrow ? 56 : 160,
+      className: 'campaign-manage-history-date',
+      render: (v: string) => <ChangeLogDateTimeCell value={v} compact={isNarrow} />,
     },
-    { title: 'Пользователь', dataIndex: 'userDisplay', key: 'userDisplay' },
-    { title: 'Изменения', dataIndex: 'message', key: 'message' },
+    {
+      title: 'Пользователь',
+      dataIndex: 'userDisplay',
+      key: 'userDisplay',
+      width: isNarrow ? 108 : 220,
+      className: 'campaign-manage-history-user',
+    },
+    {
+      title: 'Изменения',
+      dataIndex: 'message',
+      key: 'message',
+      className: 'campaign-manage-history-message',
+    },
   ]
 
   if (!Number.isFinite(advertId)) {
@@ -544,7 +589,7 @@ export default function AdvertisingCampaignManage() {
         cabinetSelectProps={cabinetSelectProps}
       />
       <Breadcrumbs />
-      <div style={{ padding: spacing.lg, backgroundColor: colors.bgGray, minHeight: '100vh' }}>
+      <div className="campaign-manage-page" style={{ padding: spacing.lg, backgroundColor: colors.bgGray, minHeight: '100vh' }}>
         {isLoading || !manage ? (
           <div style={{ textAlign: 'center', padding: spacing.xxl }}>
             <Spin size="large" />
@@ -552,7 +597,7 @@ export default function AdvertisingCampaignManage() {
         ) : (
           <>
             <div style={cardStyle}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
+              <div className="campaign-manage-hero-top" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg }}>
                 <h1 style={{ ...typography.h2, margin: 0 }}>{manage.name}</h1>
                 <span
                   style={{
@@ -570,6 +615,7 @@ export default function AdvertisingCampaignManage() {
                 <span style={{ color: colors.textSecondary }}>ID {manage.id}</span>
                 <span style={{ color: colors.textSecondary }}>{manage.articlesCount} шт.</span>
                 <Link
+                  className="campaign-manage-stats-link"
                   to={`/advertising/campaigns/${manage.id}`}
                   data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_STATS_LINK}
                   style={{ marginLeft: 'auto', color: colors.primary }}
@@ -579,6 +625,7 @@ export default function AdvertisingCampaignManage() {
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <div
+                  className="campaign-manage-articles"
                   data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_ARTICLES}
                   style={{ display: 'flex', gap: spacing.lg }}
                 >
@@ -591,8 +638,8 @@ export default function AdvertisingCampaignManage() {
 
             <CampaignManagePaywallShield active={subscriptionBlocked}>
             <div style={cardStyle}>
-              <div style={{ display: 'flex', gap: 16, alignItems: 'stretch' }}>
-                <div style={{ flex: 1, minWidth: 0 }} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET}>
+              <div className="campaign-manage-auto-row" style={{ display: 'flex', gap: 16, alignItems: 'stretch', flexWrap: 'wrap' }}>
+                <div className="campaign-manage-auto-budget" style={{ flex: '1 1 280px', minWidth: 0 }} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET}>
                   <h2 style={{ ...typography.h2, fontSize: 16, margin: '0 0 12px' }}>Автопополнение бюджета</h2>
                   {balanceSources?.fetchedAt && (
                     <p style={{ fontSize: 12, color: colors.textSecondary, margin: '0 0 12px' }}>
@@ -610,7 +657,7 @@ export default function AdvertisingCampaignManage() {
                   >
                     Пополнять бюджет автоматически
                   </Checkbox>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginTop: 12 }}>
+                  <div className="campaign-manage-auto-fields" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginTop: 12 }}>
                     <div>
                       <div style={{ fontSize: 12, color: colors.textSecondary }}>Сумма пополнения, ₽</div>
                       <InputNumber
@@ -635,8 +682,16 @@ export default function AdvertisingCampaignManage() {
                         }))}
                       />
                     </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Пополнить если ниже, ₽</div>
+                      <InputNumber style={{ width: '100%' }} min={0} disabled={autoBudgetFieldsDisabled} value={thresholdRub} onChange={setThresholdRub} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Макс. пополнений в день</div>
+                      <InputNumber style={{ width: '100%' }} min={1} disabled={autoBudgetFieldsDisabled} value={maxTopUps} onChange={setMaxTopUps} />
+                    </div>
                     {sourceAllowsPromo((balanceSources?.sources ?? []).find((s) => s.type === sourceType)) && (
-                      <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                      <div className="campaign-manage-auto-promo" style={{ display: 'flex', alignItems: 'flex-end', gridColumn: '1 / -1' }}>
                         <Checkbox
                           checked={usePromoCashback}
                           disabled={autoBudgetFieldsDisabled}
@@ -648,24 +703,18 @@ export default function AdvertisingCampaignManage() {
                         </Checkbox>
                       </div>
                     )}
-                    <div>
-                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Пополнить если ниже, ₽</div>
-                      <InputNumber style={{ width: '100%' }} min={0} disabled={autoBudgetFieldsDisabled} value={thresholdRub} onChange={setThresholdRub} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Макс. пополнений в день</div>
-                      <InputNumber style={{ width: '100%' }} min={1} disabled={autoBudgetFieldsDisabled} value={maxTopUps} onChange={setMaxTopUps} />
-                    </div>
                   </div>
                 </div>
                 <div
+                  className="campaign-manage-auto-actions"
                   style={{
-                    flexShrink: 0,
+                    flex: '0 1 220px',
+                    maxWidth: 220,
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'space-between',
+                    justifyContent: 'flex-start',
                     alignItems: 'stretch',
-                    width: 220,
+                    gap: 8,
                     padding: spacing.sm,
                     borderRadius: borderRadius.md,
                     backgroundColor: colors.bgGray,
@@ -715,7 +764,7 @@ export default function AdvertisingCampaignManage() {
                       Редактировать
                     </Button>
                   ) : (
-                    <div style={manageActionButtonRowStyle}>
+                    <div className="campaign-manage-action-row" style={manageActionButtonRowStyle}>
                       <Button
                         type="primary"
                         icon={<SaveOutlined />}
@@ -771,8 +820,8 @@ export default function AdvertisingCampaignManage() {
                   description={controlCapabilities.message}
                 />
               )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <Space align="center" size={12} style={{ flex: 1 }}>
+              <div className="campaign-manage-schedule-head" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <Space align="center" size={12}>
                   <h2 style={{ ...typography.h2, fontSize: 16, margin: 0 }}>Расписание</h2>
                   <Switch
                     data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_SCHEDULE_TOGGLE}
@@ -791,8 +840,8 @@ export default function AdvertisingCampaignManage() {
                     {(manage.scheduleEnabled ?? false) ? 'Вкл' : 'Выкл'}
                   </span>
                 </Space>
-                <Button onClick={() => refetch()}>Обновить</Button>
               </div>
+              <div className="campaign-manage-calendar-wrap">
               <CampaignWeekCalendar
                 tourTargetId={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_SCHEDULE_GRID}
                 slots={manage.slots}
@@ -802,11 +851,13 @@ export default function AdvertisingCampaignManage() {
                 onEditSlot={openEditSlot}
                 onDeleteSlot={confirmDeleteSlot}
               />
+              </div>
             </div>
             </CampaignManagePaywallShield>
 
             <div style={cardStyle} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_BUDGET_CHART}>
               <div
+                className="campaign-manage-chart-head"
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -826,10 +877,11 @@ export default function AdvertisingCampaignManage() {
               <CampaignBudgetChart data={budgetChart} loading={budgetChartLoading} />
             </div>
 
-            <div style={cardStyle}>
+            <div className="campaign-manage-history" style={cardStyle}>
               <h2 style={{ ...typography.h2, fontSize: 16, margin: 0, marginBottom: 12 }}>История изменений</h2>
               <Table
                 size="small"
+                tableLayout="fixed"
                 loading={changeLogLoading}
                 rowKey={(r, i) => `${r.createdAt}-${i}`}
                 columns={historyColumns}
@@ -863,6 +915,7 @@ export default function AdvertisingCampaignManage() {
       />
 
       <Modal
+        className="campaign-manage-modal"
         title="Единоразовое пополнение"
         open={manualTopUpOpen}
         onCancel={() => !manualTopUpMutation.isPending && setManualTopUpOpen(false)}
