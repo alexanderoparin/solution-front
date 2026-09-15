@@ -75,7 +75,75 @@ export default function CampaignManagePlansModal({ open, onClose }: CampaignMana
         width={920}
         title="Подписка на Управление РК"
         destroyOnClose
+        centered
+        className="campaign-manage-plans-modal"
+        styles={{ content: { padding: 20 } }}
       >
+        <style>{`
+          @media (max-width: 900px) {
+            .campaign-manage-plans-modal {
+              max-width: calc(100vw - 16px) !important;
+              top: 0;
+              padding-bottom: 0;
+              margin: 0 auto;
+            }
+            .campaign-manage-plans-modal .ant-modal-content {
+              padding: 12px 12px 14px !important;
+            }
+            .campaign-manage-plans-modal .ant-modal-header {
+              margin-bottom: 8px;
+            }
+            .campaign-manage-plans-modal .ant-modal-title {
+              font-size: 16px;
+              line-height: 1.3;
+            }
+            .campaign-plan-grid {
+              grid-template-columns: 1fr !important;
+              gap: 8px !important;
+            }
+            .campaign-plan-card {
+              min-height: 0 !important;
+              padding: 10px 12px !important;
+              border-radius: 10px !important;
+              display: grid !important;
+              grid-template-columns: minmax(0, 1fr) auto;
+              grid-template-areas:
+                "title price"
+                "desc desc"
+                "btn btn";
+              column-gap: 10px;
+              row-gap: 4px;
+              align-items: start;
+            }
+            .campaign-plan-title {
+              grid-area: title;
+              font-size: 15px !important;
+              margin-bottom: 0 !important;
+            }
+            .campaign-plan-desc {
+              grid-area: desc;
+              font-size: 12px !important;
+              margin-bottom: 2px !important;
+              flex: none !important;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
+            }
+            .campaign-plan-price {
+              grid-area: price;
+              margin-bottom: 0 !important;
+              text-align: right;
+              font-size: 13px !important;
+              justify-self: end;
+              white-space: nowrap;
+            }
+            .campaign-plan-btn {
+              grid-area: btn;
+              margin-top: 4px;
+            }
+          }
+        `}</style>
         {needsEmailConfirmation ? (
           <Alert
             type="warning"
@@ -102,7 +170,10 @@ export default function CampaignManagePlansModal({ open, onClose }: CampaignMana
             description={getRequestFailureDescription(error)}
           />
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+          <div
+            className="campaign-plan-grid"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}
+          >
             {plans.map((plan) => {
               const connected =
                 campaignIncluded
@@ -116,6 +187,7 @@ export default function CampaignManagePlansModal({ open, onClose }: CampaignMana
               return (
               <div
                 key={plan.id}
+                className="campaign-plan-card"
                 style={{
                   background: '#F8FAFC',
                   borderRadius: 12,
@@ -125,14 +197,15 @@ export default function CampaignManagePlansModal({ open, onClose }: CampaignMana
                   minHeight: 280,
                 }}
               >
-                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>{plan.name}</div>
-                <div style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
+                <div className="campaign-plan-title" style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>{plan.name}</div>
+                <div className="campaign-plan-desc" style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
                   {plan.description}
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1E293B' }}>
+                <div className="campaign-plan-price" style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1E293B' }}>
                   {formatPriceLabel(plan)}
                 </div>
                 <Button
+                  className="campaign-plan-btn"
                   type={inactive ? 'default' : 'primary'}
                   block
                   disabled={inactive}

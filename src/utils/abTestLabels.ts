@@ -44,3 +44,37 @@ export function formatStopLabel(item: AbTest): string {
 export function formatFinishLabel(item: AbTest): string {
   return `По завершении: ${formatFinishSummary(item)}`
 }
+
+/** Склонение «N тест / теста / тестов». */
+export function formatAbTestsCount(count: number): string {
+  const n = Math.abs(count) % 100
+  const n1 = n % 10
+  if (n > 10 && n < 20) {
+    return `${count} тестов`
+  }
+  if (n1 === 1) {
+    return `${count} тест`
+  }
+  if (n1 >= 2 && n1 <= 4) {
+    return `${count} теста`
+  }
+  return `${count} тестов`
+}
+
+/**
+ * Статус квоты А/Б в карточке услуг: остаток тестов или «Безлимит».
+ */
+export function formatAbTestsQuotaStatus(options: {
+  unlimited?: boolean | null
+  remaining?: number | null
+  activated?: boolean | null
+  connected?: boolean
+}): string {
+  if (options.unlimited) {
+    return 'Безлимит'
+  }
+  if (!options.connected && !options.activated) {
+    return 'Не подключен'
+  }
+  return formatAbTestsCount(options.remaining ?? 0)
+}

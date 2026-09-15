@@ -350,6 +350,7 @@ export default function Header({
         >
           <Button
             type="text"
+            className="app-header-nav-btn"
             icon={<BarChartOutlined />}
             aria-label="Аналитика"
             style={{
@@ -370,6 +371,7 @@ export default function Header({
         >
           <Button
             type="text"
+            className="app-header-nav-btn"
             icon={<RiseOutlined />}
             aria-label="Реклама"
             style={{

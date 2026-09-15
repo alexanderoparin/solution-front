@@ -18,6 +18,7 @@ import { useCampaignManageSubscriptionUi } from '../../store/campaignManageSubsc
 import AbTestPacksModal from '../../components/subscription/AbTestPacksModal'
 import { ONBOARDING_TARGETS } from '../../onboarding/targets'
 import type { CabinetBillingServiceStatusDto, ProfileSubscriptionSummary } from '../../types/api'
+import { formatAbTestsQuotaStatus } from '../../utils/abTestLabels'
 
 dayjs.locale('ru')
 
@@ -84,11 +85,12 @@ export default function SubscriptionCard({
   })
   const subscription = subscriptionProp ?? profile?.subscription
 
-  const { data: cabinets = [], isLoading: cabinetsLoading } = useQuery({
-    queryKey: ['myCabinets'],
-    queryFn: () => cabinetsApi.list(),
+  const { data: overview, isLoading: cabinetsLoading } = useQuery({
+    queryKey: ['cabinetsOverview'],
+    queryFn: () => cabinetsApi.getOverview(),
     enabled: fixedCabinetId == null,
   })
+  const cabinets = overview?.owned ?? []
 
   const cabinetId = useMemo(() => {
     if (fixedCabinetId != null) {
@@ -371,6 +373,20 @@ export default function SubscriptionCard({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {services.map((svc) => {
                     const connected = onPro || svc.connected
+                    const isAbTests = svc.serviceCode === 'AB_TESTS'
+                    const abUnlimited = onPro || Boolean(billing?.abTestQuota?.unlimited)
+                    const abRemaining = billing?.abTestQuota?.remaining ?? 0
+                    const statusText = isAbTests
+                      ? formatAbTestsQuotaStatus({
+                          unlimited: abUnlimited,
+                          remaining: billing?.abTestQuota?.remaining,
+                          activated: billing?.abTestQuota?.activated,
+                          connected,
+                        })
+                      : (onPro ? 'В PRO' : connected ? 'Подключен' : 'Не подключен')
+                    const statusPositive = isAbTests
+                      ? (abUnlimited || (connected && abRemaining > 0))
+                      : connected
                     return (
                       <div
                         key={svc.serviceCode}
@@ -406,14 +422,14 @@ export default function SubscriptionCard({
                             display: 'inline-flex',
                             padding: '2px 10px',
                             borderRadius: 999,
-                            background: connected ? '#DCFCE7' : '#F1F5F9',
-                            color: connected ? '#166534' : textMuted,
+                            background: statusPositive ? '#DCFCE7' : '#F1F5F9',
+                            color: statusPositive ? '#166534' : textMuted,
                             fontSize: 12,
                             fontWeight: 600,
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {onPro ? 'В PRO' : connected ? 'Подключен' : 'Не подключен'}
+                          {statusText}
                         </span>
                         {canManageBilling ? (
                           <Button

@@ -6,7 +6,8 @@ import { BarChartOutlined, ExperimentOutlined } from '@ant-design/icons'
 import { userApi } from '../api/user'
 import { subscriptionApi } from '../api/subscription'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
-import type { CabinetBillingServiceStatusDto, CabinetDto, PaymentDto, PlanDto, UserProfileResponse } from '../types/api'
+import type { CabinetBillingServiceStatusDto, OwnedCabinetRowDto, PaymentDto, PlanDto, UserProfileResponse } from '../types/api'
+import { formatAbTestsQuotaStatus } from '../utils/abTestLabels'
 import { getPaymentStatusLabel, getPaymentStatusColor } from '../utils/paymentStatus'
 import { useCampaignManageSubscriptionUi } from '../store/campaignManageSubscriptionUi'
 import Header from '../components/Header'
@@ -70,13 +71,14 @@ export default function Subscription() {
   const profilePromoActive = Boolean(profilePromo?.promoCode)
     || (profilePromo?.planCode === 'pro_month' && Boolean(profilePromo?.active) && Boolean(profilePromo?.expiresAt))
 
-  const { data: cabinets = [], isLoading: cabinetsLoading } = useQuery<CabinetDto[]>({
-    queryKey: ['myCabinets'],
-    queryFn: () => cabinetsApi.list(),
+  const { data: overview, isLoading: cabinetsLoading } = useQuery({
+    queryKey: ['cabinetsOverview'],
+    queryFn: () => cabinetsApi.getOverview(),
   })
+  const cabinets = overview?.owned ?? []
 
   const effectiveCabinetId = useMemo(() => {
-    if (cabinetId != null && cabinets.some((c: CabinetDto) => c.id === cabinetId)) {
+    if (cabinetId != null && cabinets.some((c: OwnedCabinetRowDto) => c.id === cabinetId)) {
       return cabinetId
     }
     return cabinets[0]?.id ?? null
@@ -226,6 +228,7 @@ export default function Subscription() {
       <Header />
       <Breadcrumbs />
       <div
+        className="subscription-page"
         style={{
           width: '100%',
           padding: 24,
@@ -235,17 +238,150 @@ export default function Subscription() {
           justifyContent: 'center',
         }}
       >
-        <div style={{ width: '100%', maxWidth: 960 }}>
+        <style>{`
+          @media (max-width: 900px) {
+            .subscription-page {
+              padding: 12px 12px 32px !important;
+            }
+            .subscription-page-inner .ant-typography {
+              margin-top: 0 !important;
+            }
+            .subscription-page .ant-card {
+              margin-bottom: 12px !important;
+            }
+            .subscription-page .ant-card-body {
+              padding: 14px !important;
+            }
+            .subscription-page .ant-card-head {
+              min-height: 40px;
+              padding: 0 14px;
+            }
+            .subscription-cabinet-row {
+              flex-direction: column !important;
+              align-items: stretch !important;
+              gap: 6px !important;
+              margin-bottom: 12px !important;
+            }
+            .subscription-cabinet-select {
+              width: 100% !important;
+              min-width: 0 !important;
+            }
+            .subscription-section-hint {
+              font-size: 13px !important;
+              margin-bottom: 12px !important;
+            }
+            .subscription-plan-grid {
+              grid-template-columns: 1fr !important;
+              gap: 8px !important;
+            }
+            .subscription-plan-card {
+              min-height: 0 !important;
+              padding: 10px 12px !important;
+              display: grid !important;
+              grid-template-columns: minmax(0, 1fr) auto;
+              grid-template-areas:
+                "title price"
+                "desc desc"
+                "btn btn";
+              column-gap: 10px;
+              row-gap: 4px;
+              align-items: start;
+            }
+            .subscription-plan-head {
+              grid-area: title;
+              margin-bottom: 0 !important;
+              flex-wrap: wrap;
+            }
+            .subscription-plan-head .ant-tag {
+              margin-inline-end: 0;
+            }
+            .subscription-plan-desc {
+              grid-area: desc;
+              flex: none !important;
+              margin-bottom: 2px !important;
+              font-size: 12px !important;
+              display: -webkit-box;
+              -webkit-line-clamp: 2;
+              -webkit-box-orient: vertical;
+              overflow: hidden;
+            }
+            .subscription-plan-price {
+              grid-area: price;
+              margin-bottom: 0 !important;
+              text-align: right;
+              font-size: 13px !important;
+              white-space: nowrap;
+              justify-self: end;
+            }
+            .subscription-plan-btn {
+              grid-area: btn;
+              margin-top: 4px;
+            }
+            .subscription-addon-list {
+              gap: 8px !important;
+            }
+            .subscription-addon-card {
+              display: grid !important;
+              grid-template-columns: 32px minmax(0, 1fr);
+              grid-template-areas:
+                "icon main"
+                "meta meta"
+                "btn btn";
+              gap: 6px 10px !important;
+              padding: 12px !important;
+              align-items: center;
+              flex-wrap: nowrap !important;
+            }
+            .subscription-addon-icon {
+              grid-area: icon;
+              width: 32px !important;
+              height: 32px !important;
+              border-radius: 8px !important;
+            }
+            .subscription-addon-main {
+              grid-area: main;
+              flex: none !important;
+              min-width: 0 !important;
+            }
+            .subscription-addon-desc {
+              font-size: 12px !important;
+            }
+            .subscription-addon-meta {
+              grid-area: meta;
+              min-width: 0 !important;
+              text-align: left !important;
+            }
+            .subscription-addon-btn {
+              grid-area: btn;
+              width: 100% !important;
+              min-width: 0 !important;
+            }
+            .subscription-payments-wrap {
+              overflow-x: auto;
+              -webkit-overflow-scrolling: touch;
+              margin: 0 -14px;
+              padding: 0 14px;
+            }
+            .subscription-payments-wrap .ant-table {
+              min-width: 560px;
+            }
+          }
+        `}</style>
+        <div className="subscription-page-inner" style={{ width: '100%', maxWidth: 960 }}>
           <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 8 }}>
             Подписка
           </Typography.Title>
-          <div style={{ marginBottom: 20, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div
+            className="subscription-cabinet-row"
+            style={{ marginBottom: 20, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}
+          >
             <Typography.Text type="secondary">Кабинет:</Typography.Text>
             <Select
-              style={{ minWidth: 260 }}
+              className="subscription-cabinet-select"
+              style={{ minWidth: 260, maxWidth: '100%' }}
               loading={cabinetsLoading}
               value={effectiveCabinetId ?? undefined}
-              options={cabinets.map((c: CabinetDto) => ({
+              options={cabinets.map((c: OwnedCabinetRowDto) => ({
                 value: c.id,
                 label: (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -303,7 +439,7 @@ export default function Subscription() {
                 <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
                   Основной тариф
                 </Typography.Title>
-                <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+                <Typography.Paragraph type="secondary" className="subscription-section-hint" style={{ marginBottom: 16 }}>
                   Выберите основной тариф кабинета. Сейчас активен:{' '}
                   <Typography.Text strong>{billing.mainTariff.name}</Typography.Text>
                   {billing.mainTariff.expiresAt
@@ -313,6 +449,7 @@ export default function Subscription() {
                 </Typography.Paragraph>
 
                 <div
+                  className="subscription-plan-grid"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
@@ -330,6 +467,7 @@ export default function Subscription() {
                     return (
                       <div
                         key={plan.id}
+                        className="subscription-plan-card"
                         style={{
                           background: current ? '#F5F3FF' : '#F8FAFC',
                           border: current ? `1px solid ${accent}` : `1px solid ${border}`,
@@ -340,22 +478,23 @@ export default function Subscription() {
                           minHeight: 240,
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <div className="subscription-plan-head" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                           <div style={{ fontSize: 18, fontWeight: 700, color: '#1E293B' }}>{plan.name}</div>
                           {current ? <Tag color="purple">Текущий</Tag> : null}
                         </div>
-                        <div style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
+                        <div className="subscription-plan-desc" style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
                           {plan.description || '—'}
                         </div>
-                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1E293B' }}>
+                        <div className="subscription-plan-price" style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#1E293B' }}>
                           {formatMainPlanPrice(plan)}
                         </div>
                         {current ? (
-                          <Button block disabled>
+                          <Button className="subscription-plan-btn" block disabled>
                             Подключен
                           </Button>
                         ) : canBuy ? (
                           <Button
+                            className="subscription-plan-btn"
                             type="primary"
                             block
                             loading={payingPlanId === plan.id}
@@ -365,7 +504,7 @@ export default function Subscription() {
                             Подключить
                           </Button>
                         ) : (
-                          <Button block disabled>
+                          <Button className="subscription-plan-btn" block disabled>
                             {billing.mainTariff.status === 'AGENCY' ? 'Входит в доступ агентства' : 'Недоступно'}
                           </Button>
                         )}
@@ -379,12 +518,12 @@ export default function Subscription() {
                 <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 8 }}>
                   Дополнительные услуги
                 </Typography.Title>
-                <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+                <Typography.Paragraph type="secondary" className="subscription-section-hint" style={{ marginBottom: 16 }}>
                   Подключаются отдельно к кабинету. Можно комбинировать с любым основным тарифом
                   {onPro ? ' (на PRO услуги уже включены без ограничений)' : ''}.
                 </Typography.Paragraph>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="subscription-addon-list" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {(billing.services ?? []).map((svc) => {
                     const includedInPro = onPro && (svc.status === 'INCLUDED' || svc.connected)
                     const connected = Boolean(svc.connected || includedInPro)
@@ -403,6 +542,23 @@ export default function Subscription() {
                         iconColor={copy?.iconColor ?? accent}
                         connected={connected}
                         includedInPro={includedInPro}
+                        statusText={
+                          svc.serviceCode === 'AB_TESTS'
+                            ? formatAbTestsQuotaStatus({
+                                unlimited: includedInPro || Boolean(billing.abTestQuota?.unlimited),
+                                remaining: billing.abTestQuota?.remaining,
+                                activated: billing.abTestQuota?.activated,
+                                connected,
+                              })
+                            : undefined
+                        }
+                        statusPositive={
+                          svc.serviceCode === 'AB_TESTS'
+                            ? (includedInPro
+                              || Boolean(billing.abTestQuota?.unlimited)
+                              || (connected && (billing.abTestQuota?.remaining ?? 0) > 0))
+                            : undefined
+                        }
                         priceLabel={
                           includedInPro
                             ? null
@@ -435,7 +591,9 @@ export default function Subscription() {
             ) : payments.length === 0 ? (
               <Typography.Text type="secondary">Платежей пока нет.</Typography.Text>
             ) : (
-              <Table rowKey="id" columns={paymentColumns} dataSource={payments} pagination={false} size="small" />
+              <div className="subscription-payments-wrap">
+                <Table rowKey="id" columns={paymentColumns} dataSource={payments} pagination={false} size="small" />
+              </div>
             )}
           </Card>
         </div>
@@ -461,6 +619,8 @@ function ServiceAddonCard({
   iconColor,
   connected,
   includedInPro,
+  statusText: statusTextProp,
+  statusPositive: statusPositiveProp,
   priceLabel,
   nextBilling,
   abQuotaHint,
@@ -473,18 +633,23 @@ function ServiceAddonCard({
   iconColor: string
   connected: boolean
   includedInPro: boolean
+  statusText?: string
+  statusPositive?: boolean
   priceLabel: string | null
   nextBilling: string | null
   abQuotaHint: string | null
   canManage: boolean
   onAction: () => void
 }) {
-  const statusText = includedInPro ? 'Включено в PRO' : connected ? 'Подключен' : 'Не подключен'
+  const statusText = statusTextProp
+    ?? (includedInPro ? 'Включено в PRO' : connected ? 'Подключен' : 'Не подключен')
+  const statusPositive = statusPositiveProp ?? connected
   const actionLabel = includedInPro ? 'Включено в PRO' : connected ? 'Управление' : 'Подключить'
   const isConnect = !connected && !includedInPro
 
   return (
     <div
+      className="subscription-addon-card"
       style={{
         display: 'flex',
         flexWrap: 'wrap',
@@ -497,6 +662,7 @@ function ServiceAddonCard({
       }}
     >
       <div
+        className="subscription-addon-icon"
         style={{
           width: 44,
           height: 44,
@@ -515,7 +681,7 @@ function ServiceAddonCard({
         )}
       </div>
 
-      <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+      <div className="subscription-addon-main" style={{ flex: '1 1 220px', minWidth: 0 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span style={{ fontWeight: 700, fontSize: 15, color: '#0F172A' }}>{svc.name}</span>
           <span
@@ -523,8 +689,8 @@ function ServiceAddonCard({
               display: 'inline-flex',
               padding: '2px 10px',
               borderRadius: 999,
-              background: connected ? '#DCFCE7' : '#F1F5F9',
-              color: connected ? '#166534' : '#64748B',
+              background: statusPositive ? '#DCFCE7' : '#F1F5F9',
+              color: statusPositive ? '#166534' : '#64748B',
               fontSize: 12,
               fontWeight: 600,
             }}
@@ -532,13 +698,13 @@ function ServiceAddonCard({
             {statusText}
           </span>
         </div>
-        <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.45 }}>{description}</div>
+        <div className="subscription-addon-desc" style={{ fontSize: 13, color: '#64748B', lineHeight: 1.45 }}>{description}</div>
         {abQuotaHint ? (
-          <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>{abQuotaHint}</div>
+          <div className="subscription-addon-hint" style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>{abQuotaHint}</div>
         ) : null}
       </div>
 
-      <div style={{ minWidth: 140, textAlign: 'right' }}>
+      <div className="subscription-addon-meta" style={{ minWidth: 140, textAlign: 'right' }}>
         {priceLabel ? (
           <div style={{ fontWeight: 700, fontSize: 15, color: '#0F172A' }}>{priceLabel}</div>
         ) : null}
@@ -551,6 +717,7 @@ function ServiceAddonCard({
 
       {canManage ? (
         <Button
+          className="subscription-addon-btn"
           disabled={includedInPro}
           onClick={onAction}
           type={isConnect ? 'primary' : 'default'}

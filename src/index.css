@@ -303,6 +303,17 @@ body {
     padding-inline: 6px !important;
   }
 
+  .app-header-nav-btn.ant-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0 !important;
+    justify-content: center;
+  }
+
+  .app-header-nav-btn .anticon {
+    font-size: 20px;
+  }
+
   .profile-breadcrumbs {
     padding: 8px 12px !important;
   }

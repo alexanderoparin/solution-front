@@ -59,7 +59,7 @@ function PackPriceBlock({ plan }: { plan: PlanDto }) {
     const testsLabel =
       credits === 1 ? '1 тест' : credits >= 2 && credits <= 4 ? `${credits} теста` : `${credits} тестов`
     return (
-      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
+      <div className="ab-pack-price" style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
         0 ₽ / {testsLabel}
       </div>
     )
@@ -67,7 +67,7 @@ function PackPriceBlock({ plan }: { plan: PlanDto }) {
 
   if (credits <= 1) {
     return (
-      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
+      <div className="ab-pack-price" style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
         {formatRub(plan.priceRub)}
       </div>
     )
@@ -77,15 +77,15 @@ function PackPriceBlock({ plan }: { plan: PlanDto }) {
   const save = UNIT_PRICE * credits - plan.priceRub
 
   return (
-    <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ fontSize: 18, fontWeight: 700, color: '#1E293B', lineHeight: 1.3 }}>
+    <div className="ab-pack-price" style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div className="ab-pack-price-main" style={{ fontSize: 18, fontWeight: 700, color: '#1E293B', lineHeight: 1.3 }}>
         {formatRub(plan.priceRub)}
       </div>
-      <div style={{ fontSize: 14, fontWeight: 600, color: accent, lineHeight: 1.3 }}>
+      <div className="ab-pack-price-unit" style={{ fontSize: 14, fontWeight: 600, color: accent, lineHeight: 1.3 }}>
         {formatRub(perTest)} за тест
       </div>
       {save > 0 ? (
-        <div style={{ fontSize: 14, color: '#64748B', lineHeight: 1.3 }}>
+        <div className="ab-pack-price-save" style={{ fontSize: 14, color: '#64748B', lineHeight: 1.3 }}>
           Экономия {formatRub(save)}
         </div>
       ) : null}
@@ -177,8 +177,92 @@ export default function AbTestPacksModal({
       width={920}
       title="Пакеты А/Б тестов"
       destroyOnClose
+      centered
+      className="ab-test-packs-modal"
+      styles={{ content: { padding: 20 } }}
     >
+      <style>{`
+        @media (max-width: 900px) {
+          .ab-test-packs-modal {
+            max-width: calc(100vw - 16px) !important;
+            top: 0;
+            padding-bottom: 0;
+            margin: 0 auto;
+          }
+          .ab-test-packs-modal .ant-modal-content {
+            padding: 12px 12px 14px !important;
+          }
+          .ab-test-packs-modal .ant-modal-header {
+            margin-bottom: 8px;
+          }
+          .ab-test-packs-modal .ant-modal-title {
+            font-size: 16px;
+            line-height: 1.3;
+          }
+          .ab-pack-intro {
+            padding: 8px 10px !important;
+            margin-bottom: 10px !important;
+            font-size: 12px !important;
+            line-height: 1.4 !important;
+            border-radius: 8px !important;
+          }
+          .ab-pack-grid {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+          }
+          .ab-pack-card {
+            min-height: 0 !important;
+            padding: 10px 12px !important;
+            border-radius: 10px !important;
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-areas:
+              "title price"
+              "desc desc"
+              "btn btn";
+            column-gap: 10px;
+            row-gap: 4px;
+            align-items: start;
+          }
+          .ab-pack-title {
+            grid-area: title;
+            font-size: 15px !important;
+            margin-bottom: 0 !important;
+          }
+          .ab-pack-desc {
+            grid-area: desc;
+            font-size: 12px !important;
+            margin-bottom: 2px !important;
+            flex: none !important;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+          .ab-pack-price {
+            grid-area: price;
+            margin-bottom: 0 !important;
+            text-align: right;
+            font-size: 13px !important;
+            flex-direction: column !important;
+            gap: 0 !important;
+            justify-self: end;
+          }
+          .ab-pack-price-main {
+            font-size: 14px !important;
+          }
+          .ab-pack-price-unit,
+          .ab-pack-price-save {
+            font-size: 11px !important;
+          }
+          .ab-pack-btn {
+            grid-area: btn;
+            margin-top: 4px;
+          }
+        }
+      `}</style>
       <div
+        className="ab-pack-intro"
         style={{
           background: '#F5F3FF',
           border: `1px solid ${accent}`,
@@ -200,6 +284,7 @@ export default function AbTestPacksModal({
         </div>
       ) : (
         <div
+          className="ab-pack-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -208,6 +293,7 @@ export default function AbTestPacksModal({
         >
           {freePlan && (
             <div
+              className="ab-pack-card"
               style={{
                 background: '#F8FAFC',
                 borderRadius: 12,
@@ -217,14 +303,15 @@ export default function AbTestPacksModal({
                 minHeight: 280,
               }}
             >
-              <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
+              <div className="ab-pack-title" style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
                 {packTitle(freePlan)}
               </div>
-              <div style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
+              <div className="ab-pack-desc" style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
                 {packDescription(freePlan)}
               </div>
               <PackPriceBlock plan={freePlan} />
               <Button
+                className="ab-pack-btn"
                 type={freeAlreadyUsed ? 'default' : 'primary'}
                 block
                 disabled={freeAlreadyUsed || cabinetId == null}
@@ -250,6 +337,7 @@ export default function AbTestPacksModal({
             return (
               <div
                 key={plan.id}
+                className="ab-pack-card"
                 style={{
                   background: '#F8FAFC',
                   borderRadius: 12,
@@ -259,14 +347,15 @@ export default function AbTestPacksModal({
                   minHeight: 280,
                 }}
               >
-                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
+                <div className="ab-pack-title" style={{ fontSize: 18, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
                   {packTitle(plan)}
                 </div>
-                <div style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
+                <div className="ab-pack-desc" style={{ fontSize: 13, color: '#475569', flex: 1, marginBottom: 16, lineHeight: 1.45 }}>
                   {packDescription(plan)}
                 </div>
                 <PackPriceBlock plan={plan} />
                 <Button
+                  className="ab-pack-btn"
                   type="primary"
                   block
                   disabled={cabinetId == null}
