@@ -23,6 +23,7 @@ export const analyticsArticleTour: OnboardingTourDefinition = {
     },
     {
       targetId: ONBOARDING_TARGETS.ARTICLE_EXPORT,
+      hideWhenNarrow: true,
       text: 'Скачайте таблицу воронок в Excel для дальнейшей работы.',
       placement: 'bottom',
     },

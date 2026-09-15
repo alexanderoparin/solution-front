@@ -23,7 +23,7 @@ export const profileTour: OnboardingTourDefinition = {
     },
     {
       targetId: ONBOARDING_TARGETS.MAIN_NAV,
-      text: 'Меню сервиса. Самое время открыть его и посмотреть, какие возможности он предлагает.',
+      text: 'Меню сервиса в шапке слева: «Аналитика» и «Реклама». Откройте разделы и посмотрите, какие возможности есть.',
       placement: 'bottom',
     },
   ],

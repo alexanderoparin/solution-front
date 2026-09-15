@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { markTourCompleted, markTourSkipped } from '../onboarding/storage'
 import { getTour } from '../onboarding/tours'
-import type { OnboardingTourId } from '../onboarding/types'
+import { isOnboardingStepVisible, type OnboardingTourId } from '../onboarding/types'
 
 interface OnboardingState {
   activeTourId: OnboardingTourId | null
@@ -22,7 +22,15 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   skipHintVisible: false,
 
   startTour: (tourId) => {
-    set({ activeTourId: tourId, stepIndex: 0, skipHintVisible: false })
+    const steps = getTour(tourId).steps
+    let index = 0
+    while (index < steps.length && !isOnboardingStepVisible(steps[index])) {
+      index += 1
+    }
+    if (index >= steps.length) {
+      return
+    }
+    set({ activeTourId: tourId, stepIndex: index, skipHintVisible: false })
   },
 
   cancelTour: () => {
@@ -35,12 +43,16 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       return
     }
     const tour = getTour(activeTourId)
-    if (stepIndex + 1 >= tour.steps.length) {
+    let next = stepIndex + 1
+    while (next < tour.steps.length && !isOnboardingStepVisible(tour.steps[next])) {
+      next += 1
+    }
+    if (next >= tour.steps.length) {
       markTourCompleted(activeTourId)
       set({ activeTourId: null, stepIndex: 0, skipHintVisible: false })
       return
     }
-    set({ stepIndex: stepIndex + 1 })
+    set({ stepIndex: next })
   },
 
   skipTour: () => {

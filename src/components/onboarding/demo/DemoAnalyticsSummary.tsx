@@ -153,6 +153,7 @@ function PeriodPicker({
   const [isHovered, setIsHovered] = useState(false)
   return (
     <div
+      data-tour-id={datePickerTourId}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
@@ -167,7 +168,6 @@ function PeriodPicker({
       <div style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 4, textAlign: 'center' }}>{period.name}</div>
       <DatePicker.RangePicker
         locale={locale.DatePicker}
-        data-tour-id={datePickerTourId}
         value={[dayjs(period.dateFrom), dayjs(period.dateTo)]}
         onChange={(dates) => {
           if (dates?.[0] != null && dates[1] != null) {
@@ -427,19 +427,22 @@ export default function DemoAnalyticsSummary() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.sm }}>
+        <div
+          data-tour-id={ONBOARDING_TARGETS.SUMMARY_PERIODS}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.sm }}
+        >
           <div style={{ fontSize: 14, fontWeight: 400, color: colors.textPrimary, textAlign: 'center', whiteSpace: 'nowrap' }}>
             Выберите периоды для сравнения
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 32, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-            {periods.map((period, periodIndex) => (
+            {periods.map((period) => (
               <PeriodPicker
                 key={period.id}
                 period={period}
                 periodsCount={periods.length}
                 onPeriodChange={handlePeriodChange}
                 onRemovePeriod={handleRemovePeriod}
-                datePickerTourId={periodIndex === 1 ? ONBOARDING_TARGETS.SUMMARY_PERIOD_DATES : undefined}
+                datePickerTourId={ONBOARDING_TARGETS.SUMMARY_PERIOD_DATES}
               />
             ))}
             {periods.length < 5 && (

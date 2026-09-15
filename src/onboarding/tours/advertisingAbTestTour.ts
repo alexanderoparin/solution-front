@@ -18,19 +18,19 @@ export const advertisingAbTestTour: OnboardingTourDefinition = {
     },
     {
       targetId: ONBOARDING_TARGETS.AB_TEST_VARIANTS,
-      fallbackTargetId: ONBOARDING_TARGETS.AB_TEST_CREATE,
+      requireTarget: true,
       text: 'Превью вариантов и CTR. Чем выше CTR, тем лучше кликают на это фото.',
       placement: 'bottom',
     },
     {
       targetId: ONBOARDING_TARGETS.AB_TEST_TITLE,
-      fallbackTargetId: ONBOARDING_TARGETS.AB_TEST_CREATE,
+      requireTarget: true,
       text: 'Нажмите на название, чтобы открыть подробную статистику по каждому варианту.',
       placement: 'right',
     },
     {
       targetId: ONBOARDING_TARGETS.AB_TEST_STATUS,
-      fallbackTargetId: ONBOARDING_TARGETS.AB_TEST_CREATE,
+      requireTarget: true,
       text: 'Включите или выключите тест. Выключенный тест останавливает ротацию фото на Wildberries.',
       placement: 'left',
     },

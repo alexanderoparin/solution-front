@@ -2,9 +2,19 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom'
 import { Button } from 'antd'
 import { getTour } from '../../onboarding/tours'
-import { resolveTourTargetElements, measureTargetRect, scrollTargetsIntoView } from '../../onboarding/resolveTarget'
+import {
+  resolveTourTargetElements,
+  measureTargetRect,
+  scrollTargetsIntoView,
+  measureOnboardingChromeBottom,
+} from '../../onboarding/resolveTarget'
 import type { TargetRect } from '../../onboarding/resolveTarget'
-import type { OnboardingPlacement } from '../../onboarding/types'
+import {
+  isOnboardingStepVisible,
+  onboardingStepText,
+  visibleOnboardingSteps,
+  type OnboardingPlacement,
+} from '../../onboarding/types'
 import { useOnboardingStore } from '../../store/onboardingStore'
 
 const OVERLAY_Z = 10050
@@ -51,26 +61,22 @@ function computeTooltipLayout(
   target: Rect,
   preferred: OnboardingPlacement,
   tooltipSize: { width: number; height: number },
+  chromeBottom = 4,
 ): TooltipLayout {
   const vw = window.innerWidth
   const vh = window.innerHeight
   const tw = tooltipSize.width
   const th = tooltipSize.height
   const narrow = isNarrowViewport()
-
-  if (narrow) {
-    return {
-      top: Math.max(MARGIN, vh - th - MARGIN),
-      left: MARGIN,
-      width: tw,
-      placement: 'top',
-    }
-  }
+  const minTop = narrow ? chromeBottom : MARGIN
 
   let placement: OnboardingPlacement = preferred
+  if (narrow && (preferred === 'left' || preferred === 'right')) {
+    placement = 'bottom'
+  }
 
   const spaceBelow = vh - (target.top + target.height) - MARGIN
-  const spaceAbove = target.top - MARGIN
+  const spaceAbove = target.top - minTop
   const spaceRight = vw - (target.left + target.width) - MARGIN
   const spaceLeft = target.left - MARGIN
 
@@ -84,18 +90,22 @@ function computeTooltipLayout(
     placement = 'right'
   }
 
-  if ((placement === 'left' || placement === 'right') && Math.max(spaceLeft, spaceRight) < tw + GAP) {
+  if ((placement === 'left' || placement === 'right') && (narrow || Math.max(spaceLeft, spaceRight) < tw + GAP)) {
     placement = spaceBelow >= spaceAbove ? 'bottom' : 'top'
+  }
+
+  if (placement === 'top' && target.top - th - GAP < minTop) {
+    placement = 'bottom'
   }
 
   let top: number
   let left: number
   if (placement === 'bottom') {
     top = target.top + target.height + GAP
-    left = target.left + target.width / 2 - tw / 2
+    left = narrow ? MARGIN : target.left + target.width / 2 - tw / 2
   } else if (placement === 'top') {
     top = target.top - th - GAP
-    left = target.left + target.width / 2 - tw / 2
+    left = narrow ? MARGIN : target.left + target.width / 2 - tw / 2
   } else if (placement === 'right') {
     left = target.left + target.width + GAP
     top = target.top + target.height / 2 - th / 2
@@ -105,7 +115,12 @@ function computeTooltipLayout(
   }
 
   left = clamp(left, MARGIN, vw - tw - MARGIN)
-  top = clamp(top, MARGIN, vh - th - MARGIN)
+
+  const clampedTop = clamp(top, minTop, vh - th - MARGIN)
+  const overlapsHighlight = clampedTop < target.top + target.height - 2 && clampedTop + th > target.top + 2
+  if (!overlapsHighlight) {
+    top = clampedTop
+  }
 
   return { top, left, width: tw, placement }
 }
@@ -158,24 +173,25 @@ function arrowStyle(
   }
 }
 
-function capTargetRect(rect: Rect, tooltipHeight: number): Rect {
+function capTargetRect(rect: Rect, tooltipHeight: number, chromeBottom = 4): Rect {
   const vh = window.innerHeight
-  const reservedBottom = isNarrowViewport() ? tooltipHeight + GAP + MARGIN : MARGIN
-  const maxBottom = vh - reservedBottom
-  const top = clamp(rect.top, 8, Math.max(8, maxBottom - 72))
-  const bottom = Math.min(rect.top + rect.height, maxBottom)
+  const maxHeight = isNarrowViewport()
+    ? Math.max(56, vh - tooltipHeight - GAP - MARGIN * 2 - chromeBottom)
+    : rect.height
+  const top = Math.max(chromeBottom, rect.top)
+  const height = Math.min(rect.height, maxHeight, Math.max(40, vh - top - MARGIN))
   return {
     ...rect,
     top,
-    height: Math.max(48, bottom - top),
+    height: Math.max(40, height),
   }
 }
 
-function clampHighlight(rect: Rect): Rect {
+function clampHighlight(rect: Rect, chromeBottom = 4): Rect {
   const vw = window.innerWidth
   const vh = window.innerHeight
   const left = Math.max(4, rect.left)
-  const top = Math.max(4, rect.top)
+  const top = Math.max(chromeBottom, rect.top)
   const right = Math.min(vw - 4, rect.left + rect.width)
   const bottom = Math.min(vh - 4, rect.top + rect.height)
   return {
@@ -212,7 +228,7 @@ export default function OnboardingTour() {
       return
     }
     const placement = step.placement ?? 'bottom'
-    setStepText(step.text)
+    setStepText(onboardingStepText(step))
     setPreferredPlacement(placement)
     const elements = resolveTourTargetElements(step)
     const tooltipWidth = viewportTooltipWidth()
@@ -235,9 +251,10 @@ export default function OnboardingTour() {
     if (!rect) {
       return
     }
-    const fitted = capTargetRect(rect, tooltipSize.height)
+    const chromeBottom = measureOnboardingChromeBottom(elements)
+    const fitted = capTargetRect(rect, tooltipSize.height, chromeBottom)
     setTargetRect(fitted)
-    setTooltipLayout(computeTooltipLayout(fitted, placement, tooltipSize))
+    setTooltipLayout(computeTooltipLayout(fitted, placement, tooltipSize, chromeBottom))
   }, [activeTourId, stepIndex])
 
   useLayoutEffect(() => {
@@ -252,6 +269,10 @@ export default function OnboardingTour() {
       if (stepIndex >= tour.steps.length) {
         completeTour()
       }
+      return
+    }
+    if (!isOnboardingStepVisible(step)) {
+      nextStep()
       return
     }
     overlayGuardUntilRef.current = Date.now() + OVERLAY_CLICK_GUARD_MS
@@ -269,16 +290,20 @@ export default function OnboardingTour() {
       window.clearTimeout(timer)
       window.clearTimeout(unblockTimer)
     }
-  }, [activeTourId, stepIndex, remeasure, completeTour])
+  }, [activeTourId, stepIndex, remeasure, completeTour, nextStep])
 
   useLayoutEffect(() => {
     const node = tooltipRef.current
     const rect = targetRect
-    if (node == null || rect == null) {
+    if (node == null || rect == null || activeTourId == null) {
       return
     }
+    const tour = getTour(activeTourId)
+    const step = tour.steps[stepIndex]
+    const elements = step ? resolveTourTargetElements(step) : []
+    const chromeBottom = measureOnboardingChromeBottom(elements)
     const size = { width: node.offsetWidth, height: node.offsetHeight }
-    const fitted = capTargetRect(rect, size.height)
+    const fitted = capTargetRect(rect, size.height, chromeBottom)
     if (
       fitted.top !== rect.top
       || fitted.left !== rect.left
@@ -287,7 +312,7 @@ export default function OnboardingTour() {
     ) {
       setTargetRect(fitted)
     }
-    const next = computeTooltipLayout(fitted, preferredPlacement, size)
+    const next = computeTooltipLayout(fitted, preferredPlacement, size, chromeBottom)
     setTooltipLayout((prev) => {
       if (
         prev
@@ -300,7 +325,7 @@ export default function OnboardingTour() {
       }
       return next
     })
-  }, [targetRect, stepText, preferredPlacement])
+  }, [targetRect, stepText, preferredPlacement, activeTourId, stepIndex])
 
   useEffect(() => {
     if (activeTourId == null) {
@@ -329,9 +354,16 @@ export default function OnboardingTour() {
   }
 
   const tour = getTour(activeTourId)
-  const total = tour.steps.length
-  const isLast = stepIndex >= total - 1
-  const highlight = targetRect ? clampHighlight(targetRect) : null
+  const visibleSteps = visibleOnboardingSteps(tour.steps)
+  const total = visibleSteps.length
+  const visibleIndex = tour.steps
+    .slice(0, stepIndex + 1)
+    .filter((step) => isOnboardingStepVisible(step)).length
+  const isLast = visibleIndex >= total
+  const chromeBottom = measureOnboardingChromeBottom(
+    tour.steps[stepIndex] ? resolveTourTargetElements(tour.steps[stepIndex]) : [],
+  )
+  const highlight = targetRect ? clampHighlight(targetRect, chromeBottom) : null
   const tooltipWidth = tooltipLayout?.width ?? viewportTooltipWidth()
   const tooltipHeight = tooltipRef.current?.offsetHeight ?? ESTIMATED_TOOLTIP_HEIGHT
   const narrow = typeof window !== 'undefined' && isNarrowViewport()
@@ -358,7 +390,7 @@ export default function OnboardingTour() {
             width: highlight.width,
             height: highlight.height,
             borderRadius: 10,
-            boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.45)',
+            boxShadow: '0 0 0 3px #fff, 0 0 0 9999px rgba(15, 23, 42, 0.5)',
             zIndex: OVERLAY_Z + 1,
             pointerEvents: 'none',
           }}
@@ -377,8 +409,7 @@ export default function OnboardingTour() {
             left: tooltipLayout.left,
             width: tooltipWidth,
             maxWidth: `calc(100vw - ${MARGIN * 2}px)`,
-            maxHeight: `calc(100vh - ${MARGIN * 2}px)`,
-            overflowY: 'auto',
+            overflow: 'visible',
             zIndex: OVERLAY_Z + 2,
             background: '#fff',
             borderRadius: 12,
@@ -397,12 +428,13 @@ export default function OnboardingTour() {
               }}
             />
           )}
+          <div style={{ overflow: 'hidden' }}>
           <div style={{ fontSize: 14, lineHeight: 1.45, color: '#1E293B', marginBottom: 12 }}>
             {stepText}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, minWidth: 0 }}>
             <span style={{ fontSize: 13, color: '#64748B', flexShrink: 0 }}>
-              {stepIndex + 1} из {total}
+              {visibleIndex} из {total}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <button
@@ -433,6 +465,7 @@ export default function OnboardingTour() {
                 {isLast ? 'Готово' : 'Далее'}
               </Button>
             </div>
+          </div>
           </div>
         </div>
       )}

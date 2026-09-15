@@ -15,6 +15,7 @@ interface OnboardingDemoBannerProps {
 export default function OnboardingDemoBanner({ onCreated }: OnboardingDemoBannerProps) {
   return (
     <div
+      className="onboarding-sticky-chrome"
       style={{
         position: 'sticky',
         top: 56,

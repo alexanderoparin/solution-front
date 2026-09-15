@@ -624,18 +624,19 @@ export default function DemoAdvertisingCampaignDetail() {
         {([{ period: 1, dates: period1, setPeriod: setPeriod1, total: period1Total }, { period: 2, dates: period2, setPeriod: setPeriod2, total: period2Total }] as const).map(({ period, dates, setPeriod, total }) => (
           <div key={period} style={{ marginBottom: period === 1 ? spacing.xl : 0 }}>
             <div
-              data-tour-id={period === 1 ? ONBOARDING_TARGETS.CAMPAIGN_DETAIL_COMPARE_PERIODS : undefined}
               style={{ display: 'inline-flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}
             >
               <span style={{ ...typography.body, fontWeight: 600, color: colors.textPrimary }}>Период {period}</span>
-              <DatePicker.RangePicker
-                locale={locale.DatePicker}
-                value={dates}
-                onChange={(next) => next?.[0] && next?.[1] && setPeriod([next[0], next[1]])}
-                format="DD.MM.YYYY"
-                separator="→"
-                style={{ width: 220 }}
-              />
+              <div data-tour-id={period === 1 ? ONBOARDING_TARGETS.CAMPAIGN_DETAIL_COMPARE_PERIODS : undefined}>
+                <DatePicker.RangePicker
+                  locale={locale.DatePicker}
+                  value={dates}
+                  onChange={(next) => next?.[0] && next?.[1] && setPeriod([next[0], next[1]])}
+                  format="DD.MM.YYYY"
+                  separator="→"
+                  style={{ width: 220 }}
+                />
+              </div>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, tableLayout: 'fixed' }}>

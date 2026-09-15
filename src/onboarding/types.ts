@@ -28,7 +28,54 @@ export interface OnboardingStep {
   /** Запасной target, если основной не найден */
   fallbackTargetId?: string
   text: string
+  /** Текст на узком экране, если отличается от desktop */
+  narrowText?: string
+  /** Не показывать шаг на мобилке (max-width 900px) */
+  hideWhenNarrow?: boolean
+  /** Не показывать шаг на широком экране */
+  hideWhenWide?: boolean
+  /**
+   * Не показывать шаг, если в DOM нет основного target
+   * (карточка списка, строка таблицы и т.п.).
+   */
+  requireTarget?: boolean
   placement?: OnboardingPlacement
+}
+
+const NARROW_TOUR_MAX = 900
+
+export function isOnboardingNarrowViewport(): boolean {
+  return typeof window !== 'undefined' && window.innerWidth <= NARROW_TOUR_MAX
+}
+
+export function isOnboardingStepVisible(step: OnboardingStep, narrow = isOnboardingNarrowViewport()): boolean {
+  if (narrow && step.hideWhenNarrow) {
+    return false
+  }
+  if (!narrow && step.hideWhenWide) {
+    return false
+  }
+  if (step.requireTarget) {
+    if (typeof document === 'undefined') {
+      return false
+    }
+    return document.querySelector(`[data-tour-id="${step.targetId}"]`) != null
+  }
+  return true
+}
+
+export function visibleOnboardingSteps(
+  steps: readonly OnboardingStep[],
+  narrow = isOnboardingNarrowViewport(),
+): OnboardingStep[] {
+  return steps.filter((step) => isOnboardingStepVisible(step, narrow))
+}
+
+export function onboardingStepText(step: OnboardingStep, narrow = isOnboardingNarrowViewport()): string {
+  if (narrow && step.narrowText) {
+    return step.narrowText
+  }
+  return step.text
 }
 
 export interface OnboardingTourDefinition {

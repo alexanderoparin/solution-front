@@ -1842,11 +1842,14 @@ export default function AdvertisingCampaignDetail() {
                 <div key={period} style={{ marginBottom: period === 1 ? spacing.xl : 0 }}>
                   <div
                     className="campaign-detail-compare-period-head"
-                    data-tour-id={period === 1 ? ONBOARDING_TARGETS.CAMPAIGN_DETAIL_COMPARE_PERIODS : undefined}
                     style={{ display: 'inline-flex', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}
                   >
                     <span style={{ ...typography.body, fontWeight: 600, color: colors.textPrimary }}>Период {period}</span>
-                    <div className="campaign-detail-range-picker-wrap" style={{ width: 220, maxWidth: '100%' }}>
+                    <div
+                      className="campaign-detail-range-picker-wrap"
+                      data-tour-id={period === 1 ? ONBOARDING_TARGETS.CAMPAIGN_DETAIL_COMPARE_PERIODS : undefined}
+                      style={{ width: 220, maxWidth: '100%' }}
+                    >
                     <DatePicker.RangePicker
                       locale={locale.DatePicker}
                       value={periodDates}

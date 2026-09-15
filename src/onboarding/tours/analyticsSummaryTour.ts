@@ -12,8 +12,10 @@ export const analyticsSummaryTour: OnboardingTourDefinition = {
       placement: 'bottom',
     },
     {
-      targetId: ONBOARDING_TARGETS.SUMMARY_ADD_PERIOD,
-      text: 'Добавьте до 4 периодов для сравнения между собой.',
+      targetId: ONBOARDING_TARGETS.SUMMARY_PERIODS,
+      fallbackTargetId: ONBOARDING_TARGETS.SUMMARY_PERIOD_DATES,
+      text: 'Это периоды для сравнения — календари сверху. Можно добавить до 5.',
+      narrowText: 'Это периоды для сравнения — календари сверху. Можно добавить до 4.',
       placement: 'bottom',
     },
     {

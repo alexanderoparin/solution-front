@@ -64,6 +64,7 @@ function PeriodItem({ period, periodsCount, onPeriodChange, onRemovePeriod, date
   return (
     <div
       className="summary-period-item"
+      data-tour-id={datePickerTourId}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -136,7 +137,6 @@ function PeriodItem({ period, periodsCount, onPeriodChange, onRemovePeriod, date
       <div className="summary-period-item-picker" style={{ width: 220, maxWidth: '100%' }}>
       <DatePicker.RangePicker
         locale={locale.DatePicker}
-        data-tour-id={datePickerTourId}
         value={[dayjs(period.dateFrom), dayjs(period.dateTo)]}
         onChange={(dates) => {
           if (dates && dates[0] && dates[1]) {
@@ -1194,19 +1194,23 @@ export default function AnalyticsSummary() {
             </Tooltip>
             </div>
         </div>
-        <div className="summary-periods" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.sm }}>
+        <div
+          className="summary-periods"
+          data-tour-id={ONBOARDING_TARGETS.SUMMARY_PERIODS}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: spacing.sm }}
+        >
           <div style={{ fontSize: 14, fontWeight: 400, color: colors.textPrimary, textAlign: 'center', whiteSpace: 'nowrap' }}>
             Выберите периоды для сравнения
           </div>
           <div className="summary-periods-row" style={{ display: 'flex', justifyContent: 'center', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          {visiblePeriods.map((period, periodIndex) => (
+          {visiblePeriods.map((period) => (
             <PeriodItem
               key={period.id}
               period={period}
               periodsCount={visiblePeriods.length}
               onPeriodChange={handlePeriodChange}
               onRemovePeriod={handleRemovePeriod}
-              datePickerTourId={periodIndex === 1 ? ONBOARDING_TARGETS.SUMMARY_PERIOD_DATES : undefined}
+              datePickerTourId={ONBOARDING_TARGETS.SUMMARY_PERIOD_DATES}
             />
           ))}
           {visiblePeriods.length < maxPeriods && (

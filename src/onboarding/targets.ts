@@ -30,6 +30,8 @@ export const ONBOARDING_TARGETS = {
   ARTICLE_CAMPAIGNS: 'onboarding-article-campaigns',
   /** Кнопка «Фильтр» на /analytics (Сводная) */
   SUMMARY_FILTER: 'onboarding-summary-filter',
+  /** Блок периодов для сравнения на сводной */
+  SUMMARY_PERIODS: 'onboarding-summary-periods',
   /** Кнопка «+» — добавить период */
   SUMMARY_ADD_PERIOD: 'onboarding-summary-add-period',
   /** DatePicker периода для сравнения */

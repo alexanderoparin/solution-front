@@ -334,9 +334,13 @@ export default function Header({
         zIndex: 100,
       }}
     >
-      <div className="app-header-nav" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }} data-tour-id={ONBOARDING_TARGETS.MAIN_NAV}>
+      <div className="app-header-nav" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>
         <SiteLogo variant="wordmark" size={32} to="/analytics/products" title="Аналитика — Товары" />
 
+        <div
+          data-tour-id={ONBOARDING_TARGETS.MAIN_NAV}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}
+        >
         {/* Аналитика */}
         <Dropdown
           menu={{
@@ -384,6 +388,7 @@ export default function Header({
             <DownOutlined className="app-header-nav-chevron" style={{ fontSize: 10 }} />
           </Button>
         </Dropdown>
+        </div>
 
       </div>
 

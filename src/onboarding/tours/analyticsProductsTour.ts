@@ -14,11 +14,13 @@ export const analyticsProductsTour: OnboardingTourDefinition = {
       targetId: ONBOARDING_TARGETS.PRODUCTS_ORDERS_BY_DAY,
       text: 'Количество заказов по дням за последнюю неделю.',
       placement: 'bottom',
+      hideWhenNarrow: true,
     },
     {
       targetId: ONBOARDING_TARGETS.PRODUCTS_DYNAMICS,
       fallbackTargetId: ONBOARDING_TARGETS.PRODUCTS_ORDERS_BY_DAY,
       text: 'Динамика количества заказов.',
+      narrowText: 'Динамика заказов за неделю. Нажмите на график, чтобы увидеть количество заказов по дням.',
       placement: 'left',
     },
   ],

@@ -23,6 +23,7 @@ export const advertisingCampaignDetailTour: OnboardingTourDefinition = {
     },
     {
       targetId: ONBOARDING_TARGETS.CAMPAIGN_DETAIL_EXPORT,
+      hideWhenNarrow: true,
       text: 'Скачайте данные в формате Excel для дальнейшей работы с ними.',
       placement: 'bottom',
     },
