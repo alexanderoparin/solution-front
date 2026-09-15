@@ -48,7 +48,14 @@ export function measureTargetRect(elements: HTMLElement[]): TargetRect | null {
   }
 }
 
-export function scrollTargetsIntoView(elements: HTMLElement[]): void {
+/**
+ * Прокручивает цель в зону, где помещается подсказка.
+ * На узком экране цель держим ближе к верху — снизу остаётся место под попап.
+ */
+export function scrollTargetsIntoView(
+  elements: HTMLElement[],
+  options?: { placement?: 'top' | 'bottom' | 'left' | 'right' },
+): void {
   if (elements.length === 0) {
     return
   }
@@ -56,8 +63,22 @@ export function scrollTargetsIntoView(elements: HTMLElement[]): void {
   if (!rect) {
     return
   }
-  const centerY = rect.top + rect.height / 2
   const viewportH = window.innerHeight
+  const narrow = window.innerWidth <= 900
+  if (narrow) {
+    const headerOffset = 72
+    const tooltipReserve = 220
+    const preferTop = options?.placement === 'top'
+    const desiredTop = preferTop
+      ? Math.max(headerOffset, viewportH - rect.height - tooltipReserve)
+      : headerOffset
+    const delta = rect.top - desiredTop
+    if (Math.abs(delta) > 20) {
+      window.scrollBy({ top: delta, left: 0, behavior: 'auto' })
+    }
+    return
+  }
+  const centerY = rect.top + rect.height / 2
   if (centerY < 80 || centerY > viewportH - 80) {
     elements[0].scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'auto' })
   }

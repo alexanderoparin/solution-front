@@ -12,11 +12,12 @@ export const analyticsProductsTour: OnboardingTourDefinition = {
     },
     {
       targetId: ONBOARDING_TARGETS.PRODUCTS_ORDERS_BY_DAY,
-      text: 'Количество заказов по дням.',
+      text: 'Количество заказов по дням за последнюю неделю.',
       placement: 'bottom',
     },
     {
       targetId: ONBOARDING_TARGETS.PRODUCTS_DYNAMICS,
+      fallbackTargetId: ONBOARDING_TARGETS.PRODUCTS_ORDERS_BY_DAY,
       text: 'Динамика количества заказов.',
       placement: 'left',
     },

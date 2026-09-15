@@ -702,6 +702,16 @@ export default function AnalyticsProducts() {
         .products-card-chart-wrap {
           margin-left: auto;
           flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 2px;
+        }
+        .products-card-chart-label {
+          font-size: 10px;
+          line-height: 1.2;
+          color: ${colors.textMuted};
+          font-weight: 600;
         }
         .products-card-chart {
           display: inline-flex;
@@ -1496,7 +1506,7 @@ function ProductsTable({
           width: '100%',
         }}
       >
-        {visibleArticles.map((article) => (
+        {visibleArticles.map((article, index) => (
           <ProductCard
             key={article.nmId}
             article={article}
@@ -1507,6 +1517,7 @@ function ProductsTable({
             showRatingColumn={showRatingColumn}
             showPriorityColumn={showPriorityColumn}
             isOzonCabinet={isOzonCabinet}
+            tourOrdersByDay={index === 0}
           />
         ))}
       </div>
@@ -1805,6 +1816,8 @@ interface ProductCardProps {
   showRatingColumn: boolean
   showPriorityColumn: boolean
   isOzonCabinet: boolean
+  /** Якорь обучалки «заказы по дням» — только у первой карточки. */
+  tourOrdersByDay?: boolean
 }
 
 function ProductCard({
@@ -1816,6 +1829,7 @@ function ProductCard({
   showRatingColumn,
   showPriorityColumn,
   isOzonCabinet,
+  tourOrdersByDay = false,
 }: ProductCardProps) {
   const {
     isPriority,
@@ -1924,7 +1938,13 @@ function ProductCard({
             </span>
           )}
           </div>
-          <span className="products-card-chart-wrap" onClick={stopProp} role="presentation">
+          <span
+            className="products-card-chart-wrap"
+            onClick={stopProp}
+            role="presentation"
+            data-tour-id={tourOrdersByDay ? ONBOARDING_TARGETS.PRODUCTS_ORDERS_BY_DAY : undefined}
+          >
+            <span className="products-card-chart-label">Заказы</span>
             <Popover
               trigger="click"
               placement="topRight"

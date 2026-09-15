@@ -33,6 +33,7 @@ import { getFilesFromClipboardData, renameGenericClipboardFile } from '../utils/
 import { linkifyNoteText } from '../utils/linkifyNoteText'
 import { NoteImagePreviewModal } from '../components/NoteImagePreviewModal'
 import FboFbsStocksSwitch, { type StocksFulfillment, stockRowKey } from '../components/FboFbsStocksSwitch'
+import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 type NoteFileEntry = { uid: string; file: File }
 
@@ -1278,6 +1279,7 @@ export default function AnalyticsArticle() {
         }}>
           <div
             className="analytics-article-hero-main"
+            data-tour-id={ONBOARDING_TARGETS.ARTICLE_HEADER}
             style={{
               display: 'grid',
               gridTemplateColumns: articleHeaderPhotoUrl
@@ -1642,7 +1644,7 @@ export default function AnalyticsArticle() {
                 {...articleRangePickerProps}
               />
               </div>
-              <span className="analytics-article-funnel-chart-switch" style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexShrink: 0, ...typography.body }}>
+              <span className="analytics-article-funnel-chart-switch" data-tour-id={ONBOARDING_TARGETS.ARTICLE_CHART} style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, flexShrink: 0, ...typography.body }}>
                 <Switch
                   checked={showChart}
                   onChange={setShowChart}
@@ -1651,7 +1653,7 @@ export default function AnalyticsArticle() {
                 <span>График</span>
               </span>
               </div>
-              <div className="analytics-article-funnel-checks" style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
+              <div className="analytics-article-funnel-checks" data-tour-id={ONBOARDING_TARGETS.ARTICLE_METRICS} style={{ display: 'flex', alignItems: 'center', gap: spacing.lg, flexWrap: 'wrap' }}>
                 <Checkbox
                   checked={selectedFunnelKeys.includes('general')}
                   onChange={() => toggleFunnel('general')}
@@ -1682,6 +1684,7 @@ export default function AnalyticsArticle() {
                   icon={<DownloadOutlined />}
                   onClick={handleExportFunnelsExcel}
                   disabled={!article}
+                  data-tour-id={ONBOARDING_TARGETS.ARTICLE_EXPORT}
                 >
                   <span className="analytics-article-export-label">Выгрузить</span>
                 </Button>
@@ -2281,6 +2284,7 @@ export default function AnalyticsArticle() {
                 
                 <div
                   className="analytics-article-compare-periods"
+                  data-tour-id={ONBOARDING_TARGETS.ARTICLE_COMPARE}
                   style={{
                   display: 'flex',
                   gap: spacing.lg,
@@ -3382,6 +3386,7 @@ export default function AnalyticsArticle() {
                       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: spacing.xs }}>
                         <FboFbsStocksSwitch
                           value={stocksFulfillment}
+                          tourTargetId={ONBOARDING_TARGETS.ARTICLE_STOCK_FULFILLMENT}
                           onChange={(next) => {
                             setStocksFulfillment(next)
                             setExpandedStocks(new Set())
@@ -3580,9 +3585,13 @@ export default function AnalyticsArticle() {
                           gap: spacing.xs
                         }}>
                           {isExpanded ? (
-                            <DownOutlined style={{ fontSize: '12px', color: colors.primary }} />
+                            <span data-tour-id={index === 0 ? ONBOARDING_TARGETS.ARTICLE_STOCK_EXPAND : undefined} style={{ display: 'inline-flex' }}>
+                              <DownOutlined style={{ fontSize: '12px', color: colors.primary }} />
+                            </span>
                           ) : (
-                            <RightOutlined style={{ fontSize: '12px', color: colors.textSecondary }} />
+                            <span data-tour-id={index === 0 ? ONBOARDING_TARGETS.ARTICLE_STOCK_EXPAND : undefined} style={{ display: 'inline-flex' }}>
+                              <RightOutlined style={{ fontSize: '12px', color: colors.textSecondary }} />
+                            </span>
                           )}
                           {stock.onFire ? (
                             <Tooltip title="Склад пострадал">
@@ -3747,6 +3756,7 @@ export default function AnalyticsArticle() {
         const statusColor = '#fff'
         return (
           <div
+            data-tour-id={ONBOARDING_TARGETS.ARTICLE_CAMPAIGNS}
             style={{
               width: '100%',
               backgroundColor: colors.bgWhite,

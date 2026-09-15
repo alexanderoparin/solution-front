@@ -40,11 +40,12 @@ export default function OnboardingSkipHint() {
     return null
   }
 
-  const tooltipWidth = 300
-  const top = anchor ? anchor.bottom + 12 : 72
+  const margin = 12
+  const tooltipWidth = Math.min(300, window.innerWidth - margin * 2)
+  const top = anchor ? Math.min(anchor.bottom + 12, window.innerHeight - 180) : 72
   const left = anchor
-    ? Math.min(Math.max(12, anchor.left + anchor.width / 2 - tooltipWidth / 2), window.innerWidth - tooltipWidth - 12)
-    : window.innerWidth - tooltipWidth - 24
+    ? Math.min(Math.max(margin, anchor.left + anchor.width / 2 - tooltipWidth / 2), window.innerWidth - tooltipWidth - margin)
+    : Math.max(margin, window.innerWidth - tooltipWidth - 24)
 
   return createPortal(
     <>
@@ -78,7 +79,10 @@ export default function OnboardingSkipHint() {
             style={{
               position: 'absolute',
               top: -10,
-              left: anchor.left + anchor.width / 2 - left - 10,
+              left: Math.min(
+                Math.max(10, anchor.left + anchor.width / 2 - left - 10),
+                tooltipWidth - 20,
+              ),
               width: 0,
               height: 0,
               borderLeft: '10px solid transparent',
