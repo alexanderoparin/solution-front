@@ -80,16 +80,15 @@ function scrollDeltaY(delta: number, element: HTMLElement): void {
     if (Math.abs(remaining) < 1) {
       return
     }
-    if (parent === window) {
-      const before = window.scrollY
-      window.scrollBy(0, remaining)
-      remaining -= window.scrollY - before
+    if (parent instanceof HTMLElement) {
+      const before = parent.scrollTop
+      parent.scrollTop += remaining
+      remaining -= parent.scrollTop - before
       continue
     }
-    const node = parent
-    const before = node.scrollTop
-    node.scrollTop += remaining
-    remaining -= node.scrollTop - before
+    const before = window.scrollY
+    window.scrollBy(0, remaining)
+    remaining -= window.scrollY - before
   }
 }
 
@@ -99,16 +98,15 @@ function scrollDeltaX(delta: number, element: HTMLElement): void {
     if (Math.abs(remaining) < 1) {
       return
     }
-    if (parent === window) {
-      const before = window.scrollX
-      window.scrollBy(remaining, 0)
-      remaining -= window.scrollX - before
+    if (parent instanceof HTMLElement) {
+      const before = parent.scrollLeft
+      parent.scrollLeft += remaining
+      remaining -= parent.scrollLeft - before
       continue
     }
-    const node = parent
-    const before = node.scrollLeft
-    node.scrollLeft += remaining
-    remaining -= node.scrollLeft - before
+    const before = window.scrollX
+    window.scrollBy(remaining, 0)
+    remaining -= window.scrollX - before
   }
 }
 
