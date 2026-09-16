@@ -129,6 +129,12 @@ function StatusTag({ marketplace, status }: { marketplace: Marketplace; status: 
 
 const WB_TYPE_LABELS: Record<WbApiEventType, string> = {
   CONTENT_CARDS_LIST_PAGE: 'Контент: страница карточек',
+  CONTENT_CARDS_TRASH: 'Контент: корзина карточек',
+  CONTENT_MEDIA_FILE: 'Контент: загрузка медиа',
+  CONTENT_MEDIA_SAVE: 'Контент: сохранение медиа',
+  AB_TEST_START: 'А/Б: запуск теста фото',
+  AB_TEST_APPLY_PHOTO: 'А/Б: применение фото',
+  AB_TEST_STATS_POLL: 'А/Б: опрос статистики',
   ANALYTICS_SALES_FUNNEL_NMID: 'Аналитика: воронка по nmID',
   PRICES_CABINET_WITH_SPP: 'Цены + СПП (кабинет)',
   PROMOTION_COUNT: 'Промо: count кампаний',
@@ -137,12 +143,18 @@ const WB_TYPE_LABELS: Record<WbApiEventType, string> = {
   PROMOTION_NORMQUERY_STATS_BATCH: 'Промо: батч normquery (кластеры)',
   PROMOTION_CAMPAIGN_START: 'Промо: запуск РК',
   PROMOTION_CAMPAIGN_PAUSE: 'Промо: пауза РК',
+  PROMOTION_BALANCE: 'Промо: баланс кабинета',
+  PROMOTION_BUDGET_GET: 'Промо: остатки бюджетов РК',
+  PROMOTION_BUDGET_DEPOSIT: 'Промо: пополнение бюджета РК',
   ANALYTICS_ITEM_RATING_CABINET: 'Рейтинг: кабинет',
   PROMOTION_CALENDAR_SYNC_CABINET: 'Календарь акций: кабинет',
+  PROMOTION_CALENDAR_NOMENCLATURES: 'Календарь акций: номенклатуры',
   WAREHOUSES_SYNC_CABINET: 'Склады WB: кабинет',
   STOCKS_BY_NMID: 'Остатки: nmID',
   FBS_WAREHOUSES_SYNC_CABINET: 'Склады продавца FBS: кабинет',
   FBS_STOCKS_CABINET: 'Остатки FBS: кабинет',
+  COMMON_SELLER_INFO: 'Общее: seller-info',
+  STATISTICS_SUPPLIER_ORDERS: 'Статистика: заказы за дату',
 }
 
 const OZON_TYPE_LABELS: Record<OzonApiEventType, string> = {
@@ -164,6 +176,12 @@ function getTypeLabel(marketplace: Marketplace, eventType: string): string {
 
 const WB_TYPE_COLORS: Record<WbApiEventType, string> = {
   CONTENT_CARDS_LIST_PAGE: 'geekblue',
+  CONTENT_CARDS_TRASH: 'geekblue',
+  CONTENT_MEDIA_FILE: 'geekblue',
+  CONTENT_MEDIA_SAVE: 'geekblue',
+  AB_TEST_START: 'purple',
+  AB_TEST_APPLY_PHOTO: 'purple',
+  AB_TEST_STATS_POLL: 'purple',
   ANALYTICS_SALES_FUNNEL_NMID: 'cyan',
   PRICES_CABINET_WITH_SPP: 'gold',
   PROMOTION_COUNT: 'orange',
@@ -172,12 +190,18 @@ const WB_TYPE_COLORS: Record<WbApiEventType, string> = {
   PROMOTION_NORMQUERY_STATS_BATCH: 'volcano',
   PROMOTION_CAMPAIGN_START: 'green',
   PROMOTION_CAMPAIGN_PAUSE: 'default',
+  PROMOTION_BALANCE: 'gold',
+  PROMOTION_BUDGET_GET: 'gold',
+  PROMOTION_BUDGET_DEPOSIT: 'gold',
   ANALYTICS_ITEM_RATING_CABINET: 'purple',
   PROMOTION_CALENDAR_SYNC_CABINET: 'magenta',
+  PROMOTION_CALENDAR_NOMENCLATURES: 'magenta',
   WAREHOUSES_SYNC_CABINET: 'lime',
   STOCKS_BY_NMID: 'blue',
   FBS_WAREHOUSES_SYNC_CABINET: 'green',
   FBS_STOCKS_CABINET: 'cyan',
+  COMMON_SELLER_INFO: 'default',
+  STATISTICS_SUPPLIER_ORDERS: 'blue',
 }
 
 const OZON_TYPE_COLORS: Record<OzonApiEventType, string> = {
