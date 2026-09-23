@@ -837,7 +837,6 @@ export default function CabinetAccessPanel({ cabinetId }: CabinetAccessPanelProp
       <Tabs
         className="cabinet-access-tabs"
         size="small"
-        tabBarGutter={0}
         activeKey={activeTab}
         onChange={(key) => setActiveTab(key as AccessTab)}
         items={tabItems}
