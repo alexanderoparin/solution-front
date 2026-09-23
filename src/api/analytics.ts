@@ -421,6 +421,18 @@ export const analyticsApi = {
   },
 
   /**
+   * Кабинет владельца артикула для автопереключения по прямой ссылке.
+   */
+  resolveArticleCabinet: async (
+    nmId: number,
+  ): Promise<{ cabinetId: number; sellerId: number; cabinetName?: string | null }> => {
+    const response = await apiClient.get<{ cabinetId: number; sellerId: number; cabinetName?: string | null }>(
+      `/analytics/article/${nmId}/cabinet`,
+    )
+    return response.data
+  },
+
+  /**
    * Получает детальную информацию по артикулу.
    * campaignDateFrom/To — период для метрик РК в блоке «Список РК» (опционально).
    * dailyDataDateFrom/To — диапазон дней для поля dailyData (опционально); если не заданы — последние 14 дней до вчера.

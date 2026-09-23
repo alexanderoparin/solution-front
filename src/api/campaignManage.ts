@@ -63,7 +63,23 @@ export interface ChangeLogPage {
   size: number
 }
 
+export interface CampaignCabinetResolve {
+  cabinetId: number
+  sellerId: number
+  cabinetName?: string | null
+}
+
 export const campaignManageApi = {
+  /**
+   * Кабинет владельца РК (с проверкой доступа). Для автопереключения по прямой ссылке.
+   */
+  resolveCabinet: async (advertId: number): Promise<CampaignCabinetResolve> => {
+    const response = await apiClient.get<CampaignCabinetResolve>(
+      `/advertising/campaigns/${advertId}/cabinet`,
+    )
+    return response.data
+  },
+
   getManage: async (advertId: number, sellerId?: number, cabinetId?: number): Promise<CampaignManageData> => {
     const response = await apiClient.get<CampaignManageData>(
       `/advertising/campaigns/${advertId}/manage${buildParams(sellerId, cabinetId)}`,

@@ -26,6 +26,7 @@ import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useStoredCabinet } from '../hooks/useStoredCabinet'
+import { useEntityCabinetResolve } from '../hooks/useEntityCabinetResolve'
 import { useFunnelTableVerticalSelection, sumFunnelBaseMetricsForDates } from '../hooks/useFunnelTableVerticalSelection'
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
@@ -194,6 +195,23 @@ export default function AnalyticsArticle() {
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
 
+  const articleId = nmId != null ? Number(nmId) : NaN
+  const {
+    requestCabinetId,
+    requestSellerId,
+    resolveLoading,
+    resolveFailed,
+    cabinetReady,
+  } = useEntityCabinetResolve({
+    queryKey: ['article-cabinet', articleId],
+    resolveFn: () => analyticsApi.resolveArticleCabinet(articleId),
+    enabled: Number.isFinite(articleId),
+    isAdmin,
+    selectedCabinetId,
+    applyWorkContextCabinet: workContext.applyWorkContextCabinet,
+    setSellerCabinetId,
+  })
+
   const setSelectedCabinetId = useCallback(
     (cid: number | null) => {
       if (isAdmin) {
@@ -217,21 +235,19 @@ export default function AnalyticsArticle() {
       : undefined
 
   const isOzonCabinet = useMemo(() => {
-    if (selectedCabinetId == null) return false
-    return cabinets.find((c) => Number(c.id) === Number(selectedCabinetId))?.marketplaceType === 'OZON'
-  }, [selectedCabinetId, cabinets])
+    const cid = requestCabinetId ?? selectedCabinetId
+    if (cid == null) return false
+    return cabinets.find((c) => Number(c.id) === Number(cid))?.marketplaceType === 'OZON'
+  }, [requestCabinetId, selectedCabinetId, cabinets])
 
   const getSelectedSellerId = useCallback((): number | undefined => {
-    if (isAdmin) return selectedSellerId ?? undefined
+    if (isAdmin) return requestSellerId ?? selectedSellerId ?? undefined
     return userId ?? undefined
-  }, [isAdmin, selectedSellerId, userId])
+  }, [isAdmin, requestSellerId, selectedSellerId, userId])
 
   const getSelectedCabinetId = useCallback((): number | undefined => {
-    if (isAdmin) {
-      return workContext.selectedCabinetId ?? undefined
-    }
-    return sellerCabinetId ?? undefined
-  }, [isAdmin, workContext.selectedCabinetId, sellerCabinetId])
+    return requestCabinetId ?? undefined
+  }, [requestCabinetId])
 
   // Общий диапазон дат для графика и воронок (по умолчанию последние 2 недели)
   const yesterday = dayjs().subtract(1, 'day')
@@ -307,24 +323,28 @@ export default function AnalyticsArticle() {
   const [articleGoalSaving, setArticleGoalSaving] = useState(false)
   const funnelImportInputRef = useRef<HTMLInputElement | null>(null)
 
-  /** Пока список work context грузится или выбранный кабинет ещё не проставлен — не дергаем API (иначе бэкенд берёт «дефолтный» кабинет и 404 по nmId). */
+  /** Пока кабинет артикула ещё не резолвился — не дергаем API. */
   const workContextListEmpty =
     isAdmin && !workContext.workContextLoading && workContext.workContextOptions.length === 0
-  const workContextReady =
-    !isAdmin ||
-    (!workContext.workContextLoading &&
-      (workContext.workContextOptions.length === 0 || workContext.selectedCabinetId != null))
-  const sellerCabinetReady =
-    isAdmin || sellerCabinetId != null || (!myCabinetsLoading && myCabinets.length === 0)
 
   useEffect(() => {
-    if (!nmId) {
+    if (!nmId || !Number.isFinite(articleId)) {
       setError('Артикул не указан')
       setLoading(false)
       return
     }
 
-    if (!workContextReady || !sellerCabinetReady) {
+    if (resolveLoading) {
+      return
+    }
+
+    if (resolveFailed) {
+      setError('Артикул не найден или нет доступа к его кабинету')
+      setLoading(false)
+      return
+    }
+
+    if (!cabinetReady) {
       return
     }
 
@@ -338,17 +358,16 @@ export default function AnalyticsArticle() {
     void loadNotes(Number(nmId))
   }, [
     nmId,
-    selectedSellerId,
+    articleId,
+    requestSellerId,
+    requestCabinetId,
     cabinetReloadTrigger,
     dateRange,
     campaignDateRange,
-    workContextReady,
-    sellerCabinetReady,
+    resolveLoading,
+    resolveFailed,
+    cabinetReady,
     workContextListEmpty,
-    workContext.selectedCabinetId,
-    workContext.workContextLoading,
-    workContext.workContextOptions.length,
-    sellerCabinetId,
   ])
 
   useEffect(() => {
@@ -915,7 +934,7 @@ export default function AnalyticsArticle() {
     article?.article.productUrl ||
     (isOzonCabinet && article ? `https://www.ozon.ru/product/${article.article.nmId}/` : article?.article.productUrl)
 
-  if (loading) {
+  if (resolveLoading || loading) {
     return (
       <div style={{ 
         padding: spacing.xxl, 

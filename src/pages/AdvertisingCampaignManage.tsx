@@ -13,6 +13,7 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
+import { useEntityCabinetResolve } from '../hooks/useEntityCabinetResolve'
 import { useCampaignManagePaywall } from '../hooks/useCampaignManagePaywall'
 import CampaignManagePaywallShield from '../components/campaignManageSubscription/CampaignManagePaywallShield'
 import CampaignWeekCalendar, { type SlotCreateRange } from '../components/campaignManage/CampaignWeekCalendar'
@@ -176,21 +177,46 @@ export default function AdvertisingCampaignManage() {
   const [sellerCabinetId, setSellerCabinetId] = useState<number | null>(() => getStoredCabinetId())
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
 
-  const manageKey = ['campaign-manage', advertId, selectedSellerId, selectedCabinetId] as const
-
-  const { data: manage, isLoading } = useQuery({
-    queryKey: manageKey,
-    queryFn: () => campaignManageApi.getManage(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
-    enabled: Number.isFinite(advertId) && selectedCabinetId != null,
+  const {
+    requestCabinetId,
+    requestSellerId,
+    resolveLoading,
+    resolveFailed,
+    cabinetReady,
+  } = useEntityCabinetResolve({
+    queryKey: ['campaign-cabinet', advertId],
+    resolveFn: () => campaignManageApi.resolveCabinet(advertId),
+    enabled: Number.isFinite(advertId),
+    isAdmin,
+    selectedCabinetId,
+    applyWorkContextCabinet: workContext.applyWorkContextCabinet,
+    setSellerCabinetId: (cid) => {
+      setSellerCabinetId(cid)
+      if (cid != null) setStoredCabinetId(cid)
+    },
   })
 
-  const balanceSourcesKey = ['campaign-balance-sources', advertId, selectedCabinetId] as const
+  const manageKey = ['campaign-manage', advertId, requestSellerId, requestCabinetId] as const
+
+  const {
+    data: manage,
+    isLoading,
+    isFetched: manageFetched,
+    isError: manageError,
+  } = useQuery({
+    queryKey: manageKey,
+    queryFn: () =>
+      campaignManageApi.getManage(advertId, requestSellerId ?? undefined, requestCabinetId ?? undefined),
+    enabled: Number.isFinite(advertId) && cabinetReady,
+  })
+
+  const balanceSourcesKey = ['campaign-balance-sources', advertId, requestCabinetId] as const
 
   const { data: balanceSources } = useQuery({
     queryKey: balanceSourcesKey,
     queryFn: () =>
-      campaignManageApi.getBalanceSources(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
-    enabled: Number.isFinite(advertId) && selectedCabinetId != null,
+      campaignManageApi.getBalanceSources(advertId, requestSellerId ?? undefined, requestCabinetId ?? undefined),
+    enabled: Number.isFinite(advertId) && cabinetReady,
     staleTime: 30 * 60 * 1000,
   })
 
@@ -198,12 +224,12 @@ export default function AdvertisingCampaignManage() {
 
   useEffect(() => {
     setChartPeriod(defaultBudgetChartPeriod())
-  }, [advertId, selectedCabinetId, selectedSellerId])
+  }, [advertId, requestCabinetId, requestSellerId])
 
   const budgetChartKey = [
     'campaign-budget-chart',
     advertId,
-    selectedCabinetId,
+    requestCabinetId,
     chartPeriod[0].valueOf(),
     chartPeriod[1].valueOf(),
   ] as const
@@ -213,13 +239,13 @@ export default function AdvertisingCampaignManage() {
 
   useEffect(() => {
     setChangeLogPage(0)
-  }, [advertId, selectedCabinetId, selectedSellerId])
+  }, [advertId, requestCabinetId, requestSellerId])
 
   const changeLogKey = [
     'campaign-change-log',
     advertId,
-    selectedSellerId,
-    selectedCabinetId,
+    requestSellerId,
+    requestCabinetId,
     changeLogPage,
     changeLogPageSize,
   ] as const
@@ -231,26 +257,26 @@ export default function AdvertisingCampaignManage() {
         advertId,
         changeLogPage,
         changeLogPageSize,
-        selectedSellerId ?? undefined,
-        selectedCabinetId ?? undefined,
+        requestSellerId ?? undefined,
+        requestCabinetId ?? undefined,
       ),
-    enabled: Number.isFinite(advertId) && selectedCabinetId != null,
+    enabled: Number.isFinite(advertId) && cabinetReady,
   })
 
   const { data: budgetChart, isLoading: budgetChartLoading } = useQuery({
     queryKey: budgetChartKey,
     queryFn: () =>
-      campaignManageApi.getBudgetChart(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined, {
+      campaignManageApi.getBudgetChart(advertId, requestSellerId ?? undefined, requestCabinetId ?? undefined, {
         from: formatBudgetChartPeriodParam(chartPeriod[0]),
         to: formatBudgetChartPeriodParam(chartPeriod[1]),
       }),
-    enabled: Number.isFinite(advertId) && selectedCabinetId != null,
+    enabled: Number.isFinite(advertId) && cabinetReady,
     staleTime: 3 * 60 * 1000,
   })
 
   const refreshBalanceMutation = useMutation({
     mutationFn: () =>
-      campaignManageApi.refreshBalanceSources(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
+      campaignManageApi.refreshBalanceSources(advertId, requestSellerId ?? undefined, requestCabinetId ?? undefined),
     onSuccess: (result) => {
       if (result.sources) {
         queryClient.setQueryData(balanceSourcesKey, result.sources)
@@ -282,10 +308,10 @@ export default function AdvertisingCampaignManage() {
   })
 
   const { data: controlCapabilities } = useQuery({
-    queryKey: ['manage-control-capabilities', selectedSellerId, selectedCabinetId],
+    queryKey: ['manage-control-capabilities', requestSellerId, requestCabinetId],
     queryFn: () =>
-      analyticsApi.getPromotionControlCapabilities(selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
-    enabled: selectedCabinetId != null,
+      analyticsApi.getPromotionControlCapabilities(requestSellerId ?? undefined, requestCabinetId ?? undefined),
+    enabled: requestCabinetId != null,
   })
 
   const [autoEnabled, setAutoEnabled] = useState(false)
@@ -333,7 +359,7 @@ export default function AdvertisingCampaignManage() {
 
   const saveAutoMutation = useMutation({
     mutationFn: (body: CampaignAutoBudgetRequest) =>
-      campaignManageApi.saveAutoBudget(advertId, body, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
+      campaignManageApi.saveAutoBudget(advertId, body, requestSellerId ?? undefined, requestCabinetId ?? undefined),
     onSuccess: () => {
       message.success('Настройки автопополнения сохранены')
       setAutoLocked(true)
@@ -347,8 +373,8 @@ export default function AdvertisingCampaignManage() {
       campaignManageApi.setAutoBudgetEnabled(
         advertId,
         enabled,
-        selectedSellerId ?? undefined,
-        selectedCabinetId ?? undefined,
+        requestSellerId ?? undefined,
+        requestCabinetId ?? undefined,
       ),
     onSuccess: (_data, enabled) => {
       message.success(enabled ? 'Автопополнение включено' : 'Автопополнение выключено')
@@ -378,7 +404,7 @@ export default function AdvertisingCampaignManage() {
 
   const manualTopUpMutation = useMutation({
     mutationFn: (body: { topUpAmount: number; sourceType: number; usePromoCashback?: boolean }) =>
-      campaignManageApi.manualTopUp(advertId, body, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
+      campaignManageApi.manualTopUp(advertId, body, requestSellerId ?? undefined, requestCabinetId ?? undefined),
     onSuccess: (result) => {
       message.success(result.message || 'Бюджет пополнен')
       setManualTopUpOpen(false)
@@ -397,7 +423,7 @@ export default function AdvertisingCampaignManage() {
 
   const createSlotsMutation = useMutation({
     mutationFn: (body: CampaignScheduleSlotRequest) =>
-      campaignManageApi.createSlots(advertId, body, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
+      campaignManageApi.createSlots(advertId, body, requestSellerId ?? undefined, requestCabinetId ?? undefined),
     onSuccess: () => {
       message.success('Слот добавлен')
       setSlotModalOpen(false)
@@ -408,7 +434,7 @@ export default function AdvertisingCampaignManage() {
 
   const updateSlotMutation = useMutation({
     mutationFn: ({ slotId, body }: { slotId: number; body: { startTime?: string; endTime?: string; budgetRub?: number } }) =>
-      campaignManageApi.updateSlot(advertId, slotId, body, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
+      campaignManageApi.updateSlot(advertId, slotId, body, requestSellerId ?? undefined, requestCabinetId ?? undefined),
     onSuccess: () => invalidate(),
     onError: (e) => message.error(formatControlError(e)),
   })
@@ -417,8 +443,8 @@ export default function AdvertisingCampaignManage() {
     mutationFn: ({ slotId, deleteAll }: { slotId: number; deleteAll?: boolean }) =>
       campaignManageApi.deleteSlot(advertId, slotId, {
         deleteAll,
-        sellerId: selectedSellerId ?? undefined,
-        cabinetId: selectedCabinetId ?? undefined,
+        sellerId: requestSellerId ?? undefined,
+        cabinetId: requestCabinetId ?? undefined,
       }),
     onSuccess: (_data, variables) => {
       message.success(variables.deleteAll ? 'Расписание удалено' : 'Слот удалён')
@@ -450,7 +476,7 @@ export default function AdvertisingCampaignManage() {
   )
 
   const startMutation = useMutation({
-    mutationFn: () => campaignManageApi.start(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
+    mutationFn: () => campaignManageApi.start(advertId, requestSellerId ?? undefined, requestCabinetId ?? undefined),
     onSuccess: (r) => {
       message.success(r.message ?? (r.enqueued ? 'Запуск поставлен в очередь' : 'Запуск выполнен'))
       invalidate()
@@ -459,7 +485,7 @@ export default function AdvertisingCampaignManage() {
   })
 
   const pauseMutation = useMutation({
-    mutationFn: () => campaignManageApi.pause(advertId, selectedSellerId ?? undefined, selectedCabinetId ?? undefined),
+    mutationFn: () => campaignManageApi.pause(advertId, requestSellerId ?? undefined, requestCabinetId ?? undefined),
     onSuccess: (r) => {
       message.success(r.message ?? (r.enqueued ? 'Пауза поставлена в очередь' : 'Пауза выполнена'))
       invalidate()
@@ -467,7 +493,7 @@ export default function AdvertisingCampaignManage() {
     onError: (e) => message.error(formatControlError(e)),
   })
 
-  const { hasCampaignManageAccess } = useCampaignManagePaywall(selectedSellerId)
+  const { hasCampaignManageAccess } = useCampaignManagePaywall(requestSellerId ?? selectedSellerId)
   const subscriptionBlocked = !hasCampaignManageAccess
 
   const controlBlocked = controlCapabilities != null && !controlCapabilities.canControl
@@ -582,6 +608,9 @@ export default function AdvertisingCampaignManage() {
     return <div>Некорректный ID кампании</div>
   }
 
+  const manageFailed = cabinetReady && manageFetched && (manageError || !manage)
+  const showSpinner = !resolveFailed && !manageFailed && (resolveLoading || isLoading || !manage)
+
   return (
     <>
       <Header
@@ -590,7 +619,15 @@ export default function AdvertisingCampaignManage() {
       />
       <Breadcrumbs />
       <div className="campaign-manage-page" style={{ padding: spacing.lg, backgroundColor: colors.bgGray, minHeight: '100vh' }}>
-        {isLoading || !manage ? (
+        {resolveFailed ? (
+          <div style={{ ...cardStyle, color: colors.error }}>
+            Кампания не найдена или нет доступа к её кабинету
+          </div>
+        ) : manageFailed ? (
+          <div style={{ ...cardStyle, color: colors.error }}>
+            Не удалось загрузить управление кампанией
+          </div>
+        ) : showSpinner || !manage ? (
           <div style={{ textAlign: 'center', padding: spacing.xxl }}>
             <Spin size="large" />
           </div>

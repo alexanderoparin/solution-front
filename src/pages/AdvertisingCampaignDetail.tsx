@@ -8,7 +8,7 @@ import locale from 'antd/locale/ru_RU'
 import { useQuery, useQueries, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { analyticsApi } from '../api/analytics'
 import { campaignManageApi } from '../api/campaignManage'
-import { cabinetsApi, getStoredCabinetId, setStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi } from '../api/cabinets'
 import { userApi } from '../api/user'
 import type {
   ArticleSummary,
@@ -27,6 +27,8 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
+import { useStoredCabinet } from '../hooks/useStoredCabinet'
+import { useEntityCabinetResolve } from '../hooks/useEntityCabinetResolve'
 import { useFunnelTableVerticalSelection, sumFunnelBaseMetricsForDates } from '../hooks/useFunnelTableVerticalSelection'
 import AnalyticsChart from '../components/AnalyticsChart'
 import * as XLSX from 'xlsx'
@@ -220,30 +222,41 @@ export default function AdvertisingCampaignDetail() {
 
   const cabinetsLoading = isAdmin ? workContext.workContextLoading : myCabinetsLoading
 
-  const storedCabinetIdSeller = !isAdmin ? getStoredCabinetId() : null
-  const selectedCabinetIdSeller =
-    !isAdmin && myCabinets.length > 0
-      ? (storedCabinetIdSeller != null && myCabinets.some((c) => c.id === storedCabinetIdSeller)
-          ? storedCabinetIdSeller
-          : myCabinets[0].id)
-      : null
+  const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
+  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
 
-  const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : selectedCabinetIdSeller
+  const campaignId = id != null ? parseInt(id, 10) : NaN
+
+  const {
+    requestCabinetId,
+    requestSellerId,
+    resolveLoading,
+    resolveFailed,
+    cabinetReady,
+  } = useEntityCabinetResolve({
+    queryKey: ['campaign-cabinet', campaignId],
+    resolveFn: () => campaignManageApi.resolveCabinet(campaignId),
+    enabled: !Number.isNaN(campaignId),
+    isAdmin,
+    selectedCabinetId,
+    applyWorkContextCabinet: workContext.applyWorkContextCabinet,
+    setSellerCabinetId,
+  })
 
   const isOzonCabinet = useMemo(() => {
-    if (selectedCabinetId == null) return false
-    return cabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
-  }, [cabinets, selectedCabinetId])
+    if (requestCabinetId == null) return false
+    return cabinets.find((c) => c.id === requestCabinetId)?.marketplaceType === 'OZON'
+  }, [cabinets, requestCabinetId])
 
   const setSelectedCabinetId = useCallback(
     (cid: number | null) => {
       if (isAdmin) {
         if (cid != null) workContext.applyWorkContextCabinet(cid)
       } else {
-        setStoredCabinetId(cid)
+        setSellerCabinetId(cid)
       }
     },
-    [isAdmin, workContext.applyWorkContextCabinet],
+    [isAdmin, workContext.applyWorkContextCabinet, setSellerCabinetId],
   )
 
   const cabinetSelectProps =
@@ -257,7 +270,7 @@ export default function AdvertisingCampaignDetail() {
       : undefined
 
   const userId = useAuthStore((s) => s.userId)
-  const getSelectedSellerId = () => (isAdmin ? selectedSellerId : userId ?? undefined)
+  const getSelectedSellerId = () => (isAdmin ? (requestSellerId ?? selectedSellerId) : userId ?? undefined)
 
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>(() => {
     const end = dayjs().subtract(1, 'day')
@@ -265,9 +278,8 @@ export default function AdvertisingCampaignDetail() {
     return [start, end]
   })
 
-  const campaignId = id != null ? parseInt(id, 10) : NaN
-  const cabinetIdForRequest = selectedCabinetId ?? undefined
-  const sellerIdForRequest = isAdmin ? selectedSellerId ?? undefined : userId ?? undefined
+  const cabinetIdForRequest = requestCabinetId ?? undefined
+  const sellerIdForRequest = isAdmin ? requestSellerId ?? undefined : userId ?? undefined
   const {
     data: campaign,
     isLoading,
@@ -292,8 +304,8 @@ export default function AdvertisingCampaignDetail() {
       ),
     enabled:
       !Number.isNaN(campaignId)
-      && cabinetIdForRequest != null
-      && (isAdmin ? selectedSellerId != null : userId != null),
+      && cabinetReady
+      && (isAdmin ? requestSellerId != null : userId != null),
     refetchOnMount: 'always',
   })
 
@@ -576,7 +588,7 @@ export default function AdvertisingCampaignDetail() {
       && !Number.isNaN(campaignId)
       && cabinetIdForRequest != null
       && selectedClusterArticleNmId != null
-      && (isAdmin ? selectedSellerId != null : userId != null),
+      && (isAdmin ? requestSellerId != null : userId != null),
     refetchOnMount: 'always',
   })
 
@@ -1030,6 +1042,21 @@ export default function AdvertisingCampaignDetail() {
     )
   }
 
+  if (resolveFailed) {
+    return (
+      <>
+        <Header
+          workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
+          cabinetSelectProps={cabinetSelectProps}
+        />
+        <Breadcrumbs />
+        <div style={{ padding: spacing.lg, color: colors.error }}>
+          Кампания не найдена или нет доступа к её кабинету
+        </div>
+      </>
+    )
+  }
+
   if (!Number.isNaN(campaignId) && isFetched && (error || !campaign)) {
     return (
       <>
@@ -1042,7 +1069,7 @@ export default function AdvertisingCampaignDetail() {
       </>
     )
   }
-  if (!Number.isNaN(campaignId) && cabinetIdForRequest == null && !cabinetsLoading) {
+  if (!Number.isNaN(campaignId) && !cabinetReady && !resolveLoading && !cabinetsLoading) {
     return (
       <>
         <Header
@@ -1056,7 +1083,7 @@ export default function AdvertisingCampaignDetail() {
       </>
     )
   }
-  if (!Number.isNaN(campaignId) && cabinetIdForRequest == null && cabinetsLoading) {
+  if (!Number.isNaN(campaignId) && (resolveLoading || (!cabinetReady && cabinetsLoading) || (cabinetReady && isLoading))) {
     return (
       <>
         <Header

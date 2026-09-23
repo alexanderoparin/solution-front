@@ -8,6 +8,7 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import { useAuthStore } from '../store/authStore'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useStoredCabinet } from '../hooks/useStoredCabinet'
+import { useEntityCabinetResolve } from '../hooks/useEntityCabinetResolve'
 import { cabinetsApi } from '../api/cabinets'
 import { abTestApi } from '../api/abTest'
 import { colors, borderRadius } from '../styles/analytics'
@@ -81,15 +82,30 @@ export default function AbTestDetail() {
   const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
-  const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
+
+  const {
+    requestCabinetId,
+    requestSellerId,
+    resolveLoading,
+    resolveFailed,
+    cabinetReady,
+  } = useEntityCabinetResolve({
+    queryKey: ['ab-test-cabinet', testId],
+    resolveFn: () => abTestApi.resolveCabinet(testId),
+    enabled: Number.isFinite(testId),
+    isAdmin,
+    selectedCabinetId,
+    applyWorkContextCabinet: workContext.applyWorkContextCabinet,
+    setSellerCabinetId,
+  })
 
   const isOzonCabinet = useMemo(() => {
-    if (selectedCabinetId == null) return false
+    if (requestCabinetId == null) return false
     if (isAdmin) {
-      return workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)?.marketplaceType === 'OZON'
+      return workContext.workContextOptions.find((o) => o.cabinetId === requestCabinetId)?.marketplaceType === 'OZON'
     }
-    return myCabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
-  }, [isAdmin, selectedCabinetId, workContext.workContextOptions, myCabinets])
+    return myCabinets.find((c) => c.id === requestCabinetId)?.marketplaceType === 'OZON'
+  }, [isAdmin, requestCabinetId, workContext.workContextOptions, myCabinets])
 
   useEffect(() => {
     if (isOzonCabinet) {
@@ -98,33 +114,33 @@ export default function AbTestDetail() {
   }, [isOzonCabinet, navigate])
 
   const selectedTokenType: CabinetTokenType | null | undefined = useMemo(() => {
-    if (selectedCabinetId == null) return null
+    if (requestCabinetId == null) return null
     if (isAdmin) {
-      return workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)?.tokenType ?? null
+      return workContext.workContextOptions.find((o) => o.cabinetId === requestCabinetId)?.tokenType ?? null
     }
-    return myCabinets.find((c) => c.id === selectedCabinetId)?.apiKey?.tokenType ?? null
-  }, [isAdmin, selectedCabinetId, workContext.workContextOptions, myCabinets])
+    return myCabinets.find((c) => c.id === requestCabinetId)?.apiKey?.tokenType ?? null
+  }, [isAdmin, requestCabinetId, workContext.workContextOptions, myCabinets])
 
   const { data: test, isLoading, error } = useQuery({
-    queryKey: ['abTest', testId, selectedSellerId, selectedCabinetId],
-    queryFn: () => abTestApi.get(testId, selectedSellerId, selectedCabinetId ?? undefined),
-    enabled: Number.isFinite(testId) && selectedCabinetId != null && !isOzonCabinet,
+    queryKey: ['abTest', testId, requestSellerId, requestCabinetId],
+    queryFn: () => abTestApi.get(testId, requestSellerId, requestCabinetId ?? undefined),
+    enabled: Number.isFinite(testId) && cabinetReady && !isOzonCabinet,
   })
 
   useEffect(() => {
-    if (!error) return
+    if (!error || resolveFailed) return
     const status = (error as { response?: { status?: number } })?.response?.status
     message.error('Не удалось загрузить А/Б-тест')
     if (status === 403 || status === 404) {
       navigate(AB_TESTS_LIST_PATH, { replace: true })
     }
-  }, [error, navigate])
+  }, [error, navigate, resolveFailed])
 
   const pauseMutation = useMutation({
     mutationFn: ({ variantId, paused }: { variantId: number; paused: boolean }) =>
-      abTestApi.setVariantPaused(testId, variantId, paused, selectedSellerId, selectedCabinetId ?? undefined),
+      abTestApi.setVariantPaused(testId, variantId, paused, requestSellerId, requestCabinetId ?? undefined),
     onSuccess: (data, vars) => {
-      queryClient.setQueryData(['abTest', testId, selectedSellerId, selectedCabinetId], data)
+      queryClient.setQueryData(['abTest', testId, requestSellerId, requestCabinetId], data)
       queryClient.invalidateQueries({ queryKey: ['abTests'] })
       message.success(vars.paused ? 'Вариант на паузе' : 'Пауза снята')
     },
@@ -223,7 +239,11 @@ export default function AbTestDetail() {
       />
       <div className="ab-test-detail-page" style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 24px 48px' }}>
         <Breadcrumbs />
-        {isLoading || !test ? (
+        {resolveFailed ? (
+          <div style={{ padding: 24, color: colors.error }}>
+            А/Б-тест не найден или нет доступа к его кабинету
+          </div>
+        ) : resolveLoading || isLoading || !test ? (
           <div style={{ textAlign: 'center', padding: 48 }}>
             <Spin />
           </div>
@@ -314,8 +334,8 @@ export default function AbTestDetail() {
                           hasLocalImage={v.hasLocalImage}
                           photoUrl={v.photoUrl}
                           previewUrl={v.previewUrl}
-                          sellerId={selectedSellerId}
-                          cabinetId={selectedCabinetId}
+                          sellerId={requestSellerId}
+                          cabinetId={requestCabinetId}
                           className="ab-test-detail-variant-photo"
                           style={{
                             width: '100%',
@@ -436,8 +456,8 @@ export default function AbTestDetail() {
               open={editOpen}
               test={test}
               tokenType={selectedTokenType}
-              sellerId={selectedSellerId}
-              cabinetId={selectedCabinetId}
+              sellerId={requestSellerId}
+              cabinetId={requestCabinetId}
               isNarrow={isNarrow}
               onClose={() => setEditOpen(false)}
             />

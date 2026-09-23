@@ -22,6 +22,15 @@ export const abTestApi = {
     return response.data
   },
 
+  resolveCabinet: async (
+    id: number,
+  ): Promise<{ cabinetId: number; sellerId: number; cabinetName?: string | null }> => {
+    const response = await apiClient.get<{ cabinetId: number; sellerId: number; cabinetName?: string | null }>(
+      `/advertising/ab-tests/${id}/cabinet`,
+    )
+    return response.data
+  },
+
   get: async (id: number, sellerId?: number, cabinetId?: number): Promise<AbTest> => {
     const response = await apiClient.get<AbTest>(
       `/advertising/ab-tests/${id}${buildParams(sellerId, cabinetId)}`,
