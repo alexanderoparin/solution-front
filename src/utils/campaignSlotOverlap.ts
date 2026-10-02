@@ -62,3 +62,30 @@ export function validateSlotNoOverlap(
   }
   return null
 }
+
+/**
+ * ID слотов, которые нужно обновить при редактировании с галочкой «Повторять»:
+ * вся repeat-группа либо слоты с тем же временем на днях выбранного режима.
+ */
+export function resolveEditRepeatTargetSlotIds(
+  slots: CampaignScheduleSlot[],
+  editingSlotId: number,
+  dayOfWeek: number,
+  repeatMode: CampaignSlotRepeatMode,
+): number[] {
+  const original = slots.find((s) => s.id === editingSlotId)
+  if (!original) {
+    return [editingSlotId]
+  }
+  const days = new Set(resolveRepeatDays(dayOfWeek, true, repeatMode))
+  const targets = slots.filter((s) => {
+    if (!days.has(s.dayOfWeek)) {
+      return false
+    }
+    if (original.repeatGroupId) {
+      return s.repeatGroupId === original.repeatGroupId
+    }
+    return s.startTime === original.startTime && s.endTime === original.endTime
+  })
+  return targets.length > 0 ? targets.map((s) => s.id) : [editingSlotId]
+}

@@ -17,7 +17,7 @@ import { useEntityCabinetResolve } from '../hooks/useEntityCabinetResolve'
 import { useCampaignManagePaywall } from '../hooks/useCampaignManagePaywall'
 import CampaignManagePaywallShield from '../components/campaignManageSubscription/CampaignManagePaywallShield'
 import CampaignWeekCalendar, { type SlotCreateRange } from '../components/campaignManage/CampaignWeekCalendar'
-import { validateSlotNoOverlap } from '../utils/campaignSlotOverlap'
+import { validateSlotNoOverlap, resolveEditRepeatTargetSlotIds } from '../utils/campaignSlotOverlap'
 import CampaignSlotModal, { type SlotModalDraft } from '../components/campaignManage/CampaignSlotModal'
 import CampaignBudgetChart from '../components/campaignManage/CampaignBudgetChart'
 import CampaignBudgetChartPeriodPicker from '../components/campaignManage/CampaignBudgetChartPeriodPicker'
@@ -529,29 +529,47 @@ export default function AdvertisingCampaignManage() {
   }, [])
 
   const saveSlotDraft = (draft: SlotModalDraft) => {
-    const overlapError = validateSlotNoOverlap(
-      manage?.slots ?? [],
-      draft.dayOfWeek,
-      draft.startTime,
-      draft.endTime,
-      draft.repeat,
-      draft.repeatMode,
-      editingSlotId ?? undefined,
-    )
-    if (overlapError) {
-      message.warning(overlapError)
-      return
+    const editWithRepeat = editingSlotId != null && draft.repeat
+    // При редактировании с «Повторять» пересечения не проверяем — настройки уйдут на всю серию.
+    if (!editWithRepeat) {
+      const overlapError = validateSlotNoOverlap(
+        manage?.slots ?? [],
+        draft.dayOfWeek,
+        draft.startTime,
+        draft.endTime,
+        draft.repeat,
+        draft.repeatMode,
+        editingSlotId ?? undefined,
+      )
+      if (overlapError) {
+        message.warning(overlapError)
+        return
+      }
     }
     if (editingSlotId != null) {
-      updateSlotMutation.mutate({
-        slotId: editingSlotId,
-        body: {
-          startTime: draft.startTime,
-          endTime: draft.endTime,
-          budgetRub: draft.budgetRub,
-        },
-      })
-      setSlotModalOpen(false)
+      const body = {
+        startTime: draft.startTime,
+        endTime: draft.endTime,
+        budgetRub: draft.budgetRub,
+      }
+      const slotIds = editWithRepeat
+        ? resolveEditRepeatTargetSlotIds(
+            manage?.slots ?? [],
+            editingSlotId,
+            draft.dayOfWeek,
+            draft.repeatMode,
+          )
+        : [editingSlotId]
+      void (async () => {
+        try {
+          for (const slotId of slotIds) {
+            await updateSlotMutation.mutateAsync({ slotId, body })
+          }
+          setSlotModalOpen(false)
+        } catch {
+          // ошибка уже показана в onError мутации
+        }
+      })()
       return
     }
     createSlotsMutation.mutate({
