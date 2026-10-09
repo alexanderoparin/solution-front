@@ -35,6 +35,14 @@ export default function Breadcrumbs() {
     items.push({ label: 'Аналитика', path: '/analytics' }, { label: 'Сводная' })
   } else if (pathname === '/analytics/products') {
     items.push({ label: 'Аналитика', path: '/analytics' }, { label: 'Товары' })
+  } else if (pathname === '/analytics/hypotheses') {
+    items.push({ label: 'Аналитика', path: '/analytics' }, { label: 'Гипотезы' })
+  } else if (pathname.match(/^\/analytics\/hypotheses\/[^/]+$/) && params.id) {
+    items.push(
+      { label: 'Аналитика', path: '/analytics' },
+      { label: 'Гипотезы', path: '/analytics/hypotheses' },
+      { label: params.id },
+    )
   } else if (pathname.startsWith('/analytics/article/') && params.nmId) {
     items.push(
       { label: 'Аналитика', path: '/analytics' },

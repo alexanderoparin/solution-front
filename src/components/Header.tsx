@@ -180,6 +180,9 @@ export default function Header({
     if (location.pathname === '/analytics') {
       return ['summary']
     }
+    if (location.pathname.startsWith('/analytics/hypotheses')) {
+      return ['hypotheses']
+    }
     return []
   }, [location.pathname])
 
@@ -193,7 +196,8 @@ export default function Header({
   const isAnalyticsActive =
     location.pathname === '/analytics' ||
     location.pathname === '/analytics/products' ||
-    location.pathname.startsWith('/analytics/article/')
+    location.pathname.startsWith('/analytics/article/') ||
+    location.pathname.startsWith('/analytics/hypotheses')
   const isAdvertisingActive = location.pathname.startsWith('/advertising')
   const isProfilePage = location.pathname === '/profile'
   const isProfileActive = location.pathname === '/profile'
@@ -348,6 +352,7 @@ export default function Header({
             items: [
               { key: 'products', label: <NavMenuLink to="/analytics/products">Товары</NavMenuLink> },
               { key: 'summary', label: <NavMenuLink to="/analytics">Сводная</NavMenuLink> },
+              { key: 'hypotheses', label: <NavMenuLink to="/analytics/hypotheses">Гипотезы</NavMenuLink> },
             ],
           }}
           trigger={['click']}

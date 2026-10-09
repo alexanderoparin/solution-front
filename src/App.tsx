@@ -14,6 +14,8 @@ import AdvertisingCampaignManage from './pages/AdvertisingCampaignManage'
 import BidderCampaigns from './pages/BidderCampaigns'
 import AbTests from './pages/AbTests'
 import AbTestDetail from './pages/AbTestDetail'
+import Hypotheses from './pages/Hypotheses'
+import HypothesisDetail from './pages/HypothesisDetail'
 import Profile from './pages/Profile'
 import AdminPlansAndSubscriptions from './pages/AdminPlansAndSubscriptions'
 import AdminWbEvents from './pages/AdminWbEvents'
@@ -66,6 +68,14 @@ function AppRoutes() {
         <Route
           path="/analytics/article/:nmId"
           element={token ? <AccessGuard><CabinetSectionGuard section="PRODUCTS"><AnalyticsArticle /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/analytics/hypotheses"
+          element={token ? <AccessGuard><CabinetSectionGuard section="PRODUCTS"><Hypotheses /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/analytics/hypotheses/:id"
+          element={token ? <AccessGuard><CabinetSectionGuard section="PRODUCTS"><HypothesisDetail /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/advertising/campaigns"
