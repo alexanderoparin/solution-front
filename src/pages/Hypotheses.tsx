@@ -293,8 +293,13 @@ export default function Hypotheses() {
         render: (_, row) => row.resultSummary || '—',
       },
       {
+        title: 'Дата создания',
+        width: 120,
+        render: (_, row) => dayjs(row.createdAt).format('DD.MM.YYYY'),
+      },
+      {
         title: 'Действия',
-        width: 72,
+        width: 100,
         render: (_, row) => (
           <Dropdown
             menu={{
@@ -326,11 +331,6 @@ export default function Hypotheses() {
             <Button type="text" icon={<MoreOutlined />} />
           </Dropdown>
         ),
-      },
-      {
-        title: 'Дата создания',
-        width: 120,
-        render: (_, row) => dayjs(row.createdAt).format('DD.MM.YYYY'),
       },
     ],
     [selectedIds, deleteMutation],
