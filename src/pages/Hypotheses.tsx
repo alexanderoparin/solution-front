@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Button,
@@ -17,12 +17,15 @@ import type { ColumnsType } from 'antd/es/table'
 import {
   DeleteOutlined,
   EditOutlined,
+  ExperimentOutlined,
   MoreOutlined,
   PlusOutlined,
   SearchOutlined,
 } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs, { type Dayjs } from 'dayjs'
+import 'dayjs/locale/ru'
+import locale from 'antd/locale/ru_RU'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useAuthStore } from '../store/authStore'
@@ -39,7 +42,7 @@ import {
   type HypothesisDisplayStatus,
   type HypothesisUpsertRequest,
 } from '../types/hypothesis'
-import { colors } from '../styles/analytics'
+import { colors, shadows, spacing, transitions } from '../styles/analytics'
 import HypothesisFormModal from '../components/hypothesis/HypothesisFormModal'
 
 dayjs.locale('ru')
@@ -93,14 +96,39 @@ export default function Hypotheses() {
   const role = useAuthStore((state) => state.role)
   const isAdmin = role === 'ADMIN'
   const workContext = useWorkContextForAdmin(isAdmin)
-  const { data: myCabinets = [] } = useQuery({
+  const { data: myCabinets = [], isLoading: cabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
     enabled: !isAdmin,
   })
-  const { cabinetId: sellerCabinetId } = useStoredCabinet(myCabinets)
+  const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
   const requestSellerId = isAdmin ? workContext.selectedSellerId : undefined
   const requestCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
+
+  const setSelectedCabinetId = useCallback(
+    (id: number | null) => {
+      if (isAdmin) {
+        if (id != null) workContext.applyWorkContextCabinet(id)
+      } else {
+        setSellerCabinetId(id)
+      }
+    },
+    [isAdmin, workContext.applyWorkContextCabinet, setSellerCabinetId],
+  )
+
+  const cabinetSelectProps =
+    !isAdmin && myCabinets.length > 0
+      ? {
+          cabinets: myCabinets.map((c) => ({
+            id: c.id,
+            name: c.name,
+            marketplaceType: c.marketplaceType,
+          })),
+          selectedCabinetId: requestCabinetId,
+          onCabinetChange: setSelectedCabinetId,
+          loading: cabinetsLoading,
+        }
+      : undefined
 
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<string | undefined>()
@@ -309,55 +337,83 @@ export default function Hypotheses() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: colors.bgGray }}>
-      <Header />
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '16px 20px 40px' }}>
-        <Breadcrumbs />
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Header
+        workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
+        cabinetSelectProps={cabinetSelectProps}
+      />
+      <Breadcrumbs />
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: `${spacing.lg} 0`,
+          width: '100%',
+          backgroundColor: colors.bgGray,
+        }}
+      >
         <div
           style={{
+            flex: 1,
+            minHeight: 0,
             display: 'flex',
-            justifyContent: 'space-between',
-            gap: 16,
-            alignItems: 'flex-start',
-            marginBottom: 16,
+            flexDirection: 'column',
+            width: '100%',
+            backgroundColor: colors.bgWhite,
+            borderTop: `1px solid ${colors.borderLight}`,
+            borderBottom: `1px solid ${colors.borderLight}`,
+            padding: spacing.lg,
+            boxShadow: shadows.md,
+            transition: transitions.normal,
           }}
         >
-          <div>
-            <h1 style={{ margin: 0, fontSize: 28 }}>Гипотезы</h1>
-            <p style={{ margin: '6px 0 0', color: colors.textSecondary }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 16,
+              alignItems: 'flex-start',
+              marginBottom: spacing.md,
+              flexWrap: 'wrap',
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+                color: colors.textSecondary,
+                alignSelf: 'center',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <ExperimentOutlined style={{ color: accent, fontSize: 18 }} />
               Проверяйте идеи, находите рабочие решения, растите продажи
             </p>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              style={{ background: accent, borderColor: accent }}
+              onClick={() => {
+                setEditing(null)
+                setFormOpen(true)
+              }}
+              disabled={requestCabinetId == null}
+            >
+              Создать гипотезу
+            </Button>
           </div>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            style={{ background: accent }}
-            onClick={() => {
-              setEditing(null)
-              setFormOpen(true)
-            }}
-            disabled={requestCabinetId == null}
-          >
-            Создать гипотезу
-          </Button>
-        </div>
 
-        <div
-          style={{
-            background: colors.bgWhite,
-            borderRadius: 12,
-            border: `1px solid ${colors.border}`,
-            padding: 16,
-          }}
-        >
-          <Space wrap style={{ width: '100%', marginBottom: 12 }}>
+          <Space wrap style={{ width: '100%', marginBottom: spacing.md }}>
             <Input
               allowClear
               prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
               placeholder="Поиск по артикулу, названию или описанию..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: 320 }}
+              style={{ width: 320, maxWidth: '100%' }}
             />
             <Select
               allowClear
@@ -392,7 +448,10 @@ export default function Hypotheses() {
               options={HYPOTHESIS_CRITERIA.map((c) => ({ value: c.key, label: c.label }))}
             />
             <DatePicker.RangePicker
+              locale={locale.DatePicker}
               format="DD.MM.YYYY"
+              separator="→"
+              inputReadOnly
               value={period}
               onChange={(v) => setPeriod(v)}
             />

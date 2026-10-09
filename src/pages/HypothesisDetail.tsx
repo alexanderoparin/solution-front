@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Button,
@@ -46,7 +46,7 @@ import {
   type HypothesisUpsertRequest,
   type HypothesisVerdict,
 } from '../types/hypothesis'
-import { colors } from '../styles/analytics'
+import { colors, shadows, spacing, transitions } from '../styles/analytics'
 import HypothesisFormModal from '../components/hypothesis/HypothesisFormModal'
 
 dayjs.locale('ru')
@@ -72,13 +72,14 @@ export default function HypothesisDetail() {
   const role = useAuthStore((state) => state.role)
   const isAdmin = role === 'ADMIN'
   const workContext = useWorkContextForAdmin(isAdmin)
-  const { data: myCabinets = [] } = useQuery({
+  const { data: myCabinets = [], isLoading: cabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
     queryFn: () => cabinetsApi.list(),
     enabled: !isAdmin,
   })
   const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
+  const [formOpen, setFormOpen] = useState(false)
 
   const { requestSellerId, requestCabinetId, cabinetReady } = useEntityCabinetResolve({
     queryKey: ['hypothesis-cabinet', hypothesisId],
@@ -90,7 +91,58 @@ export default function HypothesisDetail() {
     setSellerCabinetId,
   })
 
-  const [formOpen, setFormOpen] = useState(false)
+  const cabinetSelectProps =
+    !isAdmin && myCabinets.length > 0
+      ? {
+          cabinets: myCabinets.map((c) => ({
+            id: c.id,
+            name: c.name,
+            marketplaceType: c.marketplaceType,
+          })),
+          selectedCabinetId,
+          onCabinetChange: (id: number | null) => {
+            if (id != null) setSellerCabinetId(id)
+          },
+          loading: cabinetsLoading,
+        }
+      : undefined
+
+  const pageShell = (children: ReactNode) => (
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Header
+        workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
+        cabinetSelectProps={cabinetSelectProps}
+      />
+      <Breadcrumbs />
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: `${spacing.lg} 0`,
+          width: '100%',
+          backgroundColor: colors.bgGray,
+        }}
+      >
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            width: '100%',
+            backgroundColor: colors.bgWhite,
+            borderTop: `1px solid ${colors.borderLight}`,
+            borderBottom: `1px solid ${colors.borderLight}`,
+            padding: spacing.lg,
+            boxShadow: shadows.md,
+            transition: transitions.normal,
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  )
 
   const detailQuery = useQuery({
     queryKey: ['hypothesis', hypothesisId, requestSellerId, requestCabinetId],
@@ -149,31 +201,20 @@ export default function HypothesisDetail() {
   const checkStartLabel = hypothesis ? dayjs(hypothesis.checkFrom).format('DD.MM') : ''
 
   if (!cabinetReady || detailQuery.isLoading) {
-    return (
-      <div style={{ minHeight: '100vh', background: colors.bgGray }}>
-        <Header />
-        <div style={{ padding: 40, textAlign: 'center', color: colors.textSecondary }}>Загрузка…</div>
-      </div>
+    return pageShell(
+      <div style={{ padding: 40, textAlign: 'center', color: colors.textSecondary }}>Загрузка…</div>,
     )
   }
 
   if (!hypothesis) {
-    return (
-      <div style={{ minHeight: '100vh', background: colors.bgGray }}>
-        <Header />
-        <div style={{ padding: 40, textAlign: 'center' }}>Гипотеза не найдена</div>
-      </div>
-    )
+    return pageShell(<div style={{ padding: 40, textAlign: 'center' }}>Гипотеза не найдена</div>)
   }
 
   const displaySuccess = hypothesis.displayStatus === 'SUCCESS'
   const displayFailure = hypothesis.displayStatus === 'FAILURE'
 
-  return (
-    <div style={{ minHeight: '100vh', background: colors.bgGray }}>
-      <Header />
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '16px 20px 40px' }}>
-        <Breadcrumbs />
+  return pageShell(
+    <>
         <Link
           to="/analytics/hypotheses"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 12, color: colors.textSecondary }}
@@ -391,7 +432,6 @@ export default function HypothesisDetail() {
             </ResponsiveContainer>
           </div>
         </div>
-      </div>
 
       <HypothesisFormModal
         open={formOpen}
@@ -403,7 +443,7 @@ export default function HypothesisDetail() {
           saveMutation.mutate({ ...request, workflowStatus })
         }}
       />
-    </div>
+    </>,
   )
 }
 
