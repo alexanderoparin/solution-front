@@ -58,7 +58,7 @@ function serviceIcon(serviceCode: string) {
 }
 
 /**
- * Тариф выбранного кабинета. FREE — с момента создания кабинета; промокод FULL_ACCESS — на все кабинеты.
+ * Тариф выбранного кабинета. FREE — с момента создания кабинета; промокод — на все кабинеты.
  */
 export default function SubscriptionCard({
   subscription: subscriptionProp,

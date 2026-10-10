@@ -59,7 +59,7 @@ export interface ProfileSubscriptionSummary {
   nextBillingAt?: string | null
   autoRenew: boolean
   freePlanHint?: string | null
-  /** Активный промокод FULL_ACCESS, если есть. */
+  /** Активный промокод, если есть. */
   promoCode?: string | null
 }
 
@@ -759,7 +759,6 @@ export interface PromoCodeAdminDto {
   code: string
   description?: string | null
   durationDays: number
-  grantType: string
   active: boolean
   validFrom?: string | null
   validTo?: string | null
@@ -771,7 +770,6 @@ export interface CreatePromoCodeRequest {
   code: string
   description?: string
   durationDays: number
-  grantType?: string
   active?: boolean
   validFrom?: string | null
   validTo?: string | null

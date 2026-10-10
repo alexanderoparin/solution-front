@@ -50,10 +50,6 @@ function formatDateTime(value: string | null | undefined, compact: boolean): str
   return dayjs(value).format(compact ? 'DD.MM.YY HH:mm' : 'DD.MM.YYYY HH:mm')
 }
 
-const GRANT_TYPE_LABELS: Record<string, string> = {
-  FULL_ACCESS: 'Полный доступ',
-}
-
 export default function AdminPromoRedemptions() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -67,7 +63,6 @@ export default function AdminPromoRedemptions() {
     code: string
     description?: string
     durationDays: number
-    grantType?: string
     active?: boolean
     validFrom?: Dayjs | null
     validTo?: Dayjs | null
@@ -175,13 +170,6 @@ export default function AdminPromoRedemptions() {
       align: 'right',
     },
     {
-      title: 'Тип',
-      dataIndex: 'grantType',
-      key: 'grantType',
-      width: 140,
-      render: (value: string) => GRANT_TYPE_LABELS[value] ?? value,
-    },
-    {
       title: 'Начало действия',
       dataIndex: 'validFrom',
       key: 'validFrom',
@@ -252,7 +240,6 @@ export default function AdminPromoRedemptions() {
     createForm.resetFields()
     createForm.setFieldsValue({
       durationDays: 14,
-      grantType: 'FULL_ACCESS',
       active: true,
     })
     setCreateOpen(true)
@@ -268,7 +255,6 @@ export default function AdminPromoRedemptions() {
         code: values.code.trim(),
         description: values.description?.trim() || undefined,
         durationDays: values.durationDays,
-        grantType: values.grantType || 'FULL_ACCESS',
         active: values.active ?? true,
         validFrom: values.validFrom ? values.validFrom.format('YYYY-MM-DDTHH:mm:ss') : null,
         validTo: values.validTo ? values.validTo.format('YYYY-MM-DDTHH:mm:ss') : null,
@@ -408,8 +394,6 @@ export default function AdminPromoRedemptions() {
                                 <dl className="admin-promo-item-meta">
                                   <dt>Дней</dt>
                                   <dd>{promo.durationDays}</dd>
-                                  <dt>Тип</dt>
-                                  <dd>{GRANT_TYPE_LABELS[promo.grantType] ?? promo.grantType}</dd>
                                   <dt>Начало действия</dt>
                                   <dd>{formatDateTime(promo.validFrom, true)}</dd>
                                   <dt>Окончание действия</dt>
@@ -548,7 +532,6 @@ export default function AdminPromoRedemptions() {
           layout="vertical"
           initialValues={{
             durationDays: 14,
-            grantType: 'FULL_ACCESS',
             active: true,
           }}
         >
@@ -571,13 +554,6 @@ export default function AdminPromoRedemptions() {
             rules={[{ required: true, message: 'Укажите срок' }]}
           >
             <InputNumber min={1} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="grantType" label="Тип доступа">
-            <Select
-              options={[
-                { value: 'FULL_ACCESS', label: 'Полный доступ' },
-              ]}
-            />
           </Form.Item>
           <Form.Item
             name="validFrom"
