@@ -761,11 +761,22 @@ export interface PromoCodeAdminDto {
   durationDays: number
   grantType: string
   active: boolean
-  maxRedemptionsPerUser?: number | null
   maxRedemptionsTotal?: number | null
   validFrom?: string | null
   validTo?: string | null
   createdAt?: string | null
+}
+
+/** Запрос на создание промокода. */
+export interface CreatePromoCodeRequest {
+  code: string
+  description?: string
+  durationDays: number
+  grantType?: string
+  active?: boolean
+  maxRedemptionsTotal?: number | null
+  validFrom?: string | null
+  validTo?: string | null
 }
 
 /** Строка таблицы активаций промокодов. */

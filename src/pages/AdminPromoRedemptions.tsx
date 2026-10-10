@@ -1,17 +1,35 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button, Card, Empty, Pagination, Select, Spin, Table, Typography } from 'antd'
+import {
+  Button,
+  Card,
+  Empty,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Pagination,
+  Select,
+  Space,
+  Spin,
+  Switch,
+  Table,
+  Tabs,
+  Tag,
+  Typography,
+  message,
+} from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { GiftOutlined } from '@ant-design/icons'
-import { useQuery } from '@tanstack/react-query'
+import { GiftOutlined, PlusOutlined } from '@ant-design/icons'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useAuthStore } from '../store/authStore'
 import { adminApi } from '../api/admin'
-import type { PromoCodeRedemptionAdminDto } from '../types/api'
+import type { CreatePromoCodeRequest, PromoCodeAdminDto, PromoCodeRedemptionAdminDto } from '../types/api'
 
-const { Title } = Typography
+const { Title, Text } = Typography
 
 function useIsNarrow(maxWidthPx = 900): boolean {
   const [narrow, setNarrow] = useState(() =>
@@ -31,25 +49,32 @@ function formatDateTime(value: string | null | undefined, compact: boolean): str
   return dayjs(value).format(compact ? 'DD.MM.YY HH:mm' : 'DD.MM.YYYY HH:mm')
 }
 
+const GRANT_TYPE_LABELS: Record<string, string> = {
+  FULL_ACCESS: 'Полный доступ',
+}
+
 export default function AdminPromoRedemptions() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const role = useAuthStore((state) => state.role)
   const isNarrow = useIsNarrow(900)
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
   const [codeFilter, setCodeFilter] = useState<string | undefined>(undefined)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createForm] = Form.useForm<CreatePromoCodeRequest>()
 
   if (role !== 'ADMIN') {
     navigate('/profile', { replace: true })
     return null
   }
 
-  const { data: promoCodes = [] } = useQuery({
+  const { data: promoCodes = [], isLoading: codesLoading } = useQuery({
     queryKey: ['adminPromoCodes'],
     queryFn: () => adminApi.getPromoCodes(),
   })
 
-  const { data: redemptionsPage, isLoading } = useQuery({
+  const { data: redemptionsPage, isLoading: redemptionsLoading } = useQuery({
     queryKey: ['adminPromoRedemptions', page, pageSize, codeFilter],
     queryFn: () =>
       adminApi.getPromoCodeRedemptions({
@@ -59,10 +84,82 @@ export default function AdminPromoRedemptions() {
       }),
   })
 
+  const createMutation = useMutation({
+    mutationFn: (data: CreatePromoCodeRequest) => adminApi.createPromoCode(data),
+    onSuccess: (created) => {
+      message.success(`Промокод ${created.code} создан`)
+      setCreateOpen(false)
+      createForm.resetFields()
+      void queryClient.invalidateQueries({ queryKey: ['adminPromoCodes'] })
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.error
+        ?? (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.message
+        ?? 'Не удалось создать промокод'
+      message.error(msg)
+    },
+  })
+
   const rows = redemptionsPage?.content ?? []
   const total = redemptionsPage?.totalElements ?? 0
 
-  const columns: ColumnsType<PromoCodeRedemptionAdminDto> = [
+  const codeColumns: ColumnsType<PromoCodeAdminDto> = [
+    {
+      title: 'Код',
+      dataIndex: 'code',
+      key: 'code',
+      width: 140,
+      render: (value: string) => <Text strong>{value}</Text>,
+    },
+    {
+      title: 'Описание',
+      dataIndex: 'description',
+      key: 'description',
+      ellipsis: true,
+      render: (value: string | null | undefined) => value || '—',
+    },
+    {
+      title: 'Дней',
+      dataIndex: 'durationDays',
+      key: 'durationDays',
+      width: 72,
+      align: 'right',
+    },
+    {
+      title: 'Тип',
+      dataIndex: 'grantType',
+      key: 'grantType',
+      width: 140,
+      render: (value: string) => GRANT_TYPE_LABELS[value] ?? value,
+    },
+    {
+      title: 'Статус',
+      dataIndex: 'active',
+      key: 'active',
+      width: 110,
+      render: (active: boolean) => (
+        <Tag color={active ? 'green' : 'default'}>{active ? 'Активен' : 'Выключен'}</Tag>
+      ),
+    },
+    {
+      title: 'Лимит всего',
+      dataIndex: 'maxRedemptionsTotal',
+      key: 'maxRedemptionsTotal',
+      width: 110,
+      align: 'right',
+      render: (value: number | null | undefined) => value ?? '∞',
+    },
+    {
+      title: 'Создан',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 160,
+      render: (value: string | null | undefined) => formatDateTime(value, isNarrow),
+    },
+  ]
+
+  const redemptionColumns: ColumnsType<PromoCodeRedemptionAdminDto> = [
     {
       title: '№',
       key: 'index',
@@ -97,6 +194,30 @@ export default function AdminPromoRedemptions() {
       render: (value: string) => formatDateTime(value, isNarrow),
     },
   ]
+
+  const openCreate = () => {
+    createForm.resetFields()
+    createForm.setFieldsValue({
+      durationDays: 14,
+      grantType: 'FULL_ACCESS',
+      active: true,
+    })
+    setCreateOpen(true)
+  }
+
+  const handleCreateSubmit = () => {
+    createForm.validateFields().then((values) => {
+      const payload: CreatePromoCodeRequest = {
+        code: values.code.trim(),
+        description: values.description?.trim() || undefined,
+        durationDays: values.durationDays,
+        grantType: values.grantType || 'FULL_ACCESS',
+        active: values.active ?? true,
+        maxRedemptionsTotal: values.maxRedemptionsTotal ?? null,
+      }
+      createMutation.mutate(payload)
+    })
+  }
 
   return (
     <>
@@ -194,84 +315,154 @@ export default function AdminPromoRedemptions() {
         <div className="admin-promo-head" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, minWidth: 0 }}>
           <GiftOutlined style={{ fontSize: isNarrow ? 22 : 28, color: '#7C3AED', flexShrink: 0, marginTop: isNarrow ? 2 : 0 }} />
           <Title className="admin-promo-title" level={2} style={{ margin: 0, minWidth: 0 }}>
-            Использование промокодов
+            Промокоды
           </Title>
         </div>
 
         <Card style={{ borderRadius: 12, minWidth: 0 }}>
-          <div className="admin-promo-filter" style={{ marginBottom: 16, maxWidth: 280 }}>
-            <Select
-              allowClear
-              placeholder="Фильтр по промокоду"
-              style={{ width: '100%' }}
-              value={codeFilter}
-              onChange={(value) => {
-                setCodeFilter(value)
-                setPage(0)
-              }}
-              options={promoCodes.map((promo) => ({
-                value: promo.code,
-                label: promo.code,
-              }))}
-            />
-          </div>
-
-          {isNarrow ? (
-            <Spin spinning={isLoading}>
-              {rows.length === 0 && !isLoading ? (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нет использований" />
-              ) : (
-                <div>
-                  {rows.map((row, index) => (
-                    <div key={row.id} className="admin-promo-item">
-                      <div className="admin-promo-item-top">
-                        <span className="admin-promo-item-code">{row.promoCode}</span>
-                        <span style={{ color: '#94A3B8', fontSize: 12 }}>№ {page * pageSize + index + 1}</span>
-                      </div>
-                      <div className="admin-promo-item-email">{row.email}</div>
-                      <dl className="admin-promo-item-meta">
-                        <dt>Использован</dt>
-                        <dd>{formatDateTime(row.redeemedAt, true)}</dd>
-                        <dt>Сгорает</dt>
-                        <dd>{formatDateTime(row.expiresAt, true)}</dd>
-                      </dl>
+          <Tabs
+            items={[
+              {
+                key: 'codes',
+                label: 'Список промокодов',
+                children: (
+                  <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                        Добавить промокод
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              )}
-              {total > pageSize ? (
-                <Pagination
-                  current={page + 1}
-                  pageSize={pageSize}
-                  total={total}
-                  onChange={(nextPage) => setPage(nextPage - 1)}
-                  showSizeChanger={false}
-                  style={{ marginTop: 16, textAlign: 'center' }}
-                />
-              ) : null}
-            </Spin>
-          ) : (
-            <div className="admin-promo-scroll">
-              <Table<PromoCodeRedemptionAdminDto>
-                rowKey="id"
-                loading={isLoading}
-                columns={columns}
-                dataSource={rows}
-                pagination={{
-                  current: page + 1,
-                  pageSize,
-                  total,
-                  showSizeChanger: true,
-                  pageSizeOptions: ['10', '20', '50'],
-                  onChange: (nextPage, nextSize) => {
-                    setPage(nextPage - 1)
-                    setPageSize(nextSize)
-                  },
-                }}
-                scroll={{ x: 720 }}
-              />
-            </div>
-          )}
+                    {isNarrow ? (
+                      <Spin spinning={codesLoading}>
+                        {promoCodes.length === 0 && !codesLoading ? (
+                          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нет промокодов" />
+                        ) : (
+                          <div>
+                            {promoCodes.map((promo) => (
+                              <div key={promo.id} className="admin-promo-item">
+                                <div className="admin-promo-item-top">
+                                  <span className="admin-promo-item-code">{promo.code}</span>
+                                  <Tag color={promo.active ? 'green' : 'default'}>
+                                    {promo.active ? 'Активен' : 'Выключен'}
+                                  </Tag>
+                                </div>
+                                {promo.description ? (
+                                  <div className="admin-promo-item-email">{promo.description}</div>
+                                ) : null}
+                                <dl className="admin-promo-item-meta">
+                                  <dt>Дней</dt>
+                                  <dd>{promo.durationDays}</dd>
+                                  <dt>Тип</dt>
+                                  <dd>{GRANT_TYPE_LABELS[promo.grantType] ?? promo.grantType}</dd>
+                                  <dt>Лимит всего</dt>
+                                  <dd>{promo.maxRedemptionsTotal ?? '∞'}</dd>
+                                  <dt>Создан</dt>
+                                  <dd>{formatDateTime(promo.createdAt, true)}</dd>
+                                </dl>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </Spin>
+                    ) : (
+                      <div className="admin-promo-scroll">
+                        <Table<PromoCodeAdminDto>
+                          rowKey="id"
+                          loading={codesLoading}
+                          columns={codeColumns}
+                          dataSource={promoCodes}
+                          pagination={false}
+                          size="small"
+                          scroll={{ x: 900 }}
+                        />
+                      </div>
+                    )}
+                  </Space>
+                ),
+              },
+              {
+                key: 'redemptions',
+                label: 'Использования',
+                children: (
+                  <>
+                    <div className="admin-promo-filter" style={{ marginBottom: 16, maxWidth: 280 }}>
+                      <Select
+                        allowClear
+                        placeholder="Фильтр по промокоду"
+                        style={{ width: '100%' }}
+                        value={codeFilter}
+                        onChange={(value) => {
+                          setCodeFilter(value)
+                          setPage(0)
+                        }}
+                        options={promoCodes.map((promo) => ({
+                          value: promo.code,
+                          label: promo.code,
+                        }))}
+                      />
+                    </div>
+
+                    {isNarrow ? (
+                      <Spin spinning={redemptionsLoading}>
+                        {rows.length === 0 && !redemptionsLoading ? (
+                          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нет использований" />
+                        ) : (
+                          <div>
+                            {rows.map((row, index) => (
+                              <div key={row.id} className="admin-promo-item">
+                                <div className="admin-promo-item-top">
+                                  <span className="admin-promo-item-code">{row.promoCode}</span>
+                                  <span style={{ color: '#94A3B8', fontSize: 12 }}>№ {page * pageSize + index + 1}</span>
+                                </div>
+                                <div className="admin-promo-item-email">{row.email}</div>
+                                <dl className="admin-promo-item-meta">
+                                  <dt>Использован</dt>
+                                  <dd>{formatDateTime(row.redeemedAt, true)}</dd>
+                                  <dt>Сгорает</dt>
+                                  <dd>{formatDateTime(row.expiresAt, true)}</dd>
+                                </dl>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {total > pageSize ? (
+                          <Pagination
+                            current={page + 1}
+                            pageSize={pageSize}
+                            total={total}
+                            onChange={(nextPage) => setPage(nextPage - 1)}
+                            showSizeChanger={false}
+                            style={{ marginTop: 16, textAlign: 'center' }}
+                          />
+                        ) : null}
+                      </Spin>
+                    ) : (
+                      <div className="admin-promo-scroll">
+                        <Table<PromoCodeRedemptionAdminDto>
+                          rowKey="id"
+                          loading={redemptionsLoading}
+                          columns={redemptionColumns}
+                          dataSource={rows}
+                          pagination={{
+                            current: page + 1,
+                            pageSize,
+                            total,
+                            showSizeChanger: true,
+                            pageSizeOptions: ['10', '20', '50'],
+                            onChange: (nextPage, nextSize) => {
+                              setPage(nextPage - 1)
+                              setPageSize(nextSize)
+                            },
+                          }}
+                          scroll={{ x: 720 }}
+                        />
+                      </div>
+                    )}
+                  </>
+                ),
+              },
+            ]}
+          />
         </Card>
 
         <div style={{ marginTop: 16 }}>
@@ -280,6 +471,64 @@ export default function AdminPromoRedemptions() {
           </Button>
         </div>
       </div>
+
+      <Modal
+        title="Новый промокод"
+        open={createOpen}
+        onCancel={() => {
+          setCreateOpen(false)
+          createForm.resetFields()
+        }}
+        onOk={handleCreateSubmit}
+        confirmLoading={createMutation.isPending}
+        okText="Создать"
+        cancelText="Отмена"
+        destroyOnClose
+      >
+        <Form
+          form={createForm}
+          layout="vertical"
+          initialValues={{
+            durationDays: 14,
+            grantType: 'FULL_ACCESS',
+            active: true,
+          }}
+        >
+          <Form.Item
+            name="code"
+            label="Код"
+            rules={[
+              { required: true, message: 'Укажите код' },
+              { max: 64, message: 'Не длиннее 64 символов' },
+            ]}
+          >
+            <Input placeholder="FOCUS14" style={{ textTransform: 'uppercase' }} />
+          </Form.Item>
+          <Form.Item name="description" label="Описание">
+            <Input.TextArea rows={2} placeholder="Для фокус-группы, 14 дней полного доступа" />
+          </Form.Item>
+          <Form.Item
+            name="durationDays"
+            label="Срок доступа, дней"
+            rules={[{ required: true, message: 'Укажите срок' }]}
+          >
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="grantType" label="Тип доступа">
+            <Select
+              options={[
+                { value: 'FULL_ACCESS', label: 'Полный доступ' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item name="maxRedemptionsTotal" label="Общий лимит активаций">
+            <InputNumber min={1} style={{ width: '100%' }} placeholder="Пусто — без лимита" />
+          </Form.Item>
+          <Form.Item name="active" label="Активен" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+        </Form>
+      </Modal>
     </>
   )
 }
