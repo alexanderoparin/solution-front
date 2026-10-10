@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Button,
   Card,
+  DatePicker,
   Empty,
   Form,
   Input,
@@ -19,6 +20,7 @@ import {
   Typography,
   message,
 } from 'antd'
+import type { Dayjs } from 'dayjs'
 import type { ColumnsType } from 'antd/es/table'
 import { GiftOutlined, PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -62,7 +64,15 @@ export default function AdminPromoRedemptions() {
   const [pageSize, setPageSize] = useState(20)
   const [codeFilter, setCodeFilter] = useState<string | undefined>(undefined)
   const [createOpen, setCreateOpen] = useState(false)
-  const [createForm] = Form.useForm<CreatePromoCodeRequest>()
+  const [createForm] = Form.useForm<{
+    code: string
+    description?: string
+    durationDays: number
+    grantType?: string
+    active?: boolean
+    validFrom?: Dayjs | null
+    validTo?: Dayjs | null
+  }>()
 
   if (role !== 'ADMIN') {
     navigate('/profile', { replace: true })
@@ -143,12 +153,18 @@ export default function AdminPromoRedemptions() {
       ),
     },
     {
-      title: 'Лимит всего',
-      dataIndex: 'maxRedemptionsTotal',
-      key: 'maxRedemptionsTotal',
-      width: 110,
-      align: 'right',
-      render: (value: number | null | undefined) => value ?? '∞',
+      title: 'Можно с',
+      dataIndex: 'validFrom',
+      key: 'validFrom',
+      width: 150,
+      render: (value: string | null | undefined) => formatDateTime(value, isNarrow),
+    },
+    {
+      title: 'Можно до',
+      dataIndex: 'validTo',
+      key: 'validTo',
+      width: 150,
+      render: (value: string | null | undefined) => formatDateTime(value, isNarrow),
     },
     {
       title: 'Создан',
@@ -207,13 +223,18 @@ export default function AdminPromoRedemptions() {
 
   const handleCreateSubmit = () => {
     createForm.validateFields().then((values) => {
+      if (values.validFrom && values.validTo && values.validTo.isBefore(values.validFrom)) {
+        message.error('Дата «можно до» не может быть раньше «можно с»')
+        return
+      }
       const payload: CreatePromoCodeRequest = {
         code: values.code.trim(),
         description: values.description?.trim() || undefined,
         durationDays: values.durationDays,
         grantType: values.grantType || 'FULL_ACCESS',
         active: values.active ?? true,
-        maxRedemptionsTotal: values.maxRedemptionsTotal ?? null,
+        validFrom: values.validFrom ? values.validFrom.format('YYYY-MM-DDTHH:mm:ss') : null,
+        validTo: values.validTo ? values.validTo.format('YYYY-MM-DDTHH:mm:ss') : null,
       }
       createMutation.mutate(payload)
     })
@@ -354,8 +375,10 @@ export default function AdminPromoRedemptions() {
                                   <dd>{promo.durationDays}</dd>
                                   <dt>Тип</dt>
                                   <dd>{GRANT_TYPE_LABELS[promo.grantType] ?? promo.grantType}</dd>
-                                  <dt>Лимит всего</dt>
-                                  <dd>{promo.maxRedemptionsTotal ?? '∞'}</dd>
+                                  <dt>Можно с</dt>
+                                  <dd>{formatDateTime(promo.validFrom, true)}</dd>
+                                  <dt>Можно до</dt>
+                                  <dd>{formatDateTime(promo.validTo, true)}</dd>
                                   <dt>Создан</dt>
                                   <dd>{formatDateTime(promo.createdAt, true)}</dd>
                                 </dl>
@@ -521,8 +544,19 @@ export default function AdminPromoRedemptions() {
               ]}
             />
           </Form.Item>
-          <Form.Item name="maxRedemptionsTotal" label="Общий лимит активаций">
-            <InputNumber min={1} style={{ width: '100%' }} placeholder="Пусто — без лимита" />
+          <Form.Item
+            name="validFrom"
+            label="Можно вводить с"
+            tooltip="Пусто — без ограничения. До этой даты код ещё нельзя активировать."
+          >
+            <DatePicker showTime style={{ width: '100%' }} format="DD.MM.YYYY HH:mm" />
+          </Form.Item>
+          <Form.Item
+            name="validTo"
+            label="Можно вводить до"
+            tooltip="Пусто — без ограничения. После этой даты код уже нельзя активировать."
+          >
+            <DatePicker showTime style={{ width: '100%' }} format="DD.MM.YYYY HH:mm" />
           </Form.Item>
           <Form.Item name="active" label="Активен" valuePropName="checked">
             <Switch />

@@ -761,7 +761,6 @@ export interface PromoCodeAdminDto {
   durationDays: number
   grantType: string
   active: boolean
-  maxRedemptionsTotal?: number | null
   validFrom?: string | null
   validTo?: string | null
   createdAt?: string | null
@@ -774,7 +773,6 @@ export interface CreatePromoCodeRequest {
   durationDays: number
   grantType?: string
   active?: boolean
-  maxRedemptionsTotal?: number | null
   validFrom?: string | null
   validTo?: string | null
 }
