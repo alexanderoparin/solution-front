@@ -16,7 +16,6 @@ import {
   Switch,
   Table,
   Tabs,
-  Tag,
   Typography,
   message,
 } from 'antd'
@@ -111,8 +110,47 @@ export default function AdminPromoRedemptions() {
     },
   })
 
+  const setActiveMutation = useMutation({
+    mutationFn: ({ promoId, active }: { promoId: number; active: boolean }) =>
+      adminApi.setPromoCodeActive(promoId, active),
+    onSuccess: (updated) => {
+      message.success(
+        updated.active
+          ? `Промокод ${updated.code} активирован`
+          : `Промокод ${updated.code} деактивирован`,
+      )
+      void queryClient.invalidateQueries({ queryKey: ['adminPromoCodes'] })
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.error
+        ?? (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.message
+        ?? 'Не удалось изменить статус промокода'
+      message.error(msg)
+    },
+  })
+
   const rows = redemptionsPage?.content ?? []
   const total = redemptionsPage?.totalElements ?? 0
+
+  const renderActiveToggle = (promo: PromoCodeAdminDto) => (
+    <Button
+      size="small"
+      type={promo.active ? 'primary' : 'default'}
+      danger={!promo.active}
+      style={
+        promo.active
+          ? { backgroundColor: '#16A34A', borderColor: '#16A34A' }
+          : undefined
+      }
+      loading={setActiveMutation.isPending && setActiveMutation.variables?.promoId === promo.id}
+      onClick={() =>
+        setActiveMutation.mutate({ promoId: promo.id, active: !promo.active })
+      }
+    >
+      {promo.active ? 'Активен' : 'Выключен'}
+    </Button>
+  )
 
   const codeColumns: ColumnsType<PromoCodeAdminDto> = [
     {
@@ -144,26 +182,17 @@ export default function AdminPromoRedemptions() {
       render: (value: string) => GRANT_TYPE_LABELS[value] ?? value,
     },
     {
-      title: 'Статус',
-      dataIndex: 'active',
-      key: 'active',
-      width: 110,
-      render: (active: boolean) => (
-        <Tag color={active ? 'green' : 'default'}>{active ? 'Активен' : 'Выключен'}</Tag>
-      ),
-    },
-    {
-      title: 'Можно с',
+      title: 'Начало действия',
       dataIndex: 'validFrom',
       key: 'validFrom',
       width: 150,
       render: (value: string | null | undefined) => formatDateTime(value, isNarrow),
     },
     {
-      title: 'Можно до',
+      title: 'Окончание действия',
       dataIndex: 'validTo',
       key: 'validTo',
-      width: 150,
+      width: 160,
       render: (value: string | null | undefined) => formatDateTime(value, isNarrow),
     },
     {
@@ -172,6 +201,14 @@ export default function AdminPromoRedemptions() {
       key: 'createdAt',
       width: 160,
       render: (value: string | null | undefined) => formatDateTime(value, isNarrow),
+    },
+    {
+      title: 'Статус',
+      dataIndex: 'active',
+      key: 'active',
+      width: 120,
+      fixed: 'right',
+      render: (_active: boolean, record) => renderActiveToggle(record),
     },
   ]
 
@@ -224,7 +261,7 @@ export default function AdminPromoRedemptions() {
   const handleCreateSubmit = () => {
     createForm.validateFields().then((values) => {
       if (values.validFrom && values.validTo && values.validTo.isBefore(values.validFrom)) {
-        message.error('Дата «можно до» не может быть раньше «можно с»')
+        message.error('Окончание действия не может быть раньше начала')
         return
       }
       const payload: CreatePromoCodeRequest = {
@@ -363,9 +400,7 @@ export default function AdminPromoRedemptions() {
                               <div key={promo.id} className="admin-promo-item">
                                 <div className="admin-promo-item-top">
                                   <span className="admin-promo-item-code">{promo.code}</span>
-                                  <Tag color={promo.active ? 'green' : 'default'}>
-                                    {promo.active ? 'Активен' : 'Выключен'}
-                                  </Tag>
+                                  {renderActiveToggle(promo)}
                                 </div>
                                 {promo.description ? (
                                   <div className="admin-promo-item-email">{promo.description}</div>
@@ -375,9 +410,9 @@ export default function AdminPromoRedemptions() {
                                   <dd>{promo.durationDays}</dd>
                                   <dt>Тип</dt>
                                   <dd>{GRANT_TYPE_LABELS[promo.grantType] ?? promo.grantType}</dd>
-                                  <dt>Можно с</dt>
+                                  <dt>Начало действия</dt>
                                   <dd>{formatDateTime(promo.validFrom, true)}</dd>
-                                  <dt>Можно до</dt>
+                                  <dt>Окончание действия</dt>
                                   <dd>{formatDateTime(promo.validTo, true)}</dd>
                                   <dt>Создан</dt>
                                   <dd>{formatDateTime(promo.createdAt, true)}</dd>
@@ -546,14 +581,14 @@ export default function AdminPromoRedemptions() {
           </Form.Item>
           <Form.Item
             name="validFrom"
-            label="Можно вводить с"
+            label="Начало действия"
             tooltip="Пусто — без ограничения. До этой даты код ещё нельзя активировать."
           >
             <DatePicker showTime style={{ width: '100%' }} format="DD.MM.YYYY HH:mm" />
           </Form.Item>
           <Form.Item
             name="validTo"
-            label="Можно вводить до"
+            label="Окончание действия"
             tooltip="Пусто — без ограничения. После этой даты код уже нельзя активировать."
           >
             <DatePicker showTime style={{ width: '100%' }} format="DD.MM.YYYY HH:mm" />

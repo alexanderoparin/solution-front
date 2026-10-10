@@ -229,6 +229,13 @@ export const adminApi = {
     return response.data
   },
 
+  setPromoCodeActive: async (promoId: number, active: boolean): Promise<PromoCodeAdminDto> => {
+    const response = await apiClient.patch<PromoCodeAdminDto>(`/admin/promo-codes/${promoId}/active`, {
+      active,
+    })
+    return response.data
+  },
+
   getPromoCodeRedemptions: async (params: {
     page: number
     size: number
