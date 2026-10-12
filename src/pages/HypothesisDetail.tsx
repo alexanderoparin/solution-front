@@ -42,6 +42,7 @@ import { hypothesisApi } from '../api/hypothesis'
 import {
   HYPOTHESIS_CRITERIA,
   HYPOTHESIS_STATUS_LABELS,
+  type HypothesisCriterionKey,
   type HypothesisCriterionValue,
   type HypothesisUpsertRequest,
   type HypothesisVerdict,
@@ -188,15 +189,45 @@ export default function HypothesisDetail() {
 
   const hypothesis = detailQuery.data
 
+  const chartCriteria = hypothesis?.criteria ?? []
+
   const chartData = useMemo(() => {
-    if (!hypothesis?.dynamics) return []
-    return hypothesis.dynamics.map((point) => ({
-      date: dayjs(point.date).format('DD.MM'),
-      fullDate: point.date,
-      period: point.period,
-      ...point.values,
-    }))
-  }, [hypothesis])
+    if (!hypothesis?.dynamics?.length) return []
+    const mins: Partial<Record<HypothesisCriterionKey, number>> = {}
+    const maxs: Partial<Record<HypothesisCriterionKey, number>> = {}
+    for (const key of chartCriteria) {
+      const vals = hypothesis.dynamics
+        .map((point) => point.values?.[key])
+        .filter((value): value is number => value != null && Number.isFinite(value))
+      if (vals.length === 0) continue
+      mins[key] = Math.min(...vals)
+      maxs[key] = Math.max(...vals)
+    }
+    return hypothesis.dynamics.map((point) => {
+      const row: Record<string, string | number | null> = {
+        date: dayjs(point.date).format('DD.MM'),
+        fullDate: point.date,
+      }
+      for (const key of chartCriteria) {
+        const raw = point.values?.[key]
+        row[`${key}_raw`] = raw ?? null
+        if (raw == null || !Number.isFinite(raw)) {
+          row[key] = null
+          continue
+        }
+        const min = mins[key]
+        const max = maxs[key]
+        if (min == null || max == null) {
+          row[key] = null
+        } else if (max === min) {
+          row[key] = 50
+        } else {
+          row[key] = ((raw - min) / (max - min)) * 100
+        }
+      }
+      return row
+    })
+  }, [hypothesis, chartCriteria])
 
   const checkStartLabel = hypothesis ? dayjs(hypothesis.checkFrom).format('DD.MM') : ''
 
@@ -405,19 +436,54 @@ export default function HypothesisDetail() {
         </div>
 
         <div style={{ background: colors.bgWhite, border: `1px solid ${colors.border}`, borderRadius: 12, padding: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 12 }}>Динамика показателей</div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Динамика показателей</div>
+          <div style={{ color: colors.textMuted, fontSize: 12, marginBottom: 12 }}>
+            Каждый показатель нормирован по своему диапазону (0–100), чтобы сравнивать форму динамики на разных шкалах.
+            В подсказке — исходные значения.
+          </div>
           <div style={{ width: '100%', height: 320 }}>
             <ResponsiveContainer>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={colors.borderLight} />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
+                <YAxis
+                  domain={[0, 100]}
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(value) => `${value}`}
+                  width={36}
+                />
+                <Tooltip
+                  content={({ active, label, payload }) => {
+                    if (!active || !payload?.length) return null
+                    return (
+                      <div
+                        style={{
+                          background: colors.bgWhite,
+                          border: `1px solid ${colors.border}`,
+                          borderRadius: 8,
+                          padding: '8px 10px',
+                          fontSize: 12,
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, marginBottom: 6 }}>{label}</div>
+                        {payload.map((entry) => {
+                          const key = String(entry.dataKey)
+                          const raw = (entry.payload as Record<string, number | null | undefined>)[`${key}_raw`]
+                          return (
+                            <div key={key} style={{ color: entry.color, marginTop: 2 }}>
+                              {entry.name}: {formatMetric(raw)}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  }}
+                />
                 <Legend />
                 {checkStartLabel && (
                   <ReferenceLine x={checkStartLabel} stroke={colors.textMuted} strokeDasharray="4 4" />
                 )}
-                {(hypothesis.criteria || []).map((key, index) => (
+                {chartCriteria.map((key, index) => (
                   <Line
                     key={key}
                     type="monotone"
@@ -426,6 +492,7 @@ export default function HypothesisDetail() {
                     stroke={LINE_COLORS[index % LINE_COLORS.length]}
                     dot={false}
                     strokeWidth={2}
+                    connectNulls={false}
                   />
                 ))}
               </LineChart>

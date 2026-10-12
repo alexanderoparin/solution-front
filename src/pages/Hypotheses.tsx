@@ -68,24 +68,61 @@ function CriteriaCell({ criteria }: { criteria: HypothesisCriterionKey[] }) {
   const labels = criteria.map(
     (key) => HYPOTHESIS_CRITERIA.find((c) => c.key === key)?.label ?? key,
   )
-  const visible = labels.slice(0, 3)
-  const rest = labels.slice(3)
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 52, overflow: 'hidden' }}>
-      {visible.map((label) => (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+      {labels.map((label) => (
         <Tag key={label} style={{ margin: 0 }}>
           {label}
         </Tag>
       ))}
-      {rest.length > 0 && (
-        <Dropdown
-          menu={{
-            items: rest.map((label) => ({ key: label, label })),
-          }}
-        >
-          <Tag style={{ margin: 0, cursor: 'pointer' }}>+{rest.length}</Tag>
-        </Dropdown>
-      )}
+    </div>
+  )
+}
+
+function formatResultNumber(value: number | null | undefined): string {
+  if (value == null) return '—'
+  return Number(value).toLocaleString('ru-RU', { maximumFractionDigits: 2 })
+}
+
+function formatSignedChange(value: number | null | undefined): string {
+  if (value == null) return '—'
+  const abs = Math.abs(value).toLocaleString('ru-RU', { maximumFractionDigits: 2 })
+  if (value > 0) return `+${abs}`
+  if (value < 0) return `−${abs}`
+  return abs
+}
+
+function ResultCell({ row }: { row: Hypothesis }) {
+  const resultsByKey = new Map(
+    (row.criterionResults ?? []).map((item) => [item.key, item]),
+  )
+  const keys =
+    row.criteria.length > 0
+      ? row.criteria
+      : (row.criterionResults ?? []).map((item) => item.key as HypothesisCriterionKey)
+
+  if (keys.length === 0) return <span>—</span>
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12, lineHeight: 1.35 }}>
+      {keys.map((key) => {
+        const item = resultsByKey.get(key)
+        const label = item?.label ?? HYPOTHESIS_CRITERIA.find((c) => c.key === key)?.label ?? key
+        if (item == null || item.check == null || item.change == null) {
+          return (
+            <div key={key} style={{ whiteSpace: 'nowrap', color: colors.textMuted }}>
+              {label} —
+            </div>
+          )
+        }
+        const arrow =
+          item.improved === true ? '↑' : item.improved === false ? '↓' : '→'
+        return (
+          <div key={key} style={{ whiteSpace: 'nowrap' }}>
+            {label} {formatResultNumber(item.check)} {arrow} {formatSignedChange(item.change)}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -212,6 +249,7 @@ export default function Hypotheses() {
       {
         title: '',
         width: 48,
+        fixed: 'left',
         render: (_, row) => (
           <Checkbox
             checked={selectedIds.includes(row.id)}
@@ -226,6 +264,8 @@ export default function Hypotheses() {
       {
         title: 'Название',
         dataIndex: 'title',
+        width: 220,
+        ellipsis: true,
         render: (_, row) => (
           <Link to={`/analytics/hypotheses/${row.id}`} style={{ color: colors.textPrimary }}>
             <div style={{ fontWeight: 600 }}>{row.title}</div>
@@ -248,7 +288,7 @@ export default function Hypotheses() {
       },
       {
         title: 'Артикул',
-        width: 160,
+        width: 150,
         render: (_, row) => (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {row.nmPhotoUrl ? (
@@ -266,40 +306,44 @@ export default function Hypotheses() {
       },
       {
         title: 'Критерии',
-        width: 200,
+        width: 240,
         render: (_, row) => <CriteriaCell criteria={row.criteria} />,
       },
       {
         title: 'Период проверки',
-        width: 150,
+        width: 110,
         render: (_, row) => (
-          <span style={{ whiteSpace: 'nowrap' }}>
-            {dayjs(row.checkFrom).format('DD.MM.YYYY')} — {dayjs(row.checkTo).format('DD.MM.YYYY')}
-          </span>
+          <div style={{ lineHeight: 1.35, fontSize: 12 }}>
+            <div>{dayjs(row.checkFrom).format('DD.MM.YYYY')}</div>
+            <div>{dayjs(row.checkTo).format('DD.MM.YYYY')}</div>
+          </div>
         ),
       },
       {
         title: 'Статус',
-        width: 140,
+        width: 130,
         render: (_, row) => (
-          <Tag color={statusColor(row.displayStatus)}>
+          <Tag color={statusColor(row.displayStatus)} style={{ marginInlineEnd: 0 }}>
             {HYPOTHESIS_STATUS_LABELS[row.displayStatus]}
           </Tag>
         ),
       },
       {
         title: 'Результат',
-        ellipsis: true,
-        render: (_, row) => row.resultSummary || '—',
+        width: 220,
+        render: (_, row) => <ResultCell row={row} />,
       },
       {
         title: 'Дата создания',
         width: 120,
-        render: (_, row) => dayjs(row.createdAt).format('DD.MM.YYYY'),
+        render: (_, row) => (
+          <span style={{ whiteSpace: 'nowrap' }}>{dayjs(row.createdAt).format('DD.MM.YYYY')}</span>
+        ),
       },
       {
         title: 'Действия',
         width: 100,
+        fixed: 'right',
         render: (_, row) => (
           <Dropdown
             menu={{
@@ -476,6 +520,8 @@ export default function Hypotheses() {
             columns={columns}
             dataSource={listQuery.data || []}
             pagination={{ pageSize: 20 }}
+            scroll={{ x: 1338 }}
+            tableLayout="fixed"
             onRow={(row) => ({
               onDoubleClick: () => navigate(`/analytics/hypotheses/${row.id}`),
             })}
