@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Button,
@@ -53,6 +53,13 @@ import HypothesisFormModal from '../components/hypothesis/HypothesisFormModal'
 dayjs.locale('ru')
 
 const LINE_COLORS = ['#7C3AED', '#2563EB', '#16A34A', '#EA580C', '#DB2777', '#0891B2', '#CA8A04', '#4B5563']
+const ACCENT = '#7C3AED'
+
+function criterionColor(key: string, index = 0): string {
+  const ordered = HYPOTHESIS_CRITERIA.findIndex((c) => c.key === key)
+  const i = ordered >= 0 ? ordered : index
+  return LINE_COLORS[i % LINE_COLORS.length]
+}
 
 function formatMetric(value: number | null | undefined): string {
   if (value == null) return '—'
@@ -60,9 +67,75 @@ function formatMetric(value: number | null | undefined): string {
 }
 
 function CriterionResultIcon({ improved }: { improved: boolean | null | undefined }) {
-  if (improved === true) return <CheckOutlined style={{ color: colors.success }} />
-  if (improved === false) return <MinusOutlined style={{ color: colors.textMuted }} />
+  const base: CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 28,
+    height: 28,
+    borderRadius: '50%',
+    fontSize: 12,
+  }
+  if (improved === true) {
+    return (
+      <span style={{ ...base, background: colors.successLight, color: colors.success }}>
+        <CheckOutlined />
+      </span>
+    )
+  }
+  if (improved === false) {
+    return (
+      <span style={{ ...base, background: colors.errorLight, color: colors.error }}>
+        <MinusOutlined />
+      </span>
+    )
+  }
   return <span style={{ color: colors.textMuted }}>—</span>
+}
+
+function SectionCard({
+  title,
+  accent,
+  children,
+  style,
+}: {
+  title?: string
+  accent?: string
+  children: ReactNode
+  style?: CSSProperties
+}) {
+  const bar = accent ?? ACCENT
+  return (
+    <div
+      style={{
+        background: colors.bgWhite,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 12,
+        padding: 16,
+        boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+        position: 'relative',
+        overflow: 'hidden',
+        ...style,
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 4,
+          background: bar,
+        }}
+      />
+      {title ? (
+        <div style={{ fontWeight: 600, marginBottom: 12, paddingLeft: 8, color: colors.textPrimary }}>
+          {title}
+        </div>
+      ) : null}
+      <div style={{ paddingLeft: title ? 8 : 8 }}>{children}</div>
+    </div>
+  )
 }
 
 export default function HypothesisDetail() {
@@ -244,11 +317,22 @@ export default function HypothesisDetail() {
   const displaySuccess = hypothesis.displayStatus === 'SUCCESS'
   const displayFailure = hypothesis.displayStatus === 'FAILURE'
 
+  const resultLabel = displaySuccess
+    ? 'Успешно'
+    : displayFailure
+      ? 'Неуспешно'
+      : HYPOTHESIS_STATUS_LABELS[hypothesis.displayStatus]
+  const resultTone = displaySuccess
+    ? { bg: 'linear-gradient(145deg, #ECFDF5 0%, #D1FAE5 100%)', border: '#6EE7B7', color: '#047857' }
+    : displayFailure
+      ? { bg: 'linear-gradient(145deg, #FEF2F2 0%, #FECACA 100%)', border: '#FCA5A5', color: '#B91C1C' }
+      : { bg: 'linear-gradient(145deg, #F5F3FF 0%, #DDD6FE 100%)', border: '#C4B5FD', color: '#5B21B6' }
+
   return pageShell(
     <>
         <Link
           to="/analytics/hypotheses"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 12, color: colors.textSecondary }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 12, color: ACCENT }}
         >
           <ArrowLeftOutlined /> Назад к списку
         </Link>
@@ -259,7 +343,14 @@ export default function HypothesisDetail() {
               <img
                 src={hypothesis.nmPhotoUrl}
                 alt=""
-                style={{ width: 56, height: 74, objectFit: 'cover', borderRadius: 8 }}
+                style={{
+                  width: 56,
+                  height: 74,
+                  objectFit: 'cover',
+                  borderRadius: 8,
+                  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.18)',
+                  border: `2px solid ${colors.primaryLight}`,
+                }}
               />
             ) : null}
             <div>
@@ -282,20 +373,22 @@ export default function HypothesisDetail() {
                 >
                   <Tag
                     color={displaySuccess ? 'success' : displayFailure ? 'error' : 'processing'}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', fontWeight: 600 }}
                   >
                     {HYPOTHESIS_STATUS_LABELS[hypothesis.displayStatus]}
                   </Tag>
                 </Dropdown>
               </Space>
-              <h1 style={{ margin: 0, fontSize: 26 }}>{hypothesis.title}</h1>
-              {hypothesis.description && (
-                <p style={{ margin: '8px 0 0', color: colors.textSecondary }}>{hypothesis.description}</p>
-              )}
+              <h1 style={{ margin: 0, fontSize: 26, color: colors.textPrimary }}>{hypothesis.title}</h1>
             </div>
           </div>
           <Space>
-            <Button icon={<EditOutlined />} onClick={() => setFormOpen(true)}>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => setFormOpen(true)}
+              style={{ background: ACCENT, borderColor: ACCENT }}
+            >
               Редактировать
             </Button>
             <Dropdown
@@ -328,33 +421,33 @@ export default function HypothesisDetail() {
             marginBottom: 16,
           }}
         >
+          <SectionCard accent="#6366F1">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: 10,
+              }}
+            >
+              <Meta label="Артикул" value={String(hypothesis.nmId)} tint="#EEF2FF" />
+              <Meta label="Категория" value={hypothesis.categoryName || '—'} tint="#F0FDF4" />
+              <Meta label="Автор гипотезы" value={hypothesis.createdByName || '—'} tint="#FDF4FF" />
+              <Meta label="Дата создания" value={dayjs(hypothesis.createdAt).format('DD.MM.YYYY')} tint="#FFF7ED" />
+              <Meta
+                label="Период проверки"
+                value={`${dayjs(hypothesis.checkFrom).format('DD.MM.YYYY')} — ${dayjs(hypothesis.checkTo).format('DD.MM.YYYY')}`}
+                tint="#ECFEFF"
+              />
+              <Meta
+                label="Начальные данные"
+                value={`${dayjs(hypothesis.baselineFrom).format('DD.MM.YYYY')} — ${dayjs(hypothesis.baselineTo).format('DD.MM.YYYY')}`}
+                tint="#FEF3C7"
+              />
+            </div>
+          </SectionCard>
           <div
             style={{
-              background: colors.bgWhite,
-              border: `1px solid ${colors.border}`,
-              borderRadius: 12,
-              padding: 16,
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-              gap: 12,
-            }}
-          >
-            <Meta label="Артикул" value={String(hypothesis.nmId)} />
-            <Meta label="Категория" value={hypothesis.categoryName || '—'} />
-            <Meta label="Автор гипотезы" value={hypothesis.createdByName || '—'} />
-            <Meta label="Дата создания" value={dayjs(hypothesis.createdAt).format('DD.MM.YYYY')} />
-            <Meta
-              label="Период проверки"
-              value={`${dayjs(hypothesis.checkFrom).format('DD.MM.YYYY')} — ${dayjs(hypothesis.checkTo).format('DD.MM.YYYY')}`}
-            />
-            <Meta
-              label="Начальные данные"
-              value={`${dayjs(hypothesis.baselineFrom).format('DD.MM.YYYY')} — ${dayjs(hypothesis.baselineTo).format('DD.MM.YYYY')}`}
-            />
-          </div>
-          <div
-            style={{
-              background: displaySuccess ? '#ECFDF5' : displayFailure ? '#FEF2F2' : '#F5F3FF',
+              background: resultTone.bg,
               borderRadius: 12,
               padding: 16,
               display: 'flex',
@@ -362,12 +455,15 @@ export default function HypothesisDetail() {
               justifyContent: 'center',
               alignItems: 'center',
               textAlign: 'center',
-              border: `1px solid ${colors.border}`,
+              border: `1px solid ${resultTone.border}`,
+              boxShadow: '0 4px 14px rgba(91, 33, 182, 0.08)',
+              minHeight: 120,
             }}
           >
-            <div style={{ fontWeight: 700, fontSize: 16 }}>
-              Результат: {displaySuccess ? 'Успешно' : displayFailure ? 'Неуспешно' : HYPOTHESIS_STATUS_LABELS[hypothesis.displayStatus]}
+            <div style={{ fontSize: 12, fontWeight: 600, color: resultTone.color, opacity: 0.85, marginBottom: 6 }}>
+              Результат
             </div>
+            <div style={{ fontWeight: 800, fontSize: 20, color: resultTone.color }}>{resultLabel}</div>
           </div>
         </div>
 
@@ -379,31 +475,58 @@ export default function HypothesisDetail() {
             marginBottom: 16,
           }}
         >
-          <div style={{ background: colors.bgWhite, border: `1px solid ${colors.border}`, borderRadius: 12, padding: 16 }}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Описание гипотезы</div>
+          <SectionCard title="Описание гипотезы" accent="#8B5CF6">
             <div style={{ color: colors.textSecondary, whiteSpace: 'pre-wrap' }}>
               {hypothesis.description || '—'}
             </div>
-          </div>
-          <div style={{ background: colors.bgWhite, border: `1px solid ${colors.border}`, borderRadius: 12, padding: 16 }}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Выбранные критерии</div>
+          </SectionCard>
+          <SectionCard title="Выбранные критерии" accent="#06B6D4">
             <Space wrap>
-              {hypothesis.criteria.map((key) => (
-                <Tag key={key}>{HYPOTHESIS_CRITERIA.find((c) => c.key === key)?.label ?? key}</Tag>
-              ))}
+              {hypothesis.criteria.map((key, index) => {
+                const color = criterionColor(key, index)
+                return (
+                  <Tag
+                    key={key}
+                    style={{
+                      margin: 0,
+                      color,
+                      background: `${color}18`,
+                      borderColor: `${color}55`,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {HYPOTHESIS_CRITERIA.find((c) => c.key === key)?.label ?? key}
+                  </Tag>
+                )
+              })}
             </Space>
-          </div>
+          </SectionCard>
         </div>
 
-        <div style={{ background: colors.bgWhite, border: `1px solid ${colors.border}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 12 }}>Результаты по критериям</div>
+        <SectionCard title="Результаты по критериям" accent="#10B981" style={{ marginBottom: 16 }}>
           <Table
             rowKey="key"
             pagination={false}
             size="middle"
             dataSource={hypothesis.criterionResults || []}
             columns={[
-              { title: 'Критерий', dataIndex: 'label' },
+              {
+                title: 'Критерий',
+                render: (_, row: HypothesisCriterionValue) => (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: criterionColor(row.key),
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span style={{ fontWeight: 600 }}>{row.label}</span>
+                  </span>
+                ),
+              },
               {
                 title: `Начальные данные (${dayjs(hypothesis.baselineFrom).format('DD.MM')}–${dayjs(hypothesis.baselineTo).format('DD.MM')})`,
                 render: (_, row: HypothesisCriterionValue) => formatMetric(row.baseline),
@@ -419,7 +542,19 @@ export default function HypothesisDetail() {
                   const sign = row.change > 0 ? '+' : ''
                   const pct =
                     row.changePercent != null ? ` (${sign}${formatMetric(row.changePercent)}%)` : ''
-                  return `${sign}${formatMetric(row.change)}${pct}`
+                  const tone =
+                    row.improved === true
+                      ? colors.success
+                      : row.improved === false
+                        ? colors.error
+                        : colors.textPrimary
+                  return (
+                    <span style={{ color: tone, fontWeight: 600 }}>
+                      {sign}
+                      {formatMetric(row.change)}
+                      {pct}
+                    </span>
+                  )
                 },
               },
               {
@@ -433,10 +568,9 @@ export default function HypothesisDetail() {
           <div style={{ marginTop: 8, color: colors.textMuted, fontSize: 12 }}>
             Сравнение одинаковых по длительности периодов: до проверки и период проверки.
           </div>
-        </div>
+        </SectionCard>
 
-        <div style={{ background: colors.bgWhite, border: `1px solid ${colors.border}`, borderRadius: 12, padding: 16 }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Динамика показателей</div>
+        <SectionCard title="Динамика показателей" accent="#F59E0B">
           <div style={{ color: colors.textMuted, fontSize: 12, marginBottom: 12 }}>
             Каждый показатель нормирован по своему диапазону (0–100), чтобы сравнивать форму динамики на разных шкалах.
             В подсказке — исходные значения.
@@ -498,7 +632,7 @@ export default function HypothesisDetail() {
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </SectionCard>
 
       <HypothesisFormModal
         open={formOpen}
@@ -514,11 +648,26 @@ export default function HypothesisDetail() {
   )
 }
 
-function Meta({ label, value }: { label: string; value: string }) {
+function Meta({
+  label,
+  value,
+  tint,
+}: {
+  label: string
+  value: string
+  tint?: string
+}) {
   return (
-    <div>
-      <div style={{ fontSize: 12, color: colors.textMuted }}>{label}</div>
-      <div style={{ fontWeight: 600 }}>{value}</div>
+    <div
+      style={{
+        background: tint ?? colors.bgGray,
+        borderRadius: 10,
+        padding: '10px 12px',
+        minWidth: 0,
+      }}
+    >
+      <div style={{ fontSize: 11, color: colors.textMuted, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontWeight: 600, color: colors.textPrimary, wordBreak: 'break-word' }}>{value}</div>
     </div>
   )
 }
