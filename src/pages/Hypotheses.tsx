@@ -69,9 +69,9 @@ function CriteriaCell({ criteria }: { criteria: HypothesisCriterionKey[] }) {
     (key) => HYPOTHESIS_CRITERIA.find((c) => c.key === key)?.label ?? key,
   )
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
       {labels.map((label) => (
-        <Tag key={label} style={{ margin: 0 }}>
+        <Tag key={label} style={{ margin: 0, paddingInline: 5, fontSize: 12, lineHeight: '20px' }}>
           {label}
         </Tag>
       ))}
@@ -306,16 +306,16 @@ export default function Hypotheses() {
       },
       {
         title: 'Критерии',
-        width: 240,
+        width: 180,
         render: (_, row) => <CriteriaCell criteria={row.criteria} />,
       },
       {
         title: 'Период проверки',
         width: 110,
         render: (_, row) => (
-          <div style={{ lineHeight: 1.35, fontSize: 12 }}>
-            <div>{dayjs(row.checkFrom).format('DD.MM.YYYY')}</div>
-            <div>{dayjs(row.checkTo).format('DD.MM.YYYY')}</div>
+          <div style={{ lineHeight: 1.4 }}>
+            <div style={{ whiteSpace: 'nowrap' }}>{dayjs(row.checkFrom).format('DD.MM.YYYY')}</div>
+            <div style={{ whiteSpace: 'nowrap' }}>{dayjs(row.checkTo).format('DD.MM.YYYY')}</div>
           </div>
         ),
       },
@@ -520,7 +520,7 @@ export default function Hypotheses() {
             columns={columns}
             dataSource={listQuery.data || []}
             pagination={{ pageSize: 20 }}
-            scroll={{ x: 1338 }}
+            scroll={{ x: 1278 }}
             tableLayout="fixed"
             onRow={(row) => ({
               onDoubleClick: () => navigate(`/analytics/hypotheses/${row.id}`),
