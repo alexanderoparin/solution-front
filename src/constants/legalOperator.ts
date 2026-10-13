@@ -11,9 +11,16 @@ export const LEGAL_OPERATOR = {
   email: 'corp@click-i.ru',
   phone: '+7 (993) 613-02-59',
   phoneTel: '+79936130259',
+  telegram: '@oll_mell',
+  telegramUrl: 'https://t.me/oll_mell',
   site: 'https://click-i.ru',
   /** Название сервиса на сайте (бренд). */
   siteBrandName: 'Clicki',
+  /** Банковские реквизиты для договоров и оплат. */
+  bankName: 'ООО «Банк Точка»',
+  bik: '044525104',
+  checkingAccount: '40802810920000637229',
+  correspondentAccount: '30101810745374525104',
 } as const
 
 /** Дата редакции юридических документов на сайте. */

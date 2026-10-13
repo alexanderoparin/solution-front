@@ -102,6 +102,9 @@ export default function Footer() {
           <a href={`mailto:${CONTACT_EMAIL}`} className="footer-link" style={linkStyle}>
             {CONTACT_EMAIL}
           </a>
+          <Link to="/requisites" className="footer-link" style={linkStyle}>
+            Реквизиты
+          </Link>
         </div>
       </div>
     </footer>

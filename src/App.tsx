@@ -32,6 +32,7 @@ import Privacy from './pages/Privacy'
 import Refund from './pages/Refund'
 import Oferta from './pages/Oferta'
 import UserAgreement from './pages/UserAgreement'
+import Requisites from './pages/Requisites'
 import CabinetDetailPage from './pages/cabinets/CabinetDetailPage'
 import InviteAccept from './pages/InviteAccept'
 import Footer from './components/Footer'
@@ -45,10 +46,25 @@ function AppRoutes() {
   const token = useAuthStore((state) => state.token)
   const location = useLocation()
   const showAppFooter = location.pathname !== '/'
+  /** Юр. страницы короткие — не растягиваем контент, иначе пустота между текстом и футером. */
+  const isLegalPublicPage = [
+    '/requisites',
+    '/privacy',
+    '/user-agreement',
+    '/oferta',
+    '/refund',
+  ].includes(location.pathname)
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div
+        style={{
+          flex: isLegalPublicPage ? undefined : 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+        }}
+      >
         <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -154,6 +170,7 @@ function AppRoutes() {
         <Route path="/refund" element={<Refund />} />
         <Route path="/oferta" element={<Oferta />} />
         <Route path="/user-agreement" element={<UserAgreement />} />
+        <Route path="/requisites" element={<Requisites />} />
         <Route path="/users" element={token ? <Navigate to="/profile" replace /> : <Navigate to="/login" replace />} />
         </Routes>
       </div>

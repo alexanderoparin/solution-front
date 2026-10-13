@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Button, Typography } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 
@@ -9,7 +9,20 @@ interface LegalPageLayoutProps {
   children: React.ReactNode
 }
 
+/**
+ * Общий каркас юридических страниц (политика, соглашение, оферта и т.п.).
+ */
 export default function LegalPageLayout({ title, children }: LegalPageLayoutProps) {
+  const navigate = useNavigate()
+
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1)
+    } else {
+      navigate('/')
+    }
+  }
+
   return (
     <div
       style={{
@@ -19,11 +32,14 @@ export default function LegalPageLayout({ title, children }: LegalPageLayoutProp
       }}
     >
       <div style={{ maxWidth: 1200, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
-        <Link to="/">
-          <Button type="text" icon={<ArrowLeftOutlined />} style={{ marginBottom: 24, color: '#64748B' }}>
-            На главную
-          </Button>
-        </Link>
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={handleBack}
+          style={{ marginBottom: 24, color: '#64748B', paddingLeft: 0 }}
+        >
+          Назад
+        </Button>
         <Title level={2} style={{ color: '#1E293B', marginBottom: 32 }}>
           {title}
         </Title>

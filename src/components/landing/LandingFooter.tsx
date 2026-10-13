@@ -101,6 +101,9 @@ export default function LandingFooter() {
               <a href={`tel:${LEGAL_OPERATOR.phoneTel}`} className="landing-footer-link" style={{ color: landingColors.textOnDarkMuted, textDecoration: 'none' }}>
                 {LEGAL_OPERATOR.phone}
               </a>
+              <Link to="/requisites" className="landing-footer-link" style={{ color: landingColors.textOnDarkMuted, textDecoration: 'none' }}>
+                Реквизиты
+              </Link>
             </div>
           </div>
         </div>
