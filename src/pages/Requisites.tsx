@@ -116,15 +116,15 @@ export default function Requisites() {
             radial-gradient(circle at 72% 58%, rgba(221, 214, 254, 0.75) 0%, transparent 62%);
           filter: blur(6px);
           z-index: 0;
+          pointer-events: none;
         }
         .requisites-page .hero-img {
           position: relative;
-          z-index: 1;
+          z-index: 2;
           width: 100%;
           height: auto;
           display: block;
-          /* чёрный фон PNG становится «прозрачным» без контура от вырезания */
-          mix-blend-mode: lighten;
+          /* картинка поверх фиолетового пятна; чёрный фон вырезан в PNG */
         }
         .requisites-page .card {
           position: relative;
