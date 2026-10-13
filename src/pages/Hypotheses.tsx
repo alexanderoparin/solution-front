@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   Button,
@@ -8,7 +8,6 @@ import {
   Input,
   Modal,
   Select,
-  Space,
   Table,
   Tag,
   message,
@@ -48,6 +47,19 @@ import HypothesisFormModal from '../components/hypothesis/HypothesisFormModal'
 dayjs.locale('ru')
 
 const accent = '#7C3AED'
+
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
 
 function statusColor(status: HypothesisDisplayStatus): string {
   switch (status) {
@@ -127,9 +139,115 @@ function ResultCell({ row }: { row: Hypothesis }) {
   )
 }
 
+function HypothesisMobileCard({
+  row,
+  selected,
+  onToggleSelect,
+  onOpen,
+  onEdit,
+  onDelete,
+}: {
+  row: Hypothesis
+  selected: boolean
+  onToggleSelect: (checked: boolean) => void
+  onOpen: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <div
+      className="hypothesis-mobile-card"
+      onClick={onOpen}
+      style={{
+        border: `1px solid ${colors.border}`,
+        borderRadius: 12,
+        padding: 12,
+        background: colors.bgWhite,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        <Checkbox
+          checked={selected}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => onToggleSelect(e.target.checked)}
+        />
+        {row.nmPhotoUrl ? (
+          <img
+            src={row.nmPhotoUrl}
+            alt=""
+            style={{ width: 40, height: 52, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 40,
+              height: 52,
+              background: colors.bgGray,
+              borderRadius: 6,
+              flexShrink: 0,
+            }}
+          />
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+            <div style={{ fontWeight: 600, color: colors.textPrimary, overflowWrap: 'anywhere' }}>
+              {row.title}
+            </div>
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'edit',
+                    icon: <EditOutlined />,
+                    label: 'Редактировать',
+                    onClick: () => onEdit(),
+                  },
+                  {
+                    key: 'delete',
+                    icon: <DeleteOutlined />,
+                    danger: true,
+                    label: 'Удалить',
+                    onClick: () => onDelete(),
+                  },
+                ],
+              }}
+              trigger={['click']}
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={<MoreOutlined />}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Dropdown>
+          </div>
+          <div style={{ marginTop: 4 }}>
+            <Tag color={statusColor(row.displayStatus)} style={{ margin: 0 }}>
+              {HYPOTHESIS_STATUS_LABELS[row.displayStatus]}
+            </Tag>
+          </div>
+          <div style={{ marginTop: 6, color: colors.textSecondary, fontSize: 13 }}>
+            {row.nmId}
+            {' · '}
+            {dayjs(row.checkFrom).format('DD.MM.YY')}–{dayjs(row.checkTo).format('DD.MM.YY')}
+          </div>
+        </div>
+      </div>
+      <CriteriaCell criteria={row.criteria} />
+      <div style={{ color: colors.textMuted, fontSize: 12 }}>
+        Создано {dayjs(row.createdAt).format('DD.MM.YYYY')}
+      </div>
+    </div>
+  )
+}
+
 export default function Hypotheses() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const isNarrow = useIsNarrow(900)
   const role = useAuthStore((state) => state.role)
   const isAdmin = role === 'ADMIN'
   const workContext = useWorkContextForAdmin(isAdmin)
@@ -380,14 +498,51 @@ export default function Hypotheses() {
     [selectedIds, deleteMutation],
   )
 
+  const rows = listQuery.data || []
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <style>{`
+        @media (max-width: 900px) {
+          .hypotheses-shell {
+            padding: 12px 0 !important;
+          }
+          .hypotheses-panel {
+            padding: 12px !important;
+          }
+          .hypotheses-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .hypotheses-toolbar .ant-btn {
+            width: 100%;
+          }
+          .hypotheses-filters {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px !important;
+            width: 100%;
+          }
+          .hypotheses-filters .hypotheses-filter-search,
+          .hypotheses-filters .hypotheses-filter-period,
+          .hypotheses-filters .hypotheses-filter-bulk {
+            grid-column: 1 / -1;
+          }
+          .hypotheses-filters .ant-select,
+          .hypotheses-filters .ant-picker,
+          .hypotheses-filters .ant-input-affix-wrapper {
+            width: 100% !important;
+          }
+        }
+      `}</style>
       <Header
         workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
         cabinetSelectProps={cabinetSelectProps}
       />
       <Breadcrumbs />
       <div
+        className="hypotheses-shell"
         style={{
           flex: 1,
           minHeight: 0,
@@ -399,6 +554,7 @@ export default function Hypotheses() {
         }}
       >
         <div
+          className="hypotheses-panel"
           style={{
             flex: 1,
             minHeight: 0,
@@ -414,6 +570,7 @@ export default function Hypotheses() {
           }}
         >
           <div
+            className="hypotheses-toolbar"
             style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -427,13 +584,15 @@ export default function Hypotheses() {
               style={{
                 margin: 0,
                 color: colors.textSecondary,
-                alignSelf: 'center',
+                alignSelf: isNarrow ? 'flex-start' : 'center',
                 display: 'inline-flex',
-                alignItems: 'center',
+                alignItems: 'flex-start',
                 gap: 8,
+                fontSize: isNarrow ? 13 : undefined,
+                lineHeight: 1.4,
               }}
             >
-              <ExperimentOutlined style={{ color: accent, fontSize: 18 }} />
+              <ExperimentOutlined style={{ color: accent, fontSize: 18, marginTop: 2 }} />
               Проверяйте идеи, находите рабочие решения, растите продажи
             </p>
             <Button
@@ -450,19 +609,30 @@ export default function Hypotheses() {
             </Button>
           </div>
 
-          <Space wrap style={{ width: '100%', marginBottom: spacing.md }}>
+          <div
+            className="hypotheses-filters"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 8,
+              width: '100%',
+              marginBottom: spacing.md,
+              alignItems: 'center',
+            }}
+          >
             <Input
+              className="hypotheses-filter-search"
               allowClear
               prefix={<SearchOutlined style={{ color: colors.textMuted }} />}
-              placeholder="Поиск по артикулу, названию или описанию..."
+              placeholder={isNarrow ? 'Поиск...' : 'Поиск по артикулу, названию или описанию...'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ width: 320, maxWidth: '100%' }}
+              style={{ width: isNarrow ? '100%' : 320, maxWidth: '100%' }}
             />
             <Select
               allowClear
               placeholder="Все статусы"
-              style={{ width: 180 }}
+              style={{ width: isNarrow ? '100%' : 180 }}
               value={status}
               onChange={setStatus}
               options={Object.entries(HYPOTHESIS_STATUS_LABELS).map(([value, label]) => ({
@@ -475,7 +645,7 @@ export default function Hypotheses() {
               showSearch
               optionFilterProp="label"
               placeholder="Все артикулы"
-              style={{ width: 200 }}
+              style={{ width: isNarrow ? '100%' : 200 }}
               value={nmId}
               onChange={setNmId}
               options={articles.map((a) => ({
@@ -486,22 +656,26 @@ export default function Hypotheses() {
             <Select
               allowClear
               placeholder="Все критерии"
-              style={{ width: 180 }}
+              style={{ width: isNarrow ? '100%' : 180 }}
               value={criterion}
               onChange={setCriterion}
               options={HYPOTHESIS_CRITERIA.map((c) => ({ value: c.key, label: c.label }))}
             />
             <DatePicker.RangePicker
+              className="hypotheses-filter-period"
               locale={locale.DatePicker}
-              format="DD.MM.YYYY"
+              format={isNarrow ? 'DD.MM.YY' : 'DD.MM.YYYY'}
               separator="→"
               inputReadOnly
               value={period}
               onChange={(v) => setPeriod(v)}
+              style={{ width: isNarrow ? '100%' : undefined }}
             />
             {selectedIds.length > 0 && (
               <Button
+                className="hypotheses-filter-bulk"
                 danger
+                block={isNarrow}
                 onClick={() =>
                   Modal.confirm({
                     title: `Удалить выбранные (${selectedIds.length})?`,
@@ -512,20 +686,58 @@ export default function Hypotheses() {
                 Удалить выбранные
               </Button>
             )}
-          </Space>
+          </div>
 
-          <Table
-            rowKey="id"
-            loading={listQuery.isLoading}
-            columns={columns}
-            dataSource={listQuery.data || []}
-            pagination={{ pageSize: 20 }}
-            scroll={{ x: 1278 }}
-            tableLayout="fixed"
-            onRow={(row) => ({
-              onDoubleClick: () => navigate(`/analytics/hypotheses/${row.id}`),
-            })}
-          />
+          {isNarrow ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {listQuery.isLoading ? (
+                <div style={{ padding: 24, textAlign: 'center', color: colors.textSecondary }}>
+                  Загрузка…
+                </div>
+              ) : rows.length === 0 ? (
+                <div style={{ padding: 24, textAlign: 'center', color: colors.textSecondary }}>
+                  Нет гипотез
+                </div>
+              ) : (
+                rows.map((row) => (
+                  <HypothesisMobileCard
+                    key={row.id}
+                    row={row}
+                    selected={selectedIds.includes(row.id)}
+                    onToggleSelect={(checked) => {
+                      setSelectedIds((prev) =>
+                        checked ? [...prev, row.id] : prev.filter((id) => id !== row.id),
+                      )
+                    }}
+                    onOpen={() => navigate(`/analytics/hypotheses/${row.id}`)}
+                    onEdit={() => {
+                      setEditing(row)
+                      setFormOpen(true)
+                    }}
+                    onDelete={() => {
+                      Modal.confirm({
+                        title: 'Удалить гипотезу?',
+                        onOk: () => deleteMutation.mutateAsync(row.id),
+                      })
+                    }}
+                  />
+                ))
+              )}
+            </div>
+          ) : (
+            <Table
+              rowKey="id"
+              loading={listQuery.isLoading}
+              columns={columns}
+              dataSource={rows}
+              pagination={{ pageSize: 20 }}
+              scroll={{ x: 1278 }}
+              tableLayout="fixed"
+              onRow={(row) => ({
+                onDoubleClick: () => navigate(`/analytics/hypotheses/${row.id}`),
+              })}
+            />
+          )}
         </div>
       </div>
 

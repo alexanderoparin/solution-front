@@ -183,12 +183,48 @@ export default function HypothesisDetail() {
 
   const pageShell = (children: ReactNode) => (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <style>{`
+        @media (max-width: 900px) {
+          .hypothesis-detail-shell {
+            padding: 12px 0 !important;
+          }
+          .hypothesis-detail-panel {
+            padding: 12px !important;
+          }
+          .hypothesis-detail-head {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .hypothesis-detail-actions {
+            width: 100%;
+            display: flex;
+          }
+          .hypothesis-detail-actions .ant-btn {
+            flex: 1;
+          }
+          .hypothesis-detail-meta-row,
+          .hypothesis-detail-mid-row {
+            grid-template-columns: 1fr !important;
+          }
+          .hypothesis-detail-meta-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+          .hypothesis-detail-result {
+            min-height: 88px !important;
+          }
+          .hypothesis-detail-table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+        }
+      `}</style>
       <Header
         workContextCabinetSelect={isAdmin ? workContext.workContextCabinetSelectProps : undefined}
         cabinetSelectProps={cabinetSelectProps}
       />
       <Breadcrumbs />
       <div
+        className="hypothesis-detail-shell"
         style={{
           flex: 1,
           minHeight: 0,
@@ -200,6 +236,7 @@ export default function HypothesisDetail() {
         }}
       >
         <div
+          className="hypothesis-detail-panel"
           style={{
             flex: 1,
             minHeight: 0,
@@ -337,7 +374,10 @@ export default function HypothesisDetail() {
           <ArrowLeftOutlined /> Назад к списку
         </Link>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
+        <div
+          className="hypothesis-detail-head"
+          style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}
+        >
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
             {hypothesis.nmPhotoUrl ? (
               <img
@@ -382,7 +422,7 @@ export default function HypothesisDetail() {
               <h1 style={{ margin: 0, fontSize: 26, color: colors.textPrimary }}>{hypothesis.title}</h1>
             </div>
           </div>
-          <Space>
+          <Space className="hypothesis-detail-actions">
             <Button
               type="primary"
               icon={<EditOutlined />}
@@ -414,6 +454,7 @@ export default function HypothesisDetail() {
         </div>
 
         <div
+          className="hypothesis-detail-meta-row"
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 220px',
@@ -423,6 +464,7 @@ export default function HypothesisDetail() {
         >
           <SectionCard accent="#6366F1">
             <div
+              className="hypothesis-detail-meta-grid"
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -446,6 +488,7 @@ export default function HypothesisDetail() {
             </div>
           </SectionCard>
           <div
+            className="hypothesis-detail-result"
             style={{
               background: resultTone.bg,
               borderRadius: 12,
@@ -468,6 +511,7 @@ export default function HypothesisDetail() {
         </div>
 
         <div
+          className="hypothesis-detail-mid-row"
           style={{
             display: 'grid',
             gridTemplateColumns: '1.4fr 1fr',
@@ -504,10 +548,12 @@ export default function HypothesisDetail() {
         </div>
 
         <SectionCard title="Результаты по критериям" accent="#10B981" style={{ marginBottom: 16 }}>
+          <div className="hypothesis-detail-table-wrap">
           <Table
             rowKey="key"
             pagination={false}
             size="middle"
+            scroll={{ x: 640 }}
             dataSource={hypothesis.criterionResults || []}
             columns={[
               {
@@ -565,6 +611,7 @@ export default function HypothesisDetail() {
               },
             ]}
           />
+          </div>
           <div style={{ marginTop: 8, color: colors.textMuted, fontSize: 12 }}>
             Сравнение одинаковых по длительности периодов: до проверки и период проверки.
           </div>

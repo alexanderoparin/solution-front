@@ -14,6 +14,19 @@ import {
 
 dayjs.locale('ru')
 
+function useIsNarrow(maxWidthPx = 900): boolean {
+  const [narrow, setNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(`(max-width: ${maxWidthPx}px)`).matches : false,
+  )
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(`(max-width: ${maxWidthPx}px)`)
+    const onChange = () => setNarrow(mediaQuery.matches)
+    mediaQuery.addEventListener('change', onChange)
+    return () => mediaQuery.removeEventListener('change', onChange)
+  }, [maxWidthPx])
+  return narrow
+}
+
 interface HypothesisFormModalProps {
   open: boolean
   initial: Hypothesis | null
@@ -31,6 +44,7 @@ export default function HypothesisFormModal({
   onCancel,
   onSubmit,
 }: HypothesisFormModalProps) {
+  const isNarrow = useIsNarrow(900)
   const [nmId, setNmId] = useState<number | undefined>()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -84,10 +98,18 @@ export default function HypothesisFormModal({
         disabled: nmId == null || !title.trim() || !period?.[0] || !period?.[1] || criteria.length === 0,
         style: { background: '#7C3AED' },
       }}
-      width={820}
+      width={isNarrow ? 'calc(100vw - 24px)' : 820}
+      styles={isNarrow ? { body: { maxHeight: '70vh', overflowY: 'auto' } } : undefined}
       destroyOnClose
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: isNarrow ? '1fr' : '1fr 1fr',
+          gap: isNarrow ? 8 : 24,
+          alignItems: 'start',
+        }}
+      >
         <Form layout="vertical" style={{ minWidth: 0 }}>
           <Form.Item label="Артикул" required>
             <Select
@@ -225,8 +247,8 @@ export default function HypothesisFormModal({
               </span>
               <DatePicker.RangePicker
                 locale={locale.DatePicker}
-                style={{ width: 220, maxWidth: '100%', flex: '0 0 auto' }}
-                format="DD.MM.YYYY"
+                style={{ width: isNarrow ? '100%' : 220, maxWidth: '100%', flex: isNarrow ? '1 1 auto' : '0 0 auto' }}
+                format={isNarrow ? 'DD.MM.YY' : 'DD.MM.YYYY'}
                 separator="→"
                 allowClear={false}
                 inputReadOnly
