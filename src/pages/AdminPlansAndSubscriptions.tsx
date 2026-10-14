@@ -21,7 +21,13 @@ import {
 import { PlusOutlined, EditOutlined, CreditCardOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminApi } from '../api/admin'
-import type { PlanDto, SubscriptionDto, PaymentDto, CabinetBillingOverviewDto } from '../types/api'
+import type {
+  PlanDto,
+  SubscriptionDto,
+  PaymentDto,
+  AdminPaymentDto,
+  CabinetBillingOverviewDto,
+} from '../types/api'
 import { getPaymentStatusLabel, getPaymentStatusColor, getSubscriptionStatusLabel } from '../utils/paymentStatus'
 import { useAuthStore } from '../store/authStore'
 import dayjs from 'dayjs'
@@ -128,6 +134,11 @@ export default function AdminPlansAndSubscriptions() {
   const [billingSortDir, setBillingSortDir] = useState<'ASC' | 'DESC'>('DESC')
   const [detailRow, setDetailRow] = useState<CabinetBillingOverviewDto | null>(null)
   const [extendCabinetLabel, setExtendCabinetLabel] = useState('')
+  const [paymentsPage, setPaymentsPage] = useState(0)
+  const [paymentsPageSize, setPaymentsPageSize] = useState(20)
+  const [paymentsEmailInput, setPaymentsEmailInput] = useState('')
+  const [paymentsEmail, setPaymentsEmail] = useState('')
+  const [paymentsStatus, setPaymentsStatus] = useState<string | undefined>(undefined)
 
   if (role !== 'ADMIN') {
     navigate('/profile', { replace: true })
@@ -177,6 +188,23 @@ export default function AdminPlansAndSubscriptions() {
     enabled: detailRow?.sellerId != null,
   })
 
+  const {
+    data: paymentsListPage,
+    isLoading: paymentsListLoading,
+    isFetching: paymentsListFetching,
+  } = useQuery({
+    queryKey: ['adminPaymentsList', paymentsPage, paymentsPageSize, paymentsEmail, paymentsStatus],
+    queryFn: () =>
+      adminApi.getPayments({
+        page: paymentsPage,
+        size: paymentsPageSize,
+        email: paymentsEmail || undefined,
+        status: paymentsStatus,
+      }),
+  })
+
+  const paymentsListRows = paymentsListPage?.content ?? []
+
   const createPlanMutation = useMutation({
     mutationFn: (data: Parameters<typeof adminApi.createPlan>[0]) => adminApi.createPlan(data),
     onSuccess: () => {
@@ -212,6 +240,7 @@ export default function AdminPlansAndSubscriptions() {
       queryClient.invalidateQueries({ queryKey: ['adminCabinetsBilling'] })
       queryClient.invalidateQueries({ queryKey: ['adminCabinetSubscriptions'] })
       queryClient.invalidateQueries({ queryKey: ['adminPayments'] })
+      queryClient.invalidateQueries({ queryKey: ['adminPaymentsList'] })
     },
     onError: (e: { response?: { data?: { message?: string } } }) =>
       message.error(e.response?.data?.message || 'Ошибка продления подписки'),
@@ -499,6 +528,77 @@ export default function AdminPlansAndSubscriptions() {
     },
   ]
 
+  const paymentsListColumns = [
+    { title: 'ID', dataIndex: 'id', key: 'id', width: 70, align: 'left' as const },
+    {
+      title: 'Дата',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 150,
+      align: 'left' as const,
+      render: (v: string) => dayjs(v).format('DD.MM.YYYY HH:mm'),
+    },
+    {
+      title: 'Email',
+      dataIndex: 'userEmail',
+      key: 'userEmail',
+      ellipsis: true,
+      width: 200,
+      align: 'left' as const,
+      render: (v: string | null) => v ?? '—',
+    },
+    {
+      title: 'Кабинет',
+      dataIndex: 'cabinetName',
+      key: 'cabinetName',
+      ellipsis: true,
+      width: 160,
+      align: 'left' as const,
+      render: (v: string | null) => v ?? '—',
+    },
+    {
+      title: 'Тариф',
+      dataIndex: 'planName',
+      key: 'planName',
+      ellipsis: true,
+      width: 140,
+      align: 'left' as const,
+      render: (v: string | null) => v ?? '—',
+    },
+    {
+      title: 'Сумма',
+      key: 'amount',
+      width: 120,
+      align: 'left' as const,
+      render: (_: unknown, r: AdminPaymentDto) => `${Number(r.amount).toFixed(2)} ${r.currency}`,
+    },
+    {
+      title: 'Статус',
+      dataIndex: 'status',
+      key: 'status',
+      width: 120,
+      align: 'left' as const,
+      render: (s: string) => <Tag color={getPaymentStatusColor(s)}>{getPaymentStatusLabel(s)}</Tag>,
+    },
+    {
+      title: 'Оплачено',
+      dataIndex: 'paidAt',
+      key: 'paidAt',
+      width: 150,
+      align: 'left' as const,
+      render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm') : '—'),
+    },
+    {
+      title: 'External ID',
+      dataIndex: 'externalId',
+      key: 'externalId',
+      ellipsis: true,
+      width: 160,
+      align: 'left' as const,
+      render: (v: string | null) => v ?? '—',
+    },
+  ]
+
   return (
     <>
       <style>{`
@@ -670,6 +770,161 @@ export default function AdminPlansAndSubscriptions() {
                         }}
                       />
                       </div>
+                    </Space>
+                  </Card>
+                ),
+              },
+              {
+                key: 'payments',
+                label: 'Платежи',
+                children: (
+                  <Card>
+                    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                      <div
+                        className="admin-plans-toolbar"
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: 12,
+                          alignItems: 'center',
+                        }}
+                      >
+                        <Input.Search
+                          className="admin-plans-search"
+                          placeholder="Поиск по email"
+                          allowClear
+                          value={paymentsEmailInput}
+                          onChange={(e) => setPaymentsEmailInput(e.target.value)}
+                          onSearch={(value) => {
+                            setPaymentsEmail(value.trim())
+                            setPaymentsPage(0)
+                          }}
+                          style={{ maxWidth: 320, width: '100%' }}
+                        />
+                        <Select
+                          allowClear
+                          placeholder="Статус"
+                          style={{ width: isNarrow ? '100%' : 180 }}
+                          value={paymentsStatus}
+                          onChange={(value) => {
+                            setPaymentsStatus(value)
+                            setPaymentsPage(0)
+                          }}
+                          options={[
+                            { value: 'pending', label: 'В ожидании' },
+                            { value: 'success', label: 'Успешно' },
+                            { value: 'failed', label: 'Ошибка' },
+                            { value: 'refunded', label: 'Возврат' },
+                          ]}
+                        />
+                      </div>
+                      {isNarrow ? (
+                        <Space direction="vertical" style={{ width: '100%' }} size={0}>
+                          {(paymentsListLoading || paymentsListFetching) && paymentsListRows.length === 0 ? (
+                            <Typography.Text type="secondary">Загрузка…</Typography.Text>
+                          ) : paymentsListRows.length === 0 ? (
+                            <Typography.Text type="secondary">Платежей нет</Typography.Text>
+                          ) : (
+                            paymentsListRows.map((row) => (
+                              <div
+                                key={row.id}
+                                style={{
+                                  padding: '12px 0',
+                                  borderBottom: '1px solid #E2E8F0',
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    gap: 8,
+                                    marginBottom: 6,
+                                  }}
+                                >
+                                  <Typography.Text strong>
+                                    #{row.id} · {Number(row.amount).toFixed(2)} {row.currency}
+                                  </Typography.Text>
+                                  <Tag color={getPaymentStatusColor(row.status)}>
+                                    {getPaymentStatusLabel(row.status)}
+                                  </Tag>
+                                </div>
+                                <div style={{ color: '#64748B', fontSize: 13, marginBottom: 6 }}>
+                                  {row.userEmail ?? '—'}
+                                </div>
+                                <dl
+                                  style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'auto 1fr',
+                                    gap: '4px 10px',
+                                    fontSize: 13,
+                                    margin: 0,
+                                  }}
+                                >
+                                  <dt style={{ color: '#94A3B8', margin: 0 }}>Дата</dt>
+                                  <dd style={{ margin: 0 }}>
+                                    {dayjs(row.createdAt).format('DD.MM.YYYY HH:mm')}
+                                  </dd>
+                                  <dt style={{ color: '#94A3B8', margin: 0 }}>Кабинет</dt>
+                                  <dd style={{ margin: 0 }}>{row.cabinetName ?? '—'}</dd>
+                                  <dt style={{ color: '#94A3B8', margin: 0 }}>Тариф</dt>
+                                  <dd style={{ margin: 0 }}>{row.planName ?? '—'}</dd>
+                                  <dt style={{ color: '#94A3B8', margin: 0 }}>Оплачено</dt>
+                                  <dd style={{ margin: 0 }}>
+                                    {row.paidAt ? dayjs(row.paidAt).format('DD.MM.YYYY HH:mm') : '—'}
+                                  </dd>
+                                  <dt style={{ color: '#94A3B8', margin: 0 }}>External ID</dt>
+                                  <dd style={{ margin: 0, overflowWrap: 'anywhere' }}>
+                                    {row.externalId ?? '—'}
+                                  </dd>
+                                </dl>
+                              </div>
+                            ))
+                          )}
+                          {(paymentsListPage?.totalElements ?? 0) > paymentsPageSize ? (
+                            <div style={{ marginTop: 16, textAlign: 'center' }}>
+                              <Button
+                                disabled={paymentsPage <= 0}
+                                onClick={() => setPaymentsPage((p) => Math.max(0, p - 1))}
+                                style={{ marginRight: 8 }}
+                              >
+                                Назад
+                              </Button>
+                              <Typography.Text type="secondary">
+                                {paymentsPage + 1} / {paymentsListPage?.totalPages ?? 1}
+                              </Typography.Text>
+                              <Button
+                                disabled={paymentsPage + 1 >= (paymentsListPage?.totalPages ?? 1)}
+                                onClick={() => setPaymentsPage((p) => p + 1)}
+                                style={{ marginLeft: 8 }}
+                              >
+                                Вперёд
+                              </Button>
+                            </div>
+                          ) : null}
+                        </Space>
+                      ) : (
+                        <div className="admin-plans-scroll">
+                          <Table<AdminPaymentDto>
+                            rowKey="id"
+                            loading={paymentsListLoading || paymentsListFetching}
+                            columns={paymentsListColumns}
+                            dataSource={paymentsListRows}
+                            size="small"
+                            scroll={{ x: 1300 }}
+                            pagination={{
+                              current: paymentsPage + 1,
+                              pageSize: paymentsPageSize,
+                              total: paymentsListPage?.totalElements ?? 0,
+                              showSizeChanger: true,
+                              pageSizeOptions: ['10', '20', '50'],
+                              onChange: (nextPage, nextSize) => {
+                                setPaymentsPage(nextPage - 1)
+                                setPaymentsPageSize(nextSize)
+                              },
+                            }}
+                          />
+                        </div>
+                      )}
                     </Space>
                   </Card>
                 ),

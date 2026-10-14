@@ -632,6 +632,22 @@ export interface PaymentDto {
   createdAt: string
 }
 
+/** Платёж в общем списке админки «Тарифы и услуги». */
+export interface AdminPaymentDto {
+  id: number
+  createdAt: string
+  userEmail: string | null
+  cabinetId: number | null
+  cabinetName: string | null
+  planName: string | null
+  amount: number
+  currency: string
+  status: string
+  paidAt: string | null
+  externalId: string | null
+  description: string | null
+}
+
 export interface CreateCabinetRequest {
   marketplaceType?: MarketplaceType
   /** Обязательно для Ozon; для WB без имени — из seller-info. */

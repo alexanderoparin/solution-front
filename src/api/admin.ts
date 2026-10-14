@@ -5,6 +5,7 @@ import type {
   UpdatePlanRequest,
   SubscriptionDto,
   PaymentDto,
+  AdminPaymentDto,
   ExtendSubscriptionRequest,
   TriggerCooldownResponse,
   WbApiEventDto,
@@ -54,6 +55,23 @@ export const adminApi = {
 
   getUserPayments: async (userId: number): Promise<PaymentDto[]> => {
     const response = await apiClient.get<PaymentDto[]>(`/admin/users/${userId}/payments`)
+    return response.data
+  },
+
+  getPayments: async (params: {
+    page: number
+    size: number
+    email?: string
+    status?: string
+  }): Promise<PageResponse<AdminPaymentDto>> => {
+    const response = await apiClient.get<PageResponse<AdminPaymentDto>>('/admin/payments', {
+      params: {
+        page: params.page,
+        size: params.size,
+        email: params.email || undefined,
+        status: params.status || undefined,
+      },
+    })
     return response.data
   },
 
