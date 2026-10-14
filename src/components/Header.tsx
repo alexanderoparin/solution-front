@@ -336,6 +336,8 @@ export default function Header({
         position: 'sticky',
         top: 0,
         zIndex: 100,
+        width: '100%',
+        boxSizing: 'border-box',
       }}
     >
       <div className="app-header-nav" style={{ flex: '1 1 auto', display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0 }}>

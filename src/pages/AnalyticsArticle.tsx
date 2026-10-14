@@ -1010,12 +1010,26 @@ export default function AnalyticsArticle() {
         @media (max-width: 900px) {
           .analytics-article-page {
             padding: 12px !important;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: clip;
           }
           .analytics-article-hero,
           .analytics-article-funnels {
             padding: 12px !important;
             margin-bottom: 16px !important;
             box-shadow: none !important;
+            max-width: 100%;
+            min-width: 0;
+          }
+          .analytics-article-funnels {
+            overflow: hidden;
+          }
+          .analytics-article-funnel-table-wrap {
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
           }
           .analytics-article-hero-row {
             flex-wrap: wrap;
@@ -1177,12 +1191,13 @@ export default function AnalyticsArticle() {
           .analytics-article-funnel-table td:first-child {
             position: sticky !important;
             left: 0 !important;
-            min-width: 48px !important;
-            width: 52px !important;
-            max-width: 52px !important;
+            min-width: 56px !important;
+            width: 56px !important;
+            max-width: 56px !important;
             padding-left: 4px !important;
             padding-right: 4px !important;
             box-sizing: border-box;
+            white-space: nowrap;
             box-shadow: 4px 0 8px -4px rgba(15, 23, 42, 0.18);
           }
           .analytics-article-funnel-table th:first-child {
@@ -1196,10 +1211,24 @@ export default function AnalyticsArticle() {
           .analytics-article-funnel-table tr:last-child td:first-child {
             background-color: ${colors.bgGray};
           }
+          .analytics-article-campaigns {
+            max-width: 100%;
+            min-width: 0;
+            overflow: hidden;
+          }
+          .analytics-article-rk-table-wrap {
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
           .analytics-article-compare {
             padding: 12px !important;
             margin-bottom: 16px !important;
             box-shadow: none !important;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: hidden;
           }
           .analytics-article-compare-row {
             flex-direction: column !important;
@@ -1635,7 +1664,7 @@ export default function AnalyticsArticle() {
         e.currentTarget.style.boxShadow = shadows.md
       }}
       >
-        <div style={{ overflowX: 'auto', width: '100%' }}>
+        <div style={{ width: '100%', minWidth: 0, maxWidth: '100%' }}>
           <div
             className="analytics-article-funnel-toolbar"
             style={{
@@ -1741,6 +1770,7 @@ export default function AnalyticsArticle() {
           {selectedFunnel1 ? (
           <div
             ref={funnelTableWrapRef}
+            className="analytics-article-funnel-table-wrap"
             style={{
               maxHeight: 438,
               overflowY: 'auto',
@@ -3775,6 +3805,7 @@ export default function AnalyticsArticle() {
         const statusColor = '#fff'
         return (
           <div
+            className="analytics-article-campaigns"
             data-tour-id={ONBOARDING_TARGETS.ARTICLE_CAMPAIGNS}
             style={{
               width: '100%',
@@ -3847,7 +3878,7 @@ export default function AnalyticsArticle() {
                 ? 'Метрики РК — по кампании Ozon Performance за выбранный период (не доля SKU).'
                 : 'Положили в корзину и заказали товаров — по рекламной статистике WB (fullstats) для этого артикула в каждой РК.'}
             </p>
-            <div style={{ overflowX: 'auto', width: '100%' }}>
+            <div className="analytics-article-rk-table-wrap" style={{ overflowX: 'auto', width: '100%' }}>
               <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', minWidth: 1040 }}>
                 <thead>
                   <tr style={{ backgroundColor: colors.bgGray }}>
