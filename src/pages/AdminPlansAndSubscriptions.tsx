@@ -653,7 +653,7 @@ export default function AdminPlansAndSubscriptions() {
           minWidth: 0,
         }}
       >
-        <div style={{ width: '100%', maxWidth: 1200, minWidth: 0 }}>
+        <div style={{ width: '100%', maxWidth: 1480, minWidth: 0 }}>
           <Typography.Title level={4} style={{ marginTop: 16, marginBottom: 24 }}>
             Тарифы и услуги
           </Typography.Title>
@@ -910,7 +910,7 @@ export default function AdminPlansAndSubscriptions() {
                             columns={paymentsListColumns}
                             dataSource={paymentsListRows}
                             size="small"
-                            scroll={{ x: 1300 }}
+                            scroll={{ x: 'max-content' }}
                             pagination={{
                               current: paymentsPage + 1,
                               pageSize: paymentsPageSize,
