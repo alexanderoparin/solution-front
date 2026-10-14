@@ -18,6 +18,9 @@ export type HypothesisCriterionKey =
   | 'views'
   | 'buyout_percent'
   | 'avg_pos'
+  | 'cart_conversion'
+  | 'order_conversion'
+  | 'spp'
 
 export const HYPOTHESIS_CRITERIA: { key: HypothesisCriterionKey; label: string }[] = [
   { key: 'drr', label: 'ДРР' },
@@ -28,6 +31,9 @@ export const HYPOTHESIS_CRITERIA: { key: HypothesisCriterionKey; label: string }
   { key: 'views', label: 'Показы' },
   { key: 'buyout_percent', label: 'Процент выкупа' },
   { key: 'avg_pos', label: 'Средние позиции' },
+  { key: 'cart_conversion', label: 'Конверсия в корзину' },
+  { key: 'order_conversion', label: 'Конверсия в заказ' },
+  { key: 'spp', label: 'СПП' },
 ]
 
 export interface HypothesisCriterionValue {
