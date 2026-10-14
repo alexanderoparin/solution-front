@@ -1,59 +1,59 @@
 import { useState } from 'react'
-import LandingHeader from '../components/landing/LandingHeader'
-import LandingHero from '../components/landing/LandingHero'
 import LandingLeadRequestModal from '../components/landing/LandingLeadRequestModal'
 import type { LandingLeadRequest } from '../types/landingLead'
-import LandingMission from '../components/landing/LandingMission'
-import LandingServices from '../components/landing/LandingServices'
-import LandingFeatures from '../components/landing/LandingFeatures'
-import LandingPricing from '../components/landing/LandingPricing'
-import LandingTrust from '../components/landing/LandingTrust'
-import LandingCases from '../components/landing/LandingCases'
-import LandingFaq, { LandingBlogSection } from '../components/landing/LandingFaq'
-import LandingFooter from '../components/landing/LandingFooter'
-import { landingColors } from '../styles/landing'
+import ServiceLandingHeader from '../components/landingService/ServiceLandingHeader'
+import ServiceLandingFooter from '../components/landingService/ServiceLandingFooter'
+import ServiceLandingSections from '../components/landingService/ServiceLandingSections'
+import ServiceLandingAmbient from '../components/landingService/ServiceLandingDecor'
+import { svc } from '../components/landingService/landingServiceShared'
 
+/**
+ * Новый сервисный лендинг (макет «Лендинг Сервис»).
+ * Пока на `/landing-service`; на `/` — текущий агентский.
+ * После готовности — поменять местами с LandingAgency.
+ */
 export default function Landing() {
   const [leadRequest, setLeadRequest] = useState<LandingLeadRequest | null>(null)
 
-  const openLeadForm = (request: LandingLeadRequest) => setLeadRequest(request)
-  const closeLeadForm = () => setLeadRequest(null)
-
   return (
     <div
-      className="landing-page"
+      className="landing-service-page"
       style={{
+        position: 'relative',
         minHeight: '100vh',
         maxWidth: '100%',
         overflowX: 'clip',
-        backgroundColor: landingColors.cardBg,
-        color: landingColors.textPrimary,
+        backgroundColor: '#FFFFFF',
+        color: svc.text,
       }}
     >
       <style>{`
         html { scroll-behavior: smooth; }
-        .landing-page * { box-sizing: border-box; }
-        @media (max-width: 960px) {
-          .landing-page section { padding-top: 48px !important; padding-bottom: 48px !important; }
+        .landing-service-page * { box-sizing: border-box; }
+        .landing-service-page .svc-content { position: relative; z-index: 1; }
+        /* Мягкие «полосы» секций без жёсткого стыка */
+        .landing-service-page .svc-section-soft {
+          background: linear-gradient(
+            180deg,
+            rgba(248, 250, 252, 0) 0%,
+            rgba(248, 250, 252, 0.72) 10%,
+            rgba(248, 250, 252, 0.72) 90%,
+            rgba(248, 250, 252, 0) 100%
+          );
         }
-        @media (max-width: 640px) {
-          .landing-page section { padding-top: 40px !important; padding-bottom: 40px !important; }
+        @media (max-width: 960px) {
+          .landing-service-page section { padding-top: 48px !important; padding-bottom: 48px !important; }
         }
       `}</style>
-      <LandingHeader />
-      <main>
-        <LandingHero onOpenLeadForm={openLeadForm} />
-        <LandingMission />
-        <LandingServices onOpenLeadForm={openLeadForm} />
-        <LandingFeatures />
-        <LandingPricing onOpenLeadForm={openLeadForm} />
-        <LandingTrust />
-        <LandingCases />
-        <LandingFaq />
-        <LandingBlogSection />
-      </main>
-      <LandingFooter />
-      <LandingLeadRequestModal request={leadRequest} onClose={closeLeadForm} />
+      <ServiceLandingAmbient />
+      <div className="svc-content">
+        <ServiceLandingHeader />
+        <main>
+          <ServiceLandingSections onOpenLeadForm={setLeadRequest} />
+        </main>
+        <ServiceLandingFooter />
+      </div>
+      <LandingLeadRequestModal request={leadRequest} onClose={() => setLeadRequest(null)} />
     </div>
   )
 }

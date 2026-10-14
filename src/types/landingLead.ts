@@ -6,6 +6,9 @@ export type LandingLeadRequestSource =
   | 'services-agency'
   | 'pricing-agency'
   | 'pricing-audit'
+  | 'landing-service-pricing'
+  | 'landing-service-manage'
+  | 'landing-service-audit'
 
 export interface LandingLeadRequest {
   type: LandingLeadRequestType

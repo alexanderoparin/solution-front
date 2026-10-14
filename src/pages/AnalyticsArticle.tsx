@@ -1077,9 +1077,12 @@ export default function AnalyticsArticle() {
             flex-direction: column !important;
             align-items: stretch !important;
             height: auto !important;
+            min-width: 0 !important;
+            max-width: 100%;
             min-height: 0 !important;
             gap: 8px !important;
             padding-top: 10px;
+            overflow: hidden;
             border-top: 1px solid ${colors.borderLight};
           }
           .analytics-article-bundle-label {
@@ -1094,12 +1097,17 @@ export default function AnalyticsArticle() {
           .analytics-article-bundle-scroll,
           .analytics-article-bundle-scroll > div {
             height: auto !important;
-            overflow: visible !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
           }
           .analytics-article-bundle-list {
             display: grid !important;
-            grid-template-columns: 1fr !important;
+            grid-template-columns: minmax(0, 1fr) !important;
             width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
             height: auto !important;
             gap: 8px !important;
           }
@@ -1114,10 +1122,27 @@ export default function AnalyticsArticle() {
           .analytics-article-bundle-item {
             height: auto !important;
             min-height: 52px;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            flex-shrink: 1 !important;
+            overflow: hidden;
             padding: 6px 8px !important;
             border: 1px solid ${colors.borderLight} !important;
             border-radius: 10px !important;
             gap: 8px !important;
+          }
+          .analytics-article-bundle-item-text {
+            min-width: 0 !important;
+            overflow: hidden;
+          }
+          .analytics-article-bundle-title,
+          .analytics-article-bundle-meta {
+            white-space: normal !important;
+            overflow: visible;
+            text-overflow: unset;
+            overflow-wrap: anywhere;
+            word-break: break-word;
           }
           .analytics-article-bundle-thumb {
             width: 44px !important;
@@ -1622,11 +1647,11 @@ export default function AnalyticsArticle() {
                             style={{ width: bundlePhotoW, height: bundlePhotoH, backgroundColor: colors.bgGrayLight, borderRadius: 4, flexShrink: 0 }}
                           />
                         )}
-                        <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
-                          <div style={{ fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div className="analytics-article-bundle-item-text" style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                          <div className="analytics-article-bundle-title" style={{ fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {item.title || '-'}
                           </div>
-                          <div style={{ fontSize: 10, color: colors.textSecondary, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div className="analytics-article-bundle-meta" style={{ fontSize: 10, color: colors.textSecondary, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {item.nmId}
                             {item.vendorCode ? ` · ${item.vendorCode}` : ''}
                           </div>

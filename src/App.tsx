@@ -5,6 +5,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import ConfirmEmail from './pages/ConfirmEmail'
 import Landing from './pages/Landing'
+import LandingAgency from './pages/LandingAgency'
 import AnalyticsSummary from './pages/AnalyticsSummary'
 import AnalyticsArticle from './pages/AnalyticsArticle'
 import AnalyticsProducts from './pages/AnalyticsProducts'
@@ -45,7 +46,8 @@ import { useAuthStore } from './store/authStore'
 function AppRoutes() {
   const token = useAuthStore((state) => state.token)
   const location = useLocation()
-  const showAppFooter = location.pathname !== '/'
+  const showAppFooter =
+    location.pathname !== '/' && location.pathname !== '/landing-service'
   /** Юр. страницы короткие — не растягиваем контент, иначе пустота между текстом и футером. */
   const isLegalPublicPage = [
     '/requisites',
@@ -72,7 +74,8 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/confirm-email" element={<ConfirmEmail />} />
         <Route path="/invite/:token" element={<InviteAccept />} />
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<LandingAgency />} />
+        <Route path="/landing-service" element={<Landing />} />
         <Route
           path="/analytics"
           element={token ? <AccessGuard><CabinetSectionGuard section="SUMMARY"><AnalyticsSummary /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
