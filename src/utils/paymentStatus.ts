@@ -4,6 +4,7 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
   success: 'Успешно',
   failed: 'Ошибка',
   refunded: 'Возврат',
+  expired: 'Истёк',
 }
 
 /** Отображаемое название статуса подписки по-русски */
@@ -32,6 +33,8 @@ export function getPaymentStatusColor(status: string): string {
       return 'red'
     case 'refunded':
       return 'orange'
+    case 'expired':
+      return 'default'
     default:
       return 'default'
   }

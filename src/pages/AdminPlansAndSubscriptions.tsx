@@ -815,6 +815,7 @@ export default function AdminPlansAndSubscriptions() {
                             { value: 'success', label: 'Успешно' },
                             { value: 'failed', label: 'Ошибка' },
                             { value: 'refunded', label: 'Возврат' },
+                            { value: 'expired', label: 'Истёк' },
                           ]}
                         />
                       </div>
