@@ -1,7 +1,8 @@
-import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import {
   Button,
+  Checkbox,
   Dropdown,
   Modal,
   Space,
@@ -10,7 +11,6 @@ import {
   message,
 } from 'antd'
 import {
-  ArrowLeftOutlined,
   CheckOutlined,
   DeleteOutlined,
   EditOutlined,
@@ -20,7 +20,6 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   ReferenceLine,
@@ -300,6 +299,11 @@ export default function HypothesisDetail() {
   const hypothesis = detailQuery.data
 
   const chartCriteria = hypothesis?.criteria ?? []
+  const [visibleChartKeys, setVisibleChartKeys] = useState<HypothesisCriterionKey[]>([])
+
+  useEffect(() => {
+    setVisibleChartKeys(chartCriteria)
+  }, [hypothesis?.id, chartCriteria.join('|')])
 
   const chartData = useMemo(() => {
     if (!hypothesis?.dynamics?.length) return []
@@ -367,13 +371,6 @@ export default function HypothesisDetail() {
 
   return pageShell(
     <>
-        <Link
-          to="/analytics/hypotheses"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 12, color: ACCENT }}
-        >
-          <ArrowLeftOutlined /> Назад к списку
-        </Link>
-
         <div
           className="hypothesis-detail-head"
           style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}
@@ -618,9 +615,9 @@ export default function HypothesisDetail() {
         </SectionCard>
 
         <SectionCard title="Динамика показателей" accent="#F59E0B">
-          <div style={{ color: colors.textMuted, fontSize: 12, marginBottom: 12 }}>
+          <div style={{ color: colors.textMuted, fontSize: 12, marginBottom: 10 }}>
             Каждый показатель нормирован по своему диапазону (0–100), чтобы сравнивать форму динамики на разных шкалах.
-            В подсказке — исходные значения.
+            В подсказке — исходные значения. Клик по параметру включает или выключает линию.
           </div>
           <div style={{ width: '100%', height: 320 }}>
             <ResponsiveContainer>
@@ -660,24 +657,69 @@ export default function HypothesisDetail() {
                     )
                   }}
                 />
-                <Legend />
                 {checkStartLabel && (
                   <ReferenceLine x={checkStartLabel} stroke={colors.textMuted} strokeDasharray="4 4" />
                 )}
-                {chartCriteria.map((key, index) => (
-                  <Line
-                    key={key}
-                    type="monotone"
-                    dataKey={key}
-                    name={HYPOTHESIS_CRITERIA.find((c) => c.key === key)?.label ?? key}
-                    stroke={LINE_COLORS[index % LINE_COLORS.length]}
-                    dot={false}
-                    strokeWidth={2}
-                    connectNulls={false}
-                  />
-                ))}
+                {chartCriteria
+                  .filter((key) => visibleChartKeys.includes(key))
+                  .map((key) => (
+                    <Line
+                      key={key}
+                      type="monotone"
+                      dataKey={key}
+                      name={HYPOTHESIS_CRITERIA.find((c) => c.key === key)?.label ?? key}
+                      stroke={criterionColor(key)}
+                      dot={false}
+                      strokeWidth={2}
+                      connectNulls={false}
+                    />
+                  ))}
               </LineChart>
             </ResponsiveContainer>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: 12,
+              marginTop: 12,
+              width: '100%',
+            }}
+          >
+            <Checkbox.Group
+              value={visibleChartKeys}
+              onChange={(values) => setVisibleChartKeys(values as HypothesisCriterionKey[])}
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px 14px',
+                flex: 1,
+                minWidth: 0,
+              }}
+            >
+              {chartCriteria.map((key) => {
+                const color = criterionColor(key)
+                const label = HYPOTHESIS_CRITERIA.find((c) => c.key === key)?.label ?? key
+                return (
+                  <Checkbox key={key} value={key} style={{ marginInlineStart: 0 }}>
+                    <span style={{ color, fontWeight: 600 }}>{label}</span>
+                  </Checkbox>
+                )
+              })}
+            </Checkbox.Group>
+            <Checkbox
+              checked={chartCriteria.length > 0 && visibleChartKeys.length === chartCriteria.length}
+              indeterminate={
+                visibleChartKeys.length > 0 && visibleChartKeys.length < chartCriteria.length
+              }
+              onChange={(e) => {
+                setVisibleChartKeys(e.target.checked ? [...chartCriteria] : [])
+              }}
+              style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+            >
+              Все
+            </Checkbox>
           </div>
         </SectionCard>
 

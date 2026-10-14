@@ -645,13 +645,98 @@ export default function Hypotheses() {
               showSearch
               optionFilterProp="label"
               placeholder="Все артикулы"
-              style={{ width: isNarrow ? '100%' : 200 }}
+              style={{ width: isNarrow ? '100%' : 260 }}
               value={nmId}
               onChange={setNmId}
+              listHeight={360}
+              virtual={false}
+              popupMatchSelectWidth={320}
               options={articles.map((a) => ({
                 value: a.nmId,
                 label: `${a.nmId}${a.title ? ` — ${a.title}` : ''}`,
+                title: a.title || 'Без названия',
+                photoUrl: a.photoTm ?? a.photoC246x328 ?? null,
               }))}
+              optionRender={(option) => {
+                const optionTitle = (option.data as { title?: string }).title ?? 'Без названия'
+                const photoUrl = (option.data as { photoUrl?: string | null }).photoUrl
+                return (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '2px 0' }}>
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt=""
+                        style={{
+                          width: 28,
+                          height: 36,
+                          objectFit: 'cover',
+                          borderRadius: 4,
+                          flexShrink: 0,
+                          background: colors.bgGray,
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 28,
+                          height: 36,
+                          borderRadius: 4,
+                          flexShrink: 0,
+                          background: colors.bgGray,
+                        }}
+                      />
+                    )}
+                    <div style={{ minWidth: 0, lineHeight: 1.25 }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {optionTitle}
+                      </div>
+                      <div style={{ color: colors.textMuted, fontSize: 11 }}>{option.value}</div>
+                    </div>
+                  </div>
+                )
+              }}
+              labelRender={(props) => {
+                const article = articles.find((a) => a.nmId === props.value)
+                const photoUrl = article?.photoTm ?? article?.photoC246x328 ?? null
+                const text =
+                  article != null
+                    ? `${article.nmId}${article.title ? ` — ${article.title}` : ''}`
+                    : String(props.value ?? '')
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt=""
+                        style={{
+                          width: 20,
+                          height: 26,
+                          objectFit: 'cover',
+                          borderRadius: 3,
+                          flexShrink: 0,
+                          background: colors.bgGray,
+                        }}
+                      />
+                    ) : null}
+                    <span
+                      style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {text}
+                    </span>
+                  </div>
+                )
+              }}
             />
             <Select
               allowClear

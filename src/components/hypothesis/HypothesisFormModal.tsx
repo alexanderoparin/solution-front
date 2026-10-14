@@ -222,7 +222,7 @@ export default function HypothesisFormModal({
             <Input.TextArea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              rows={6}
+              rows={isNarrow ? 3 : 5}
             />
           </Form.Item>
         </Form>
@@ -271,7 +271,12 @@ export default function HypothesisFormModal({
           </Form.Item>
           <Form.Item label="Критерии для оценки" required style={{ marginBottom: 0 }}>
             <Checkbox.Group
-              style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isNarrow ? '1fr' : '1fr 1fr',
+                gap: '8px 12px',
+                width: '100%',
+              }}
               value={criteria}
               onChange={(values) => setCriteria(values as HypothesisCriterionKey[])}
               options={HYPOTHESIS_CRITERIA.map((c) => ({ value: c.key, label: c.label }))}
