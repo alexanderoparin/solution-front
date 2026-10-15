@@ -2,9 +2,13 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Collapse } from 'antd'
 import {
+  AimOutlined,
   BarChartOutlined,
   CheckCircleFilled,
   CloseCircleFilled,
+  EyeOutlined,
+  PercentageOutlined,
+  PieChartOutlined,
   RiseOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
@@ -482,36 +486,138 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       </section>
 
       {/* Campaign depth */}
-      <section className="svc-section-soft" style={svcSection()}>
+      <section style={svcSection()}>
         <div style={svcContainer()}>
-          <div className="svc-two">
-            <div>
-              <SvcTitle before={serviceCampaignDepth.titleBefore} highlight={serviceCampaignDepth.titleHighlight} />
+          <div className="svc-two" style={{ alignItems: 'center', gap: 28 }}>
+            <div style={{ maxWidth: 520 }}>
+              <SvcTitle
+                before={serviceCampaignDepth.titleBefore}
+                highlight={serviceCampaignDepth.titleHighlight}
+                highlightOnNewLine={serviceCampaignDepth.highlightOnNewLine}
+                size="lg"
+              />
               <SvcLead>{serviceCampaignDepth.subtitle}</SvcLead>
               <div style={{ marginTop: 22 }}>
                 <SvcPrimaryButton onClick={goRegister}>{serviceCampaignDepth.cta}</SvcPrimaryButton>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10, marginTop: 24 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                  gap: 10,
+                  marginTop: 28,
+                }}
+              >
                 {serviceCampaignDepth.metrics.map((m) => (
                   <div
-                    key={m}
+                    key={m.label}
                     style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
                       background: '#fff',
                       border: `1px solid ${svc.border}`,
                       borderRadius: 12,
-                      padding: '10px 8px',
-                      textAlign: 'center',
-                      fontSize: 12,
+                      padding: '12px 8px',
+                      fontSize: 13,
                       fontWeight: 600,
                       color: svc.text,
+                      boxShadow: '0 4px 12px rgba(15, 23, 42, 0.04)',
                     }}
                   >
-                    {m}
+                    <span
+                      style={{
+                        color: m.tone === 'green' ? svc.green : svc.accent,
+                        fontSize: 16,
+                        display: 'inline-flex',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {m.icon === 'eye' ? (
+                        <EyeOutlined />
+                      ) : m.icon === 'click' ? (
+                        <AimOutlined />
+                      ) : m.icon === 'percent' ? (
+                        <PercentageOutlined />
+                      ) : m.icon === 'ruble' ? (
+                        <span style={{ fontWeight: 700, fontSize: 15, lineHeight: 1 }}>₽</span>
+                      ) : m.icon === 'wallet' ? (
+                        <WalletOutlined />
+                      ) : m.icon === 'cart' ? (
+                        <ShoppingCartOutlined />
+                      ) : m.icon === 'bars' ? (
+                        <BarChartOutlined />
+                      ) : (
+                        <PieChartOutlined />
+                      )}
+                    </span>
+                    <span style={{ whiteSpace: m.label.length > 10 ? 'normal' : 'nowrap', textAlign: 'left', lineHeight: 1.2 }}>
+                      {m.label}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
-            <img className="svc-img" src={serviceLandingAssets.campaignDetail} alt="" />
+            <div style={{ position: 'relative' }}>
+              <div
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: '-8%',
+                  right: '-10%',
+                  width: 280,
+                  height: 280,
+                  borderRadius: '50%',
+                  background: 'rgba(124, 58, 237, 0.2)',
+                  filter: 'blur(70px)',
+                  zIndex: 0,
+                  pointerEvents: 'none',
+                }}
+              />
+              <img
+                className="svc-img"
+                src={serviceLandingAssets.campaignDetail}
+                alt=""
+                style={{
+                  position: 'relative',
+                  zIndex: 1,
+                  borderRadius: 16,
+                  boxShadow: '0 18px 48px rgba(15, 23, 42, 0.12)',
+                  border: `1px solid ${svc.border}`,
+                }}
+              />
+              {serviceCampaignDepth.callouts.map((c) => {
+                const placeStyle =
+                  c.place === 'top'
+                    ? { top: '6%', left: '8%' }
+                    : c.place === 'bottomLeft'
+                      ? { bottom: '10%', left: '4%' }
+                      : { bottom: '8%', right: '4%' }
+                return (
+                  <div
+                    key={c.text}
+                    style={{
+                      position: 'absolute',
+                      zIndex: 2,
+                      maxWidth: 200,
+                      padding: '8px 12px',
+                      borderRadius: 10,
+                      background: 'rgba(236, 252, 203, 0.95)',
+                      border: '1px solid rgba(163, 201, 0, 0.45)',
+                      color: '#3F6212',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      lineHeight: 1.35,
+                      boxShadow: '0 8px 20px rgba(63, 98, 18, 0.12)',
+                      ...placeStyle,
+                    }}
+                  >
+                    {c.text}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
       </section>

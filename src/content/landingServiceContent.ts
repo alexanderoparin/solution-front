@@ -177,13 +177,23 @@ export const serviceWhySeparate = {
 export const serviceCampaignDepth = {
   titleBefore: 'От общей картины — к конкретной',
   titleHighlight: 'кампании',
+  highlightOnNewLine: true,
   subtitle: 'Показы, клики, CTR, CPC, расходы, заказы и другие показатели рекламы — в одном интерфейсе.',
   cta: 'Получить бесплатный доступ',
-  metrics: ['Показы', 'Клики', 'CTR', 'CPC', 'Расходы', 'Заказы', 'ДРР', 'Другие показатели'],
+  metrics: [
+    { label: 'Показы', icon: 'eye' as const, tone: 'purple' as const },
+    { label: 'Клики', icon: 'click' as const, tone: 'green' as const },
+    { label: 'CTR', icon: 'percent' as const, tone: 'purple' as const },
+    { label: 'CPC', icon: 'ruble' as const, tone: 'green' as const },
+    { label: 'Расходы', icon: 'wallet' as const, tone: 'purple' as const },
+    { label: 'Заказы', icon: 'cart' as const, tone: 'green' as const },
+    { label: 'ДРР', icon: 'bars' as const, tone: 'purple' as const },
+    { label: 'Другие показатели', icon: 'pie' as const, tone: 'green' as const },
+  ],
   callouts: [
-    'Состав рекламной кампании. Какие товары находятся в РК',
-    'Детализация по артикулам в комбо',
-    'ДРР, CTR, CPC и другие ключевые показатели',
+    { text: 'Состав рекламной кампании. Какие товары находятся в РК', place: 'top' as const },
+    { text: 'Детализация по артикулам в комбо', place: 'bottomLeft' as const },
+    { text: 'ДРР, CTR, CPC и другие ключевые показатели', place: 'bottomRight' as const },
   ],
 } as const
 

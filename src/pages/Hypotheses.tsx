@@ -47,6 +47,13 @@ import HypothesisFormModal from '../components/hypothesis/HypothesisFormModal'
 dayjs.locale('ru')
 
 const accent = '#7C3AED'
+const CRITERION_COLORS = ['#7C3AED', '#2563EB', '#16A34A', '#EA580C', '#DB2777', '#0891B2', '#CA8A04', '#4B5563', '#0D9488', '#9333EA']
+
+function criterionColor(key: string): string {
+  const index = HYPOTHESIS_CRITERIA.findIndex((c) => c.key === key)
+  const i = index >= 0 ? index : 0
+  return CRITERION_COLORS[i % CRITERION_COLORS.length]
+}
 
 function useIsNarrow(maxWidthPx = 900): boolean {
   const [narrow, setNarrow] = useState(() =>
@@ -77,16 +84,29 @@ function statusColor(status: HypothesisDisplayStatus): string {
 }
 
 function CriteriaCell({ criteria }: { criteria: HypothesisCriterionKey[] }) {
-  const labels = criteria.map(
-    (key) => HYPOTHESIS_CRITERIA.find((c) => c.key === key)?.label ?? key,
-  )
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-      {labels.map((label) => (
-        <Tag key={label} style={{ margin: 0, paddingInline: 5, fontSize: 12, lineHeight: '20px' }}>
-          {label}
-        </Tag>
-      ))}
+      {criteria.map((key) => {
+        const label = HYPOTHESIS_CRITERIA.find((c) => c.key === key)?.label ?? key
+        const color = criterionColor(key)
+        return (
+          <Tag
+            key={key}
+            style={{
+              margin: 0,
+              paddingInline: 6,
+              fontSize: 12,
+              lineHeight: '20px',
+              color,
+              background: `${color}14`,
+              borderColor: `${color}44`,
+              fontWeight: 600,
+            }}
+          >
+            {label}
+          </Tag>
+        )
+      })}
     </div>
   )
 }
@@ -116,22 +136,46 @@ function ResultCell({ row }: { row: Hypothesis }) {
   if (keys.length === 0) return <span>—</span>
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 12, lineHeight: 1.35 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12, lineHeight: 1.35 }}>
       {keys.map((key) => {
         const item = resultsByKey.get(key)
         const label = item?.label ?? HYPOTHESIS_CRITERIA.find((c) => c.key === key)?.label ?? key
+        const nameColor = criterionColor(key)
         if (item == null || item.check == null || item.change == null) {
           return (
-            <div key={key} style={{ whiteSpace: 'nowrap', color: colors.textMuted }}>
-              {label} —
+            <div key={key} style={{ whiteSpace: 'nowrap' }}>
+              <span style={{ color: nameColor, fontWeight: 600 }}>{label}</span>
+              <span style={{ color: colors.textMuted }}> —</span>
             </div>
           )
         }
         const arrow =
           item.improved === true ? '↑' : item.improved === false ? '↓' : '→'
+        const tone =
+          item.improved === true
+            ? colors.success
+            : item.improved === false
+              ? colors.error
+              : colors.textPrimary
         return (
-          <div key={key} style={{ whiteSpace: 'nowrap' }}>
-            {label} {formatResultNumber(item.check)} {arrow} {formatSignedChange(item.change)}
+          <div
+            key={key}
+            style={{
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              background: `${tone}12`,
+              borderRadius: 6,
+              padding: '1px 6px',
+              width: 'fit-content',
+            }}
+          >
+            <span style={{ color: nameColor, fontWeight: 600 }}>{label}</span>
+            <span style={{ color: colors.textPrimary }}>{formatResultNumber(item.check)}</span>
+            <span style={{ color: tone, fontWeight: 700 }}>
+              {arrow} {formatSignedChange(item.change)}
+            </span>
           </div>
         )
       })}
@@ -159,13 +203,14 @@ function HypothesisMobileCard({
       className="hypothesis-mobile-card"
       onClick={onOpen}
       style={{
-        border: `1px solid ${colors.border}`,
+        border: `1px solid ${colors.primaryLight}`,
         borderRadius: 12,
         padding: 12,
-        background: colors.bgWhite,
+        background: 'linear-gradient(180deg, #FAF5FF 0%, #FFFFFF 48%)',
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
+        boxShadow: '0 2px 8px rgba(124, 58, 237, 0.06)',
       }}
     >
       <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -178,7 +223,15 @@ function HypothesisMobileCard({
           <img
             src={row.nmPhotoUrl}
             alt=""
-            style={{ width: 40, height: 52, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
+            style={{
+              width: 40,
+              height: 52,
+              objectFit: 'cover',
+              borderRadius: 6,
+              flexShrink: 0,
+              border: `1px solid ${colors.primaryLight}`,
+              boxShadow: '0 2px 6px rgba(124, 58, 237, 0.12)',
+            }}
           />
         ) : (
           <div
@@ -193,7 +246,7 @@ function HypothesisMobileCard({
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-            <div style={{ fontWeight: 600, color: colors.textPrimary, overflowWrap: 'anywhere' }}>
+            <div style={{ fontWeight: 700, color: accent, overflowWrap: 'anywhere' }}>
               {row.title}
             </div>
             <Dropdown
@@ -225,18 +278,29 @@ function HypothesisMobileCard({
             </Dropdown>
           </div>
           <div style={{ marginTop: 4 }}>
-            <Tag color={statusColor(row.displayStatus)} style={{ margin: 0 }}>
+            <Tag color={statusColor(row.displayStatus)} style={{ margin: 0, fontWeight: 600 }}>
               {HYPOTHESIS_STATUS_LABELS[row.displayStatus]}
             </Tag>
           </div>
-          <div style={{ marginTop: 6, color: colors.textSecondary, fontSize: 13 }}>
-            {row.nmId}
-            {' · '}
-            {dayjs(row.checkFrom).format('DD.MM.YY')}–{dayjs(row.checkTo).format('DD.MM.YY')}
+          <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+            <span style={{ color: accent, fontWeight: 600, fontSize: 13 }}>{row.nmId}</span>
+            <span
+              style={{
+                background: '#ECFEFF',
+                color: '#0E7490',
+                borderRadius: 6,
+                padding: '2px 8px',
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              {dayjs(row.checkFrom).format('DD.MM.YY')}–{dayjs(row.checkTo).format('DD.MM.YY')}
+            </span>
           </div>
         </div>
       </div>
       <CriteriaCell criteria={row.criteria} />
+      <ResultCell row={row} />
       <div style={{ color: colors.textMuted, fontSize: 12 }}>
         Создано {dayjs(row.createdAt).format('DD.MM.YYYY')}
       </div>
@@ -385,8 +449,8 @@ export default function Hypotheses() {
         width: 220,
         ellipsis: true,
         render: (_, row) => (
-          <Link to={`/analytics/hypotheses/${row.id}`} style={{ color: colors.textPrimary }}>
-            <div style={{ fontWeight: 600 }}>{row.title}</div>
+          <Link to={`/analytics/hypotheses/${row.id}`} style={{ color: accent }}>
+            <div style={{ fontWeight: 700 }}>{row.title}</div>
             {row.description && (
               <div
                 style={{
@@ -413,12 +477,24 @@ export default function Hypotheses() {
               <img
                 src={row.nmPhotoUrl}
                 alt=""
-                style={{ width: 36, height: 48, objectFit: 'cover', borderRadius: 4 }}
+                style={{
+                  width: 36,
+                  height: 48,
+                  objectFit: 'cover',
+                  borderRadius: 6,
+                  border: `1px solid ${colors.primaryLight}`,
+                  boxShadow: '0 2px 6px rgba(124, 58, 237, 0.12)',
+                }}
               />
             ) : (
-              <div style={{ width: 36, height: 48, background: colors.bgGray, borderRadius: 4 }} />
+              <div style={{ width: 36, height: 48, background: colors.bgGray, borderRadius: 6 }} />
             )}
-            <span>{row.nmId}</span>
+            <Link
+              to={`/analytics/article/${row.nmId}`}
+              style={{ color: accent, fontWeight: 600, textDecoration: 'none' }}
+            >
+              {row.nmId}
+            </Link>
           </div>
         ),
       },
@@ -431,7 +507,17 @@ export default function Hypotheses() {
         title: 'Период проверки',
         width: 110,
         render: (_, row) => (
-          <div style={{ lineHeight: 1.4 }}>
+          <div
+            style={{
+              lineHeight: 1.4,
+              background: '#ECFEFF',
+              borderRadius: 8,
+              padding: '6px 8px',
+              fontSize: 12,
+              fontWeight: 600,
+              color: '#0E7490',
+            }}
+          >
             <div style={{ whiteSpace: 'nowrap' }}>{dayjs(row.checkFrom).format('DD.MM.YYYY')}</div>
             <div style={{ whiteSpace: 'nowrap' }}>{dayjs(row.checkTo).format('DD.MM.YYYY')}</div>
           </div>
@@ -441,7 +527,7 @@ export default function Hypotheses() {
         title: 'Статус',
         width: 130,
         render: (_, row) => (
-          <Tag color={statusColor(row.displayStatus)} style={{ marginInlineEnd: 0 }}>
+          <Tag color={statusColor(row.displayStatus)} style={{ marginInlineEnd: 0, fontWeight: 600 }}>
             {HYPOTHESIS_STATUS_LABELS[row.displayStatus]}
           </Tag>
         ),
