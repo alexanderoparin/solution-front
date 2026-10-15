@@ -740,8 +740,8 @@ export default function HypothesisDetail() {
         articles={articles}
         loading={saveMutation.isPending}
         onCancel={() => setFormOpen(false)}
-        onSubmit={(request, workflowStatus) => {
-          saveMutation.mutate({ ...request, workflowStatus })
+        onSubmit={(request) => {
+          saveMutation.mutate(request)
         }}
       />
     </>,

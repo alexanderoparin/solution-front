@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Checkbox, DatePicker, Form, Input, Modal, Radio, Select } from 'antd'
+import { Checkbox, DatePicker, Form, Input, Modal, Select } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 import 'dayjs/locale/ru'
 import locale from 'antd/locale/ru_RU'
@@ -9,7 +9,6 @@ import {
   type Hypothesis,
   type HypothesisCriterionKey,
   type HypothesisUpsertRequest,
-  type HypothesisWorkflowStatus,
 } from '../../types/hypothesis'
 
 dayjs.locale('ru')
@@ -33,7 +32,7 @@ interface HypothesisFormModalProps {
   articles: ArticleSummary[]
   loading?: boolean
   onCancel: () => void
-  onSubmit: (request: Omit<HypothesisUpsertRequest, 'workflowStatus'>, workflowStatus: HypothesisWorkflowStatus) => void
+  onSubmit: (request: HypothesisUpsertRequest) => void
 }
 
 export default function HypothesisFormModal({
@@ -50,7 +49,6 @@ export default function HypothesisFormModal({
   const [description, setDescription] = useState('')
   const [period, setPeriod] = useState<[Dayjs | null, Dayjs | null] | null>(null)
   const [criteria, setCriteria] = useState<HypothesisCriterionKey[]>([])
-  const [workflowStatus, setWorkflowStatus] = useState<HypothesisWorkflowStatus>('PREPARATION')
 
   useEffect(() => {
     if (!open) return
@@ -60,14 +58,12 @@ export default function HypothesisFormModal({
       setDescription(initial.description || '')
       setPeriod([dayjs(initial.checkFrom), dayjs(initial.checkTo)])
       setCriteria(initial.criteria)
-      setWorkflowStatus(initial.workflowStatus)
     } else {
       setNmId(undefined)
       setTitle('')
       setDescription('')
       setPeriod(null)
       setCriteria([])
-      setWorkflowStatus('PREPARATION')
     }
   }, [open, initial])
 
@@ -80,17 +76,14 @@ export default function HypothesisFormModal({
         if (nmId == null || !title.trim() || !period?.[0] || !period?.[1] || criteria.length === 0) {
           return
         }
-        onSubmit(
-          {
-            nmId,
-            title: title.trim(),
-            description: description.trim() || undefined,
-            checkFrom: period[0].format('YYYY-MM-DD'),
-            checkTo: period[1].format('YYYY-MM-DD'),
-            criteria,
-          },
-          workflowStatus,
-        )
+        onSubmit({
+          nmId,
+          title: title.trim(),
+          description: description.trim() || undefined,
+          checkFrom: period[0].format('YYYY-MM-DD'),
+          checkTo: period[1].format('YYYY-MM-DD'),
+          criteria,
+        })
       }}
       okText="Сохранить"
       confirmLoading={loading}
@@ -228,11 +221,7 @@ export default function HypothesisFormModal({
         </Form>
 
         <Form layout="vertical" style={{ minWidth: 0 }}>
-          <Form.Item
-            required
-            label={null}
-            style={{ marginBottom: 16 }}
-          >
+          <Form.Item required label={null} style={{ marginBottom: 16 }}>
             <div
               style={{
                 display: 'flex',
@@ -257,17 +246,6 @@ export default function HypothesisFormModal({
                 disabledDate={(current) => current != null && current < dayjs().startOf('day')}
               />
             </div>
-          </Form.Item>
-          <Form.Item label="Статус" required>
-            <Radio.Group
-              value={workflowStatus}
-              onChange={(e) => setWorkflowStatus(e.target.value)}
-              style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
-              options={[
-                { value: 'PREPARATION', label: 'Подготовка к тесту' },
-                { value: 'TEST_LAUNCHED', label: 'Тест запущен' },
-              ]}
-            />
           </Form.Item>
           <Form.Item label="Критерии для оценки" required style={{ marginBottom: 0 }}>
             <Checkbox.Group

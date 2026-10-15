@@ -835,9 +835,8 @@ export default function Hypotheses() {
           setFormOpen(false)
           setEditing(null)
         }}
-        onSubmit={(request, workflowStatus) => {
-          const payload: HypothesisUpsertRequest = { ...request, workflowStatus }
-          saveMutation.mutate({ id: editing?.id, request: payload })
+        onSubmit={(request) => {
+          saveMutation.mutate({ id: editing?.id, request })
         }}
       />
     </div>

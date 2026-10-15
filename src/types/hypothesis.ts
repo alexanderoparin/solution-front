@@ -1,5 +1,3 @@
-export type HypothesisWorkflowStatus = 'PREPARATION' | 'TEST_LAUNCHED'
-
 export type HypothesisDisplayStatus =
   | 'PREPARATION'
   | 'IN_PROGRESS'
@@ -65,7 +63,6 @@ export interface Hypothesis {
   checkTo: string
   baselineFrom: string
   baselineTo: string
-  workflowStatus: HypothesisWorkflowStatus
   displayStatus: HypothesisDisplayStatus
   verdict?: HypothesisVerdict | null
   verdictManual: boolean
@@ -85,7 +82,6 @@ export interface HypothesisUpsertRequest {
   description?: string
   checkFrom: string
   checkTo: string
-  workflowStatus: HypothesisWorkflowStatus
   criteria: HypothesisCriterionKey[]
 }
 
