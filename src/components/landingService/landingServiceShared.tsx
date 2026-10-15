@@ -42,6 +42,7 @@ export function SvcTitle({
   highlightOnNewLine,
   afterOnNewLine,
   size = 'md',
+  lineHeight = 1.15,
 }: {
   before: string
   highlight?: string
@@ -51,36 +52,46 @@ export function SvcTitle({
   /** Продолжение заголовка с новой строки (после «аналитика»). */
   afterOnNewLine?: boolean
   size?: 'md' | 'lg'
+  /** Межстрочный интервал заголовка. */
+  lineHeight?: number
 }) {
   return (
     <h2
       style={{
         margin: 0,
         fontSize: size === 'lg' ? 'clamp(32px, 3.8vw, 46px)' : 'clamp(28px, 3.2vw, 40px)',
-        lineHeight: 1.15,
+        lineHeight,
         fontWeight: 700,
         letterSpacing: '-0.02em',
         color: svc.text,
       }}
     >
       {before}
-      {after ? (
-        afterOnNewLine ? (
-          <span style={{ display: 'block' }}>{after}</span>
-        ) : (
-          <> {after}</>
-        )
-      ) : null}
-      {highlight ? (
-        highlightOnNewLine ? (
-          <span style={{ display: 'block', color: svc.accent }}>{highlight}</span>
-        ) : (
-          <>
-            {' '}
-            <span style={{ color: svc.accent }}>{highlight}</span>
-          </>
-        )
-      ) : null}
+      {after && afterOnNewLine && highlight && !highlightOnNewLine ? (
+        <span style={{ display: 'block', color: svc.accent, whiteSpace: 'nowrap' }}>
+          {after} {highlight}
+        </span>
+      ) : (
+        <>
+          {after ? (
+            afterOnNewLine ? (
+              <span style={{ display: 'block' }}>{after}</span>
+            ) : (
+              <> {after}</>
+            )
+          ) : null}
+          {highlight ? (
+            highlightOnNewLine ? (
+              <span style={{ display: 'block', color: svc.accent }}>{highlight}</span>
+            ) : (
+              <>
+                {' '}
+                <span style={{ color: svc.accent }}>{highlight}</span>
+              </>
+            )
+          ) : null}
+        </>
+      )}
     </h2>
   )
 }

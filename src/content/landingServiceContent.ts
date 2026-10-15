@@ -23,8 +23,8 @@ export const serviceLandingAssets = {
   analyticsStack2: '/landing-service/block-3-1.png?v=3',
   analyticsStack3: '/landing-service/block-3-2.png?v=3',
   campaignDetail: '/landing-service/block-5-1.png',
-  manualWork: '/landing-service/block-6-1.png',
-  dashboard: '/landing-service/block-6-2.png',
+  manualWork: '/landing-service/block-6-1.png?v=3',
+  dashboard: '/landing-service/block-6-2.png?v=11',
   productAnalytics: '/landing-service/block-8-1.png',
   productAb: '/landing-service/block-8-2.png',
   productManage: '/landing-service/block-8-3.png',
@@ -175,9 +175,11 @@ export const serviceWhySeparate = {
 } as const
 
 export const serviceCampaignDepth = {
-  titleBefore: 'От общей картины — к конкретной',
+  titleBefore: 'От общей картины —',
+  titleAfter: 'к конкретной',
   titleHighlight: 'кампании',
-  highlightOnNewLine: true,
+  afterOnNewLine: true,
+  highlightOnNewLine: false,
   subtitle: 'Показы, клики, CTR, CPC, расходы, заказы и другие показатели рекламы — в одном интерфейсе.',
   cta: 'Получить бесплатный доступ',
   metrics: [
@@ -191,9 +193,21 @@ export const serviceCampaignDepth = {
     { label: 'Другие показатели', icon: 'pie' as const, tone: 'green' as const },
   ],
   callouts: [
-    { text: 'Состав рекламной кампании. Какие товары находятся в РК', place: 'top' as const },
-    { text: 'Детализация по артикулам в комбо', place: 'bottomLeft' as const },
-    { text: 'ДРР, CTR, CPC и другие ключевые показатели', place: 'bottomRight' as const },
+    {
+      text: 'Состав рекламной кампании. Какие товары находятся в РК',
+      place: 'topRight' as const,
+      tone: 'green' as const,
+    },
+    {
+      text: 'Детализация по артикулам в комбо',
+      place: 'bottom' as const,
+      tone: 'green' as const,
+    },
+    {
+      text: 'ДРР, CTR, CPC и другие ключевые показатели',
+      place: 'bottomRight' as const,
+      tone: 'purple' as const,
+    },
   ],
 } as const
 

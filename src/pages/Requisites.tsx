@@ -95,7 +95,7 @@ export default function Requisites() {
         /* Карточка шире, картинка крупнее и заезжает под правый край карточки */
         .requisites-page .stage {
           position: relative;
-          margin-bottom: 48px;
+          margin-bottom: 96px;
           padding-right: min(38%, 360px);
         }
         .requisites-page .hero {
@@ -207,21 +207,26 @@ export default function Requisites() {
         }
         .requisites-page .copy-btn .anticon { font-size: 15px; color: #6B7280; }
         .requisites-page .info {
-          display: flex;
-          align-items: flex-start;
+          display: inline-flex;
+          align-items: center;
           gap: 12px;
+          width: max-content;
+          max-width: 100%;
           padding: 15px 18px;
           border-radius: 14px;
           background: #F3F5FC;
           color: #4B5563;
           font-size: 14px;
           line-height: 1.55;
+          white-space: nowrap;
+        }
+        .requisites-page .info > div {
+          flex: 0 1 auto;
         }
         .requisites-page .info-icon {
           flex: 0 0 auto;
           width: 20px;
           height: 20px;
-          margin-top: 2px;
           border-radius: 50%;
           background: #3B82F6;
           color: #fff;
@@ -271,6 +276,15 @@ export default function Requisites() {
             padding-bottom: 20px;
             margin-bottom: 20px;
             border-bottom: 1px solid #E8ECF2;
+          }
+          .requisites-page .info {
+            display: flex;
+            width: 100%;
+            white-space: normal;
+            align-items: flex-start;
+          }
+          .requisites-page .info-icon {
+            margin-top: 2px;
           }
         }
         @media (max-width: 520px) {

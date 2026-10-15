@@ -118,6 +118,18 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
         }
         @media (max-width: 900px) {
           .svc-hero-grid, .svc-two, .svc-compare, .svc-help, .svc-analytics-grid { grid-template-columns: 1fr !important; }
+          .svc-less-manual-art {
+            position: relative !important;
+            left: auto !important;
+            top: auto !important;
+            transform: none !important;
+            width: min(420px, 100%) !important;
+            margin: 8px auto 0 !important;
+            display: block;
+          }
+          .svc-less-manual-stage { display: flex; flex-direction: column; }
+          .svc-less-manual-stage .svc-two { order: 1; }
+          .svc-less-manual-art { order: 2; }
         }
         @media (max-width: 560px) {
           .svc-caps, .svc-products, .svc-price, .svc-blog, .svc-steps { grid-template-columns: 1fr !important; }
@@ -486,15 +498,25 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       </section>
 
       {/* Campaign depth */}
-      <section style={svcSection()}>
+      <section style={svcSection({ paddingBottom: 110 })}>
         <div style={svcContainer()}>
-          <div className="svc-two" style={{ alignItems: 'center', gap: 28 }}>
-            <div style={{ maxWidth: 520 }}>
+          <div
+            className="svc-two"
+            style={{
+              alignItems: 'start',
+              gap: 20,
+              gridTemplateColumns: '1.05fr 1.2fr',
+            }}
+          >
+            <div style={{ maxWidth: 560, marginTop: -18 }}>
               <SvcTitle
                 before={serviceCampaignDepth.titleBefore}
+                after={serviceCampaignDepth.titleAfter}
                 highlight={serviceCampaignDepth.titleHighlight}
+                afterOnNewLine={serviceCampaignDepth.afterOnNewLine}
                 highlightOnNewLine={serviceCampaignDepth.highlightOnNewLine}
                 size="lg"
+                lineHeight={1.05}
               />
               <SvcLead>{serviceCampaignDepth.subtitle}</SvcLead>
               <div style={{ marginTop: 22 }}>
@@ -559,7 +581,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 ))}
               </div>
             </div>
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', width: '108%', marginRight: '-8%', paddingBottom: 36, overflow: 'visible' }}>
               <div
                 aria-hidden
                 style={{
@@ -582,38 +604,95 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 style={{
                   position: 'relative',
                   zIndex: 1,
+                  width: '100%',
                   borderRadius: 16,
                   boxShadow: '0 18px 48px rgba(15, 23, 42, 0.12)',
                   border: `1px solid ${svc.border}`,
                 }}
               />
               {serviceCampaignDepth.callouts.map((c) => {
+                const isPurple = c.tone === 'purple'
+                const stroke = isPurple ? svc.accent : svc.green
+                const markerId = `svc-callout-arrow-${c.place}`
                 const placeStyle =
-                  c.place === 'top'
-                    ? { top: '6%', left: '8%' }
-                    : c.place === 'bottomLeft'
-                      ? { bottom: '10%', left: '4%' }
-                      : { bottom: '8%', right: '4%' }
+                  c.place === 'topRight'
+                    ? { top: '-6%', right: '14%' }
+                    : c.place === 'bottom'
+                      ? { bottom: '-5%', left: '8%' }
+                      : { bottom: '4%', right: '5%' }
+                const arrowWrapStyle =
+                  c.place === 'topRight'
+                    ? { top: '3%', right: '36%', width: 150, height: 48 }
+                    : c.place === 'bottom'
+                      ? { bottom: '4%', left: '18%', width: 100, height: 70 }
+                      : { bottom: '10%', right: '22%', width: 120, height: 56 }
+                // topRight — влево к товарам; bottom — снизу вверх в таблицу; bottomRight — влево
+                const arrowPath =
+                  c.place === 'topRight'
+                    ? 'M 142 8 C 100 4, 56 12, 16 24'
+                    : c.place === 'bottom'
+                      ? 'M 20 62 C 28 40, 40 18, 52 6'
+                      : 'M 116 40 C 84 10, 48 8, 8 26'
                 return (
-                  <div
-                    key={c.text}
-                    style={{
-                      position: 'absolute',
-                      zIndex: 2,
-                      maxWidth: 200,
-                      padding: '8px 12px',
-                      borderRadius: 10,
-                      background: 'rgba(236, 252, 203, 0.95)',
-                      border: '1px solid rgba(163, 201, 0, 0.45)',
-                      color: '#3F6212',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      lineHeight: 1.35,
-                      boxShadow: '0 8px 20px rgba(63, 98, 18, 0.12)',
-                      ...placeStyle,
-                    }}
-                  >
-                    {c.text}
+                  <div key={c.text}>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        zIndex: 3,
+                        maxWidth: c.place === 'bottomRight' ? 148 : 190,
+                        width: 'max-content',
+                        padding: '8px 12px',
+                        borderRadius: 10,
+                        background: isPurple ? 'rgba(243, 232, 255, 0.96)' : 'rgba(236, 252, 203, 0.96)',
+                        border: isPurple
+                          ? '1px solid rgba(124, 58, 237, 0.35)'
+                          : '1px solid rgba(163, 201, 0, 0.45)',
+                        color: isPurple ? svc.accent : '#3F6212',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        lineHeight: 1.35,
+                        boxShadow: isPurple
+                          ? '0 8px 20px rgba(124, 58, 237, 0.12)'
+                          : '0 8px 20px rgba(63, 98, 18, 0.12)',
+                        ...placeStyle,
+                      }}
+                    >
+                      {c.text}
+                    </div>
+                    <svg
+                      aria-hidden
+                      viewBox={
+                        c.place === 'topRight' ? '0 0 150 36' : c.place === 'bottom' ? '0 0 70 70' : '0 0 120 50'
+                      }
+                      style={{
+                        position: 'absolute',
+                        zIndex: 2,
+                        pointerEvents: 'none',
+                        overflow: 'visible',
+                        ...arrowWrapStyle,
+                      }}
+                    >
+                      <defs>
+                        <marker
+                          id={markerId}
+                          markerWidth="7"
+                          markerHeight="7"
+                          refX="6"
+                          refY="3.5"
+                          orient="auto"
+                        >
+                          <path d="M0,0 L7,3.5 L0,7 Z" fill={stroke} />
+                        </marker>
+                      </defs>
+                      <path
+                        d={arrowPath}
+                        fill="none"
+                        stroke={stroke}
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        markerEnd={`url(#${markerId})`}
+                      />
+                    </svg>
                   </div>
                 )
               })}
@@ -626,41 +705,128 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       <section style={svcSection()}>
         <div style={svcContainer()}>
           <div style={{ maxWidth: 720, marginBottom: 28 }}>
-            <SvcTitle before={serviceLessManual.titleBefore} highlight={serviceLessManual.titleHighlight} />
+            <SvcTitle
+              before={serviceLessManual.titleBefore}
+              highlight={serviceLessManual.titleHighlight}
+              highlightOnNewLine
+              size="lg"
+              lineHeight={1.1}
+            />
             <SvcLead>{serviceLessManual.subtitle}</SvcLead>
           </div>
-          <div className="svc-two">
-            <div style={{ background: svc.softBg, borderRadius: 20, padding: 22 }}>
-              <div style={{ fontSize: 13, color: svc.muted, marginBottom: 6 }}>{serviceLessManual.insteadTitle}</div>
-              <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 16 }}>{serviceLessManual.insteadSubtitle}</div>
-              {serviceLessManual.steps.map((s, i) => (
-                <div key={s.title} style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                  <span
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: '50%',
-                      background: '#fff',
-                      border: `1px solid ${svc.border}`,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {i + 1}
-                  </span>
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{s.title}</div>
-                    <div style={{ fontSize: 13, color: svc.muted }}>{s.description}</div>
+          <div
+            className="svc-less-manual-stage"
+            style={{ position: 'relative' }}
+          >
+            <div
+              className="svc-two"
+              style={{
+                gridTemplateColumns: '0.88fr 1.22fr',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              {/* Широкая карточка: текст слева, справа пустота под наезд картинки */}
+              <div
+                style={{
+                  background: '#FCFAFF',
+                  border: '1px solid rgba(124, 58, 237, 0.12)',
+                  borderRadius: 18,
+                  padding: '18px 20px 18px 20px',
+                  boxShadow: '0 12px 36px rgba(124, 58, 237, 0.06)',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div style={{ maxWidth: 230 }}>
+                  <div style={{ fontSize: 13, color: svc.muted, marginBottom: 6 }}>
+                    {serviceLessManual.insteadTitle}
                   </div>
+                  <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 18, color: svc.text }}>
+                    {serviceLessManual.insteadSubtitle}
+                  </div>
+                  {serviceLessManual.steps.map((s, i) => (
+                    <div
+                      key={s.title}
+                      style={{
+                        display: 'flex',
+                        gap: 12,
+                        marginBottom: i < serviceLessManual.steps.length - 1 ? 14 : 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          background: svc.softBg,
+                          border: `1px solid ${svc.border}`,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: svc.muted,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {i + 1}
+                      </span>
+                      <div>
+                        <div style={{ fontWeight: 600, color: svc.text }}>{s.title}</div>
+                        <div style={{ fontSize: 13, color: svc.muted, lineHeight: 1.35 }}>{s.description}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-              <img className="svc-img" src={serviceLandingAssets.manualWork} alt="" style={{ marginTop: 8 }} />
+              </div>
+              <div
+                style={{
+                  position: 'relative',
+                  zIndex: 1,
+                  borderRadius: 16,
+                  padding: '10px 10px 6px',
+                  boxSizing: 'border-box',
+                  border: '1.5px solid rgba(124, 58, 237, 0.45)',
+                  background: '#fff',
+                  boxShadow: '0 18px 48px rgba(15, 23, 42, 0.12)',
+                  lineHeight: 0,
+                  overflow: 'hidden',
+                  transform: 'translateX(64px) scale(1.06)',
+                  transformOrigin: 'center center',
+                }}
+              >
+                <img
+                  src={serviceLandingAssets.dashboard}
+                  alt=""
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: 10,
+                    marginBottom: 0,
+                  }}
+                />
+              </div>
             </div>
-            <img className="svc-img" src={serviceLandingAssets.dashboard} alt="" />
+            {/* Картинка налезает на пустую правую часть карточки */}
+            <img
+              src={serviceLandingAssets.manualWork}
+              alt=""
+              className="svc-less-manual-art"
+              style={{
+                position: 'absolute',
+                left: '10%',
+                top: '52%',
+                transform: 'translateY(-50%)',
+                width: '40%',
+                maxWidth: 500,
+                height: 'auto',
+                objectFit: 'contain',
+                pointerEvents: 'none',
+                zIndex: 2,
+              }}
+            />
           </div>
         </div>
       </section>
