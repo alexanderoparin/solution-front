@@ -16,7 +16,6 @@ export type HypothesisCriterionKey =
   | 'cpc'
   | 'cpo'
   | 'views'
-  | 'buyout_percent'
   | 'avg_pos'
   | 'cart_conversion'
   | 'order_conversion'
@@ -29,7 +28,6 @@ export const HYPOTHESIS_CRITERIA: { key: HypothesisCriterionKey; label: string }
   { key: 'cpc', label: 'CPC' },
   { key: 'cpo', label: 'CPO' },
   { key: 'views', label: 'Показы' },
-  { key: 'buyout_percent', label: 'Процент выкупа' },
   { key: 'avg_pos', label: 'Средние позиции' },
   { key: 'cart_conversion', label: 'Конверсия в корзину' },
   { key: 'order_conversion', label: 'Конверсия в заказ' },

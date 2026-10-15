@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Button,
   Checkbox,
@@ -468,7 +468,18 @@ export default function HypothesisDetail() {
                 gap: 10,
               }}
             >
-              <Meta label="Артикул" value={String(hypothesis.nmId)} tint="#EEF2FF" />
+              <Meta
+                label="Артикул"
+                tint="#EEF2FF"
+                value={
+                  <Link
+                    to={`/analytics/article/${hypothesis.nmId}`}
+                    style={{ color: ACCENT, textDecoration: 'none' }}
+                  >
+                    {hypothesis.nmId}
+                  </Link>
+                }
+              />
               <Meta label="Категория" value={hypothesis.categoryName || '—'} tint="#F0FDF4" />
               <Meta label="Автор гипотезы" value={hypothesis.createdByName || '—'} tint="#FDF4FF" />
               <Meta label="Дата создания" value={dayjs(hypothesis.createdAt).format('DD.MM.YYYY')} tint="#FFF7ED" />
@@ -743,7 +754,7 @@ function Meta({
   tint,
 }: {
   label: string
-  value: string
+  value: ReactNode
   tint?: string
 }) {
   return (
