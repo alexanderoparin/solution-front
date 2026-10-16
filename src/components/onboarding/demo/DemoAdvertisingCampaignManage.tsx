@@ -74,7 +74,7 @@ export default function DemoAdvertisingCampaignManage() {
                 <div style={{ fontSize: 12, color: colors.textSecondary }}>Сумма пополнения, ₽</div>
                 <InputNumber style={{ width: '100%' }} defaultValue={2000} min={100} />
               </div>
-              <div>
+              <div style={{ gridColumn: 'span 2', minWidth: 240 }}>
                 <div style={{ fontSize: 12, color: colors.textSecondary }}>Источник</div>
                 <Select style={{ width: '100%' }} defaultValue="account" options={[{ value: 'account', label: 'Счёт WB · 14 320 ₽' }]} />
               </div>

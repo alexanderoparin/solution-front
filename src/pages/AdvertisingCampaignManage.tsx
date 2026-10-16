@@ -320,7 +320,7 @@ export default function AdvertisingCampaignManage() {
   const [usePromoCashback, setUsePromoCashback] = useState(true)
   const [thresholdRub, setThresholdRub] = useState<number | null>(null)
   const [maxTopUps, setMaxTopUps] = useState<number | null>(null)
-  const [autoLocked, setAutoLocked] = useState(false)
+  const [autoLocked, setAutoLocked] = useState(true)
   const [manualTopUpOpen, setManualTopUpOpen] = useState(false)
   const [manualTopUpAmount, setManualTopUpAmount] = useState<number | null>(MIN_AUTO_TOP_UP_AMOUNT_RUB)
   const [manualSourceType, setManualSourceType] = useState<number | null>(1)
@@ -337,6 +337,8 @@ export default function AdvertisingCampaignManage() {
       setMaxTopUps,
       setAutoLocked,
     })
+    // Режим редактирования только локальный: после загрузки/перезагрузки всегда «Редактировать».
+    setAutoLocked(true)
   }, [manage?.autoBudget])
 
   const [slotModalOpen, setSlotModalOpen] = useState(false)
@@ -388,18 +390,17 @@ export default function AdvertisingCampaignManage() {
 
   const cancelAutoBudgetEdit = useCallback(() => {
     if (manage?.autoBudget) {
-      applyAutoBudgetFormState(manage.autoBudget, {
-        setAutoEnabled,
-        setTopUpAmount,
-        setSourceType,
-        setUsePromoCashback,
-        setThresholdRub,
-        setMaxTopUps,
-        setAutoLocked,
-      })
-    } else {
-      setAutoLocked(true)
+      const a = manage.autoBudget
+      setAutoEnabled(a.enabled)
+      setTopUpAmount(a.topUpAmount ?? null)
+      setSourceType(a.sourceType ?? 1)
+      setUsePromoCashback(a.usePromoCashback !== false)
+      setThresholdRub(a.thresholdRub ?? null)
+      setMaxTopUps(a.maxTopUpsPerDay ?? null)
     }
+    // Всегда выходим из режима редактирования (не опираемся на a.locked с бэка —
+    // у несохранённых настроек locked=false, и «Отмена» выглядела мёртвой).
+    setAutoLocked(true)
   }, [manage?.autoBudget])
 
   const manualTopUpMutation = useMutation({
@@ -724,7 +725,7 @@ export default function AdvertisingCampaignManage() {
                         onChange={setTopUpAmount}
                       />
                     </div>
-                    <div>
+                    <div style={{ gridColumn: 'span 2', minWidth: 240 }}>
                       <div style={{ fontSize: 12, color: colors.textSecondary }}>Источник</div>
                       <Select
                         style={{ width: '100%' }}
