@@ -60,6 +60,7 @@ function applyAutoBudgetFormState(
     setAutoEnabled: (v: boolean) => void
     setTopUpAmount: (v: number | null) => void
     setSourceType: (v: number | null) => void
+    setBackupSourceType: (v: number | null) => void
     setUsePromoCashback: (v: boolean) => void
     setThresholdRub: (v: number | null) => void
     setMaxTopUps: (v: number | null) => void
@@ -69,6 +70,7 @@ function applyAutoBudgetFormState(
   setters.setAutoEnabled(a.enabled)
   setters.setTopUpAmount(a.topUpAmount ?? null)
   setters.setSourceType(a.sourceType ?? 1)
+  setters.setBackupSourceType(a.backupSourceType ?? null)
   setters.setUsePromoCashback(a.usePromoCashback !== false)
   setters.setThresholdRub(a.thresholdRub ?? null)
   setters.setMaxTopUps(a.maxTopUpsPerDay ?? null)
@@ -317,6 +319,7 @@ export default function AdvertisingCampaignManage() {
   const [autoEnabled, setAutoEnabled] = useState(false)
   const [topUpAmount, setTopUpAmount] = useState<number | null>(null)
   const [sourceType, setSourceType] = useState<number | null>(1)
+  const [backupSourceType, setBackupSourceType] = useState<number | null>(null)
   const [usePromoCashback, setUsePromoCashback] = useState(true)
   const [thresholdRub, setThresholdRub] = useState<number | null>(null)
   const [maxTopUps, setMaxTopUps] = useState<number | null>(null)
@@ -332,6 +335,7 @@ export default function AdvertisingCampaignManage() {
       setAutoEnabled,
       setTopUpAmount,
       setSourceType,
+      setBackupSourceType,
       setUsePromoCashback,
       setThresholdRub,
       setMaxTopUps,
@@ -394,6 +398,7 @@ export default function AdvertisingCampaignManage() {
       setAutoEnabled(a.enabled)
       setTopUpAmount(a.topUpAmount ?? null)
       setSourceType(a.sourceType ?? 1)
+      setBackupSourceType(a.backupSourceType ?? null)
       setUsePromoCashback(a.usePromoCashback !== false)
       setThresholdRub(a.thresholdRub ?? null)
       setMaxTopUps(a.maxTopUpsPerDay ?? null)
@@ -693,9 +698,17 @@ export default function AdvertisingCampaignManage() {
             </div>
 
             <CampaignManagePaywallShield active={subscriptionBlocked}>
-            <div style={cardStyle}>
-              <div className="campaign-manage-auto-row" style={{ display: 'flex', gap: 16, alignItems: 'stretch', flexWrap: 'wrap' }}>
-                <div className="campaign-manage-auto-budget" style={{ flex: '1 1 280px', minWidth: 0 }} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET}>
+            <div style={cardStyle} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET}>
+              <div
+                className="campaign-manage-auto-row"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1fr) minmax(180px, 220px)',
+                  gap: 16,
+                  alignItems: 'stretch',
+                }}
+              >
+                <div className="campaign-manage-auto-budget" style={{ minWidth: 0 }}>
                   <h2 style={{ ...typography.h2, fontSize: 16, margin: '0 0 12px' }}>Автопополнение бюджета</h2>
                   {balanceSources?.fetchedAt && (
                     <p style={{ fontSize: 12, color: colors.textSecondary, margin: '0 0 12px' }}>
@@ -731,11 +744,33 @@ export default function AdvertisingCampaignManage() {
                         style={{ width: '100%' }}
                         disabled={autoBudgetFieldsDisabled}
                         value={sourceType}
-                        onChange={setSourceType}
+                        onChange={(v) => {
+                          setSourceType(v)
+                          if (v != null && backupSourceType === v) {
+                            setBackupSourceType(null)
+                          }
+                        }}
                         options={(balanceSources?.sources ?? []).map((s) => ({
                           value: s.type,
                           label: formatBalanceSourceLabel(s),
                         }))}
+                      />
+                    </div>
+                    <div style={{ gridColumn: 'span 2', minWidth: 240 }}>
+                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Запасной источник</div>
+                      <Select
+                        style={{ width: '100%' }}
+                        allowClear
+                        placeholder="Не использовать"
+                        disabled={autoBudgetFieldsDisabled}
+                        value={backupSourceType}
+                        onChange={(v) => setBackupSourceType(v ?? null)}
+                        options={(balanceSources?.sources ?? [])
+                          .filter((s) => s.type !== sourceType)
+                          .map((s) => ({
+                            value: s.type,
+                            label: formatBalanceSourceLabel(s),
+                          }))}
                       />
                     </div>
                     <div>
@@ -764,17 +799,13 @@ export default function AdvertisingCampaignManage() {
                 <div
                   className="campaign-manage-auto-actions"
                   style={{
-                    flex: '0 1 220px',
-                    maxWidth: 220,
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'flex-start',
+                    justifyContent: 'space-between',
                     alignItems: 'stretch',
                     gap: 8,
-                    padding: spacing.sm,
-                    borderRadius: borderRadius.md,
-                    backgroundColor: colors.bgGray,
-                    border: `1px solid ${colors.borderLight}`,
+                    padding: `0 ${spacing.sm}`,
+                    alignSelf: 'stretch',
                   }}
                 >
                   <Button
@@ -832,6 +863,7 @@ export default function AdvertisingCampaignManage() {
                             enabled: autoEnabled,
                             topUpAmount,
                             sourceType,
+                            backupSourceType,
                             usePromoCashback,
                             thresholdRub,
                             maxTopUpsPerDay: maxTopUps,

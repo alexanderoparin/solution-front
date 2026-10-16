@@ -62,9 +62,17 @@ export default function DemoAdvertisingCampaignManage() {
         </div>
       </div>
 
-      <div style={cardStyle}>
-        <div className="campaign-manage-auto-row" style={{ display: 'flex', gap: 16, alignItems: 'stretch', flexWrap: 'wrap' }}>
-          <div className="campaign-manage-auto-budget" style={{ flex: '1 1 280px', minWidth: 0 }} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET}>
+      <div style={cardStyle} data-tour-id={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_AUTO_BUDGET}>
+        <div
+          className="campaign-manage-auto-row"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) minmax(180px, 220px)',
+            gap: 16,
+            alignItems: 'stretch',
+          }}
+        >
+          <div className="campaign-manage-auto-budget" style={{ minWidth: 0 }}>
             <h2 style={{ ...typography.h2, fontSize: 16, margin: '0 0 12px' }}>Автопополнение бюджета</h2>
             <Checkbox checked={autoEnabled} onChange={(e) => setAutoEnabled(e.target.checked)}>
               Пополнять бюджет автоматически
@@ -77,6 +85,16 @@ export default function DemoAdvertisingCampaignManage() {
               <div style={{ gridColumn: 'span 2', minWidth: 240 }}>
                 <div style={{ fontSize: 12, color: colors.textSecondary }}>Источник</div>
                 <Select style={{ width: '100%' }} defaultValue="account" options={[{ value: 'account', label: 'Счёт WB · 14 320 ₽' }]} />
+              </div>
+              <div style={{ gridColumn: 'span 2', minWidth: 240 }}>
+                <div style={{ fontSize: 12, color: colors.textSecondary }}>Запасной источник</div>
+                <Select
+                  style={{ width: '100%' }}
+                  allowClear
+                  placeholder="Не использовать"
+                  defaultValue="balance"
+                  options={[{ value: 'balance', label: 'Баланс · 8 100 ₽' }]}
+                />
               </div>
               <div>
                 <div style={{ fontSize: 12, color: colors.textSecondary }}>Пополнить если ниже, ₽</div>
@@ -91,12 +109,11 @@ export default function DemoAdvertisingCampaignManage() {
           <div
             className="campaign-manage-auto-actions"
             style={{
-              flex: '0 1 220px',
-              maxWidth: 220,
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'flex-start',
+              justifyContent: 'space-between',
               gap: 8,
+              alignSelf: 'stretch',
             }}
           >
             <Button

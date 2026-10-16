@@ -370,6 +370,8 @@ export interface CampaignAutoBudgetSettings {
   enabled: boolean
   topUpAmount: number | null
   sourceType: number | null
+  /** Запасной источник при ошибке основного; null — не использовать */
+  backupSourceType?: number | null
   /** Использовать промо-бонусы при автопополнении (type 0/1) */
   usePromoCashback?: boolean
   thresholdRub: number | null

@@ -23,6 +23,8 @@ export interface CampaignAutoBudgetRequest {
   enabled: boolean
   topUpAmount?: number | null
   sourceType?: number | null
+  /** Запасной источник; null — не использовать */
+  backupSourceType?: number | null
   usePromoCashback?: boolean
   thresholdRub?: number | null
   maxTopUpsPerDay?: number | null
