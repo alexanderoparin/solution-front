@@ -46,8 +46,8 @@ import { useAuthStore } from './store/authStore'
 function AppRoutes() {
   const token = useAuthStore((state) => state.token)
   const location = useLocation()
-  const showAppFooter =
-    location.pathname !== '/' && location.pathname !== '/landing-service'
+  /** Агентский лендинг (`/`) — свой LandingFooter; сервисный (`/landing-service`) — общий Footer. */
+  const showAppFooter = location.pathname !== '/'
   /** Юр. страницы короткие — не растягиваем контент, иначе пустота между текстом и футером. */
   const isLegalPublicPage = [
     '/requisites',

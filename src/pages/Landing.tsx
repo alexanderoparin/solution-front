@@ -4,7 +4,6 @@ import type { LandingLeadRequest } from '../types/landingLead'
 import ServiceLandingHeader from '../components/landingService/ServiceLandingHeader'
 import ServiceLandingSections from '../components/landingService/ServiceLandingSections'
 import ServiceLandingAmbient from '../components/landingService/ServiceLandingDecor'
-import Footer from '../components/Footer'
 import { svc } from '../components/landingService/landingServiceShared'
 
 /**
@@ -51,7 +50,6 @@ export default function Landing() {
         <main>
           <ServiceLandingSections onOpenLeadForm={setLeadRequest} />
         </main>
-        <Footer />
       </div>
       <LandingLeadRequestModal request={leadRequest} onClose={() => setLeadRequest(null)} />
     </div>
