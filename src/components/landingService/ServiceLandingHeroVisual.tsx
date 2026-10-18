@@ -14,40 +14,44 @@ export default function ServiceLandingHeroVisual() {
       className="svc-hero-visual"
       style={{
         position: 'relative',
-        width: '120%',
+        width: '100%',
         maxWidth: 'none',
-        marginLeft: '-2%',
-        marginRight: '-18%',
-        padding: '12px 8px 16px',
+        marginLeft: '4%',
+        marginRight: '-4%',
+        marginTop: 64,
+        padding: '12px 44px 40px 8px',
         overflow: 'visible',
+        boxSizing: 'border-box',
       }}
     >
-      {/* Подсветка за рамкой */}
+      {/* Подсветка за рамкой — смещена влево/вверх, справа слабее */}
       <div
         aria-hidden
         style={{
           position: 'absolute',
-          inset: '6% 2% 2% 6%',
+          top: '0%',
+          left: '8%',
+          right: '18%',
+          bottom: '18%',
           borderRadius: '50%',
           background:
-            'radial-gradient(circle, rgba(124,58,237,0.28) 0%, rgba(180,215,5,0.12) 42%, transparent 70%)',
+            'radial-gradient(circle at 40% 45%, rgba(124,58,237,0.18) 0%, rgba(180,215,5,0.1) 40%, transparent 68%)',
           filter: 'blur(28px)',
           zIndex: 0,
         }}
       />
 
-      {/* Скрин чуть правее; точки симметрично у левого и правого углов */}
+      {/* Скрин; точки симметрично: слева сверху и справа снизу по ~2 ряда */}
       <div
         style={{
           position: 'relative',
-          width: '94%',
-          marginLeft: '8%',
-          marginRight: '-2%',
+          width: '100%',
+          marginLeft: 0,
+          marginRight: 0,
         }}
       >
-        <DotGrid top={-36} left={-40} cols={8} rows={8} gap={18} size={3.5} opacity={1} />
-        {/* Как слева сверху: ~2 ряда выглядывают из‑за угла */}
-        <DotGrid bottom={-36} right={-40} cols={8} rows={8} gap={18} size={3.5} opacity={1} />
+        <DotGrid top={-28} left={-40} cols={8} rows={8} gap={18} size={3.5} opacity={1} />
+        <DotGrid bottom={-28} right={-40} cols={8} rows={8} gap={18} size={3.5} opacity={1} />
 
         <div
           style={{
@@ -75,7 +79,7 @@ export default function ServiceLandingHeroVisual() {
               width: '100%',
               height: 'auto',
               /* Чуть вытянуть по высоте вниз */
-              aspectRatio: '1532 / 685',
+              aspectRatio: '1532 / 760',
               objectFit: 'fill',
               borderRadius: 22,
             }}

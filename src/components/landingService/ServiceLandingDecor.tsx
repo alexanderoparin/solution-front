@@ -24,10 +24,10 @@ export default function ServiceLandingAmbient() {
         zIndex: 0,
       }}
     >
-      {/* Hero — чуть светлее */}
-      <Blob top="2%" right="-4%" size={420} color={purple} blur={90} opacity={0.55} />
-      <Blob top="6%" left="42%" size={260} color={greenGlow} blur={80} opacity={0.5} />
-      <Blob top="12%" left="-6%" size={360} color={purpleSoft} blur={100} opacity={0.5} />
+      {/* Hero — фиолетовое пятно правее/ниже уводим, чтобы не заливало угол скрина */}
+      <Blob top="0%" right="12%" size={340} color={purple} blur={95} opacity={0.38} />
+      <Blob top="6%" left="38%" size={260} color={greenGlow} blur={80} opacity={0.5} />
+      <Blob top="14%" left="-6%" size={360} color={purpleSoft} blur={100} opacity={0.48} />
       {/* Ниже hero — насыщеннее, чтобы белые скрины не сливались */}
       <Blob top="22%" right="8%" size={300} color={greenGlow} blur={90} opacity={0.95} />
       <Blob top="28%" right="-2%" size={440} color={purple} blur={100} opacity={1} />

@@ -25,10 +25,26 @@ export const serviceLandingAssets = {
   campaignDetail: '/landing-service/block-5-1.png',
   manualWork: '/landing-service/block-6-1.png?v=3',
   dashboard: '/landing-service/block-6-2.png?v=11',
-  productAnalytics: '/landing-service/block-8-1.png',
-  productAb: '/landing-service/block-8-2.png',
-  productManage: '/landing-service/block-8-3.png',
-  team: '/landing-service/block-9-1.png',
+  /** Иконки блока «Что можно делать» — вырезаны из макета 7.png */
+  capIcons: [
+    '/landing-service/caps/cap-1.png?v=1',
+    '/landing-service/caps/cap-2.png?v=1',
+    '/landing-service/caps/cap-3.png?v=1',
+    '/landing-service/caps/cap-4.png?v=1',
+    '/landing-service/caps/cap-5.png?v=1',
+    '/landing-service/caps/cap-6.png?v=1',
+  ] as const,
+  /** Порядок скринов как на макете 8.png: аналитика / А/В / управление РК */
+  productAnalytics: '/landing-service/block-8-3.png?v=2',
+  productAb: '/landing-service/block-8-1.png?v=4',
+  productManage: '/landing-service/block-8-2.png?v=2',
+  /** Иконки карточек продуктов — вырезаны из макета 8.png */
+  productIcons: [
+    '/landing-service/products/prod-icon-1.png?v=1',
+    '/landing-service/products/prod-icon-2.png?v=1',
+    '/landing-service/products/prod-icon-3.png?v=1',
+  ] as const,
+  team: '/landing-service/block-9-1.png?v=4',
   faq: '/landing-service/block-13-1.png',
 } as const
 
@@ -222,7 +238,7 @@ export const serviceLessManual = {
     { title: 'Собрать данные', description: 'Экспорт из кабинета Wildberries' },
     { title: 'Свести таблицы', description: 'Объединить данные, убрать лишнее' },
     { title: 'Сравнить периоды', description: 'Посчитать показатели' },
-    { title: 'Искать отклонения', description: 'Найти неэффективные кампании и причины' },
+    { title: 'Искать отклонения', description: 'Найти неэффективные кампании\nи причины' },
   ],
 } as const
 
@@ -235,32 +251,32 @@ export const serviceCapabilities = {
     {
       title: 'Анализировать рекламные кампании',
       description: 'Поиск, ключи, CTR, CPC, расходы, заказы и другие показатели.',
-      tone: 'green' as const,
+      icon: serviceLandingAssets.capIcons[0],
     },
     {
       title: 'Сравнивать результаты',
       description: 'Сопоставляйте периоды и отслеживайте динамику эффективности.',
-      tone: 'purple' as const,
+      icon: serviceLandingAssets.capIcons[1],
     },
     {
       title: 'Контролировать расходы',
       description: 'Следите за бюджетом и находите кампании, которые требуют внимания.',
-      tone: 'green' as const,
+      icon: serviceLandingAssets.capIcons[2],
     },
     {
       title: 'Работать с несколькими кабинетами',
       description: 'Собирайте данные по нескольким кабинетам в одном сервисе.',
-      tone: 'purple' as const,
+      icon: serviceLandingAssets.capIcons[3],
     },
     {
       title: 'Выгружать данные',
       description: 'Экспортируйте аналитику в Excel для дальнейшего анализа.',
-      tone: 'green' as const,
+      icon: serviceLandingAssets.capIcons[4],
     },
     {
       title: 'Работать вместе',
       description: 'Предоставляйте доступ сотрудникам и управляйте ролями.',
-      tone: 'purple' as const,
+      icon: serviceLandingAssets.capIcons[5],
     },
   ],
 } as const
@@ -271,6 +287,7 @@ export const serviceProducts = [
     title: 'Аналитика',
     subtitle: 'Единая аналитика по всем кампаниям и кабинетам',
     tone: 'blue' as const,
+    icon: serviceLandingAssets.productIcons[0],
     image: serviceLandingAssets.productAnalytics,
     bullets: [
       'Аналитика по всем кампаниям и кабинетам',
@@ -285,6 +302,7 @@ export const serviceProducts = [
     title: 'А/В-тесты',
     subtitle: 'Тестируйте до 20 вариантов фото и выбирайте самые эффективные',
     tone: 'purple' as const,
+    icon: serviceLandingAssets.productIcons[1],
     image: serviceLandingAssets.productAb,
     bullets: [
       'Тесты до 20 вариантов фото одновременно',
@@ -293,13 +311,13 @@ export const serviceProducts = [
       'Удобная статистика по каждому варианту',
       'Простая настройка за несколько кликов',
     ],
-    highlightBullet: 'Автоматическая установка лидера в карточку',
   },
   {
     id: 'manage',
     title: 'Управление РК',
     subtitle: 'Автозапуск, остановка и распределение бюджета по расписанию',
     tone: 'green' as const,
+    icon: serviceLandingAssets.productIcons[2],
     image: serviceLandingAssets.productManage,
     bullets: [
       'Запуск и остановка РК по расписанию',
@@ -317,6 +335,31 @@ export const serviceAbout = {
   paragraphs: [
     'Clicki появился как внутренний инструмент маркетингового агентства.',
     'Мы сами работаем с рекламой Wildberries и сталкиваемся с теми же задачами: много кампаний, данные из разных источников, контроль расходов и необходимость быстро понимать, что происходит.',
+  ],
+  /** Плавающие карточки вокруг фото команды — как на макете 9.png */
+  floats: [
+    {
+      id: 'campaigns',
+      title: 'Рекламные кампании',
+      kind: 'bars' as const,
+      place: 'topLeft' as const,
+    },
+    {
+      id: 'orders',
+      title: 'Заказы',
+      value: '1 892',
+      delta: '+28%',
+      kind: 'lineGreen' as const,
+      place: 'midRight' as const,
+    },
+    {
+      id: 'spend',
+      title: 'Расходы',
+      value: '124 530 ₽',
+      delta: '-12%',
+      kind: 'linePurple' as const,
+      place: 'bottomLeft' as const,
+    },
   ],
 } as const
 
@@ -357,7 +400,7 @@ export const servicePricing = {
   titleBefore: 'Простые и прозрачные',
   titleHighlight: 'тарифы',
   subtitle: 'Один тариф — полный доступ ко всем возможностям сервиса.',
-  periodHintTwoWeeks: 'Чтобы попробовать сервис',
+  periodHintTwoWeeks: 'Чтобы попробовать\nсервис',
   periodHintMonth: 'Выгоднее для постоянной работы',
   includedLabel: 'Во все тарифы включены все возможности:',
   included: [
@@ -371,6 +414,7 @@ export const servicePricing = {
       id: 'start',
       name: 'Старт',
       cabinets: '1 кабинет',
+      icon: 'user' as const,
       priceTwoWeeks: 390,
       priceMonth: 690,
       popular: false,
@@ -381,6 +425,7 @@ export const servicePricing = {
       id: 'optimum',
       name: 'Оптимум',
       cabinets: 'До 5 кабинетов',
+      icon: 'chart' as const,
       priceTwoWeeks: 1490,
       priceMonth: 2690,
       popular: true,
@@ -391,6 +436,7 @@ export const servicePricing = {
       id: 'profi',
       name: 'Профи',
       cabinets: 'До 10 кабинетов',
+      icon: 'team' as const,
       priceTwoWeeks: 2790,
       priceMonth: 4990,
       popular: false,
@@ -401,6 +447,7 @@ export const servicePricing = {
       id: 'custom',
       name: 'Свыше',
       cabinets: 'Более 10 кабинетов',
+      icon: 'building' as const,
       priceTwoWeeks: null,
       priceMonth: null,
       popular: false,
@@ -408,6 +455,12 @@ export const servicePricing = {
       consultation: true,
     },
   ],
+  includedItems: [
+    { icon: 'chart' as const, lines: ['Полная аналитика', 'рекламных показателей'] },
+    { icon: 'photo' as const, lines: ['A/B тестирование', 'фотографий'] },
+    { icon: 'schedule' as const, lines: ['Автозапуск РК', 'по расписанию'] },
+  ],
+  onlyCabinetsLines: ['Разница только', 'в количестве кабинетов'],
 } as const
 
 export const serviceAgencyHelp = {
@@ -418,6 +471,7 @@ export const serviceAgencyHelp = {
     {
       id: 'manage',
       title: 'Ведение рекламного кабинета',
+      /** Правка на макете: убрано «Работают опытные специалисты.» */
       description: 'Полное управление рекламой на Wildberries: от стратегии до масштабирования.',
       tone: 'purple' as const,
       bullets: [
@@ -433,8 +487,8 @@ export const serviceAgencyHelp = {
     {
       id: 'audit',
       title: 'Аудит рекламного кабинета',
+      /** Правка на макете: вместо «найдём причины перерасхода» — «покажем, где теряются деньги» */
       description: 'Разберём ваш кабинет и покажем, где теряются деньги и конкретные точки роста.',
-      note: 'покажем, где теряются деньги',
       tone: 'green' as const,
       bullets: [
         'Анализ текущих кампаний',
