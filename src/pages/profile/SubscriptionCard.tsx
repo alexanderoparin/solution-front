@@ -115,8 +115,11 @@ export default function SubscriptionCard({
     staleTime: 0,
   })
 
+  const isProCode = (code?: string | null) =>
+    Boolean(code && (code === 'pro_month' || code.startsWith('pro_')))
+
   const profilePromoActive = Boolean(subscription?.promoCode)
-    || (subscription?.planCode === 'pro_month'
+    || (isProCode(subscription?.planCode)
       && subscription?.active
       && Boolean(subscription?.expiresAt))
 
@@ -125,7 +128,7 @@ export default function SubscriptionCard({
 
   const onPro =
     Boolean(billing?.mainTariff?.unlimitedAccess)
-    || billing?.mainTariff?.code === 'pro_month'
+    || isProCode(billing?.mainTariff?.code)
     || billing?.mainTariff?.status === 'AGENCY'
     || billing?.mainTariff?.status === 'PROMO'
     || profilePromoActive
@@ -571,8 +574,6 @@ export default function SubscriptionCard({
 
       <AbTestPacksModal
         open={abPacksOpen}
-        cabinetId={cabinetId}
-        freeAlreadyUsed={Boolean(billing?.abTestQuota?.activated || billing?.abTestQuota?.unlimited || onPro)}
         onClose={() => setAbPacksOpen(false)}
         onActivated={() => {
           void refetchBilling()

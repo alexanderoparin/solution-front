@@ -4,12 +4,11 @@ import type { LandingLeadRequest } from '../types/landingLead'
 import ServiceLandingHeader from '../components/landingService/ServiceLandingHeader'
 import ServiceLandingSections from '../components/landingService/ServiceLandingSections'
 import ServiceLandingAmbient from '../components/landingService/ServiceLandingDecor'
+import ServiceLandingFooter from '../components/landingService/ServiceLandingFooter'
 import { svc } from '../components/landingService/landingServiceShared'
 
 /**
- * Новый сервисный лендинг (макет «Лендинг Сервис»).
- * Пока на `/landing-service`; на `/` — текущий агентский.
- * После готовности — поменять местами с LandingAgency.
+ * Сервисный лендинг на корне `/`. Агентский — `/landing-agency`.
  */
 export default function Landing() {
   const [leadRequest, setLeadRequest] = useState<LandingLeadRequest | null>(null)
@@ -50,6 +49,7 @@ export default function Landing() {
         <main>
           <ServiceLandingSections onOpenLeadForm={setLeadRequest} />
         </main>
+        <ServiceLandingFooter />
       </div>
       <LandingLeadRequestModal request={leadRequest} onClose={() => setLeadRequest(null)} />
     </div>

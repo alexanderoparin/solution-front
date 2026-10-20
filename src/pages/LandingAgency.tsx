@@ -13,7 +13,7 @@ import LandingFaq, { LandingBlogSection } from '../components/landing/LandingFaq
 import LandingFooter from '../components/landing/LandingFooter'
 import { landingColors } from '../styles/landing'
 
-/** Текущий (агентский) лендинг на `/`. Новый сервисный — `/landing-service`. */
+/** Агентский лендинг (`/landing-agency`). Сервисный — на `/`. */
 export default function LandingAgency() {
   const [leadRequest, setLeadRequest] = useState<LandingLeadRequest | null>(null)
 

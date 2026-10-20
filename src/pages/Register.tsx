@@ -11,7 +11,6 @@ import type { AccountType, RegisterRequest } from '../types/api'
 import { ACCOUNT_TYPE_LABELS } from '../constants/accountTypeLabels'
 import { getStoredInvitationToken, setStoredInvitationToken, clearStoredInvitationToken } from '../constants/invitationStorage'
 import SiteLogo from '../components/SiteLogo'
-import { activateBidderTrialPlanIfAvailable } from '../utils/activateBidderTrialPlan'
 import {
   consumeBidderTrialRegisterIntent,
   isBidderTrialRegisterSearch,
@@ -102,14 +101,7 @@ export default function Register() {
       }
 
       if (consumeBidderTrialRegisterIntent()) {
-        try {
-          await activateBidderTrialPlanIfAvailable()
-          message.success('Подключён пробный доступ к автозапуску рекламы на 3 дня')
-        } catch {
-          message.info(
-            'Аккаунт создан. Пробный доступ к автозапуску можно подключить в профиле после подтверждения email.',
-          )
-        }
+        message.info('Аккаунт создан. Подключите «Управление РК» в разделе «Подписка и тарифы».')
       }
 
       if (variables.invitationToken) {

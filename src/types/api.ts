@@ -278,6 +278,7 @@ export interface PlanDto {
   description: string | null
   priceRub: number
   periodDays: number
+  minCabinets?: number | null
   maxCabinets: number | null
   sortOrder?: number
   isActive?: boolean
@@ -292,6 +293,7 @@ export interface CreatePlanRequest {
   description?: string
   priceRub: number
   periodDays: number
+  minCabinets?: number
   maxCabinets?: number
   sortOrder?: number
   isActive?: boolean
@@ -306,6 +308,7 @@ export interface UpdatePlanRequest {
   description?: string
   priceRub?: number
   periodDays?: number
+  minCabinets?: number
   maxCabinets?: number
   sortOrder?: number
   isActive?: boolean
@@ -313,6 +316,43 @@ export interface UpdatePlanRequest {
   periodType?: 'DAYS' | 'CALENDAR_MONTH' | string
   kind?: 'MAIN' | 'CAMPAIGN' | 'AB_PACK' | string
   creditAmount?: number
+}
+
+/** Сводка биллинга владельца для страницы тарифов. */
+export interface UserBillingOverviewDto {
+  activePackages: UserBillingActivePackageDto[]
+  cabinets: UserBillingCabinetRowDto[]
+  abTestQuota: AbTestQuotaDto | null
+  canManageBilling: boolean
+}
+
+export interface UserBillingActivePackageDto {
+  kind: string
+  title: string
+  cabinetCount: number | null
+  expiresAt: string | null
+  status: string
+  remaining?: number | null
+  usedStarts?: number | null
+}
+
+export interface UserBillingCabinetRowDto {
+  cabinetId: number
+  name: string
+  marketplaceType: string | null
+  createdAt: string | null
+  tariffLabel: string
+  status: string
+  expiresAt: string | null
+  products: boolean
+  summary: boolean
+  campaigns: boolean
+  hypotheses: boolean
+  campaignManage: boolean
+  abTests: boolean
+  unlimitedAccess: boolean
+  mainPlanCode: string | null
+  campaignPlanCode: string | null
 }
 
 export interface SubscriptionDto {

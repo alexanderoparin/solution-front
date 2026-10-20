@@ -52,7 +52,9 @@ function formatDateShort(value: string | null | undefined): string {
 function isProfilePromoActive(subscription?: ProfileSubscriptionSummary | null): boolean {
   if (!subscription) return false
   if (subscription.promoCode) return true
-  return subscription.planCode === 'pro_month'
+  const code = subscription.planCode
+  const isPro = Boolean(code && (code === 'pro_month' || code.startsWith('pro_')))
+  return isPro
     && subscription.active
     && Boolean(subscription.expiresAt)
 }

@@ -1,12 +1,11 @@
 import apiClient from './client'
 import type {
-  ActivatePlanResponse,
-  AbTestQuotaDto,
   CabinetBillingStatusDto,
   InitiatePaymentResponse,
   PaymentStatusResponse,
   PlanDto,
   SubscriptionStatusResponse,
+  UserBillingOverviewDto,
 } from '../types/api'
 
 export const subscriptionApi = {
@@ -29,17 +28,14 @@ export const subscriptionApi = {
     return subscriptionApi.getPlans('AB_PACK')
   },
 
-  getCabinetBillingStatus: async (cabinetId: number): Promise<CabinetBillingStatusDto> => {
-    const response = await apiClient.get<CabinetBillingStatusDto>(
-      `/subscription/cabinet/${cabinetId}/status`,
-    )
+  getOverview: async (): Promise<UserBillingOverviewDto> => {
+    const response = await apiClient.get<UserBillingOverviewDto>('/subscription/overview')
     return response.data
   },
 
-  /** Явно подключает бесплатный пакет А/Б тестов кабинета (план ab_pack_free) */
-  activateAbFreeQuota: async (cabinetId: number): Promise<AbTestQuotaDto> => {
-    const response = await apiClient.post<AbTestQuotaDto>(
-      `/subscription/cabinet/${cabinetId}/ab-tests/activate-free`,
+  getCabinetBillingStatus: async (cabinetId: number): Promise<CabinetBillingStatusDto> => {
+    const response = await apiClient.get<CabinetBillingStatusDto>(
+      `/subscription/cabinet/${cabinetId}/status`,
     )
     return response.data
   },
@@ -50,20 +46,17 @@ export const subscriptionApi = {
     return response.data
   },
 
-  /** Активация бесплатного плана услуги кабинета */
-  activatePlan: async (planId: number, cabinetId: number): Promise<ActivatePlanResponse> => {
-    const response = await apiClient.post<ActivatePlanResponse>('/subscription/activate', {
-      planId,
-      cabinetId,
-    })
-    return response.data
-  },
-
-  /** Инициация оплаты платного плана / услуги / пакета А/Б */
-  initiatePayment: async (planId: number, cabinetId: number): Promise<InitiatePaymentResponse> => {
+  /**
+   * Инициация оплаты.
+   * Для MAIN/CAMPAIGN — cabinetIds обязательны; для AB_PACK можно без кабинетов.
+   */
+  initiatePayment: async (
+    planId: number,
+    cabinetIds?: number[],
+  ): Promise<InitiatePaymentResponse> => {
     const response = await apiClient.post<InitiatePaymentResponse>('/subscription/initiate-payment', {
       planId,
-      cabinetId,
+      cabinetIds: cabinetIds && cabinetIds.length > 0 ? cabinetIds : undefined,
     })
     return response.data
   },

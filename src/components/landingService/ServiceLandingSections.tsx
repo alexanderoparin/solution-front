@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Collapse } from 'antd'
+import { subscriptionApi } from '../../api/subscription'
+import { pricesFromMainPlans, type LandingMainTierId } from '../../utils/landingMainPlanPrices'
 import {
   AimOutlined,
   ApartmentOutlined,
@@ -64,6 +67,14 @@ function formatPrice(value: number): string {
 export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
   const navigate = useNavigate()
   const [period, setPeriod] = useState<'twoWeeks' | 'month'>('twoWeeks')
+
+  const { data: mainPlans = [] } = useQuery({
+    queryKey: ['landingMainPlans'],
+    queryFn: () => subscriptionApi.getMainPlans(),
+    staleTime: 60_000,
+  })
+
+  const tierPrices = useMemo(() => pricesFromMainPlans(mainPlans), [mainPlans])
 
   const goRegister = () => navigate('/register')
 
@@ -1430,7 +1441,11 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
 
           <div className="svc-price">
             {servicePricing.plans.map((plan) => {
-              const price = period === 'twoWeeks' ? plan.priceTwoWeeks : plan.priceMonth
+              const tierId = plan.id as LandingMainTierId | 'custom'
+              const fromApi = tierId !== 'custom' ? tierPrices[tierId] : null
+              const price = fromApi
+                ? (period === 'twoWeeks' ? fromApi.twoWeeks : fromApi.month)
+                : null
               const iconTone = plan.icon === 'building' ? 'green' : 'purple'
               const PlanIcon =
                 plan.icon === 'user'
@@ -1497,7 +1512,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                     {plan.name}
                   </div>
                   <div style={{ color: svc.muted, fontSize: 14, marginBottom: 18 }}>{plan.cabinets}</div>
-                  {price == null ? (
+                  {plan.id === 'custom' ? (
                     <div
                       style={{
                         fontSize: 22,
@@ -1513,7 +1528,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                   ) : (
                     <div style={{ marginBottom: 28, minHeight: 52 }}>
                       <div style={{ fontSize: 32, fontWeight: 700, color: svc.text, letterSpacing: '-0.02em' }}>
-                        {formatPrice(price)}
+                        {price != null ? formatPrice(price) : '—'}
                       </div>
                       <div style={{ color: svc.muted, fontSize: 14, marginTop: 4 }}>{pricingPeriodLabel}</div>
                     </div>

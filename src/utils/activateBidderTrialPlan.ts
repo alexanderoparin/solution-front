@@ -1,27 +1,6 @@
-import { subscriptionApi } from '../api/subscription'
-import { getStoredCabinetId } from '../api/cabinets'
-
-const CAMPAIGN_FREE_PLAN_CODE = 'campaign_free'
-
 /**
- * Активирует бесплатный пробный план «Управление РК» (campaign_free) для текущего кабинета.
+ * Пробный период «Управление РК» отключён — no-op для обратной совместимости вызовов после регистрации.
  */
-export async function activateBidderTrialPlanIfAvailable(cabinetId?: number | null): Promise<void> {
-  const status = await subscriptionApi.getStatus()
-  if (!status.campaignManagementEnabled) {
-    return
-  }
-
-  const resolvedCabinetId = cabinetId ?? getStoredCabinetId()
-  if (resolvedCabinetId == null) {
-    return
-  }
-
-  const plans = await subscriptionApi.getCampaignManagePlans()
-  const freePlan = plans.find((plan) => plan.code === CAMPAIGN_FREE_PLAN_CODE)
-  if (!freePlan) {
-    return
-  }
-
-  await subscriptionApi.activatePlan(freePlan.id, resolvedCabinetId)
+export async function activateBidderTrialPlanIfAvailable(_cabinetId?: number | null): Promise<void> {
+  return
 }

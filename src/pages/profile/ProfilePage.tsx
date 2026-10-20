@@ -8,6 +8,8 @@ import {
   ApiOutlined,
   DeleteOutlined,
   GiftOutlined,
+  CrownOutlined,
+  ArrowRightOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
@@ -218,17 +220,78 @@ export default function ProfilePage() {
                 onDeleteClick={() => setDeletionRequestOpen(true)}
               />
             </Col>
-            {!isAdmin && (
-              <Col xs={24}>
-                <CabinetsCard
-                  addCabinetOpen={addCabinetOpen}
-                  onAddCabinetOpenChange={setAddCabinetOpen}
-                  subscription={profile.subscription}
-                  agencyManaged={profile.agencyManaged === true}
-                />
-              </Col>
-            )}
           </Row>
+
+          {!isAdmin && (
+            <Card
+              style={{
+                marginBottom: 24,
+                borderRadius: 16,
+                border: `1px solid ${border}`,
+              }}
+              styles={{ body: { padding: '20px 24px' } }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: '#F5F3FF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <CrownOutlined style={{ color: '#7C3AED', fontSize: 20 }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: '#0F172A', marginBottom: 4 }}>
+                      Подписка и тарифы
+                    </div>
+                    <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.45 }}>
+                      Подключайте тарифы и дополнительные услуги, управляйте подпиской и смотрите историю платежей.
+                    </Text>
+                  </div>
+                </div>
+                <Button
+                  type="primary"
+                  size="large"
+                  onClick={() => navigate('/subscription')}
+                  style={{
+                    background: '#7C3AED',
+                    borderColor: '#7C3AED',
+                    height: 44,
+                    borderRadius: 12,
+                    fontWeight: 600,
+                    flexShrink: 0,
+                  }}
+                >
+                  Перейти к подписке
+                  <ArrowRightOutlined />
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {!isAdmin && (
+            <CabinetsCard
+              addCabinetOpen={addCabinetOpen}
+              onAddCabinetOpenChange={setAddCabinetOpen}
+              subscription={profile.subscription}
+              agencyManaged={profile.agencyManaged === true}
+            />
+          )}
 
           {isAdmin && (
             <Card

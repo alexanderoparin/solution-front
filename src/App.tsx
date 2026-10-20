@@ -46,8 +46,9 @@ import { useAuthStore } from './store/authStore'
 function AppRoutes() {
   const token = useAuthStore((state) => state.token)
   const location = useLocation()
-  /** Агентский лендинг (`/`) — свой LandingFooter; сервисный (`/landing-service`) — общий Footer. */
-  const showAppFooter = location.pathname !== '/'
+  /** Лендинги со своим футером: сервисный `/` и агентский `/landing-agency`. */
+  const showAppFooter =
+    location.pathname !== '/' && location.pathname !== '/landing-agency'
   /** Юр. страницы короткие — не растягиваем контент, иначе пустота между текстом и футером. */
   const isLegalPublicPage = [
     '/requisites',
@@ -74,8 +75,8 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/confirm-email" element={<ConfirmEmail />} />
         <Route path="/invite/:token" element={<InviteAccept />} />
-        <Route path="/" element={<LandingAgency />} />
-        <Route path="/landing-service" element={<Landing />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="/landing-agency" element={<LandingAgency />} />
         <Route
           path="/analytics"
           element={token ? <AccessGuard><CabinetSectionGuard section="SUMMARY"><AnalyticsSummary /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}

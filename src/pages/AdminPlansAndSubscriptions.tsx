@@ -265,6 +265,8 @@ export default function AdminPlansAndSubscriptions() {
       description: plan.description ?? '',
       priceRub: plan.priceRub,
       periodDays: plan.periodDays,
+      minCabinets: plan.minCabinets ?? undefined,
+      maxCabinets: plan.maxCabinets ?? undefined,
       sortOrder: plan.sortOrder ?? 0,
       isActive: plan.isActive ?? true,
       code: plan.code ?? '',
@@ -293,6 +295,8 @@ export default function AdminPlansAndSubscriptions() {
         description: values.description || undefined,
         priceRub: values.priceRub,
         periodDays: values.periodDays,
+        minCabinets: values.minCabinets,
+        maxCabinets: values.maxCabinets,
         sortOrder: values.sortOrder,
         isActive: values.isActive,
         code: values.code?.trim() || undefined,
@@ -363,6 +367,16 @@ export default function AdminPlansAndSubscriptions() {
       key: 'period',
       width: 100,
       render: (_: unknown, record: PlanDto) => formatPlanPeriod(record),
+    },
+    {
+      title: 'Кабинеты',
+      key: 'cabinets',
+      width: 100,
+      render: (_: unknown, record: PlanDto) => {
+        if (record.minCabinets == null && record.maxCabinets == null) return '—'
+        if (record.minCabinets === record.maxCabinets) return String(record.maxCabinets ?? record.minCabinets)
+        return `${record.minCabinets ?? '?'}–${record.maxCabinets ?? '?'}`
+      },
     },
     {
       title: 'Активен',
@@ -1037,6 +1051,12 @@ export default function AdminPlansAndSubscriptions() {
           </Form.Item>
           <Form.Item name="periodDays" label="Период, дней (0 для пакетов А/Б)" rules={[{ required: true }]}>
             <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="minCabinets" label="Мин. кабинетов (тир)">
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="maxCabinets" label="Макс. кабинетов (тир)">
+            <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="sortOrder" label="Порядок сортировки">
             <InputNumber min={0} style={{ width: '100%' }} />

@@ -6,10 +6,14 @@ import { cabinetsApi } from '../api/cabinets'
 import { useAuthStore } from '../store/authStore'
 import type { ProfileSubscriptionSummary } from '../types/api'
 
+function isProPlanCode(code: string | null | undefined): boolean {
+  return Boolean(code && (code === 'pro_month' || code.startsWith('pro_')))
+}
+
 function isProfilePromoActive(subscription: ProfileSubscriptionSummary | null | undefined): boolean {
   if (!subscription) return false
   if (subscription.promoCode) return true
-  return subscription.planCode === 'pro_month'
+  return isProPlanCode(subscription.planCode)
     && subscription.active
     && Boolean(subscription.expiresAt)
 }
@@ -21,7 +25,7 @@ function isBillingPro(billing: Awaited<ReturnType<typeof subscriptionApi.getCabi
     t.unlimitedAccess
     || t.status === 'PROMO'
     || t.status === 'AGENCY'
-    || t.code === 'pro_month',
+    || isProPlanCode(t.code),
   )
 }
 
@@ -70,7 +74,7 @@ export function useCabinetProAccess(cabinetId: number | null | undefined) {
     if (billing?.mainTariff?.status === 'PROMO' && billing.mainTariff.name) {
       return billing.mainTariff.name
     }
-    if (billing?.mainTariff?.code === 'pro_month' && billing.mainTariff.name) {
+    if (billing?.mainTariff && isProPlanCode(billing.mainTariff.code) && billing.mainTariff.name) {
       return billing.mainTariff.name
     }
     return 'PRO'
