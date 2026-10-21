@@ -334,6 +334,31 @@ export interface UserBillingActivePackageDto {
   status: string
   remaining?: number | null
   usedStarts?: number | null
+  paymentId?: number | null
+  planId?: number | null
+  planCode?: string | null
+  minCabinets?: number | null
+  maxCabinets?: number | null
+  cabinetIds?: number[] | null
+  canAddCabinets?: boolean
+  canUpgrade?: boolean
+}
+
+export interface UpgradePackageQuoteDto {
+  paymentId: number
+  currentPlanId: number
+  currentPlanCode: string
+  targetPlanId: number
+  targetPlanCode: string
+  targetPlanName: string
+  currentPriceRub: number
+  targetPriceRub: number
+  priceDiffRub: number
+  remainingDays: number
+  periodDays: number
+  amountRub: number
+  currentMaxCabinets: number
+  targetMaxCabinets: number
 }
 
 export interface UserBillingCabinetRowDto {
@@ -657,6 +682,8 @@ export interface PaymentStatusResponse {
   paymentId: number
   status: string
   expiresAt?: string | null
+  planName?: string | null
+  planCode?: string | null
 }
 
 /** Элемент списка платежей GET /user/payments */

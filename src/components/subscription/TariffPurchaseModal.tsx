@@ -12,6 +12,7 @@ import { cabinetsApi } from '../../api/cabinets'
 import type { MarketplaceType, PlanDto, UserBillingCabinetRowDto } from '../../types/api'
 import MarketplaceTypeTag from '../MarketplaceTypeTag'
 import CustomTariffRequestModal from './CustomTariffRequestModal'
+import PurchaseConfirmModal from './PurchaseConfirmModal'
 
 const accent = '#7C3AED'
 const border = '#E2E8F0'
@@ -236,6 +237,7 @@ export default function TariffPurchaseModal({
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [search, setSearch] = useState('')
   const [customRequestOpen, setCustomRequestOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const { data: plans = [], isLoading: plansLoading } = useQuery({
     queryKey: ['plans', kind],
@@ -255,6 +257,7 @@ export default function TariffPurchaseModal({
     if (!open) return
     setPeriod('month')
     setSearch('')
+    setConfirmOpen(false)
     const initial = preselectedCabinetIds?.length
       ? preselectedCabinetIds.slice(0, MAX_SELF_SERVE_CABINETS)
       : []
@@ -371,10 +374,16 @@ export default function TariffPurchaseModal({
     && selectedIds.length >= tier.min
     && selectedIds.length <= tier.max
 
+  const periodLabel = period === 'month' ? '1 месяц' : '14 дней'
+  const serviceTitle = kind === 'MAIN' ? 'Полный доступ' : 'Управление РК'
+  const selectedCabinetNames = owned
+    .filter((c) => selectedIds.includes(c.id))
+    .map((c) => c.name)
+
   return (
     <>
     <Modal
-      open={open}
+      open={open && !confirmOpen}
       onCancel={onClose}
       footer={null}
       width={720}
@@ -606,9 +615,8 @@ export default function TariffPurchaseModal({
                 fontWeight: 600,
                 paddingInline: 18,
               }}
-              loading={payMutation.isPending}
               disabled={!canPay}
-              onClick={() => payMutation.mutate()}
+              onClick={() => setConfirmOpen(true)}
             >
               Перейти к оплате →
             </Button>
@@ -616,6 +624,28 @@ export default function TariffPurchaseModal({
         </div>
       )}
     </Modal>
+    <PurchaseConfirmModal
+      open={confirmOpen && !!selectedPlan}
+      title={serviceTitle}
+      details={[
+        {
+          label: 'Кабинеты',
+          value:
+            selectedCabinetNames.length <= 2
+              ? selectedCabinetNames.join(', ') || `${selectedIds.length} ${cabinetsWord(selectedIds.length)}`
+              : `${selectedIds.length} ${cabinetsWord(selectedIds.length)}`,
+        },
+        { label: 'Срок', value: periodLabel },
+        {
+          label: 'Тариф',
+          value: selectedPlan?.name ?? tier.label,
+        },
+      ]}
+      amountRub={selectedPlan?.priceRub ?? 0}
+      confirmLoading={payMutation.isPending}
+      onBack={() => setConfirmOpen(false)}
+      onConfirm={() => payMutation.mutate()}
+    />
     <CustomTariffRequestModal
       open={customRequestOpen}
       onClose={() => setCustomRequestOpen(false)}

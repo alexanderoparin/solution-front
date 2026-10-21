@@ -3,6 +3,7 @@ import { Modal, Button, Spin, message } from 'antd'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { subscriptionApi } from '../../api/subscription'
 import type { PlanDto } from '../../types/api'
+import PurchaseConfirmModal from './PurchaseConfirmModal'
 
 const accent = '#7C3AED'
 const border = '#E2E8F0'
@@ -175,14 +176,22 @@ export default function AbTestPacksModal({ open, onClose, onActivated }: AbTestP
         )}
       </Modal>
 
-      <Modal
+      <PurchaseConfirmModal
         open={!!confirmPlan}
-        onCancel={() => setConfirmPlan(null)}
-        title="Подтверждение покупки"
-        okText="Оплатить"
-        cancelText="Назад"
+        title="A/B-тесты"
+        details={
+          confirmPlan
+            ? [
+                { label: 'Количество тестов', value: packTitle(confirmPlan) },
+                { label: 'Кабинеты', value: 'На все кабинеты' },
+                { label: 'Срок', value: 'Без срока' },
+              ]
+            : []
+        }
+        amountRub={confirmPlan?.priceRub ?? 0}
         confirmLoading={payMutation.isPending}
-        onOk={() => {
+        onBack={() => setConfirmPlan(null)}
+        onConfirm={() => {
           if (!confirmPlan) return
           payMutation.mutate(confirmPlan.id, {
             onSuccess: () => {
@@ -191,18 +200,7 @@ export default function AbTestPacksModal({ open, onClose, onActivated }: AbTestP
             },
           })
         }}
-        okButtonProps={{ style: { background: accent, borderColor: accent } }}
-      >
-        {confirmPlan && (
-          <div>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>{packTitle(confirmPlan)}</div>
-            <div style={{ color: '#64748B', marginBottom: 12 }}>
-              {confirmPlan.creditAmount ?? 0} тестов · без срока · на все кабинеты
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 700 }}>{formatRub(confirmPlan.priceRub)}</div>
-          </div>
-        )}
-      </Modal>
+      />
     </>
   )
 }

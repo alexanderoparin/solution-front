@@ -5,6 +5,7 @@ import type {
   PaymentStatusResponse,
   PlanDto,
   SubscriptionStatusResponse,
+  UpgradePackageQuoteDto,
   UserBillingOverviewDto,
 } from '../types/api'
 
@@ -95,6 +96,45 @@ export const subscriptionApi = {
       '/subscription/custom-tariff-request',
       payload,
     )
+    return response.data
+  },
+
+  /** Добор кабинетов в оплаченный пакет (без оплаты). */
+  addPackageCabinets: async (paymentId: number, cabinetIds: number[]): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>('/subscription/package/add-cabinets', {
+      paymentId,
+      cabinetIds,
+    })
+    return response.data
+  },
+
+  /** Планы апгрейда для пакета. */
+  getUpgradeTargets: async (paymentId: number): Promise<PlanDto[]> => {
+    const response = await apiClient.get<PlanDto[]>('/subscription/package/upgrade-targets', {
+      params: { paymentId },
+    })
+    return response.data
+  },
+
+  /** Расчёт доплаты за апгрейд. */
+  getUpgradeQuote: async (paymentId: number, targetPlanId: number): Promise<UpgradePackageQuoteDto> => {
+    const response = await apiClient.get<UpgradePackageQuoteDto>('/subscription/package/upgrade-quote', {
+      params: { paymentId, targetPlanId },
+    })
+    return response.data
+  },
+
+  /** Оплата апгрейда тира (опционально — кабинеты для добора после оплаты). */
+  initiatePackageUpgrade: async (
+    paymentId: number,
+    targetPlanId: number,
+    cabinetIds?: number[],
+  ): Promise<InitiatePaymentResponse> => {
+    const response = await apiClient.post<InitiatePaymentResponse>('/subscription/package/upgrade', {
+      paymentId,
+      targetPlanId,
+      cabinetIds: cabinetIds?.length ? cabinetIds : undefined,
+    })
     return response.data
   },
 }
