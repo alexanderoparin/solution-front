@@ -30,6 +30,7 @@ export default function Register() {
   const setAuth = useAuthStore((state) => state.setAuth)
   const agreeToOffer = Form.useWatch('agreeToOffer', form)
   const nextPath = searchParams.get('next')
+  const emailFromQuery = searchParams.get('email')?.trim() || undefined
   const invitationTokenFromNext =
     nextPath && /^\/invite\/([A-Za-z0-9_-]+)$/.exec(nextPath)?.[1]
 
@@ -63,10 +64,11 @@ export default function Register() {
   })
 
   useEffect(() => {
-    if (invitePreview?.email) {
-      form.setFieldValue('email', invitePreview.email)
+    const inviteEmail = invitePreview?.email || emailFromQuery
+    if (inviteEmail) {
+      form.setFieldValue('email', inviteEmail)
     }
-  }, [invitePreview?.email, form])
+  }, [invitePreview?.email, emailFromQuery, form])
 
   const registerMutation = useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
@@ -209,7 +211,7 @@ export default function Register() {
               prefix={<UserOutlined />}
               placeholder="Email"
               autoComplete="email"
-              disabled={isInviteFlow && !!invitePreview?.email}
+              disabled={isInviteFlow && !!(invitePreview?.email || emailFromQuery)}
             />
           </Form.Item>
           <Form.Item

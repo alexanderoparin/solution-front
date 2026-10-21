@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Alert, Button, Card, Spin, Typography, message } from 'antd'
 import { CheckCircleOutlined, LoginOutlined, UserAddOutlined } from '@ant-design/icons'
+import type { AxiosError } from 'axios'
 import { invitationsApi } from '../api/invitations'
 import { formatCabinetAccessSections } from '../constants/cabinetAccessSections'
 import { setStoredInvitationToken, clearStoredInvitationToken } from '../constants/invitationStorage'
@@ -11,12 +12,31 @@ import { getRequestFailureDescription } from '../utils/requestError'
 
 const { Title, Text } = Typography
 
+function emailsEqual(a: string | null | undefined, b: string | null | undefined): boolean {
+  if (!a || !b) return false
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
+function isInviteSessionError(error: unknown): boolean {
+  const status = (error as AxiosError | undefined)?.response?.status
+  if (status === 401 || status === 403 || status === 404) return true
+  const desc = getRequestFailureDescription(error).toLowerCase()
+  return (
+    desc.includes('пользователь не найден') ||
+    desc.includes('другой email') ||
+    desc.includes('не авторизован')
+  )
+}
+
 export default function InviteAccept() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const authToken = useAuthStore((s) => s.token)
+  const sessionEmail = useAuthStore((s) => s.email)
+  const clearAuth = useAuthStore((s) => s.clearAuth)
   const invitePath = token ? `/invite/${token}` : '/'
   const autoAcceptStarted = useRef(false)
+  const wrongSessionCleared = useRef(false)
 
   useEffect(() => {
     if (token) {
@@ -35,6 +55,25 @@ export default function InviteAccept() {
     retry: false,
   })
 
+  const inviteActive = Boolean(
+    preview &&
+      !preview.expired &&
+      !preview.alreadyAccepted &&
+      !preview.declined &&
+      !preview.revoked,
+  )
+  const sessionMatchesInvite = emailsEqual(sessionEmail, preview?.email)
+  const canAutoAccept = Boolean(authToken && sessionMatchesInvite && inviteActive)
+
+  useEffect(() => {
+    if (!preview || !authToken || sessionMatchesInvite || wrongSessionCleared.current) {
+      return
+    }
+    wrongSessionCleared.current = true
+    autoAcceptStarted.current = false
+    clearAuth()
+  }, [preview, authToken, sessionMatchesInvite, clearAuth])
+
   const acceptMutation = useMutation({
     mutationFn: () => invitationsApi.accept(token!),
     onSuccess: () => {
@@ -43,27 +82,30 @@ export default function InviteAccept() {
       navigate('/profile?inviteAccepted=1', { replace: true })
     },
     onError: (err: unknown) => {
+      autoAcceptStarted.current = false
+      if (isInviteSessionError(err)) {
+        clearAuth()
+        return
+      }
       message.error(getRequestFailureDescription(err))
     },
   })
 
-  const canAccept = Boolean(
-    authToken &&
-      preview &&
-      !preview.expired &&
-      !preview.alreadyAccepted &&
-      !preview.declined &&
-      !preview.revoked,
-  )
-  const { mutate: acceptInvite, isPending: isAccepting, isError: acceptFailed } = acceptMutation
+  const { mutate: acceptInvite, isPending: isAccepting } = acceptMutation
 
   useEffect(() => {
-    if (!canAccept || autoAcceptStarted.current || isAccepting) {
+    if (!canAutoAccept || autoAcceptStarted.current || isAccepting) {
       return
     }
     autoAcceptStarted.current = true
     acceptInvite()
-  }, [canAccept, isAccepting, acceptInvite])
+  }, [canAutoAccept, isAccepting, acceptInvite])
+
+  const authQuery = preview?.email
+    ? `next=${encodeURIComponent(invitePath)}&email=${encodeURIComponent(preview.email)}`
+    : `next=${encodeURIComponent(invitePath)}`
+  const registerPath = `/register?${authQuery}`
+  const loginPath = `/login?${authQuery}`
 
   const pageShell = (children: React.ReactNode) => (
     <div
@@ -98,7 +140,7 @@ export default function InviteAccept() {
     )
   }
 
-  if (isLoading || (canAccept && isAccepting)) {
+  if (isLoading || (canAutoAccept && isAccepting)) {
     return pageShell(
       <div style={{ textAlign: 'center' }}>
         <Spin size="large" />
@@ -143,8 +185,8 @@ export default function InviteAccept() {
       </Text>
 
       <div style={{ marginBottom: 12 }}>
-        <Text type="secondary">Email приглашения: </Text>
-        <Text>{preview.email}</Text>
+        <Text type="secondary">Ваш email: </Text>
+        <Text strong>{preview.email}</Text>
       </div>
       <div style={{ marginBottom: 12 }}>
         <Text type="secondary">Разделы: </Text>
@@ -164,31 +206,42 @@ export default function InviteAccept() {
         <Alert type="info" showIcon message="Приглашение отозвано владельцем кабинета" style={{ marginBottom: 16 }} />
       )}
 
-      {!authToken && !preview.expired && !preview.alreadyAccepted && !preview.declined && !preview.revoked && (
+      {inviteActive && !canAutoAccept && (
         <>
           <Alert
             type="info"
             showIcon
-            message="Войдите или зарегистрируйтесь"
-            description="После авторизации приглашение будет применено автоматически."
+            message="Остался один шаг"
+            description={
+              <>
+                Создайте аккаунт или войдите как <Text strong>{preview.email}</Text> — приглашение
+                применится сразу после этого.
+              </>
+            }
             style={{ marginBottom: 16 }}
           />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <Link to={`/login?next=${encodeURIComponent(invitePath)}`}>
-              <Button type="primary" block icon={<LoginOutlined />} style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}>
-                Войти
+            <Link to={registerPath}>
+              <Button
+                type="primary"
+                block
+                size="large"
+                icon={<UserAddOutlined />}
+                style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED' }}
+              >
+                Создать аккаунт и принять
               </Button>
             </Link>
-            <Link to={`/register?next=${encodeURIComponent(invitePath)}`}>
-              <Button block icon={<UserAddOutlined />}>
-                Зарегистрироваться
+            <Link to={loginPath}>
+              <Button block size="large" icon={<LoginOutlined />}>
+                У меня уже есть аккаунт
               </Button>
             </Link>
           </div>
         </>
       )}
 
-      {authToken && preview.alreadyAccepted && (
+      {authToken && sessionMatchesInvite && preview.alreadyAccepted && (
         <Button
           type="primary"
           block
@@ -196,19 +249,6 @@ export default function InviteAccept() {
           style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', marginTop: 16 }}
         >
           Перейти к кабинетам
-        </Button>
-      )}
-
-      {authToken && acceptFailed && canAccept && (
-        <Button
-          type="primary"
-          block
-          size="large"
-          loading={isAccepting}
-          onClick={() => acceptInvite()}
-          style={{ backgroundColor: '#7C3AED', borderColor: '#7C3AED', marginTop: 8 }}
-        >
-          Принять приглашение
         </Button>
       )}
     </>,

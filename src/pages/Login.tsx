@@ -18,9 +18,12 @@ export default function Login() {
   const location = useLocation()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
+  const [form] = Form.useForm<LoginRequest>()
   const setAuth = useAuthStore((state) => state.setAuth)
 
   const nextPath = searchParams.get('next')
+  const emailFromQuery = searchParams.get('email')?.trim() || undefined
+  const isInviteNext = Boolean(nextPath && /^\/invite\/[A-Za-z0-9_-]+$/.test(nextPath))
 
   useEffect(() => {
     const stateMessage = (location.state as { message?: string })?.message
@@ -32,6 +35,12 @@ export default function Login() {
       )
     }
   }, [location.state, location.pathname, location.search, navigate])
+
+  useEffect(() => {
+    if (emailFromQuery) {
+      form.setFieldValue('email', emailFromQuery)
+    }
+  }, [emailFromQuery, form])
 
   const getInitialRoute = () => {
     if (nextPath && nextPath.startsWith('/')) {
@@ -65,7 +74,8 @@ export default function Login() {
         } catch {
           /* ignore */
         }
-        navigate('/profile', { replace: true })
+        // По приглашению сразу возвращаем на accept — подтверждение почты не должно мешать.
+        navigate(isInviteNext ? getInitialRoute() : '/profile', { replace: true })
         return
       }
 
@@ -80,6 +90,13 @@ export default function Login() {
   const onFinish = (values: LoginRequest) => {
     loginMutation.mutate(values)
   }
+
+  const registerLink =
+    nextPath && nextPath.startsWith('/')
+      ? `/register?next=${encodeURIComponent(nextPath)}${
+          emailFromQuery ? `&email=${encodeURIComponent(emailFromQuery)}` : ''
+        }`
+      : '/register'
 
   return (
     <>
@@ -155,12 +172,20 @@ export default function Login() {
             </div>
           </div>
 
+          {isInviteNext && emailFromQuery && (
+            <Text type="secondary" style={{ display: 'block', marginBottom: 16, textAlign: 'center' }}>
+              Войдите как <Text strong>{emailFromQuery}</Text>, чтобы принять приглашение.
+            </Text>
+          )}
+
           <Form
+            form={form}
             name="login"
             onFinish={onFinish}
             layout="vertical"
             size="large"
             autoComplete="off"
+            initialValues={emailFromQuery ? { email: emailFromQuery } : undefined}
           >
             <Form.Item
               name="email"
@@ -176,6 +201,7 @@ export default function Login() {
                 inputMode="email"
                 autoCapitalize="none"
                 autoCorrect="off"
+                disabled={isInviteNext && !!emailFromQuery}
               />
             </Form.Item>
 
@@ -211,7 +237,7 @@ export default function Login() {
           <div className="auth-login-links" style={{ textAlign: 'center', marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div>
               <Text type="secondary" style={{ marginRight: 4 }}>Нет аккаунта?</Text>
-              <Link to="/register" style={{ color: '#6D28D9', fontWeight: 600 }}>Зарегистрироваться</Link>
+              <Link to={registerLink} style={{ color: '#6D28D9', fontWeight: 600 }}>Зарегистрироваться</Link>
             </div>
             <div>
               <Link to="/forgot-password" style={{ color: '#64748B', fontSize: 13 }}>Забыли пароль?</Link>

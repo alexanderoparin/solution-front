@@ -69,8 +69,8 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
   const [period, setPeriod] = useState<'twoWeeks' | 'month'>('twoWeeks')
 
   const { data: mainPlans = [] } = useQuery({
-    queryKey: ['landingMainPlans'],
-    queryFn: () => subscriptionApi.getMainPlans(),
+    queryKey: ['landingPublicMainPlans'],
+    queryFn: () => subscriptionApi.getPublicMainPlans(),
     staleTime: 60_000,
   })
 

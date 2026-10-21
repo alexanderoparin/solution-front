@@ -16,12 +16,27 @@ export const subscriptionApi = {
     return response.data
   },
 
+  /**
+   * Публичный каталог (без JWT) — для лендинга.
+   */
+  getPublicPlans: async (kind?: 'MAIN' | 'CAMPAIGN' | 'AB_PACK'): Promise<PlanDto[]> => {
+    const response = await apiClient.get<PlanDto[]>('/public/plans', {
+      params: kind ? { kind } : undefined,
+    })
+    return response.data
+  },
+
   getCampaignManagePlans: async (): Promise<PlanDto[]> => {
     return subscriptionApi.getPlans('CAMPAIGN')
   },
 
   getMainPlans: async (): Promise<PlanDto[]> => {
     return subscriptionApi.getPlans('MAIN')
+  },
+
+  /** MAIN-планы для лендинга (публичный API). */
+  getPublicMainPlans: async (): Promise<PlanDto[]> => {
+    return subscriptionApi.getPublicPlans('MAIN')
   },
 
   getAbPackPlans: async (): Promise<PlanDto[]> => {
