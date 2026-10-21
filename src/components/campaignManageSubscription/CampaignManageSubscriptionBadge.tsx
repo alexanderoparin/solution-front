@@ -2,7 +2,10 @@ import { useNavigate } from 'react-router-dom'
 import { useCampaignManageAccess } from '../../hooks/useCampaignManageAccess'
 import { useCampaignManageSubscriptionUi } from '../../store/campaignManageSubscriptionUi'
 import { ONBOARDING_TARGETS } from '../../onboarding/targets'
-import { campaignManageDaysLabel } from '../../utils/campaignManageSubscription'
+import {
+  campaignManageDaysLabel,
+  campaignManageDaysRemainingPhrase,
+} from '../../utils/campaignManageSubscription'
 
 /**
  * Бейдж тарифа в шапке: на FREE предлагает PRO; при активной/истёкшей услуге РК — статус по дням.
@@ -30,20 +33,23 @@ export default function CampaignManageSubscriptionBadge() {
   if (campaignManage.status === 'PRO' || onPro) {
     line1 = proTariffLabel
     const days = proDaysRemaining ?? campaignManage.daysRemaining ?? 0
-    line2 = days > 0 ? `Осталось ${campaignManageDaysLabel(days)}` : 'Осталось менее дня'
+    line2 = campaignManageDaysRemainingPhrase(days)
     shortLabel = 'PRO'
     onLine2Click = () => navigate('/profile')
   } else if (campaignManage.status === 'ACTIVE') {
     line1 = 'Управление РК подключено'
     const days = campaignManage.daysRemaining ?? 0
-    line2 = days > 0 ? `Осталось ${campaignManageDaysLabel(days)}` : 'Осталось менее дня'
+    line2 = campaignManageDaysRemainingPhrase(days)
     shortLabel = 'РК'
     onLine2Click = openPlans
   } else if (campaignManage.status === 'EXPIRED') {
     line1 = 'Управление РК'
     const ago = campaignManage.daysExpiredAgo ?? 0
+    const agoMod10 = ago % 10
+    const agoMod100 = ago % 100
+    const agoVerb = agoMod10 === 1 && agoMod100 !== 11 ? 'Закончился' : 'Закончилось'
     line2 = ago > 0
-      ? `Закончилось ${campaignManageDaysLabel(ago)} назад`
+      ? `${agoVerb} ${campaignManageDaysLabel(ago)} назад`
       : 'Закончилось сегодня'
     shortLabel = 'РК'
     onLine2Click = () => navigate('/subscription')

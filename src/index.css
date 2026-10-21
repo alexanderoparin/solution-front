@@ -46,6 +46,19 @@ body {
   color: #CBD5E1 !important;
 }
 
+/* Список кабинетов в шапке: ~20 строк (32px), дальше скролл */
+.app-header-cabinet-menu-scroll {
+  max-height: 640px;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.app-header-cabinet-menu-scroll .ant-dropdown-menu {
+  box-shadow: none;
+}
+
 .app-header-end {
   display: flex;
   align-items: center;

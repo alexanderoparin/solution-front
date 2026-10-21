@@ -225,6 +225,11 @@ export default function Header({
   const navColor = (activeNav: boolean) => (activeNav ? active : muted)
   const navWeight = (activeNav: boolean) => (activeNav ? 600 : 500)
 
+  /** В выпадающем списке видно до 20 кабинетов, остальные — прокруткой (~32px строка). */
+  const CABINET_MENU_VISIBLE = 20
+  const CABINET_MENU_ITEM_PX = 32
+  const cabinetListHeight = CABINET_MENU_VISIBLE * CABINET_MENU_ITEM_PX
+
   const cabinetControl = !isProfilePage && workContextCabinetSelect ? (
     <>
       <Select
@@ -246,6 +251,7 @@ export default function Header({
         options={workContextCabinetSelect.options}
         loading={workContextCabinetSelect.loading}
         allowClear={false}
+        listHeight={cabinetListHeight}
       />
       {headerRightExtra}
     </>
@@ -266,6 +272,7 @@ export default function Header({
     cabinetSelectProps.cabinets.length > 1 ? (
       <Dropdown
         menu={{
+          className: 'app-header-cabinet-menu',
           items: cabinetSelectProps.cabinets.map((c) => ({
             key: String(c.id),
             label: (
@@ -283,6 +290,14 @@ export default function Header({
               ),
           })),
         }}
+        popupRender={(menu) => (
+          <div
+            className="app-header-cabinet-menu-scroll"
+            style={{ maxHeight: cabinetListHeight, overflowY: 'auto' }}
+          >
+            {menu}
+          </div>
+        )}
         trigger={['click']}
         disabled={cabinetSelectProps.loading}
       >

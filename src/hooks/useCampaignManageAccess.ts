@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { accessStatusQueryKey, ACCESS_STATUS_STALE_MS, userApi } from '../api/user'
-import { cabinetsApi, getStoredCabinetId } from '../api/cabinets'
+import { cabinetsApi, getStoredCabinetId, subscribeStoredCabinetId } from '../api/cabinets'
 import { useAuthStore } from '../store/authStore'
 import { useWorkContextForAdmin } from './useWorkContextForAdmin'
 import { useCabinetProAccess } from './useCabinetProAccess'
@@ -51,6 +51,10 @@ export function useCampaignManageAccess(overrideSellerId?: number, overrideCabin
     staleTime: 30_000,
   })
 
+  /** Без подписки useMemo «залипает» на старом кабинете после смены в шапке. */
+  const [storedCabinetId, setStoredCabinetIdState] = useState<number | null>(() => getStoredCabinetId())
+  useEffect(() => subscribeStoredCabinetId(setStoredCabinetIdState), [])
+
   const cabinetId = useMemo(() => {
     if (overrideCabinetId != null) {
       return overrideCabinetId
@@ -59,13 +63,12 @@ export function useCampaignManageAccess(overrideSellerId?: number, overrideCabin
       return workContext.selectedCabinetId ?? undefined
     }
 
-    const stored = getStoredCabinetId()
-    if (stored != null && isCabinetInOverview(stored, overview)) {
-      return stored
+    if (storedCabinetId != null && isCabinetInOverview(storedCabinetId, overview)) {
+      return storedCabinetId
     }
 
     return overview?.owned?.[0]?.id ?? overview?.granted?.[0]?.id
-  }, [overrideCabinetId, isAdmin, workContext.selectedCabinetId, overview])
+  }, [overrideCabinetId, isAdmin, workContext.selectedCabinetId, overview, storedCabinetId])
 
   const accessEnabled = isAdmin || overrideCabinetId != null || cabinetId != null || overview !== undefined
 

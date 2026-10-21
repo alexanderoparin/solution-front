@@ -2,8 +2,11 @@ import { useCallback } from 'react'
 import { useCampaignManageAccess } from './useCampaignManageAccess'
 import { useCampaignManageSubscriptionUi } from '../store/campaignManageSubscriptionUi'
 
-export function useCampaignManagePaywall(overrideSellerId?: number) {
-  const { hasCampaignManageAccess, isLoading } = useCampaignManageAccess(overrideSellerId)
+export function useCampaignManagePaywall(overrideSellerId?: number, overrideCabinetId?: number) {
+  const { hasCampaignManageAccess, isLoading } = useCampaignManageAccess(
+    overrideSellerId,
+    overrideCabinetId,
+  )
   const openPaywall = useCampaignManageSubscriptionUi((s) => s.openPaywall)
 
   const guardAction = useCallback(

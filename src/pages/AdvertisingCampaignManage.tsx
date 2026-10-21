@@ -499,7 +499,10 @@ export default function AdvertisingCampaignManage() {
     onError: (e) => message.error(formatControlError(e)),
   })
 
-  const { hasCampaignManageAccess } = useCampaignManagePaywall(requestSellerId ?? selectedSellerId)
+  const { hasCampaignManageAccess } = useCampaignManagePaywall(
+    requestSellerId ?? selectedSellerId,
+    requestCabinetId ?? selectedCabinetId ?? undefined,
+  )
   const subscriptionBlocked = !hasCampaignManageAccess
 
   const controlBlocked = controlCapabilities != null && !controlCapabilities.canControl

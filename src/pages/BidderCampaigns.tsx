@@ -122,7 +122,6 @@ export default function BidderCampaigns() {
 
   const workContext = useWorkContextForAdmin(isAdmin)
   const selectedSellerId = isAdmin ? workContext.selectedSellerId : undefined
-  const { guardAction, guardClick } = useCampaignManagePaywall(selectedSellerId)
 
   const { data: myCabinets = [], isLoading: cabinetsLoading } = useQuery({
     queryKey: ['cabinets'],
@@ -142,6 +141,11 @@ export default function BidderCampaigns() {
   const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
+
+  const { guardAction, guardClick } = useCampaignManagePaywall(
+    selectedSellerId,
+    selectedCabinetId ?? undefined,
+  )
 
   const selectedCabinetMarketplace = useMemo(() => {
     const cab = cabinets.find((c) => c.id === selectedCabinetId)
