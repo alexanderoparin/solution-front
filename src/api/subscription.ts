@@ -137,4 +137,22 @@ export const subscriptionApi = {
     })
     return response.data
   },
+
+  /** Расчёт доплаты CAMPAIGN → PRO. */
+  getUpgradeToProQuote: async (paymentId: number): Promise<UpgradePackageQuoteDto> => {
+    const response = await apiClient.get<UpgradePackageQuoteDto>(
+      '/subscription/package/upgrade-to-pro-quote',
+      { params: { paymentId } },
+    )
+    return response.data
+  },
+
+  /** Оплата улучшения «Управление РК» → PRO. */
+  initiateUpgradeToPro: async (paymentId: number): Promise<InitiatePaymentResponse> => {
+    const response = await apiClient.post<InitiatePaymentResponse>(
+      '/subscription/package/upgrade-to-pro',
+      { paymentId },
+    )
+    return response.data
+  },
 }

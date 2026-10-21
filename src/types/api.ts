@@ -342,6 +342,8 @@ export interface UserBillingActivePackageDto {
   cabinetIds?: number[] | null
   canAddCabinets?: boolean
   canUpgrade?: boolean
+  /** CAMPAIGN → парный PRO (тот же max/срок). */
+  canUpgradeToPro?: boolean
 }
 
 export interface UpgradePackageQuoteDto {

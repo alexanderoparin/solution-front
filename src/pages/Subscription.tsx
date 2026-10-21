@@ -28,6 +28,7 @@ import AbTestPacksModal from '../components/subscription/AbTestPacksModal'
 import AddPackageCabinetsModal from '../components/subscription/AddPackageCabinetsModal'
 import TariffPurchaseModal from '../components/subscription/TariffPurchaseModal'
 import UpgradePackageModal from '../components/subscription/UpgradePackageModal'
+import UpgradeToProModal from '../components/subscription/UpgradeToProModal'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 
@@ -132,6 +133,7 @@ function ActivePackageRow({
   onBuyAb,
   onAddCabinets,
   onUpgrade,
+  onUpgradeToPro,
   last,
 }: {
   row: UserBillingActivePackageDto
@@ -139,6 +141,7 @@ function ActivePackageRow({
   onBuyAb: () => void
   onAddCabinets?: () => void
   onUpgrade?: () => void
+  onUpgradeToPro?: () => void
   last?: boolean
 }) {
   const [hovered, setHovered] = useState(false)
@@ -159,6 +162,9 @@ function ActivePackageRow({
   }
   if (!isAb && row.canUpgrade && onUpgrade) {
     moreItems.push({ key: 'upgrade', label: 'Расширить тариф', onClick: onUpgrade })
+  }
+  if (row.kind === 'CAMPAIGN' && row.canUpgradeToPro && onUpgradeToPro) {
+    moreItems.push({ key: 'to-pro', label: 'Улучшить до PRO', onClick: onUpgradeToPro })
   }
   const showMore = moreItems.length > 0
 
@@ -332,13 +338,17 @@ function FeatureIcon({
   label,
   active,
   icon,
+  tooltip,
 }: {
   label: string
   active: boolean
   icon: ReactNode
+  /** Если задан — вместо стандартного title. */
+  tooltip?: string
 }) {
+  const title = tooltip ?? (active ? label : `${label} (не подключено)`)
   return (
-    <Tooltip title={active ? label : `${label} (не подключено)`}>
+    <Tooltip title={title}>
       <span
         style={{
           position: 'relative',
@@ -373,6 +383,24 @@ function FeatureIcon({
   )
 }
 
+/** Подсказка к иконке A/B: безлимит (PRO) или остаток тестов. */
+function abTestsFeatureTooltip(
+  row: UserBillingCabinetRowDto,
+  quota: { remaining?: number | null; unlimited?: boolean | null; activated?: boolean | null } | null | undefined,
+): string {
+  if (row.unlimitedAccess || quota?.unlimited) {
+    return 'A/B-тесты: безлимит (PRO)'
+  }
+  if (!row.abTests) {
+    return 'A/B-тесты (не подключено)'
+  }
+  const rem = quota?.remaining
+  if (rem == null) {
+    return 'A/B-тесты'
+  }
+  return `A/B-тесты: доступно ${rem}`
+}
+
 export default function Subscription() {
   const [purchaseKind, setPurchaseKind] = useState<PurchaseKind>(null)
   const [preselected, setPreselected] = useState<number[] | undefined>()
@@ -381,6 +409,7 @@ export default function Subscription() {
   const [cabinetFilter, setCabinetFilter] = useState<CabinetFilterKey>('all')
   const [addCabinetsPkg, setAddCabinetsPkg] = useState<UserBillingActivePackageDto | null>(null)
   const [upgradePkg, setUpgradePkg] = useState<UserBillingActivePackageDto | null>(null)
+  const [upgradeToProPkg, setUpgradeToProPkg] = useState<UserBillingActivePackageDto | null>(null)
 
   const {
     data: overview,
@@ -552,7 +581,12 @@ export default function Subscription() {
       render: (_: unknown, row: UserBillingCabinetRowDto) => (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'nowrap' }}>
           <FeatureIcon label="Управление РК" active={row.campaignManage} icon={<ThunderboltOutlined />} />
-          <FeatureIcon label="A/B-тесты" active={row.abTests} icon={<ExperimentOutlined />} />
+          <FeatureIcon
+            label="A/B-тесты"
+            active={row.abTests}
+            icon={<ExperimentOutlined />}
+            tooltip={abTestsFeatureTooltip(row, overview?.abTestQuota)}
+          />
         </div>
       ),
     },
@@ -681,6 +715,9 @@ export default function Subscription() {
                           row.canAddCabinets ? () => setAddCabinetsPkg(row) : undefined
                         }
                         onUpgrade={row.canUpgrade ? () => setUpgradePkg(row) : undefined}
+                        onUpgradeToPro={
+                          row.canUpgradeToPro ? () => setUpgradeToProPkg(row) : undefined
+                        }
                       />
                     ))}
                   </div>
@@ -814,6 +851,13 @@ export default function Subscription() {
         pkg={upgradePkg}
         cabinetRows={cabinets}
         onClose={() => setUpgradePkg(null)}
+      />
+
+      <UpgradeToProModal
+        open={!!upgradeToProPkg}
+        pkg={upgradeToProPkg}
+        cabinetRows={cabinets}
+        onClose={() => setUpgradeToProPkg(null)}
       />
 
       <style>{`
