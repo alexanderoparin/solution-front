@@ -15,6 +15,8 @@ interface UpgradePackageModalProps {
   open: boolean
   pkg: UserBillingActivePackageDto | null
   cabinetRows: UserBillingCabinetRowDto[]
+  /** Предвыбор кабинетов для добора после расширения (например с «Подключить»). */
+  preselectedCabinetIds?: number[]
   onClose: () => void
 }
 
@@ -58,12 +60,14 @@ export default function UpgradePackageModal({
   open,
   pkg,
   cabinetRows,
+  preselectedCabinetIds,
   onClose,
 }: UpgradePackageModalProps) {
   const [targetPlanId, setTargetPlanId] = useState<number | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<number[]>([])
+  const [preselectApplied, setPreselectApplied] = useState(false)
 
   const { data: targets = [], isLoading: targetsLoading } = useQuery({
     queryKey: ['upgradeTargets', pkg?.paymentId],
@@ -120,6 +124,7 @@ export default function UpgradePackageModal({
       setConfirmOpen(false)
       setSearch('')
       setSelectedIds([])
+      setPreselectApplied(false)
     }
   }, [open, pkg?.paymentId])
 
@@ -139,6 +144,16 @@ export default function UpgradePackageModal({
       setTargetPlanId(plan.id)
     }
   }
+
+  useEffect(() => {
+    if (!open || preselectApplied || selectLimit <= 0) return
+    const initial = (preselectedCabinetIds ?? [])
+      .filter((id) => !inPackageIds.has(id))
+      .slice(0, selectLimit)
+    if (initial.length === 0) return
+    syncPlanToSelection(initial)
+    setPreselectApplied(true)
+  }, [open, preselectApplied, selectLimit, preselectedCabinetIds, inPackageIds, targets, used, targetPlanId])
 
   const payMutation = useMutation({
     mutationFn: () => {

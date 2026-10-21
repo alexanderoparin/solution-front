@@ -14,6 +14,8 @@ interface AddPackageCabinetsModalProps {
   open: boolean
   pkg: UserBillingActivePackageDto | null
   cabinetRows: UserBillingCabinetRowDto[]
+  /** Предвыбор кабинетов (например из кнопки «Подключить» в таблице). */
+  preselectedCabinetIds?: number[]
   onClose: () => void
 }
 
@@ -24,6 +26,7 @@ export default function AddPackageCabinetsModal({
   open,
   pkg,
   cabinetRows,
+  preselectedCabinetIds,
   onClose,
 }: AddPackageCabinetsModalProps) {
   const queryClient = useQueryClient()
@@ -57,9 +60,12 @@ export default function AddPackageCabinetsModal({
   useEffect(() => {
     if (open) {
       setSearch('')
-      setSelectedIds([])
+      const initial = (preselectedCabinetIds ?? [])
+        .filter((id) => !inPackage.has(id))
+        .slice(0, freeSlots)
+      setSelectedIds(initial)
     }
-  }, [open, pkg?.paymentId])
+  }, [open, pkg?.paymentId, preselectedCabinetIds, inPackage, freeSlots])
 
   const mutation = useMutation({
     mutationFn: () => {

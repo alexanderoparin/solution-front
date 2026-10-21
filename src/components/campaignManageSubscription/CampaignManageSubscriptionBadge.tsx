@@ -31,7 +31,8 @@ export default function CampaignManageSubscriptionBadge() {
   let onLine2Click: () => void = () => navigate('/subscription')
 
   if (campaignManage.status === 'PRO' || onPro) {
-    line1 = proTariffLabel
+    // В шапке — коротко, без «до N кабинетов · период» (полный name — в профиле/подписке).
+    line1 = proTariffLabel.includes('промокод') ? proTariffLabel : 'Полный доступ'
     const days = proDaysRemaining ?? campaignManage.daysRemaining ?? 0
     line2 = campaignManageDaysRemainingPhrase(days)
     shortLabel = 'PRO'

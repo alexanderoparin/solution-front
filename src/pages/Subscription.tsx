@@ -29,6 +29,7 @@ import AddPackageCabinetsModal from '../components/subscription/AddPackageCabine
 import TariffPurchaseModal from '../components/subscription/TariffPurchaseModal'
 import UpgradePackageModal from '../components/subscription/UpgradePackageModal'
 import UpgradeToProModal from '../components/subscription/UpgradeToProModal'
+import CustomTariffRequestModal from '../components/subscription/CustomTariffRequestModal'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 
@@ -408,8 +409,11 @@ export default function Subscription() {
   const [cabinetSearch, setCabinetSearch] = useState('')
   const [cabinetFilter, setCabinetFilter] = useState<CabinetFilterKey>('all')
   const [addCabinetsPkg, setAddCabinetsPkg] = useState<UserBillingActivePackageDto | null>(null)
+  const [addCabinetsPreselected, setAddCabinetsPreselected] = useState<number[] | undefined>()
   const [upgradePkg, setUpgradePkg] = useState<UserBillingActivePackageDto | null>(null)
+  const [upgradePreselected, setUpgradePreselected] = useState<number[] | undefined>()
   const [upgradeToProPkg, setUpgradeToProPkg] = useState<UserBillingActivePackageDto | null>(null)
+  const [customRequestOpen, setCustomRequestOpen] = useState(false)
 
   const {
     data: overview,
@@ -427,6 +431,50 @@ export default function Subscription() {
 
   const cabinets = overview?.cabinets ?? []
   const packages = overview?.activePackages ?? []
+
+  /**
+   * Пакет, в который ещё можно включить кабинет (сначала PRO, иначе РК).
+   * Используется для «Подключить»: добор / расширение / заявка.
+   */
+  const findConnectTargetPackage = (cabinetId: number) => {
+    const eligible = packages.filter(
+      (p) =>
+        (p.kind === 'MAIN' || p.kind === 'CAMPAIGN')
+        && p.paymentId != null
+        && !(p.cabinetIds ?? []).includes(cabinetId),
+    )
+    return eligible.find((p) => p.kind === 'MAIN') ?? eligible.find((p) => p.kind === 'CAMPAIGN')
+  }
+
+  const openAddCabinets = (pkg: UserBillingActivePackageDto, cabinetIds?: number[]) => {
+    setAddCabinetsPreselected(cabinetIds)
+    setAddCabinetsPkg(pkg)
+  }
+
+  /** «Подключить»: свободный слот → добор; иначе расширение; при max≥10 → заявка. */
+  const handleConnectCabinet = (cabinetId: number) => {
+    const pkg = findConnectTargetPackage(cabinetId)
+    if (!pkg) {
+      setPreselected([cabinetId])
+      setPurchaseKind('MAIN')
+      return
+    }
+    if (pkg.canAddCabinets) {
+      openAddCabinets(pkg, [cabinetId])
+      return
+    }
+    if (pkg.canUpgrade) {
+      setUpgradePreselected([cabinetId])
+      setUpgradePkg(pkg)
+      return
+    }
+    if ((pkg.maxCabinets ?? 0) >= 10) {
+      setCustomRequestOpen(true)
+      return
+    }
+    setPreselected([cabinetId])
+    setPurchaseKind('MAIN')
+  }
 
   const cabinetFilterCounts = useMemo(() => {
     const counts: Record<CabinetFilterKey, number> = {
@@ -611,7 +659,7 @@ export default function Subscription() {
                 setPurchaseKind('MAIN')
               }}
             >
-              Управление
+              Продлить
             </Button>
           )
         }
@@ -625,7 +673,7 @@ export default function Subscription() {
                 setPurchaseKind('CAMPAIGN')
               }}
             >
-              Управление
+              Продлить
             </Button>
           )
         }
@@ -633,10 +681,7 @@ export default function Subscription() {
           <Button
             type="primary"
             style={{ ...btnStyle, background: accent, borderColor: accent }}
-            onClick={() => {
-              setPreselected([row.cabinetId])
-              setPurchaseKind('MAIN')
-            }}
+            onClick={() => handleConnectCabinet(row.cabinetId)}
           >
             Подключить
           </Button>
@@ -689,12 +734,12 @@ export default function Subscription() {
                 gridTemplateColumns: '1fr 1fr',
                 gap: 16,
                 marginBottom: 24,
-                alignItems: 'start',
+                alignItems: 'stretch',
               }}
             >
               <Card
                 title={<span style={{ fontWeight: 700 }}>Текущие подписки</span>}
-                style={{ borderRadius: 16, borderColor: border, height: 'fit-content' }}
+                style={{ borderRadius: 16, borderColor: border, height: '100%' }}
                 styles={{ body: { paddingTop: 4, paddingBottom: 8 } }}
               >
                 {packages.length === 0 ? (
@@ -712,9 +757,16 @@ export default function Subscription() {
                           setPurchaseKind(kind)
                         }}
                         onAddCabinets={
-                          row.canAddCabinets ? () => setAddCabinetsPkg(row) : undefined
+                          row.canAddCabinets ? () => openAddCabinets(row) : undefined
                         }
-                        onUpgrade={row.canUpgrade ? () => setUpgradePkg(row) : undefined}
+                        onUpgrade={
+                          row.canUpgrade
+                            ? () => {
+                                setUpgradePreselected(undefined)
+                                setUpgradePkg(row)
+                              }
+                            : undefined
+                        }
                         onUpgradeToPro={
                           row.canUpgradeToPro ? () => setUpgradeToProPkg(row) : undefined
                         }
@@ -725,23 +777,27 @@ export default function Subscription() {
               </Card>
               <Card
                 title={<span style={{ fontWeight: 700 }}>История платежей</span>}
-                style={{ borderRadius: 16, borderColor: border }}
-                styles={{ body: { paddingTop: 8 } }}
+                style={{ borderRadius: 16, borderColor: border, height: '100%' }}
+                styles={{ body: { paddingTop: 4, paddingBottom: 8 } }}
               >
-                <Table
-                  className="subscription-payments-table"
-                  size="small"
-                  rowKey="id"
-                  loading={paymentsLoading}
-                  pagination={
-                    payments.length > 3
-                      ? { pageSize: 3, size: 'small' }
-                      : false
-                  }
-                  dataSource={payments}
-                  columns={paymentColumns}
-                  locale={{ emptyText: 'Платежей пока нет' }}
-                />
+                {payments.length === 0 && !paymentsLoading ? (
+                  <div style={{ color: '#94A3B8', padding: '12px 4px' }}>Платежей пока нет</div>
+                ) : (
+                  <Table
+                    className="subscription-payments-table"
+                    size="small"
+                    rowKey="id"
+                    loading={paymentsLoading}
+                    showHeader={payments.length > 0}
+                    pagination={
+                      payments.length > 3
+                        ? { pageSize: 3, size: 'small' }
+                        : false
+                    }
+                    dataSource={payments}
+                    columns={paymentColumns}
+                  />
+                )}
               </Card>
             </div>
 
@@ -843,14 +899,22 @@ export default function Subscription() {
         open={!!addCabinetsPkg}
         pkg={addCabinetsPkg}
         cabinetRows={cabinets}
-        onClose={() => setAddCabinetsPkg(null)}
+        preselectedCabinetIds={addCabinetsPreselected}
+        onClose={() => {
+          setAddCabinetsPkg(null)
+          setAddCabinetsPreselected(undefined)
+        }}
       />
 
       <UpgradePackageModal
         open={!!upgradePkg}
         pkg={upgradePkg}
         cabinetRows={cabinets}
-        onClose={() => setUpgradePkg(null)}
+        preselectedCabinetIds={upgradePreselected}
+        onClose={() => {
+          setUpgradePkg(null)
+          setUpgradePreselected(undefined)
+        }}
       />
 
       <UpgradeToProModal
@@ -858,6 +922,11 @@ export default function Subscription() {
         pkg={upgradeToProPkg}
         cabinetRows={cabinets}
         onClose={() => setUpgradeToProPkg(null)}
+      />
+
+      <CustomTariffRequestModal
+        open={customRequestOpen}
+        onClose={() => setCustomRequestOpen(false)}
       />
 
       <style>{`
