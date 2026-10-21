@@ -81,4 +81,20 @@ export const subscriptionApi = {
     const response = await apiClient.get<PaymentStatusResponse>(`/subscription/payment/${paymentId}/status`)
     return response.data
   },
+
+  /**
+   * Заявка на тариф свыше 10 кабинетов — письмо на корпоративную почту.
+   */
+  submitCustomTariffRequest: async (payload: {
+    cabinetsCount: number
+    telegram?: string
+    phone?: string
+    message: string
+  }): Promise<{ message: string }> => {
+    const response = await apiClient.post<{ message: string }>(
+      '/subscription/custom-tariff-request',
+      payload,
+    )
+    return response.data
+  },
 }

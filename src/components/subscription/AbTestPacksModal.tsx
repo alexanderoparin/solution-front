@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Modal, Button, Spin, message } from 'antd'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { subscriptionApi } from '../../api/subscription'
 import type { PlanDto } from '../../types/api'
 
 const accent = '#7C3AED'
-const UNIT_PRICE = 490
+const border = '#E2E8F0'
+const hoverBg = '#F5F3FF'
 
 const FALLBACK_PACK_COPY: Record<string, string> = {
   ab_pack_1: 'Для одного А/Б теста',
@@ -30,25 +31,62 @@ function packTitle(plan: PlanDto): string {
   return plan.name
 }
 
-function PackPriceBlock({ plan }: { plan: PlanDto }) {
-  const credits = plan.creditAmount ?? 0
-  if (credits <= 1) {
-    return (
-      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: '#1E293B' }}>
-        {formatRub(plan.priceRub)}
-        <div style={{ fontSize: 12, fontWeight: 500, color: '#94A3B8', marginTop: 4 }}>пакет, без срока</div>
-      </div>
-    )
-  }
-  const perTest = Math.round(plan.priceRub / credits)
-  const save = UNIT_PRICE * credits - plan.priceRub
+/** Карточка пакета с подсветкой при наведении. */
+function PackCard({ children }: { children: ReactNode }) {
+  const [hovered, setHovered] = useState(false)
   return (
-    <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ fontSize: 16, fontWeight: 700, color: '#1E293B' }}>{formatRub(plan.priceRub)}</div>
-      <div style={{ fontSize: 12, color: '#64748B' }}>{formatRub(perTest)} за тест · пакет, без срока</div>
-      {save > 0 && (
-        <div style={{ fontSize: 12, color: '#16A34A' }}>Экономия {formatRub(save)}</div>
-      )}
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        border: `1.5px solid ${hovered ? accent : border}`,
+        borderRadius: 12,
+        padding: 16,
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        minHeight: 0,
+        background: hovered ? hoverBg : '#fff',
+        boxShadow: hovered ? '0 4px 14px rgba(124, 58, 237, 0.12)' : 'none',
+        transition: 'border-color 0.15s, background 0.15s, box-shadow 0.15s',
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Блок цены пакета.
+ * Основная цена всегда в одной строке по высоте между карточками;
+ * под ней — фиксированная зона «за тест / экономия».
+ * Экономия = цена_1_теста × число_тестов − цена_пакета.
+ */
+function PackPriceBlock({ plan, unitPrice }: { plan: PlanDto; unitPrice: number }) {
+  const credits = plan.creditAmount ?? 0
+  const perTest = credits > 1 ? Math.round(plan.priceRub / credits) : null
+  const save = credits > 1 ? unitPrice * credits - plan.priceRub : 0
+  return (
+    <div style={{ marginTop: 'auto', marginBottom: 12 }}>
+      <div style={{ fontSize: 16, fontWeight: 700, color: '#1E293B', lineHeight: 1.25 }}>
+        {formatRub(plan.priceRub)}
+      </div>
+      <div
+        style={{
+          minHeight: 36,
+          marginTop: 4,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          fontSize: 12,
+          lineHeight: 1.35,
+        }}
+      >
+        {perTest != null && <span style={{ color: '#64748B' }}>{formatRub(perTest)} за тест</span>}
+        {save > 0 && (
+          <span style={{ color: '#16A34A', fontWeight: 600 }}>Экономия {formatRub(save)}</span>
+        )}
+      </div>
     </div>
   )
 }
@@ -70,6 +108,12 @@ export default function AbTestPacksModal({ open, onClose, onActivated }: AbTestP
     () => [...plans].filter((p) => (p.priceRub ?? 0) > 0).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
     [plans],
   )
+
+  /** Цена одного теста — база для расчёта экономии на пакетах. */
+  const unitPrice = useMemo(() => {
+    const single = paidPlans.find((p) => (p.creditAmount ?? 0) === 1)
+    return single?.priceRub ?? 0
+  }, [paidPlans])
 
   const payMutation = useMutation({
     mutationFn: (planId: number) => subscriptionApi.initiatePayment(planId),
@@ -103,26 +147,18 @@ export default function AbTestPacksModal({ open, onClose, onActivated }: AbTestP
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gridTemplateColumns: `repeat(${Math.max(paidPlans.length, 1)}, minmax(0, 1fr))`,
                 gap: 16,
+                alignItems: 'stretch',
               }}
             >
               {paidPlans.map((plan) => (
-                <div
-                  key={plan.id}
-                  style={{
-                    border: '1px solid #E2E8F0',
-                    borderRadius: 12,
-                    padding: 16,
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                >
+                <PackCard key={plan.id}>
                   <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{packTitle(plan)}</div>
                   <div style={{ fontSize: 13, color: '#64748B', marginBottom: 12, flex: 1 }}>
                     {plan.description || FALLBACK_PACK_COPY[plan.code ?? ''] || ''}
                   </div>
-                  <PackPriceBlock plan={plan} />
+                  <PackPriceBlock plan={plan} unitPrice={unitPrice} />
                   <Button
                     type="primary"
                     block
@@ -132,7 +168,7 @@ export default function AbTestPacksModal({ open, onClose, onActivated }: AbTestP
                   >
                     Выбрать
                   </Button>
-                </div>
+                </PackCard>
               ))}
             </div>
           </>
