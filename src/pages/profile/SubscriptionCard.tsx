@@ -124,6 +124,7 @@ export default function SubscriptionCard({
       && Boolean(subscription?.expiresAt))
 
   const billingPromo = billing?.mainTariff?.status === 'PROMO'
+    || billing?.mainTariff?.status === 'TRIAL'
   const isPromo = billingPromo || profilePromoActive
 
   const onPro =
@@ -131,6 +132,7 @@ export default function SubscriptionCard({
     || isProCode(billing?.mainTariff?.code)
     || billing?.mainTariff?.status === 'AGENCY'
     || billing?.mainTariff?.status === 'PROMO'
+    || billing?.mainTariff?.status === 'TRIAL'
     || profilePromoActive
 
   const planName = isPromo

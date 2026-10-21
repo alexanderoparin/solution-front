@@ -24,6 +24,7 @@ function isBillingPro(billing: Awaited<ReturnType<typeof subscriptionApi.getCabi
   return Boolean(
     t.unlimitedAccess
     || t.status === 'PROMO'
+    || t.status === 'TRIAL'
     || t.status === 'AGENCY'
     || isProPlanCode(t.code),
   )
@@ -71,7 +72,8 @@ export function useCabinetProAccess(cabinetId: number | null | undefined) {
     if (profilePromoActive && profile?.subscription?.promoCode) {
       return `PRO (промокод ${profile.subscription.promoCode})`
     }
-    if (billing?.mainTariff?.status === 'PROMO' && billing.mainTariff.name) {
+    if ((billing?.mainTariff?.status === 'PROMO' || billing?.mainTariff?.status === 'TRIAL')
+      && billing.mainTariff.name) {
       return billing.mainTariff.name
     }
     if (billing?.mainTariff && isProPlanCode(billing.mainTariff.code) && billing.mainTariff.name) {
