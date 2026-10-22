@@ -28,8 +28,9 @@ export const landingColors = {
 export const landingLayout = {
   maxWidth: 1320,
   headerHeight: 72,
-  sectionPaddingY: 80,
-  sectionPaddingYMobile: 48,
+  /** Чуть плотнее, чем в первом варианте — меньше «воздуха» между блоками. */
+  sectionPaddingY: 56,
+  sectionPaddingYMobile: 36,
   containerPaddingX: 24,
 } as const
 

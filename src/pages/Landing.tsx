@@ -40,7 +40,7 @@ export default function Landing() {
           );
         }
         @media (max-width: 960px) {
-          .landing-service-page section { padding-top: 48px !important; padding-bottom: 48px !important; }
+          .landing-service-page section { padding-top: 36px !important; padding-bottom: 36px !important; }
         }
       `}</style>
       <ServiceLandingAmbient />

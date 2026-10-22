@@ -235,7 +235,8 @@ export default function SubscriptionCard({
     summary: true,
     campaigns: true,
     campaignManage: campaignConnected,
-    hypotheses: onPro,
+    // Гипотезы — в бесплатном доступе (раздел PRODUCTS), не требуют PRO
+    hypotheses: true,
     abTests: abConnected,
   }
 

@@ -34,6 +34,13 @@ export const serviceLandingAssets = {
     '/landing-service/caps/cap-5.png?v=1',
     '/landing-service/caps/cap-6.png?v=1',
   ] as const,
+  /** Иконки блока проблемы — вырезаны из макета 2.png */
+  problemIcons: [
+    '/landing-service/problem/problem-1-wallet.png?v=6',
+    '/landing-service/problem/problem-2-cart.png?v=6',
+    '/landing-service/problem/problem-3-bars.png?v=6',
+    '/landing-service/problem/problem-4-rise.png?v=6',
+  ] as const,
   /** Порядок скринов как на макете 8.png: аналитика / А/В / управление РК */
   productAnalytics: '/landing-service/block-8-3.png?v=2',
   productAb: '/landing-service/block-8-1.png?v=4',
@@ -92,22 +99,22 @@ export const serviceProblem = {
     {
       title: 'Расходы на рекламу',
       description: 'Сколько потрачено, на какие кампании и ключевые запросы.',
-      tone: 'purple' as const,
+      icon: serviceLandingAssets.problemIcons[0],
     },
     {
       title: 'Заказы',
       description: 'Сколько заказов принесли кампании и какие товары работают лучше.',
-      tone: 'green' as const,
+      icon: serviceLandingAssets.problemIcons[1],
     },
     {
       title: 'Показатели эффективности',
       description: 'ДРР, CTR, CPC и другие ключевые метрики.',
-      tone: 'purple' as const,
+      icon: serviceLandingAssets.problemIcons[2],
     },
     {
       title: 'Динамика',
       description: 'Как меняются результаты со временем и где есть точки роста.',
-      tone: 'green' as const,
+      icon: serviceLandingAssets.problemIcons[3],
     },
   ],
 } as const
@@ -139,12 +146,12 @@ export const serviceWhySeparate = {
   titleHighlight: 'уже есть в Wildberries?',
   /** Переносы как на макете */
   subtitleLines: [
-    'Wildberries показывает данные по рекламе. Но когда кампаний много,',
-    'сложнее быстро увидеть общую картину и сравнить результаты.',
+    'Wildberries показывает данные по рекламе.',
+    'Но когда кампаний много, увидеть общую картину и сравнить результаты становится сложнее.',
     'Clicki объединяет данные и делает их удобными для анализа.',
   ],
   subtitle:
-    'Wildberries показывает данные по рекламе. Но когда кампаний много, сложнее быстро увидеть общую картину и сравнить результаты. Clicki объединяет данные и делает их удобными для анализа.',
+    'Wildberries показывает данные по рекламе. Но когда кампаний много, увидеть общую картину и сравнить результаты становится сложнее. Clicki объединяет данные и делает их удобными для анализа.',
   left: {
     title: 'Стандартная статистика в Wildberries',
     items: [
@@ -480,8 +487,7 @@ export const serviceAgencyHelp = {
     {
       id: 'audit',
       title: 'Аудит рекламного кабинета',
-      /** Правка на макете: вместо «найдём причины перерасхода» — «покажем, где теряются деньги» */
-      description: 'Разберём ваш кабинет и покажем, где теряются деньги и конкретные точки роста.',
+      description: 'Разберем ваш кабинет, покажем где теряются деньги и что можно улучшить.',
       tone: 'green' as const,
       bullets: [
         'Анализ текущих кампаний',
@@ -529,37 +535,16 @@ export const serviceBlog = {
   titleBefore: 'Полезные',
   titleHighlight: 'материалы',
   subtitle: 'Практические советы, разборы и обновления сервиса для эффективной рекламы на Wildberries.',
-  allLabel: 'Все статьи',
-  items: [
-    {
-      tag: 'Практика',
-      tagTone: 'purple' as const,
-      date: '2 октября 2024',
-      title: 'Как найти ключи, которые сливают бюджет на Wildberries',
-      description: 'Показываем пошаговый алгоритм анализа и примеры из реальных кабинетов.',
-    },
-    {
-      tag: 'Аналитика',
-      tagTone: 'lavender' as const,
-      date: '28 сентября 2024',
-      title: 'Почему ДРР может расти, даже если заказов больше',
-      description: 'Разбираем основные причины и даём рекомендации, как вернуть ДРР в норму.',
-    },
-    {
-      tag: 'Кейсы',
-      tagTone: 'green' as const,
-      date: '20 сентября 2024',
-      title: 'Кейс: рост заказов на 156% за 2 месяца с помощью Clicki',
-      description: 'Как мы оптимизировали рекламные кампании и какие инструменты использовали.',
-    },
-    {
-      tag: 'Обновления',
-      tagTone: 'blue' as const,
-      date: '15 сентября 2024',
-      title: 'Новый инструмент: A/B-тест фотографий в Clicki',
-      description: 'Тестируйте до 20 вариантов, выбирайте лучшие и увеличивайте конверсию карточки.',
-    },
-  ],
+  /** Пока статей нет — показываем заглушку; когда появятся — заполним items. */
+  comingSoonTitle: 'Раздел в разработке',
+  comingSoonDescription: 'Скоро здесь появятся статьи, разборы и обновления сервиса.',
+  items: [] as ReadonlyArray<{
+    tag: string
+    tagTone: 'purple' | 'lavender' | 'green' | 'blue'
+    date: string
+    title: string
+    description: string
+  }>,
 } as const
 
 export const serviceFinalCta = {
@@ -581,10 +566,18 @@ export const serviceFooter = {
     { label: 'О сервисе', href: `#${SERVICE_LANDING_ANCHORS.about}` },
     { label: 'Реквизиты', to: '/requisites' },
   ],
-  telegram: '@kaypavel',
-  telegramUrl: 'https://t.me/kaypavel',
+  telegram: '@clickiads',
+  telegramUrl: 'https://t.me/clickiads',
+  /** Соцкнопки как на макете 16.png (вместо YouTube — Max). */
+  socialLinks: [
+    { label: 'Telegram', href: 'https://t.me/clickiads', icon: 'telegram' as const },
+    { label: 'Email', href: 'mailto:corp@click-i.ru', icon: 'chat' as const },
+    { label: 'VK', href: 'https://vk.ru/clickiads', icon: 'vk' as const },
+    { label: 'Max', href: 'https://max.ru/join/5UDb_r7SCYCHBqzvql7aU76m-kW0INceFCYV2DylCsc', icon: 'max' as const },
+  ],
   legalLinks: [
     { label: 'Политика конфиденциальности', to: '/privacy' },
     { label: 'Пользовательское соглашение', to: '/user-agreement' },
+    { label: 'Обработка персональных данных', to: '/privacy' },
   ],
 } as const

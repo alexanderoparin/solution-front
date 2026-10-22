@@ -114,10 +114,10 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
     <>
       <style>{`
         .svc-hero-grid, .svc-two, .svc-compare, .svc-caps, .svc-products, .svc-steps, .svc-price, .svc-help, .svc-blog {
-          display: grid; gap: 28px; align-items: center;
+          display: grid; gap: 24px; align-items: center;
         }
         .svc-hero-grid { grid-template-columns: 0.82fr 1.28fr; }
-        .svc-two { grid-template-columns: 1.1fr 0.9fr; }
+        .svc-two { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); }
         .svc-analytics-grid { grid-template-columns: 1.15fr 1.05fr; gap: 24px; align-items: center; }
         .svc-compare { grid-template-columns: 1fr 1fr; align-items: stretch; }
         /* Макет: 6 карточек в один ряд */
@@ -201,7 +201,8 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       color: svc.text,
                       fontWeight: 500,
                       lineHeight: 1.25,
-                      maxWidth: 168,
+                      /* Шире, чтобы «Единая аналитика» / «Меньше ручной» держались в 2 строки */
+                      maxWidth: 200,
                     }}
                   >
                     <ToneIconBox tone={p.tone}>
@@ -213,7 +214,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                         <BarChartOutlined />
                       )}
                     </ToneIconBox>
-                    <span>
+                    <span style={{ whiteSpace: 'nowrap' }}>
                       {p.lines.map((line) => (
                         <span key={line} style={{ display: 'block' }}>
                           {line}
@@ -242,7 +243,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 ))}
               </h2>
               {serviceProblem.paragraphs.map((p) => (
-                <p key={p.slice(0, 24)} style={{ margin: '14px 0 0', color: svc.muted, lineHeight: 1.65, fontSize: 15 }}>
+                <p key={p.slice(0, 24)} style={{ margin: '12px 0 0', color: svc.muted, lineHeight: 1.55, fontSize: 18 }}>
                   {p}
                 </p>
               ))}
@@ -259,10 +260,18 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                     borderBottom: i === serviceProblem.items.length - 1 ? 'none' : `1px solid ${svc.border}`,
                   }}
                 >
-                  <ToneIconBox tone={item.tone}>
-                    {item.tone === 'green' ? <ShoppingCartOutlined /> : <WalletOutlined />}
-                  </ToneIconBox>
-                  <div>
+                  <img
+                    src={item.icon}
+                    alt=""
+                    style={{
+                      width: 48,
+                      height: 48,
+                      objectFit: 'contain',
+                      display: 'block',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontWeight: 700, color: svc.text, marginBottom: 4 }}>{item.title}</div>
                     <div style={{ color: svc.muted, fontSize: 14, lineHeight: 1.45 }}>{item.description}</div>
                   </div>
@@ -302,13 +311,13 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: b.lines.length > 1 ? 'flex-start' : 'center',
-                      gap: 10,
-                      padding: '12px 16px',
+                      gap: 12,
+                      padding: '14px 18px',
                       borderRadius: 14,
                       background: '#fff',
                       border: `1px solid ${svc.border}`,
                       boxShadow: '0 4px 14px rgba(15, 23, 42, 0.04)',
-                      fontSize: b.lines.length > 1 ? 13 : 14,
+                      fontSize: b.lines.length > 1 ? 15 : 17,
                       fontWeight: 600,
                       color: svc.text,
                       lineHeight: 1.25,
@@ -318,9 +327,10 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                     <span
                       style={{
                         color: b.tone === 'green' ? svc.green : svc.accent,
-                        fontSize: 18,
+                        fontSize: 26,
                         display: 'inline-flex',
                         flexShrink: 0,
+                        lineHeight: 1,
                       }}
                     >
                       {b.icon === 'cart' ? (
@@ -332,8 +342,16 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       )}
                     </span>
                     <span style={{ minWidth: 0 }}>
-                      {b.lines.map((line) => (
-                        <span key={line} style={{ display: 'block' }}>
+                      {b.lines.map((line, lineIndex) => (
+                        <span
+                          key={line}
+                          style={{
+                            display: 'block',
+                            fontSize: b.lines.length > 1 && lineIndex > 0 ? 13 : undefined,
+                            fontWeight: b.lines.length > 1 && lineIndex > 0 ? 500 : undefined,
+                            color: b.lines.length > 1 && lineIndex > 0 ? svc.muted : undefined,
+                          }}
+                        >
                           {line}
                         </span>
                       ))}
@@ -429,9 +447,9 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       {/* Why separate */}
       <section style={svcSection()}>
         <div style={svcContainer()}>
-          <div style={{ maxWidth: 780, marginBottom: 32 }}>
+          <div style={{ maxWidth: 780, marginBottom: 24 }}>
             <SvcTitle before={serviceWhySeparate.titleBefore} highlight={serviceWhySeparate.titleHighlight} />
-            <p style={{ margin: '14px 0 0', fontSize: 16, lineHeight: 1.6, color: svc.muted, maxWidth: 720 }}>
+            <p style={{ margin: '12px 0 0', fontSize: 18, lineHeight: 1.55, color: svc.muted, maxWidth: 720 }}>
               {serviceWhySeparate.subtitleLines.map((line) => (
                 <span key={line} style={{ display: 'block' }}>
                   {line}
@@ -522,7 +540,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       </section>
 
       {/* Campaign depth */}
-      <section style={svcSection({ paddingBottom: 110 })}>
+      <section style={svcSection({ paddingBottom: 72 })}>
         <div style={svcContainer()}>
           <div
             className="svc-two"
@@ -561,23 +579,25 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 8,
+                      gap: 10,
                       background: '#fff',
                       border: `1px solid ${svc.border}`,
                       borderRadius: 12,
-                      padding: '12px 8px',
-                      fontSize: 13,
+                      padding: '16px 12px',
+                      fontSize: 16,
                       fontWeight: 600,
                       color: svc.text,
                       boxShadow: '0 4px 12px rgba(15, 23, 42, 0.04)',
+                      textAlign: 'center',
                     }}
                   >
                     <span
                       style={{
                         color: m.tone === 'green' ? svc.green : svc.accent,
-                        fontSize: 16,
+                        fontSize: 24,
                         display: 'inline-flex',
                         flexShrink: 0,
+                        lineHeight: 1,
                       }}
                     >
                       {m.icon === 'eye' ? (
@@ -587,7 +607,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       ) : m.icon === 'percent' ? (
                         <PercentageOutlined />
                       ) : m.icon === 'ruble' ? (
-                        <span style={{ fontWeight: 700, fontSize: 15, lineHeight: 1 }}>₽</span>
+                        <span style={{ fontWeight: 700, fontSize: 22, lineHeight: 1 }}>₽</span>
                       ) : m.icon === 'wallet' ? (
                         <WalletOutlined />
                       ) : m.icon === 'cart' ? (
@@ -598,7 +618,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                         <PieChartOutlined />
                       )}
                     </span>
-                    <span style={{ whiteSpace: m.label.length > 10 ? 'normal' : 'nowrap', textAlign: 'left', lineHeight: 1.2 }}>
+                    <span style={{ whiteSpace: m.label.length > 10 ? 'normal' : 'nowrap', textAlign: 'center', lineHeight: 1.2 }}>
                       {m.label}
                     </span>
                   </div>
@@ -728,7 +748,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       {/* Less manual */}
       <section style={svcSection()}>
         <div style={svcContainer()}>
-          <div style={{ maxWidth: 720, marginBottom: 28 }}>
+          <div style={{ maxWidth: 720, marginBottom: 22 }}>
             <SvcTitle
               before={serviceLessManual.titleBefore}
               highlight={serviceLessManual.titleHighlight}
@@ -882,7 +902,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       {/* Capabilities — макет: 6 карточек в ряд, иконки из макета 7.png */}
       <section id={SERVICE_LANDING_ANCHORS.features} style={svcSection()}>
         <div style={svcContainer()}>
-          <div style={{ maxWidth: 720, marginBottom: 28 }}>
+          <div style={{ maxWidth: 720, marginBottom: 22 }}>
             <SvcTitle
               before={serviceCapabilities.titleBefore}
               highlight={serviceCapabilities.titleHighlight}
@@ -1198,7 +1218,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       {/* Onboarding */}
       <section style={svcSection()}>
         <div style={svcContainer()}>
-          <div style={{ maxWidth: 640, marginBottom: 32 }}>
+          <div style={{ maxWidth: 640, marginBottom: 22 }}>
             <SvcTitle
               before={serviceOnboarding.titleBefore}
               highlight={serviceOnboarding.titleHighlight}
@@ -1270,7 +1290,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               justifyContent: 'space-between',
               alignItems: 'flex-start',
               gap: 24,
-              marginBottom: 32,
+              marginBottom: 22,
             }}
           >
             <div style={{ maxWidth: 720, minWidth: 0 }}>
@@ -1678,7 +1698,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       {/* Agency help */}
       <section style={svcSection()}>
         <div style={svcContainer()}>
-          <div style={{ maxWidth: 780, marginBottom: 32 }}>
+          <div style={{ maxWidth: 780, marginBottom: 22 }}>
             <SvcTitle
               before={serviceAgencyHelp.titleBefore}
               highlight={serviceAgencyHelp.titleHighlight}
@@ -1792,73 +1812,76 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
         </div>
       </section>
 
-      {/* Blog teaser */}
+      {/* Blog teaser — пока статей нет, заглушка «в разработке» */}
       <section id={SERVICE_LANDING_ANCHORS.blog} style={svcSection()}>
         <div style={svcContainer()}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
-            <div style={{ maxWidth: 640 }}>
-              <SvcTitle before={serviceBlog.titleBefore} highlight={serviceBlog.titleHighlight} />
-              <SvcLead>{serviceBlog.subtitle}</SvcLead>
-            </div>
-            <button
-              type="button"
-              style={{
-                height: 40,
-                padding: '0 14px',
-                borderRadius: 12,
-                border: `1px solid ${svc.border}`,
-                background: '#fff',
-                cursor: 'default',
-                fontWeight: 600,
-              }}
-            >
-              {serviceBlog.allLabel} →
-            </button>
+          <div style={{ maxWidth: 640, marginBottom: 24 }}>
+            <SvcTitle before={serviceBlog.titleBefore} highlight={serviceBlog.titleHighlight} />
+            <SvcLead>{serviceBlog.subtitle}</SvcLead>
           </div>
-          <div className="svc-blog">
-            {serviceBlog.items.map((item) => (
-              <div
-                key={item.title}
-                style={{
-                  background: svc.softBg,
-                  borderRadius: 16,
-                  padding: 16,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  minHeight: 220,
-                }}
-              >
-                <span
+          {serviceBlog.items.length > 0 ? (
+            <div className="svc-blog">
+              {serviceBlog.items.map((item) => (
+                <div
+                  key={item.title}
                   style={{
-                    alignSelf: 'flex-start',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: '4px 10px',
-                    borderRadius: 999,
-                    marginBottom: 12,
-                    background:
-                      item.tagTone === 'green'
-                        ? svc.greenSoft
-                        : item.tagTone === 'blue'
-                          ? svc.blueSoft
-                          : svc.accentSoft,
-                    color:
-                      item.tagTone === 'green'
-                        ? svc.greenDark
-                        : item.tagTone === 'blue'
-                          ? '#1D4ED8'
-                          : svc.accent,
+                    background: svc.softBg,
+                    borderRadius: 16,
+                    padding: 16,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 220,
                   }}
                 >
-                  {item.tag}
-                </span>
-                <div style={{ fontSize: 12, color: svc.muted, marginBottom: 8 }}>{item.date}</div>
-                <div style={{ fontWeight: 700, marginBottom: 8, lineHeight: 1.35 }}>{item.title}</div>
-                <div style={{ color: svc.muted, fontSize: 13, lineHeight: 1.5, marginBottom: 12 }}>{item.description}</div>
-                <span style={{ marginTop: 'auto', color: svc.accent, fontWeight: 600, fontSize: 13 }}>Читать →</span>
+                  <span
+                    style={{
+                      alignSelf: 'flex-start',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      marginBottom: 12,
+                      background:
+                        item.tagTone === 'green'
+                          ? svc.greenSoft
+                          : item.tagTone === 'blue'
+                            ? svc.blueSoft
+                            : svc.accentSoft,
+                      color:
+                        item.tagTone === 'green'
+                          ? svc.greenDark
+                          : item.tagTone === 'blue'
+                            ? '#1D4ED8'
+                            : svc.accent,
+                    }}
+                  >
+                    {item.tag}
+                  </span>
+                  <div style={{ fontSize: 12, color: svc.muted, marginBottom: 8 }}>{item.date}</div>
+                  <div style={{ fontWeight: 700, marginBottom: 8, lineHeight: 1.35 }}>{item.title}</div>
+                  <div style={{ color: svc.muted, fontSize: 13, lineHeight: 1.5, marginBottom: 12 }}>{item.description}</div>
+                  <span style={{ marginTop: 'auto', color: svc.accent, fontWeight: 600, fontSize: 13 }}>Читать →</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                background: svc.softBg,
+                border: `1px solid ${svc.border}`,
+                borderRadius: 16,
+                padding: '40px 24px',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 18, color: svc.text, marginBottom: 8 }}>
+                {serviceBlog.comingSoonTitle}
               </div>
-            ))}
-          </div>
+              <div style={{ color: svc.muted, fontSize: 15, lineHeight: 1.5 }}>
+                {serviceBlog.comingSoonDescription}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -1879,14 +1902,17 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               justifyContent: 'space-between',
             }}
           >
-            <div style={{ maxWidth: 620 }}>
+            <div style={{ maxWidth: 620, flex: '1 1 420px' }}>
               <h2 style={{ margin: 0, fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, lineHeight: 1.2 }}>
                 {serviceFinalCta.titleBefore}{' '}
                 <span style={{ color: svc.accent }}>{serviceFinalCta.titleHighlight}</span>
               </h2>
               <p style={{ margin: '12px 0 0', color: svc.muted, lineHeight: 1.55 }}>{serviceFinalCta.subtitle}</p>
             </div>
-            <SvcPrimaryButton onClick={goRegister}>{serviceFinalCta.cta}</SvcPrimaryButton>
+            {/* Чуть левее края карточки — меньше пустоты между текстом и CTA */}
+            <div style={{ marginRight: 48, flexShrink: 0 }}>
+              <SvcPrimaryButton onClick={goRegister}>{serviceFinalCta.cta}</SvcPrimaryButton>
+            </div>
           </div>
         </div>
       </section>

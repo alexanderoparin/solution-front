@@ -17,7 +17,7 @@ export default function ServiceLandingHeader() {
         .svc-header-nav { display: flex; }
         .svc-header-cta { display: flex; }
         .svc-header-burger { display: none; }
-        .svc-header-link:hover { color: ${landingColors.textOnDark} !important; }
+        .svc-header-link:hover { color: ${svc.text} !important; }
         @media (max-width: 960px) {
           .svc-header-nav { display: none !important; }
           .svc-header-cta { display: none !important; }
@@ -30,8 +30,8 @@ export default function ServiceLandingHeader() {
           top: 0,
           zIndex: 100,
           height: 72,
-          backgroundColor: landingColors.darkBg,
-          borderBottom: 'none',
+          backgroundColor: '#FFFFFF',
+          borderBottom: `1px solid ${landingColors.border}`,
         }}
       >
         <div
@@ -41,28 +41,30 @@ export default function ServiceLandingHeader() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: 16,
+            gap: 24,
           }}
         >
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <SiteLogo variant="wordmark" size={34} />
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 36, minWidth: 0 }}>
+            <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
+              <SiteLogo variant="wordmarkDark" size={34} />
+            </Link>
 
-          <nav className="svc-header-nav" style={{ alignItems: 'center', gap: 28, flex: 1, justifyContent: 'center' }}>
-            {serviceLandingNav.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="svc-header-link"
-                style={{ color: landingColors.textOnDarkMuted, textDecoration: 'none', fontSize: 15, fontWeight: 500 }}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
+            <nav className="svc-header-nav" style={{ alignItems: 'center', gap: 28 }}>
+              {serviceLandingNav.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="svc-header-link"
+                  style={{ color: svc.muted, textDecoration: 'none', fontSize: 15, fontWeight: 500 }}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+          </div>
 
-          <div className="svc-header-cta" style={{ alignItems: 'center', gap: 8 }}>
-            <Button type="text" onClick={() => navigate('/login')} style={{ color: landingColors.textOnDark, fontWeight: 500 }}>
+          <div className="svc-header-cta" style={{ alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <Button type="text" onClick={() => navigate('/login')} style={{ color: svc.text, fontWeight: 500 }}>
               Войти
             </Button>
             <Button
@@ -85,7 +87,7 @@ export default function ServiceLandingHeader() {
             type="text"
             icon={<MenuOutlined />}
             onClick={() => setOpen(true)}
-            style={{ color: landingColors.textOnDark }}
+            style={{ color: svc.text }}
           />
         </div>
       </header>

@@ -100,9 +100,9 @@ export function SvcLead({ children, large }: { children: ReactNode; large?: bool
   return (
     <p
       style={{
-        margin: large ? '18px 0 0' : '14px 0 0',
-        fontSize: large ? 18 : 16,
-        lineHeight: 1.6,
+        margin: large ? '16px 0 0' : '12px 0 0',
+        fontSize: large ? 20 : 18,
+        lineHeight: 1.55,
         color: svc.muted,
         maxWidth: 640,
       }}

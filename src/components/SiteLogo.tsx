@@ -10,9 +10,10 @@ interface SiteLogoProps {
   style?: React.CSSProperties
   /**
    * mark — квадратный знак «k»;
-   * wordmark — белая надпись Clicki (для тёмного фона).
+   * wordmark — белая надпись Clicki (для тёмного фона);
+   * wordmarkDark — тёмная надпись Clicki (для светлого фона).
    */
-  variant?: 'mark' | 'wordmark'
+  variant?: 'mark' | 'wordmark' | 'wordmarkDark'
 }
 
 export default function SiteLogo({
@@ -23,8 +24,9 @@ export default function SiteLogo({
   style,
   variant = 'mark',
 }: SiteLogoProps) {
-  const isWordmark = variant === 'wordmark'
-  const src = isWordmark ? '/logo-white.png' : '/logo.png'
+  const isWordmark = variant === 'wordmark' || variant === 'wordmarkDark'
+  const src =
+    variant === 'wordmarkDark' ? '/logo-dark.png' : variant === 'wordmark' ? '/logo-white.png' : '/logo.png'
 
   const image = (
     <img
