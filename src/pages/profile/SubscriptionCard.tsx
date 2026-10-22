@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Button, Card, Select, Spin, Typography } from 'antd'
 import {
+  AppstoreOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
   CreditCardOutlined,
   CrownOutlined,
   ExperimentOutlined,
+  LockOutlined,
+  NotificationOutlined,
+  ShoppingOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -14,11 +19,8 @@ import 'dayjs/locale/ru'
 import { cabinetsApi, getStoredCabinetId, setStoredCabinetId, subscribeStoredCabinetId } from '../../api/cabinets'
 import { subscriptionApi } from '../../api/subscription'
 import { userApi } from '../../api/user'
-import { useCampaignManageSubscriptionUi } from '../../store/campaignManageSubscriptionUi'
-import AbTestPacksModal from '../../components/subscription/AbTestPacksModal'
 import { ONBOARDING_TARGETS } from '../../onboarding/targets'
 import type { CabinetBillingServiceStatusDto, ProfileSubscriptionSummary } from '../../types/api'
-import { formatAbTestsQuotaStatus } from '../../utils/abTestLabels'
 
 dayjs.locale('ru')
 
@@ -27,11 +29,39 @@ const { Text, Title } = Typography
 const accent = '#7C3AED'
 const border = '#E2E8F0'
 const textMuted = '#64748B'
+const chipBg = '#F5F3FF'
+const chipLockedBg = '#F1F5F9'
+const chipHighlightBg = '#EDE9FE'
 
 /** Услуги, входящие в PRO по промокоду (на каждый кабинет, пока промокод действует). */
 const PROMO_INCLUDED_SERVICES: CabinetBillingServiceStatusDto[] = [
   { serviceCode: 'CAMPAIGN_MANAGE', name: 'Управление РК', connected: true, status: 'INCLUDED' },
   { serviceCode: 'AB_TESTS', name: 'А/Б тесты', connected: true, status: 'INCLUDED' },
+]
+
+type SubscriptionViewMode = 'pro' | 'free' | 'campaign' | 'ab' | 'addons'
+
+type FeatureKey =
+  | 'products'
+  | 'summary'
+  | 'campaigns'
+  | 'campaignManage'
+  | 'hypotheses'
+  | 'abTests'
+
+interface FeatureChipDef {
+  key: FeatureKey
+  label: string
+  icon: ReactNode
+}
+
+const FEATURE_CHIPS: FeatureChipDef[] = [
+  { key: 'products', label: 'Товары', icon: <ShoppingOutlined /> },
+  { key: 'summary', label: 'Сводная', icon: <BarChartOutlined /> },
+  { key: 'campaigns', label: 'Рекламные кампании', icon: <NotificationOutlined /> },
+  { key: 'campaignManage', label: 'Управление РК', icon: <AppstoreOutlined /> },
+  { key: 'hypotheses', label: 'Гипотезы', icon: <UnorderedListOutlined /> },
+  { key: 'abTests', label: 'A/B тесты', icon: <ExperimentOutlined /> },
 ]
 
 interface SubscriptionCardProps {
@@ -45,16 +75,16 @@ interface SubscriptionCardProps {
   layout?: 'profile' | 'cabinet'
 }
 
-function formatExpires(expiresAt: string | null | undefined): string {
-  if (!expiresAt) return 'Бессрочно'
-  return dayjs(expiresAt).format('DD.MM.YYYY HH:mm')
+/**
+ * Дата окончания в формате референса: «15 мая 2025».
+ */
+function formatExpiresDate(expiresAt: string | null | undefined): string | null {
+  if (!expiresAt) return null
+  return dayjs(expiresAt).format('D MMMM YYYY')
 }
 
-function serviceIcon(serviceCode: string) {
-  if (serviceCode === 'AB_TESTS') {
-    return <ExperimentOutlined style={{ color: '#16A34A', fontSize: 16 }} />
-  }
-  return <BarChartOutlined style={{ color: accent, fontSize: 16 }} />
+function isProPlanCode(code?: string | null): boolean {
+  return Boolean(code && (code === 'pro_month' || code.startsWith('pro_')))
 }
 
 /**
@@ -67,8 +97,6 @@ export default function SubscriptionCard({
   layout = 'profile',
 }: SubscriptionCardProps) {
   const navigate = useNavigate()
-  const openPlans = useCampaignManageSubscriptionUi((s) => s.openPlans)
-  const [abPacksOpen, setAbPacksOpen] = useState(false)
   const [selectedCabinetId, setSelectedCabinetId] = useState<number | null>(() => getStoredCabinetId())
   const isCabinetLayout = layout === 'cabinet'
 
@@ -107,7 +135,6 @@ export default function SubscriptionCard({
   const {
     data: billing,
     isPending: billingPending,
-    refetch: refetchBilling,
   } = useQuery({
     queryKey: ['cabinetBilling', cabinetId],
     queryFn: () => subscriptionApi.getCabinetBillingStatus(cabinetId!),
@@ -115,127 +142,122 @@ export default function SubscriptionCard({
     staleTime: 0,
   })
 
-  const isProCode = (code?: string | null) =>
-    Boolean(code && (code === 'pro_month' || code.startsWith('pro_')))
-
   const profilePromoActive = Boolean(subscription?.promoCode)
-    || (isProCode(subscription?.planCode)
-      && subscription?.active
+    || (isProPlanCode(subscription?.planCode)
+      && Boolean(subscription?.active)
       && Boolean(subscription?.expiresAt))
 
-  const billingPromo = billing?.mainTariff?.status === 'PROMO'
-    || billing?.mainTariff?.status === 'TRIAL'
-  const isPromo = billingPromo || profilePromoActive
-
-  const onPro =
-    Boolean(billing?.mainTariff?.unlimitedAccess)
-    || isProCode(billing?.mainTariff?.code)
+  const onPro = Boolean(
+    billing?.mainTariff?.unlimitedAccess
+    || isProPlanCode(billing?.mainTariff?.code)
     || billing?.mainTariff?.status === 'AGENCY'
     || billing?.mainTariff?.status === 'PROMO'
     || billing?.mainTariff?.status === 'TRIAL'
     || profilePromoActive
+  )
 
-  const planName = isPromo
-    ? (billing?.mainTariff?.name ?? subscription?.planName ?? 'PRO (промокод)')
-    : (billing?.mainTariff?.name ?? 'Бесплатный доступ')
-  const isActive = onPro || (billing != null
-    ? !['NONE', 'EXPIRED', 'CANCELLED'].includes(String(billing.mainTariff.status ?? '').toUpperCase())
-    : Boolean(subscription?.active))
-  const statusLabel = isActive ? 'Активен' : (subscription?.statusLabel ?? 'Неактивен')
-  const expiresLabel = isPromo
-    ? formatExpires(billing?.mainTariff?.expiresAt ?? subscription?.expiresAt)
-    : billing
-      ? formatExpires(billing.mainTariff.expiresAt)
-      : formatExpires(subscription?.expiresAt)
-  const autoRenewLabel = (billing?.mainTariff?.expiresAt || subscription?.expiresAt)
-    ? (subscription?.autoRenew ? 'Включено' : 'Выключено')
-    : '—'
+  const services = billing?.services?.length
+    ? billing.services
+    : (onPro ? PROMO_INCLUDED_SERVICES : [])
 
-  const planDescription = isPromo
-    ? (subscription?.freePlanHint
-      ?? 'Полный доступ по промокоду: все разделы сервиса, Управление РК и А/Б тесты без ограничений.')
-    : subscription?.freePlanHint
-    ?? 'Включает все основные функции сервиса: Товары, Сводная, Рекламные кампании и др.'
+  const campaignService = services.find((s) => s.serviceCode === 'CAMPAIGN_MANAGE')
+  const abService = services.find((s) => s.serviceCode === 'AB_TESTS')
 
-  const onConnectService = (svc: CabinetBillingServiceStatusDto) => {
-    if (svc.serviceCode === 'CAMPAIGN_MANAGE') {
-      openPlans()
-      return
+  const campaignConnected = onPro || Boolean(campaignService?.connected)
+  const abUnlimited = onPro || Boolean(billing?.abTestQuota?.unlimited)
+  const abConnected = onPro
+    || abUnlimited
+    || Boolean(abService?.connected)
+    || Boolean(billing?.abTestQuota?.activated)
+
+  const viewMode: SubscriptionViewMode = (() => {
+    if (onPro) return 'pro'
+    if (campaignConnected && abConnected) return 'addons'
+    if (campaignConnected) return 'campaign'
+    if (abConnected) return 'ab'
+    return 'free'
+  })()
+
+  const expiresAt = (() => {
+    if (onPro) {
+      return billing?.mainTariff?.expiresAt ?? subscription?.expiresAt ?? null
     }
-    if (svc.serviceCode === 'AB_TESTS') {
-      setAbPacksOpen(true)
+    if (viewMode === 'campaign' || viewMode === 'addons') {
+      return campaignService?.expiresAt
+        ?? abService?.expiresAt
+        ?? billing?.mainTariff?.expiresAt
+        ?? null
     }
+    if (viewMode === 'ab') {
+      return abService?.expiresAt ?? billing?.mainTariff?.expiresAt ?? null
+    }
+    return null
+  })()
+  const expiresLabel = formatExpiresDate(expiresAt)
+
+  const headerIcon = (() => {
+    if (viewMode === 'ab') {
+      return {
+        bg: '#F0FDF4',
+        node: <ExperimentOutlined style={{ color: '#16A34A', fontSize: 18 }} />,
+      }
+    }
+    if (viewMode === 'campaign' || viewMode === 'addons') {
+      return {
+        bg: '#F5F3FF',
+        node: <BarChartOutlined style={{ color: accent, fontSize: 18 }} />,
+      }
+    }
+    return {
+      bg: '#F5F3FF',
+      node: <CrownOutlined style={{ color: accent, fontSize: 18 }} />,
+    }
+  })()
+
+  const subtitle = (() => {
+    if (viewMode === 'pro') {
+      return 'Полный доступ ко всем функциям этого кабинета'
+    }
+    if (viewMode === 'campaign') {
+      return 'Подключена услуга «Управление РК» для этого кабинета.'
+    }
+    if (viewMode === 'ab') {
+      return 'Подключена услуга «A/B-тесты» для этого кабинета.'
+    }
+    if (viewMode === 'addons') {
+      return 'Подключены дополнительные услуги для этого кабинета.'
+    }
+    return 'Доступны только бесплатные разделы этого кабинета.'
+  })()
+
+  const featureUnlocked: Record<FeatureKey, boolean> = {
+    products: true,
+    summary: true,
+    campaigns: true,
+    campaignManage: campaignConnected,
+    hypotheses: onPro,
+    abTests: abConnected,
+  }
+
+  const featureHighlighted: Partial<Record<FeatureKey, boolean>> = {
+    campaignManage: viewMode === 'campaign',
+    abTests: viewMode === 'ab',
+  }
+
+  const goSubscription = () => {
+    if (cabinetId != null) {
+      setStoredCabinetId(cabinetId)
+    }
+    navigate('/subscription')
   }
 
   const loading = (fixedCabinetId == null && cabinetsLoading) || (cabinetId != null && billingPending)
   const showSubscriptionDetails = billing != null || profilePromoActive
-  const services = billing?.services?.length
-    ? billing.services
-    : (onPro ? PROMO_INCLUDED_SERVICES : [])
-  const canManageBilling = Boolean(billing?.canManageBilling)
-
-  const subtitle = isCabinetLayout
-    ? (isPromo
-      ? 'Промокод действует на все ваши кабинеты, пока не истечёт.'
-      : 'Тариф и дополнительные услуги этого кабинета.')
-    : cabinetId != null && selectedCabinetName
-      ? (profilePromoActive
-        ? `Тариф кабинета «${selectedCabinetName}». Промокод действует на все ваши кабинеты.`
-        : `Тариф и услуги кабинета «${selectedCabinetName}».`)
-      : profilePromoActive
-        ? 'Промокод действует на каждый кабинет, пока не истечёт.'
-        : 'Бесплатный доступ подключается при создании кабинета.'
+  const isFreeView = viewMode === 'free'
+  const canManageBilling = Boolean(billing?.canManageBilling) || fixedCabinetId == null
 
   const body = (
     <>
-      <div
-        className="subscription-card-head"
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: 16,
-          flexWrap: 'wrap',
-          marginBottom: 20,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              background: '#F5F3FF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <CreditCardOutlined style={{ color: accent, fontSize: 18 }} />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <Title level={5} style={{ margin: 0, fontSize: 16, lineHeight: '24px' }}>
-              Подписка
-            </Title>
-            <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.45 }}>
-              {subtitle}
-            </Text>
-          </div>
-        </div>
-        {!isCabinetLayout && cabinets.length > 1 ? (
-          <Select
-            style={{ minWidth: 220, maxWidth: '100%' }}
-            value={cabinetId ?? undefined}
-            options={cabinets.map((c) => ({ value: c.id, label: c.name }))}
-            onChange={(id: number) => {
-              setSelectedCabinetId(id)
-              setStoredCabinetId(id)
-            }}
-          />
-        ) : null}
-      </div>
-
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
           <Spin />
@@ -247,318 +269,226 @@ export default function SubscriptionCard({
       ) : (
         <>
           <div
+            className="subscription-card-top"
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1.6fr) minmax(280px, 1fr)',
-              gap: 16,
-              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 20,
+              flexWrap: 'wrap',
+              marginBottom: 18,
             }}
-            className="profile-subscription-grid"
           >
-              {/* Основной тариф */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0, flex: '1 1 240px' }}>
               <div
-                className="subscription-tariff-card"
                 style={{
-                  border: `1px solid ${border}`,
-                  borderRadius: 14,
-                  padding: 20,
-                  background: '#fff',
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: headerIcon.bg,
                   display: 'flex',
-                  gap: 16,
-                  alignItems: 'stretch',
-                  minWidth: 0,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
                 }}
               >
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    background: '#F5F3FF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <CrownOutlined style={{ color: accent, fontSize: 20 }} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: accent,
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.4,
-                      marginBottom: 6,
-                    }}
-                  >
-                    Основной тариф
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', lineHeight: 1.3 }}>
-                      {planName}
-                    </span>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '2px 10px',
-                        borderRadius: 999,
-                        background: isActive ? '#DCFCE7' : '#F1F5F9',
-                        color: isActive ? '#166534' : textMuted,
-                        fontSize: 12,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {statusLabel}
-                    </span>
-                  </div>
-                  <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.45, display: 'block' }}>
-                    {isPromo
-                      ? planDescription
-                      : planDescription.includes('В бесплатный')
-                        ? 'Включает все основные функции сервиса: Товары, Сводная, Рекламные кампании и др.'
-                        : planDescription}
-                  </Text>
-                </div>
-                <div className="subscription-tariff-meta"
-                  style={{
-                    borderLeft: `1px solid ${border}`,
-                    paddingLeft: 16,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    gap: 14,
-                    flexShrink: 0,
-                    minWidth: 120,
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: 12, color: textMuted, marginBottom: 4 }}>
-                      {expiresLabel === 'Бессрочно' ? 'Действует' : 'Действует до'}
-                    </div>
-                    <div style={{ fontWeight: 600, color: '#0F172A' }}>{expiresLabel}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 12, color: textMuted, marginBottom: 4 }}>Автопродление</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, color: '#0F172A' }}>
-                      {autoRenewLabel !== '—' ? (
-                        <span
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: 999,
-                            background: autoRenewLabel === 'Включено' ? '#16A34A' : '#94A3B8',
-                            display: 'inline-block',
-                          }}
-                        />
-                      ) : null}
-                      {autoRenewLabel}
-                    </div>
-                  </div>
-                </div>
+                {headerIcon.node}
               </div>
-
-              {/* Дополнительные услуги */}
-              <div
-                className="subscription-services-card"
-                style={{
-                  border: `1px solid ${border}`,
-                  borderRadius: 14,
-                  padding: 20,
-                  background: '#fff',
-                  minWidth: 0,
-                }}
-              >
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', marginBottom: 14 }}>
-                  Дополнительные услуги
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {services.map((svc) => {
-                    const connected = onPro || svc.connected
-                    const isAbTests = svc.serviceCode === 'AB_TESTS'
-                    const abUnlimited = onPro || Boolean(billing?.abTestQuota?.unlimited)
-                    const abRemaining = billing?.abTestQuota?.remaining ?? 0
-                    const statusText = isAbTests
-                      ? formatAbTestsQuotaStatus({
-                          unlimited: abUnlimited,
-                          remaining: billing?.abTestQuota?.remaining,
-                          activated: billing?.abTestQuota?.activated,
-                          connected,
-                        })
-                      : (onPro ? 'В PRO' : connected ? 'Подключен' : 'Не подключен')
-                    const statusPositive = isAbTests
-                      ? (abUnlimited || (connected && abRemaining > 0))
-                      : connected
-                    return (
-                      <div
-                        key={svc.serviceCode}
-                        className="subscription-service-row"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        <div
-                          className="subscription-service-icon"
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 8,
-                            background: svc.serviceCode === 'AB_TESTS' ? '#F0FDF4' : '#F5F3FF',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {serviceIcon(svc.serviceCode)}
-                        </div>
-                        <div className="subscription-service-name" style={{ flex: '1 1 100px', minWidth: 0, fontWeight: 600, color: '#0F172A' }}>
-                          {svc.name}
-                        </div>
-                        <span
-                          className="subscription-service-status"
-                          style={{
-                            display: 'inline-flex',
-                            padding: '2px 10px',
-                            borderRadius: 999,
-                            background: statusPositive ? '#DCFCE7' : '#F1F5F9',
-                            color: statusPositive ? '#166534' : textMuted,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {statusText}
-                        </span>
-                        {canManageBilling ? (
-                          <Button
-                            className="subscription-service-btn"
-                            size="small"
-                            disabled={onPro}
-                            onClick={() => onConnectService(svc)}
-                            type={!connected && !onPro ? 'primary' : 'default'}
-                            style={
-                              !connected && !onPro
-                                ? { borderRadius: 8, background: accent, borderColor: accent, fontWeight: 600 }
-                                : { borderRadius: 8, borderColor: accent, color: accent, fontWeight: 600 }
-                            }
-                          >
-                            {onPro ? 'Включено' : connected ? 'Управление' : 'Подключить'}
-                          </Button>
-                        ) : null}
-                      </div>
-                    )
-                  })}
-                </div>
+              <div style={{ minWidth: 0 }}>
+                <Title level={5} style={{ margin: 0, fontSize: 16, lineHeight: '24px', color: '#0F172A' }}>
+                  Подписка
+                </Title>
+                <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.45, display: 'block' }}>
+                  {subtitle}
+                </Text>
+                {!isCabinetLayout && selectedCabinetName ? (
+                  <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 2 }}>
+                    Кабинет «{selectedCabinetName}»
+                  </Text>
+                ) : null}
               </div>
             </div>
 
-            <style>{`
-              @media (max-width: 900px) {
-                .profile-subscription-grid {
-                  grid-template-columns: 1fr !important;
-                  gap: 12px !important;
-                  margin-bottom: 12px !important;
-                }
-                .subscription-card .ant-card-body {
-                  padding: 14px !important;
-                }
-                .subscription-card-head {
-                  margin-bottom: 12px !important;
-                  gap: 8px !important;
-                }
-                .subscription-tariff-card {
-                  flex-direction: column !important;
-                  padding: 14px !important;
-                  gap: 12px !important;
-                }
-                .subscription-tariff-meta {
-                  border-left: none !important;
-                  border-top: 1px solid ${border};
-                  padding-left: 0 !important;
-                  padding-top: 12px;
-                  min-width: 0 !important;
-                  flex-direction: row !important;
-                  justify-content: flex-start !important;
-                  gap: 24px !important;
-                }
-                .subscription-services-card {
-                  padding: 14px !important;
-                }
-                .subscription-service-row {
-                  display: grid !important;
-                  grid-template-columns: 32px minmax(0, 1fr) auto;
-                  grid-template-areas:
-                    "icon name status"
-                    "btn btn btn";
-                  align-items: center;
-                  column-gap: 10px;
-                  row-gap: 8px;
-                  flex-wrap: nowrap !important;
-                }
-                .subscription-service-icon {
-                  grid-area: icon;
-                }
-                .subscription-service-name {
-                  grid-area: name;
-                  flex: none !important;
-                }
-                .subscription-service-status {
-                  grid-area: status;
-                }
-                .subscription-service-btn {
-                  grid-area: btn;
-                  width: 100% !important;
-                }
-              }
-            `}</style>
+            <div
+              className="subscription-card-actions"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+                flexWrap: 'wrap',
+                marginLeft: 'auto',
+              }}
+            >
+              {!isCabinetLayout && cabinets.length > 1 ? (
+                <Select
+                  style={{ minWidth: 180, maxWidth: '100%' }}
+                  value={cabinetId ?? undefined}
+                  options={cabinets.map((c) => ({ value: c.id, label: c.name }))}
+                  onChange={(id: number) => {
+                    setSelectedCabinetId(id)
+                    setStoredCabinetId(id)
+                  }}
+                />
+              ) : null}
 
-            {cabinetId != null ? (
-              <Button
-                block
-                size="large"
-                onClick={() => {
-                  setStoredCabinetId(cabinetId)
-                  navigate('/subscription')
-                }}
-                style={{
-                  height: 48,
-                  borderRadius: 12,
-                  borderColor: accent,
-                  color: accent,
-                  fontWeight: 600,
-                  paddingInline: 16,
-                }}
-              >
+              {isFreeView ? (
                 <span
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 10,
+                    padding: '6px 12px',
+                    borderRadius: 999,
+                    background: '#F1F5F9',
+                    color: '#475569',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  <CreditCardOutlined />
-                  Управление подпиской
-                  <ArrowRightOutlined />
+                  Бесплатный доступ
                 </span>
-              </Button>
-            ) : null}
-          </>
-        )}
+              ) : expiresLabel ? (
+                <div style={{ minWidth: 120 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 12,
+                      color: textMuted,
+                      marginBottom: 2,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: 999,
+                        background: '#22C55E',
+                        display: 'inline-block',
+                        flexShrink: 0,
+                      }}
+                    />
+                    Действует до
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: '#0F172A', lineHeight: 1.3 }}>
+                    {expiresLabel}
+                  </div>
+                </div>
+              ) : null}
+
+              {canManageBilling && cabinetId != null ? (
+                isFreeView ? (
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={goSubscription}
+                    style={{
+                      height: 44,
+                      borderRadius: 12,
+                      background: accent,
+                      borderColor: accent,
+                      fontWeight: 600,
+                      paddingInline: 18,
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      Выбрать тариф
+                      <ArrowRightOutlined />
+                    </span>
+                  </Button>
+                ) : (
+                  <Button
+                    size="large"
+                    onClick={goSubscription}
+                    style={{
+                      height: 44,
+                      borderRadius: 12,
+                      borderColor: accent,
+                      color: accent,
+                      fontWeight: 600,
+                      paddingInline: 16,
+                      background: '#fff',
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <CreditCardOutlined />
+                      Управление подпиской
+                      <ArrowRightOutlined />
+                    </span>
+                  </Button>
+                )
+              ) : null}
+            </div>
+          </div>
+
+          <div
+            className="subscription-feature-chips"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 8,
+            }}
+          >
+            {FEATURE_CHIPS.map((chip) => {
+              const unlocked = featureUnlocked[chip.key]
+              const highlighted = Boolean(featureHighlighted[chip.key]) && unlocked
+              return (
+                <span
+                  key={chip.key}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '6px 12px',
+                    borderRadius: 10,
+                    background: unlocked
+                      ? (highlighted ? chipHighlightBg : chipBg)
+                      : chipLockedBg,
+                    color: unlocked ? accent : '#94A3B8',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span style={{ fontSize: 14, display: 'inline-flex', lineHeight: 1 }}>
+                    {unlocked ? chip.icon : <LockOutlined />}
+                  </span>
+                  {chip.label}
+                </span>
+              )
+            })}
+          </div>
+
+          <style>{`
+            @media (max-width: 720px) {
+              .subscription-card-top {
+                flex-direction: column !important;
+                align-items: stretch !important;
+              }
+              .subscription-card-actions {
+                margin-left: 0 !important;
+                width: 100%;
+              }
+              .subscription-card-actions .ant-btn {
+                width: 100%;
+              }
+            }
+          `}</style>
+        </>
+      )}
     </>
   )
 
   return (
     <>
       {isCabinetLayout ? (
-        <Card className="subscription-card" style={{ borderRadius: 16, border: `1px solid ${border}` }} styles={{ body: { padding: 24 } }}>
+        <Card
+          className="subscription-card"
+          style={{ borderRadius: 16, border: `1px solid ${border}` }}
+          styles={{ body: { padding: 24 } }}
+        >
           {body}
         </Card>
       ) : (
@@ -573,14 +503,6 @@ export default function SubscriptionCard({
           {body}
         </section>
       )}
-
-      <AbTestPacksModal
-        open={abPacksOpen}
-        onClose={() => setAbPacksOpen(false)}
-        onActivated={() => {
-          void refetchBilling()
-        }}
-      />
     </>
   )
 }
