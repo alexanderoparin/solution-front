@@ -22,6 +22,9 @@ export default function ServiceLandingHeader() {
           .svc-header-nav { display: none !important; }
           .svc-header-cta { display: none !important; }
           .svc-header-burger { display: inline-flex !important; }
+          .svc-header-inner { gap: 12px !important; padding-left: 16px !important; padding-right: 16px !important; }
+          .svc-header-logo-wrap { gap: 0 !important; }
+          .svc-header-logo-wrap img { height: 28px !important; width: auto !important; }
         }
       `}</style>
       <header
@@ -35,6 +38,7 @@ export default function ServiceLandingHeader() {
         }}
       >
         <div
+          className="svc-header-inner"
           style={{
             ...svcContainer(),
             height: '100%',
@@ -44,7 +48,7 @@ export default function ServiceLandingHeader() {
             gap: 24,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 36, minWidth: 0 }}>
+          <div className="svc-header-logo-wrap" style={{ display: 'flex', alignItems: 'center', gap: 36, minWidth: 0 }}>
             <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
               <SiteLogo variant="wordmarkDark" size={34} />
             </Link>

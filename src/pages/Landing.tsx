@@ -28,7 +28,12 @@ export default function Landing() {
       <style>{`
         html { scroll-behavior: smooth; }
         .landing-service-page * { box-sizing: border-box; }
-        .landing-service-page .svc-content { position: relative; z-index: 1; }
+        .landing-service-page .svc-content { position: relative; z-index: 1; max-width: 100%; overflow-x: clip; }
+        /* Hero: не клипать точки и тень рамки на мобилке */
+        @media (max-width: 900px) {
+          .landing-service-page .svc-content { overflow-x: visible; }
+          .landing-service-page { overflow-x: clip; }
+        }
         /* Мягкие «полосы» секций без жёсткого стыка */
         .landing-service-page .svc-section-soft {
           background: linear-gradient(
@@ -41,6 +46,13 @@ export default function Landing() {
         }
         @media (max-width: 960px) {
           .landing-service-page section { padding-top: 36px !important; padding-bottom: 36px !important; }
+          .landing-service-page section:first-of-type { padding-top: 28px !important; }
+          /* Горизонтальные поля контейнера секций */
+          .landing-service-page main > section > div,
+          .landing-service-page footer > div {
+            padding-left: 16px !important;
+            padding-right: 16px !important;
+          }
         }
       `}</style>
       <ServiceLandingAmbient />

@@ -120,7 +120,6 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
         .svc-two { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); }
         .svc-analytics-grid { grid-template-columns: 1.15fr 1.05fr; gap: 24px; align-items: center; }
         .svc-compare { grid-template-columns: 1fr 1fr; align-items: stretch; }
-        /* Макет: 6 карточек в один ряд */
         .svc-caps {
           grid-template-columns: repeat(6, minmax(0, 1fr));
           align-items: stretch;
@@ -131,10 +130,21 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
         .svc-price { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; gap: 18px; }
         .svc-help { grid-template-columns: 1fr 1fr; align-items: stretch; gap: 24px; }
         .svc-blog { grid-template-columns: repeat(4, 1fr); align-items: stretch; }
+        .svc-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 28px; }
+        .svc-analytics-badges { display: grid; grid-template-columns: 0.92fr 0.92fr 1.5fr; gap: 10px; margin-top: 28px; }
+        .svc-analytics-visual { position: relative; }
+        .svc-analytics-stack { position: relative; z-index: 1; display: grid; gap: 10px; }
+        .svc-campaign-visual { position: relative; width: 108%; margin-right: -8%; padding-bottom: 36px; overflow: visible; }
+        .svc-campaign-callouts-stack { display: none; }
+        .svc-pricing-toggle { width: 300px; max-width: 100%; margin-right: 110px; margin-top: 4px; }
+        .svc-pricing-title { white-space: nowrap; }
+        .svc-final-cta-btn { margin-right: 48px; flex-shrink: 0; }
         .svc-primary-btn:hover { background: ${svc.accentHover} !important; }
+        .svc-primary-btn { max-width: 100%; }
         .svc-img { width: 100%; height: auto; display: block; border-radius: 16px; }
         @media (max-width: 1200px) {
           .svc-caps { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+          .svc-pricing-toggle { margin-right: 24px !important; }
         }
         @media (max-width: 1100px) {
           .svc-products, .svc-price, .svc-blog { grid-template-columns: repeat(2, 1fr) !important; }
@@ -142,21 +152,353 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
         }
         @media (max-width: 900px) {
           .svc-hero-grid, .svc-two, .svc-compare, .svc-help, .svc-analytics-grid { grid-template-columns: 1fr !important; }
-          .svc-less-manual-art {
-            position: relative !important;
-            left: auto !important;
-            top: auto !important;
-            transform: none !important;
-            width: min(420px, 100%) !important;
-            margin: 8px auto 0 !important;
-            display: block;
+          .svc-campaign-depth { grid-template-columns: 1fr !important; }
+          .svc-campaign-depth > div:first-child { margin-top: 0 !important; max-width: none !important; }
+          .svc-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .svc-analytics-grid > div:first-child { max-width: none !important; }
+          .svc-analytics-badges {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+            margin-top: 20px !important;
           }
-          .svc-less-manual-stage { display: flex; flex-direction: column; }
-          .svc-less-manual-stage .svc-two { order: 1; }
-          .svc-less-manual-art { order: 2; }
+          .svc-analytics-badge {
+            justify-content: flex-start !important;
+            padding: 12px 14px !important;
+            border-radius: 12px !important;
+          }
+          .svc-analytics-visual {
+            margin-top: 8px;
+            max-width: 100%;
+            overflow: hidden;
+          }
+          .svc-analytics-visual .svc-analytics-blob { display: none !important; }
+          .svc-analytics-stack { gap: 8px !important; }
+          .svc-analytics-stack img {
+            border-radius: 10px !important;
+            height: auto !important;
+            object-fit: contain !important;
+            box-shadow: 0 8px 20px rgba(76, 29, 149, 0.1) !important;
+          }
+          .svc-analytics-cta { margin-top: 20px !important; }
+          .svc-analytics-cta .svc-primary-btn { width: 100%; max-width: none; }
+          .svc-campaign-visual {
+            width: 100% !important;
+            margin-right: 0 !important;
+            padding-bottom: 0 !important;
+            margin-top: 8px;
+            overflow: hidden !important;
+          }
+          /* Стек снизу не нужен — подсказки поверх скрина */
+          .svc-campaign-callouts-stack { display: none !important; }
+          .svc-callout-float { display: block !important; }
+          .svc-callout-bubble {
+            font-size: 10px !important;
+            line-height: 1.25 !important;
+            padding: 5px 8px !important;
+            border-radius: 8px !important;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12) !important;
+            max-width: 42% !important;
+            width: auto !important;
+          }
+          /* Частично наезжают на скрин + стрелки внутрь */
+          /* Состав РК → артикулы/товары слева от подсказки */
+          .svc-callout-topRight .svc-callout-bubble {
+            top: 6% !important;
+            right: 2% !important;
+            left: auto !important;
+            bottom: auto !important;
+          }
+          .svc-callout-topRight .svc-callout-arrow {
+            display: block !important;
+            top: 10% !important;
+            right: 38% !important;
+            left: auto !important;
+            bottom: auto !important;
+            width: 72px !important;
+            height: 24px !important;
+          }
+          .svc-callout-bottom .svc-callout-bubble {
+            bottom: 10% !important;
+            left: 3% !important;
+            top: auto !important;
+            right: auto !important;
+            max-width: 40% !important;
+          }
+          .svc-callout-bottom .svc-callout-arrow {
+            display: block !important;
+            bottom: 22% !important;
+            left: 22% !important;
+            top: auto !important;
+            right: auto !important;
+            width: 48px !important;
+            height: 40px !important;
+          }
+          /* ДРР/CTR/CPC → зелёный блок метрик в таблице */
+          .svc-callout-bottomRight .svc-callout-bubble {
+            bottom: 8% !important;
+            right: 2% !important;
+            top: auto !important;
+            left: auto !important;
+            max-width: 40% !important;
+          }
+          .svc-callout-bottomRight .svc-callout-arrow {
+            display: block !important;
+            bottom: 28% !important;
+            right: 18% !important;
+            top: auto !important;
+            left: auto !important;
+            width: 52px !important;
+            height: 48px !important;
+          }
+          .svc-less-manual-stage {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 12px !important;
+          }
+          .svc-less-manual-stage .svc-two {
+            order: 1;
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .svc-less-manual-card {
+            max-width: none !important;
+          }
+          .svc-less-manual-card-inner {
+            max-width: none !important;
+          }
+          .svc-less-manual-card-title {
+            white-space: normal !important;
+            font-size: 17px !important;
+          }
+          /* На мобилке оставляем только карточку со шагами — без скрина и 3D-картинки */
+          .svc-less-manual-dash,
+          .svc-less-manual-art {
+            display: none !important;
+          }
+          .svc-about-grid {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+          }
+          .svc-about-text {
+            max-width: none !important;
+            margin-left: 0 !important;
+          }
+          .svc-about-visual {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+          }
+          .svc-about-visual > img {
+            border-radius: 12px !important;
+            width: 100% !important;
+            height: auto !important;
+            display: block !important;
+          }
+          /* Абсолютные плавающие карточки на мобилке ломают вёрстку — прячем */
+          .svc-about-float {
+            display: none !important;
+          }
+          .svc-pricing-head {
+            gap: 8px !important;
+            margin-bottom: 10px !important;
+          }
+          .svc-pricing-head-text { max-width: none !important; }
+          .svc-pricing-head-text > p { margin-top: 6px !important; font-size: 14px !important; line-height: 1.4 !important; }
+          .svc-pricing-toggle { margin-right: 0 !important; width: 100% !important; max-width: none !important; margin-top: 0 !important; }
+          .svc-pricing-hints { display: none !important; }
+          .svc-pricing-title { white-space: normal !important; }
+          .svc-pricing-title h2 { font-size: 24px !important; line-height: 1.2 !important; }
+          .svc-price {
+            gap: 8px !important;
+          }
+          .svc-price-card {
+            border-radius: 12px !important;
+            padding: 12px !important;
+            box-shadow: none !important;
+            gap: 10px !important;
+          }
+          .svc-price-card-main {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            width: 100%;
+            min-width: 0;
+          }
+          .svc-price-card-icon {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 8px !important;
+            margin-bottom: 0 !important;
+            flex-shrink: 0 !important;
+          }
+          .svc-price-card-icon .anticon { font-size: 15px !important; }
+          .svc-price-card-info {
+            display: flex !important;
+            flex-direction: column !important;
+            flex: 1 !important;
+            min-width: 0 !important;
+            gap: 1px !important;
+          }
+          .svc-price-card-name { font-size: 16px !important; margin-bottom: 0 !important; line-height: 1.2 !important; }
+          .svc-price-card-cabinets { font-size: 12px !important; margin-bottom: 0 !important; line-height: 1.3 !important; }
+          .svc-price-card-amount {
+            margin-bottom: 0 !important;
+            min-height: 0 !important;
+            text-align: right !important;
+            flex-shrink: 0 !important;
+            max-width: 40%;
+          }
+          .svc-price-card-amount-value { font-size: 18px !important; line-height: 1.15 !important; }
+          .svc-price-card-amount-period { font-size: 11px !important; margin-top: 0 !important; }
+          .svc-price-card-btn {
+            height: 36px !important;
+            font-size: 13px !important;
+            border-radius: 10px !important;
+            margin-top: 0 !important;
+            width: 100% !important;
+            max-width: none !important;
+          }
+          /* Бейдж пересекается с ценой справа — на мобилке хватает фиолетовой рамки */
+          .svc-price-card-badge { display: none !important; }
+          .svc-price-included {
+            margin-top: 10px !important;
+            padding: 12px !important;
+            border-radius: 12px !important;
+            gap: 10px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .svc-price-included-label {
+            font-size: 13px !important;
+            width: 100% !important;
+          }
+          .svc-price-included-divider { display: none !important; }
+          .svc-price-included-items {
+            gap: 8px !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            width: 100% !important;
+          }
+          .svc-price-included-item {
+            gap: 8px !important;
+          }
+          .svc-price-included-item-icon {
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 8px !important;
+          }
+          .svc-price-included-item-icon .anticon { font-size: 13px !important; }
+          .svc-price-included-item-text { font-size: 12px !important; }
+          .svc-price-included-note {
+            padding: 8px 10px !important;
+            border-radius: 10px !important;
+            width: 100%;
+            font-size: 12px !important;
+            box-sizing: border-box;
+          }
+          .svc-final-cta-btn { margin-right: 0 !important; width: 100%; }
+          .svc-final-cta-btn .svc-primary-btn { width: 100%; }
+          .svc-final-cta-card { padding: 24px 18px !important; }
+          .svc-hero-perks { gap: 14px !important; }
+          .svc-hero-perk { max-width: none !important; flex: 1 1 140px; }
+          .svc-hero-perk-text { white-space: normal !important; }
+          .svc-help-card-title { white-space: normal !important; }
+          .svc-help-card-desc { white-space: normal !important; }
+          .svc-primary-btn { width: 100%; max-width: 420px; }
+          .svc-onboarding-head {
+            max-width: none !important;
+            margin-bottom: 12px !important;
+          }
+          .svc-onboarding-head h2 { font-size: 24px !important; line-height: 1.2 !important; }
+          .svc-onboarding-head > p { margin-top: 6px !important; font-size: 14px !important; line-height: 1.4 !important; }
+          .svc-steps {
+            gap: 8px !important;
+          }
+          .svc-step-card {
+            border-radius: 12px !important;
+            padding: 12px !important;
+            box-shadow: none !important;
+            min-height: 0 !important;
+            flex-direction: row !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+          }
+          .svc-step-num {
+            width: 32px !important;
+            height: 32px !important;
+            border-radius: 8px !important;
+            font-size: 13px !important;
+            margin-bottom: 0 !important;
+          }
+          .svc-step-body { min-width: 0; flex: 1; }
+          .svc-step-title {
+            font-size: 15px !important;
+            line-height: 1.25 !important;
+            margin-bottom: 4px !important;
+            min-height: 0 !important;
+          }
+          .svc-step-desc {
+            font-size: 13px !important;
+            line-height: 1.4 !important;
+          }
+          .svc-caps-head {
+            max-width: none !important;
+            margin-bottom: 12px !important;
+          }
+          .svc-caps-head h2 { font-size: 24px !important; line-height: 1.2 !important; }
+          .svc-caps-head > p { margin-top: 6px !important; font-size: 14px !important; line-height: 1.4 !important; }
+          .svc-caps {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+          }
+          .svc-cap-card {
+            min-height: 0 !important;
+            border-radius: 12px !important;
+            padding: 12px !important;
+            flex-direction: row !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+          }
+          .svc-cap-icon {
+            width: 36px !important;
+            height: 36px !important;
+            margin-bottom: 0 !important;
+            flex-shrink: 0 !important;
+          }
+          .svc-cap-body { min-width: 0; flex: 1; }
+          .svc-cap-title {
+            font-size: 14px !important;
+            margin-bottom: 2px !important;
+            line-height: 1.25 !important;
+          }
+          .svc-cap-desc {
+            font-size: 12px !important;
+            line-height: 1.35 !important;
+          }
+          /* Problem: на мобилке не форсируем десктопные переносы строк заголовка */
+          .svc-problem-title {
+            font-size: 24px !important;
+            line-height: 1.25 !important;
+          }
+          .svc-problem-title-line {
+            display: inline !important;
+          }
+          .svc-problem-title-line:not(:last-child)::after {
+            content: ' ';
+          }
         }
         @media (max-width: 560px) {
           .svc-caps, .svc-products, .svc-price, .svc-blog, .svc-steps { grid-template-columns: 1fr !important; }
+          .svc-metrics { gap: 8px !important; }
+          .svc-metric-card { padding: 12px 8px !important; font-size: 14px !important; }
+          .svc-metric-icon { font-size: 20px !important; }
+          .svc-price { gap: 6px !important; }
+          .svc-price-card { padding: 10px !important; }
+          .svc-price-card-amount-value { font-size: 16px !important; }
+          .svc-steps { gap: 6px !important; }
+          .svc-step-card { padding: 10px !important; }
+          .svc-caps { gap: 6px !important; }
+          .svc-cap-card { padding: 10px !important; }
         }
       `}</style>
 
@@ -181,18 +523,19 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               >
                 {serviceHero.badge}
               </div>
-              <h1 style={{ margin: '0 0 16px', fontSize: 'clamp(32px, 4vw, 48px)', lineHeight: 1.12, fontWeight: 700, color: svc.text }}>
+              <h1 style={{ margin: '0 0 16px', fontSize: 'clamp(28px, 4vw, 48px)', lineHeight: 1.12, fontWeight: 700, color: svc.text }}>
                 {serviceHero.titleBefore}{' '}
                 <span style={{ color: svc.accent }}>{serviceHero.titleHighlight}</span>
               </h1>
-              <p style={{ margin: '0 0 24px', fontSize: 17, lineHeight: 1.6, color: svc.muted, maxWidth: 520 }}>
+              <p style={{ margin: '0 0 24px', fontSize: 'clamp(16px, 2.5vw, 17px)', lineHeight: 1.55, color: svc.muted, maxWidth: 520 }}>
                 {serviceHero.subtitle}
               </p>
               <SvcPrimaryButton onClick={goRegister}>{serviceHero.cta}</SvcPrimaryButton>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginTop: 28 }}>
+              <div className="svc-hero-perks" style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginTop: 28 }}>
                 {serviceHero.perks.map((p) => (
                   <div
                     key={p.title}
+                    className="svc-hero-perk"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -201,7 +544,6 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       color: svc.text,
                       fontWeight: 500,
                       lineHeight: 1.25,
-                      /* Шире, чтобы «Единая аналитика» / «Меньше ручной» держались в 2 строки */
                       maxWidth: 200,
                     }}
                   >
@@ -214,7 +556,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                         <BarChartOutlined />
                       )}
                     </ToneIconBox>
-                    <span style={{ whiteSpace: 'nowrap' }}>
+                    <span className="svc-hero-perk-text" style={{ whiteSpace: 'nowrap' }}>
                       {p.lines.map((line) => (
                         <span key={line} style={{ display: 'block' }}>
                           {line}
@@ -235,9 +577,16 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
         <div style={svcContainer()}>
           <div className="svc-two">
             <div>
-              <h2 style={{ margin: 0, fontSize: 'clamp(28px, 3vw, 38px)', lineHeight: 1.2, fontWeight: 700 }}>
+              <h2
+                className="svc-problem-title"
+                style={{ margin: 0, fontSize: 'clamp(28px, 3vw, 38px)', lineHeight: 1.2, fontWeight: 700 }}
+              >
                 {serviceProblem.titleLines.map((line) => (
-                  <span key={line.text} style={{ display: 'block', color: line.tone === 'accent' ? svc.accent : svc.text }}>
+                  <span
+                    key={line.text}
+                    className="svc-problem-title-line"
+                    style={{ display: 'block', color: line.tone === 'accent' ? svc.accent : svc.text }}
+                  >
                     {line.text}
                   </span>
                 ))}
@@ -296,17 +645,11 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 size="lg"
               />
               <SvcLead large>{serviceAnalyticsOverview.subtitle}</SvcLead>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '0.92fr 0.92fr 1.5fr',
-                  gap: 10,
-                  marginTop: 28,
-                }}
-              >
+              <div className="svc-analytics-badges">
                 {serviceAnalyticsOverview.badges.map((b) => (
                   <span
                     key={b.label}
+                    className="svc-analytics-badge"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -359,13 +702,14 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                   </span>
                 ))}
               </div>
-              <div style={{ marginTop: 28 }}>
+              <div className="svc-analytics-cta" style={{ marginTop: 28 }}>
                 <SvcPrimaryButton onClick={goRegister}>{serviceAnalyticsOverview.cta}</SvcPrimaryButton>
               </div>
             </div>
-            <div style={{ position: 'relative' }}>
+            <div className="svc-analytics-visual">
               {/* Расплывчатые пятна за стеком — без жёстких граней */}
               <div
+                className="svc-analytics-blob"
                 aria-hidden
                 style={{
                   position: 'absolute',
@@ -381,6 +725,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 }}
               />
               <div
+                className="svc-analytics-blob"
                 aria-hidden
                 style={{
                   position: 'absolute',
@@ -396,6 +741,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 }}
               />
               <div
+                className="svc-analytics-blob"
                 aria-hidden
                 style={{
                   position: 'absolute',
@@ -410,7 +756,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                   pointerEvents: 'none',
                 }}
               />
-              <div style={{ position: 'relative', zIndex: 1, display: 'grid', gap: 10 }}>
+              <div className="svc-analytics-stack">
                 {[
                   serviceLandingAssets.analyticsStack1,
                   serviceLandingAssets.analyticsStack2,
@@ -422,9 +768,14 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                     src={src}
                     alt=""
                     onLoad={(e) => {
+                      // На мобилке не сжимаем — иначе кадр превращается в «капсулу»
+                      if (window.matchMedia('(max-width: 900px)').matches) {
+                        e.currentTarget.style.height = 'auto'
+                        e.currentTarget.style.objectFit = 'contain'
+                        return
+                      }
                       const img = e.currentTarget
                       const naturalRatio = img.naturalHeight / img.naturalWidth
-                      // Сжимаем по высоте (~8%), без обрезки — весь кадр остаётся видимым
                       img.style.height = `${img.clientWidth * naturalRatio * 0.92}px`
                       img.style.objectFit = 'fill'
                     }}
@@ -543,14 +894,14 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       <section style={svcSection({ paddingBottom: 72 })}>
         <div style={svcContainer()}>
           <div
-            className="svc-two"
+            className="svc-two svc-campaign-depth"
             style={{
               alignItems: 'start',
               gap: 20,
               gridTemplateColumns: '1.05fr 1.2fr',
             }}
           >
-            <div style={{ maxWidth: 560, marginTop: -18 }}>
+            <div style={{ maxWidth: 560, marginTop: -18, minWidth: 0 }}>
               <SvcTitle
                 before={serviceCampaignDepth.titleBefore}
                 after={serviceCampaignDepth.titleAfter}
@@ -564,17 +915,11 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               <div style={{ marginTop: 22 }}>
                 <SvcPrimaryButton onClick={goRegister}>{serviceCampaignDepth.cta}</SvcPrimaryButton>
               </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                  gap: 10,
-                  marginTop: 28,
-                }}
-              >
+              <div className="svc-metrics">
                 {serviceCampaignDepth.metrics.map((m) => (
                   <div
                     key={m.label}
+                    className="svc-metric-card"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -589,9 +934,11 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       color: svc.text,
                       boxShadow: '0 4px 12px rgba(15, 23, 42, 0.04)',
                       textAlign: 'center',
+                      minWidth: 0,
                     }}
                   >
                     <span
+                      className="svc-metric-icon"
                       style={{
                         color: m.tone === 'green' ? svc.green : svc.accent,
                         fontSize: 24,
@@ -625,7 +972,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 ))}
               </div>
             </div>
-            <div style={{ position: 'relative', width: '108%', marginRight: '-8%', paddingBottom: 36, overflow: 'visible' }}>
+            <div className="svc-campaign-visual">
               <div
                 aria-hidden
                 style={{
@@ -660,26 +1007,31 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 const markerId = `svc-callout-arrow-${c.place}`
                 const placeStyle =
                   c.place === 'topRight'
-                    ? { top: '-6%', right: '14%' }
+                    ? { top: '3%', right: '5%' }
                     : c.place === 'bottom'
-                      ? { bottom: '-5%', left: '8%' }
-                      : { bottom: '4%', right: '5%' }
+                      ? { bottom: '3%', left: '5%' }
+                      : { bottom: '6%', right: '3%' }
                 const arrowWrapStyle =
                   c.place === 'topRight'
-                    ? { top: '3%', right: '36%', width: 150, height: 48 }
+                    ? { top: '9%', right: '26%', width: 150, height: 52 }
                     : c.place === 'bottom'
-                      ? { bottom: '4%', left: '18%', width: 100, height: 70 }
-                      : { bottom: '10%', right: '22%', width: 120, height: 56 }
-                // topRight — влево к товарам; bottom — снизу вверх в таблицу; bottomRight — влево
+                      ? { bottom: '14%', left: '12%', width: 90, height: 70 }
+                      : { bottom: '26%', right: '10%', width: 96, height: 110 }
+                /*
+                 * topRight → товары/артикулы слева-вниз от подсказки
+                 * bottom → артикулы в комбо вверх
+                 * bottomRight → зелёный блок метрик вверх (чуть левее подсказки)
+                 */
                 const arrowPath =
                   c.place === 'topRight'
-                    ? 'M 142 8 C 100 4, 56 12, 16 24'
+                    ? 'M 138 10 C 100 14, 58 28, 18 42'
                     : c.place === 'bottom'
-                      ? 'M 20 62 C 28 40, 40 18, 52 6'
-                      : 'M 116 40 C 84 10, 48 8, 8 26'
+                      ? 'M 18 62 C 30 38, 44 18, 58 6'
+                      : 'M 82 100 C 72 62, 64 30, 56 8'
                 return (
-                  <div key={c.text}>
+                  <div key={c.text} className={`svc-callout-float svc-callout-${c.place}`}>
                     <div
+                      className="svc-callout-bubble"
                       style={{
                         position: 'absolute',
                         zIndex: 3,
@@ -704,9 +1056,10 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       {c.text}
                     </div>
                     <svg
+                      className="svc-callout-arrow"
                       aria-hidden
                       viewBox={
-                        c.place === 'topRight' ? '0 0 150 36' : c.place === 'bottom' ? '0 0 70 70' : '0 0 120 50'
+                        c.place === 'topRight' ? '0 0 150 52' : c.place === 'bottom' ? '0 0 90 70' : '0 0 96 110'
                       }
                       style={{
                         position: 'absolute',
@@ -740,6 +1093,30 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                   </div>
                 )
               })}
+              <div className="svc-campaign-callouts-stack">
+                {serviceCampaignDepth.callouts.map((c) => {
+                  const isPurple = c.tone === 'purple'
+                  return (
+                    <div
+                      key={`stack-${c.text}`}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 10,
+                        background: isPurple ? 'rgba(243, 232, 255, 0.96)' : 'rgba(236, 252, 203, 0.96)',
+                        border: isPurple
+                          ? '1px solid rgba(124, 58, 237, 0.35)'
+                          : '1px solid rgba(163, 201, 0, 0.45)',
+                        color: isPurple ? svc.accent : '#3F6212',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {c.text}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -772,6 +1149,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
             >
               {/* Широкая карточка: текст слева, справа пустота под наезд картинки */}
               <div
+                className="svc-less-manual-card"
                 style={{
                   background: '#FCFAFF',
                   border: '1px solid rgba(124, 58, 237, 0.12)',
@@ -782,7 +1160,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                   boxSizing: 'border-box',
                 }}
               >
-                <div style={{ maxWidth: 320 }}>
+                <div className="svc-less-manual-card-inner" style={{ maxWidth: 320 }}>
                   <div
                     style={{
                       display: 'inline-flex',
@@ -800,6 +1178,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                     {serviceLessManual.insteadTitle}
                   </div>
                   <div
+                    className="svc-less-manual-card-title"
                     style={{
                       fontWeight: 700,
                       fontSize: 18,
@@ -848,6 +1227,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 </div>
               </div>
               <div
+                className="svc-less-manual-dash"
                 style={{
                   position: 'relative',
                   zIndex: 1,
@@ -902,7 +1282,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       {/* Capabilities — макет: 6 карточек в ряд, иконки из макета 7.png */}
       <section id={SERVICE_LANDING_ANCHORS.features} style={svcSection()}>
         <div style={svcContainer()}>
-          <div style={{ maxWidth: 720, marginBottom: 22 }}>
+          <div className="svc-caps-head" style={{ maxWidth: 720, marginBottom: 22 }}>
             <SvcTitle
               before={serviceCapabilities.titleBefore}
               highlight={serviceCapabilities.titleHighlight}
@@ -915,6 +1295,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
             {serviceCapabilities.items.map((item) => (
               <div
                 key={item.title}
+                className="svc-cap-card"
                 style={{
                   background: '#F8FAFC',
                   border: `1px solid ${svc.border}`,
@@ -927,6 +1308,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 }}
               >
                 <img
+                  className="svc-cap-icon"
                   src={item.icon}
                   alt=""
                   style={{
@@ -937,19 +1319,22 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                     marginBottom: 14,
                   }}
                 />
-                <div
-                  style={{
-                    fontWeight: 700,
-                    marginBottom: 8,
-                    color: svc.text,
-                    fontSize: 15,
-                    lineHeight: 1.3,
-                    letterSpacing: '-0.01em',
-                  }}
-                >
-                  {item.title}
+                <div className="svc-cap-body">
+                  <div
+                    className="svc-cap-title"
+                    style={{
+                      fontWeight: 700,
+                      marginBottom: 8,
+                      color: svc.text,
+                      fontSize: 15,
+                      lineHeight: 1.3,
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    {item.title}
+                  </div>
+                  <div className="svc-cap-desc" style={{ color: svc.muted, fontSize: 13, lineHeight: 1.45 }}>{item.description}</div>
                 </div>
-                <div style={{ color: svc.muted, fontSize: 13, lineHeight: 1.45 }}>{item.description}</div>
               </div>
             ))}
           </div>
@@ -1053,10 +1438,10 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       <section id={SERVICE_LANDING_ANCHORS.about} className="svc-section-soft" style={svcSection()}>
         <div style={svcContainer()}>
           <div
-            className="svc-two"
+            className="svc-two svc-about-grid"
             style={{ gridTemplateColumns: '0.72fr 1.28fr', alignItems: 'center', gap: 8 }}
           >
-            <div style={{ maxWidth: 400, marginLeft: 20 }}>
+            <div className="svc-about-text" style={{ maxWidth: 400, marginLeft: 20 }}>
               <SvcTitle
                 before={serviceAbout.titleBefore}
                 highlight={serviceAbout.titleHighlight}
@@ -1110,6 +1495,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 return (
                   <div
                     key={f.id}
+                    className="svc-about-float"
                     style={{
                       position: 'absolute',
                       ...placeStyle,
@@ -1218,7 +1604,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       {/* Onboarding */}
       <section style={svcSection()}>
         <div style={svcContainer()}>
-          <div style={{ maxWidth: 640, marginBottom: 22 }}>
+          <div className="svc-onboarding-head" style={{ maxWidth: 640, marginBottom: 22 }}>
             <SvcTitle
               before={serviceOnboarding.titleBefore}
               highlight={serviceOnboarding.titleHighlight}
@@ -1231,6 +1617,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
             {serviceOnboarding.steps.map((s) => (
               <div
                 key={s.n}
+                className="svc-step-card"
                 style={{
                   background: '#fff',
                   border: `1px solid ${svc.border}`,
@@ -1244,6 +1631,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 }}
               >
                 <div
+                  className="svc-step-num"
                   style={{
                     width: 44,
                     height: 44,
@@ -1261,19 +1649,22 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 >
                   {s.n}
                 </div>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 19,
-                    lineHeight: 1.3,
-                    color: svc.text,
-                    marginBottom: 10,
-                    minHeight: '2.6em',
-                  }}
-                >
-                  {s.title}
+                <div className="svc-step-body">
+                  <div
+                    className="svc-step-title"
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 19,
+                      lineHeight: 1.3,
+                      color: svc.text,
+                      marginBottom: 10,
+                      minHeight: '2.6em',
+                    }}
+                  >
+                    {s.title}
+                  </div>
+                  <div className="svc-step-desc" style={{ color: svc.muted, fontSize: 15, lineHeight: 1.55 }}>{s.description}</div>
                 </div>
-                <div style={{ color: svc.muted, fontSize: 15, lineHeight: 1.55 }}>{s.description}</div>
               </div>
             ))}
           </div>
@@ -1284,6 +1675,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       <section id={SERVICE_LANDING_ANCHORS.pricing} className="svc-section-soft" style={svcSection()}>
         <div style={svcContainer()}>
           <div
+            className="svc-pricing-head"
             style={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -1293,8 +1685,8 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               marginBottom: 22,
             }}
           >
-            <div style={{ maxWidth: 720, minWidth: 0 }}>
-              <div style={{ whiteSpace: 'nowrap' }}>
+            <div className="svc-pricing-head-text" style={{ maxWidth: 720, minWidth: 0 }}>
+              <div className="svc-pricing-title">
                 <SvcTitle
                   before={servicePricing.titleBefore}
                   highlight={servicePricing.titleHighlight}
@@ -1306,8 +1698,9 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
             </div>
 
             {/* Переключатель справа, чуть левее от края */}
-            <div style={{ width: 300, maxWidth: '100%', marginRight: 110, marginTop: 4 }}>
+            <div className="svc-pricing-toggle">
               <div
+                className="svc-pricing-hints"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -1478,6 +1871,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               return (
                 <div
                   key={plan.id}
+                  className="svc-price-card"
                   style={{
                     background: '#fff',
                     borderRadius: 20,
@@ -1494,6 +1888,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 >
                   {plan.popular ? (
                     <span
+                      className="svc-price-card-badge"
                       style={{
                         position: 'absolute',
                         top: 14,
@@ -1509,53 +1904,59 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       ★ Популярный
                     </span>
                   ) : null}
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      background: iconTone === 'green' ? svc.greenSoft : svc.accentSoft,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginBottom: 16,
-                    }}
-                  >
-                    <PlanIcon
-                      style={{
-                        color: iconTone === 'green' ? '#65A30D' : svc.accent,
-                        fontSize: 20,
-                      }}
-                    />
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: 22, color: svc.text, marginBottom: 4 }}>
-                    {plan.name}
-                  </div>
-                  <div style={{ color: svc.muted, fontSize: 14, marginBottom: 18 }}>{plan.cabinets}</div>
-                  {plan.id === 'custom' ? (
+                  <div className="svc-price-card-main" style={{ display: 'contents' }}>
                     <div
+                      className="svc-price-card-icon"
                       style={{
-                        fontSize: 22,
-                        fontWeight: 700,
-                        color: svc.text,
-                        lineHeight: 1.25,
-                        marginBottom: 28,
-                        minHeight: 52,
+                        width: 44,
+                        height: 44,
+                        borderRadius: 12,
+                        background: iconTone === 'green' ? svc.greenSoft : svc.accentSoft,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 16,
                       }}
                     >
-                      Индивидуальные условия
+                      <PlanIcon
+                        style={{
+                          color: iconTone === 'green' ? '#65A30D' : svc.accent,
+                          fontSize: 20,
+                        }}
+                      />
                     </div>
-                  ) : (
-                    <div style={{ marginBottom: 28, minHeight: 52 }}>
-                      <div style={{ fontSize: 32, fontWeight: 700, color: svc.text, letterSpacing: '-0.02em' }}>
-                        {price != null ? formatPrice(price) : '—'}
+                    <div className="svc-price-card-info" style={{ display: 'contents' }}>
+                      <div className="svc-price-card-name" style={{ fontWeight: 700, fontSize: 22, color: svc.text, marginBottom: 4 }}>
+                        {plan.name}
                       </div>
-                      <div style={{ color: svc.muted, fontSize: 14, marginTop: 4 }}>{pricingPeriodLabel}</div>
+                      <div className="svc-price-card-cabinets" style={{ color: svc.muted, fontSize: 14, marginBottom: 18 }}>{plan.cabinets}</div>
                     </div>
-                  )}
+                    {plan.id === 'custom' ? (
+                      <div
+                        className="svc-price-card-amount svc-price-card-amount-value"
+                        style={{
+                          fontSize: 22,
+                          fontWeight: 700,
+                          color: svc.text,
+                          lineHeight: 1.25,
+                          marginBottom: 28,
+                          minHeight: 52,
+                        }}
+                      >
+                        Индивидуальные условия
+                      </div>
+                    ) : (
+                      <div className="svc-price-card-amount" style={{ marginBottom: 28, minHeight: 52 }}>
+                        <div className="svc-price-card-amount-value" style={{ fontSize: 32, fontWeight: 700, color: svc.text, letterSpacing: '-0.02em' }}>
+                          {price != null ? formatPrice(price) : '—'}
+                        </div>
+                        <div className="svc-price-card-amount-period" style={{ color: svc.muted, fontSize: 14, marginTop: 4 }}>{pricingPeriodLabel}</div>
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="button"
-                    className={plan.popular ? 'svc-primary-btn' : undefined}
+                    className={plan.popular ? 'svc-primary-btn svc-price-card-btn' : 'svc-price-card-btn'}
                     onClick={() => {
                       if ('consultation' in plan && plan.consultation) {
                         onOpenLeadForm({ type: 'consultation', source: 'landing-service-pricing' })
@@ -1595,11 +1996,12 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               alignItems: 'center',
             }}
           >
-            <div style={{ fontSize: 14, lineHeight: 1.3, color: svc.accent, flexShrink: 0 }}>
+            <div className="svc-price-included-label" style={{ fontSize: 14, lineHeight: 1.3, color: svc.accent, flexShrink: 0 }}>
               <div>Во все тарифы</div>
               <div style={{ fontWeight: 700 }}>включены все возможности:</div>
             </div>
             <div
+              className="svc-price-included-divider"
               aria-hidden
               style={{
                 width: 1,
@@ -1610,6 +2012,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               }}
             />
             <div
+              className="svc-price-included-items"
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -1629,9 +2032,11 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 return (
                   <div
                     key={item.lines.join(' ')}
+                    className="svc-price-included-item"
                     style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}
                   >
                     <span
+                      className="svc-price-included-item-icon"
                       style={{
                         width: 36,
                         height: 36,
@@ -1645,7 +2050,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                     >
                       <ItemIcon style={{ color: svc.accent, fontSize: 16 }} />
                     </span>
-                    <div style={{ fontSize: 13, lineHeight: 1.3, color: svc.text, fontWeight: 600 }}>
+                    <div className="svc-price-included-item-text" style={{ fontSize: 13, lineHeight: 1.3, color: svc.text, fontWeight: 600 }}>
                       {item.lines.map((line) => (
                         <div key={line}>{line}</div>
                       ))}
@@ -1655,6 +2060,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               })}
             </div>
             <div
+              className="svc-price-included-note"
               style={{
                 background: svc.greenSoft,
                 color: svc.greenDark,
@@ -1733,6 +2139,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                   {card.title}
                 </div>
                 <div
+                  className={card.id === 'audit' ? 'svc-help-card-desc' : undefined}
                   style={{
                     color: svc.muted,
                     marginBottom: 20,
@@ -1889,6 +2296,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       <section style={svcSection({ paddingTop: 24, paddingBottom: 40 })}>
         <div style={svcContainer()}>
           <div
+            className="svc-final-cta-card"
             style={{
               borderRadius: 24,
               padding: '36px 32px',
@@ -1902,15 +2310,14 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               justifyContent: 'space-between',
             }}
           >
-            <div style={{ maxWidth: 620, flex: '1 1 420px' }}>
-              <h2 style={{ margin: 0, fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 700, lineHeight: 1.2 }}>
+            <div style={{ maxWidth: 620, flex: '1 1 280px', minWidth: 0 }}>
+              <h2 style={{ margin: 0, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 700, lineHeight: 1.2 }}>
                 {serviceFinalCta.titleBefore}{' '}
                 <span style={{ color: svc.accent }}>{serviceFinalCta.titleHighlight}</span>
               </h2>
-              <p style={{ margin: '12px 0 0', color: svc.muted, lineHeight: 1.55 }}>{serviceFinalCta.subtitle}</p>
+              <p style={{ margin: '12px 0 0', color: svc.muted, lineHeight: 1.55, fontSize: 16 }}>{serviceFinalCta.subtitle}</p>
             </div>
-            {/* Чуть левее края карточки — меньше пустоты между текстом и CTA */}
-            <div style={{ marginRight: 48, flexShrink: 0 }}>
+            <div className="svc-final-cta-btn">
               <SvcPrimaryButton onClick={goRegister}>{serviceFinalCta.cta}</SvcPrimaryButton>
             </div>
           </div>
