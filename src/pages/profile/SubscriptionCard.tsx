@@ -269,33 +269,15 @@ export default function SubscriptionCard({
         </Text>
       ) : (
         <>
-          <div
-            className="subscription-card-top"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 20,
-              flexWrap: 'wrap',
-              marginBottom: 18,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0, flex: '1 1 240px' }}>
+          <div className="subscription-card-top">
+            <div className="subscription-card-copy">
               <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  background: headerIcon.bg,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
+                className="subscription-card-icon"
+                style={{ background: headerIcon.bg }}
               >
                 {headerIcon.node}
               </div>
-              <div style={{ minWidth: 0 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <Title level={5} style={{ margin: 0, fontSize: 16, lineHeight: '24px', color: '#0F172A' }}>
                   Подписка
                 </Title>
@@ -310,19 +292,10 @@ export default function SubscriptionCard({
               </div>
             </div>
 
-            <div
-              className="subscription-card-actions"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 16,
-                flexWrap: 'wrap',
-                marginLeft: 'auto',
-              }}
-            >
+            <div className="subscription-card-actions">
               {!isCabinetLayout && cabinets.length > 1 ? (
                 <Select
-                  style={{ minWidth: 180, maxWidth: '100%' }}
+                  className="subscription-card-cabinet-select"
                   value={cabinetId ?? undefined}
                   options={cabinets.map((c) => ({ value: c.id, label: c.name }))}
                   onChange={(id: number) => {
@@ -333,48 +306,16 @@ export default function SubscriptionCard({
               ) : null}
 
               {isFreeView ? (
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    padding: '6px 12px',
-                    borderRadius: 999,
-                    background: '#F1F5F9',
-                    color: '#475569',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+                <span className="subscription-card-free-badge">
                   Бесплатный доступ
                 </span>
               ) : expiresLabel ? (
-                <div style={{ minWidth: 120 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      fontSize: 12,
-                      color: textMuted,
-                      marginBottom: 2,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 7,
-                        height: 7,
-                        borderRadius: 999,
-                        background: '#22C55E',
-                        display: 'inline-block',
-                        flexShrink: 0,
-                      }}
-                    />
+                <div className="subscription-card-expires">
+                  <div className="subscription-card-expires-label">
+                    <span className="subscription-card-expires-dot" />
                     Действует до
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: '#0F172A', lineHeight: 1.3 }}>
-                    {expiresLabel}
-                  </div>
+                  <div className="subscription-card-expires-date">{expiresLabel}</div>
                 </div>
               ) : null}
 
@@ -383,6 +324,7 @@ export default function SubscriptionCard({
                   <Button
                     type="primary"
                     size="large"
+                    className="subscription-card-cta"
                     onClick={goSubscription}
                     style={{
                       height: 44,
@@ -401,6 +343,7 @@ export default function SubscriptionCard({
                 ) : (
                   <Button
                     size="large"
+                    className="subscription-card-cta"
                     onClick={goSubscription}
                     style={{
                       height: 44,
@@ -423,34 +366,19 @@ export default function SubscriptionCard({
             </div>
           </div>
 
-          <div
-            className="subscription-feature-chips"
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 8,
-            }}
-          >
+          <div className="subscription-feature-chips">
             {FEATURE_CHIPS.map((chip) => {
               const unlocked = featureUnlocked[chip.key]
               const highlighted = Boolean(featureHighlighted[chip.key]) && unlocked
               return (
                 <span
                   key={chip.key}
+                  className="subscription-feature-chip"
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '6px 12px',
-                    borderRadius: 10,
                     background: unlocked
                       ? (highlighted ? chipHighlightBg : chipBg)
                       : chipLockedBg,
                     color: unlocked ? accent : '#94A3B8',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    lineHeight: 1.3,
-                    whiteSpace: 'nowrap',
                   }}
                 >
                   <span style={{ fontSize: 14, display: 'inline-flex', lineHeight: 1 }}>
@@ -463,17 +391,131 @@ export default function SubscriptionCard({
           </div>
 
           <style>{`
+            .subscription-card-top {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 16px;
+              margin-bottom: 16px;
+            }
+            .subscription-card-copy {
+              display: flex;
+              align-items: flex-start;
+              gap: 12px;
+              min-width: 0;
+              flex: 1 1 auto;
+            }
+            .subscription-card-icon {
+              width: 40px;
+              height: 40px;
+              border-radius: 12px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+            }
+            .subscription-card-actions {
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              flex-shrink: 0;
+            }
+            .subscription-card-cabinet-select {
+              min-width: 180px;
+              max-width: 220px;
+            }
+            .subscription-card-free-badge {
+              display: inline-flex;
+              align-items: center;
+              padding: 6px 12px;
+              border-radius: 999px;
+              background: #F1F5F9;
+              color: #475569;
+              font-size: 13px;
+              font-weight: 600;
+              white-space: nowrap;
+            }
+            .subscription-card-expires {
+              min-width: 120px;
+            }
+            .subscription-card-expires-label {
+              display: flex;
+              align-items: center;
+              gap: 6px;
+              font-size: 12px;
+              color: ${textMuted};
+              margin-bottom: 2px;
+            }
+            .subscription-card-expires-dot {
+              width: 7px;
+              height: 7px;
+              border-radius: 999px;
+              background: #22C55E;
+              display: inline-block;
+              flex-shrink: 0;
+            }
+            .subscription-card-expires-date {
+              font-weight: 700;
+              font-size: 15px;
+              color: #0F172A;
+              line-height: 1.3;
+            }
+            .subscription-feature-chips {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 8px;
+            }
+            .subscription-feature-chip {
+              display: inline-flex;
+              align-items: center;
+              gap: 6px;
+              padding: 6px 12px;
+              border-radius: 10px;
+              font-size: 13px;
+              font-weight: 600;
+              line-height: 1.3;
+              white-space: nowrap;
+            }
             @media (max-width: 720px) {
+              .subscription-card .ant-card-body {
+                padding: 16px !important;
+              }
               .subscription-card-top {
-                flex-direction: column !important;
-                align-items: stretch !important;
+                flex-direction: column;
+                align-items: stretch;
+                justify-content: flex-start;
+                gap: 12px;
+                margin-bottom: 12px;
+              }
+              .subscription-card-copy {
+                flex: none;
               }
               .subscription-card-actions {
-                margin-left: 0 !important;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
                 width: 100%;
               }
-              .subscription-card-actions .ant-btn {
+              .subscription-card-cabinet-select {
+                min-width: 0;
+                max-width: none;
                 width: 100%;
+              }
+              .subscription-card-free-badge {
+                align-self: flex-start;
+              }
+              .subscription-card-expires {
+                min-width: 0;
+              }
+              .subscription-card-cta {
+                width: 100%;
+              }
+              .subscription-feature-chips {
+                gap: 6px;
+              }
+              .subscription-feature-chip {
+                padding: 5px 10px;
+                font-size: 12px;
               }
             }
           `}</style>

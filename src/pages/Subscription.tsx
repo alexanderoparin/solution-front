@@ -49,6 +49,66 @@ function cabinetFilterKey(row: UserBillingCabinetRowDto): Exclude<CabinetFilterK
   return 'free'
 }
 
+function CabinetStatusTag({ status }: { status: string }) {
+  if (status === 'ACTIVE') {
+    return (
+      <Tag color="success" style={{ borderRadius: 999, margin: 0 }}>
+        Активна
+      </Tag>
+    )
+  }
+  return (
+    <Tag style={{ borderRadius: 999, margin: 0, color: '#64748B' }}>
+      Бесплатный
+    </Tag>
+  )
+}
+
+/** Кнопка «Подключить» / «Продлить» для строки кабинета. */
+function CabinetConnectButton({
+  row,
+  block,
+  onConnect,
+  onRenewMain,
+  onRenewCampaign,
+}: {
+  row: UserBillingCabinetRowDto
+  block?: boolean
+  onConnect: (cabinetId: number) => void
+  onRenewMain: (cabinetId: number) => void
+  onRenewCampaign: (cabinetId: number) => void
+}) {
+  const btnStyle: CSSProperties = {
+    width: block ? '100%' : 124,
+    borderRadius: 10,
+    fontWeight: 600,
+  }
+  if (row.unlimitedAccess) {
+    return (
+      <Button type="default" block={block} style={btnStyle} onClick={() => onRenewMain(row.cabinetId)}>
+        Продлить
+      </Button>
+    )
+  }
+  if (row.campaignManage) {
+    return (
+      <Button type="default" block={block} style={btnStyle} onClick={() => onRenewCampaign(row.cabinetId)}>
+        Продлить
+      </Button>
+    )
+  }
+  return (
+    <Button
+      type="primary"
+      block={block}
+      style={{ ...btnStyle, background: accent, borderColor: accent }}
+      onClick={() => onConnect(row.cabinetId)}
+    >
+      Подключить
+    </Button>
+  )
+}
+
 function cabinetsWord(n: number): string {
   const mod10 = n % 10
   const mod100 = n % 100
@@ -610,12 +670,7 @@ export default function Subscription() {
       title: 'Статус',
       dataIndex: 'status',
       key: 'status',
-      render: (v: string) =>
-        v === 'ACTIVE' ? (
-          <Tag color="success" style={{ borderRadius: 999, margin: 0 }}>Активна</Tag>
-        ) : (
-          <Tag style={{ borderRadius: 999, margin: 0, color: '#64748B' }}>Бесплатный</Tag>
-        ),
+      render: (v: string) => <CabinetStatusTag status={v} />,
     },
     {
       title: 'До',
@@ -643,50 +698,20 @@ export default function Subscription() {
       key: 'actions',
       width: 140,
       align: 'right' as const,
-      render: (_: unknown, row: UserBillingCabinetRowDto) => {
-        const btnStyle: CSSProperties = {
-          width: 124,
-          borderRadius: 10,
-          fontWeight: 600,
-        }
-        if (row.unlimitedAccess) {
-          return (
-            <Button
-              type="default"
-              style={btnStyle}
-              onClick={() => {
-                setPreselected([row.cabinetId])
-                setPurchaseKind('MAIN')
-              }}
-            >
-              Продлить
-            </Button>
-          )
-        }
-        if (row.campaignManage && !row.unlimitedAccess) {
-          return (
-            <Button
-              type="default"
-              style={btnStyle}
-              onClick={() => {
-                setPreselected([row.cabinetId])
-                setPurchaseKind('CAMPAIGN')
-              }}
-            >
-              Продлить
-            </Button>
-          )
-        }
-        return (
-          <Button
-            type="primary"
-            style={{ ...btnStyle, background: accent, borderColor: accent }}
-            onClick={() => handleConnectCabinet(row.cabinetId)}
-          >
-            Подключить
-          </Button>
-        )
-      },
+      render: (_: unknown, row: UserBillingCabinetRowDto) => (
+        <CabinetConnectButton
+          row={row}
+          onConnect={handleConnectCabinet}
+          onRenewMain={(id) => {
+            setPreselected([id])
+            setPurchaseKind('MAIN')
+          }}
+          onRenewCampaign={(id) => {
+            setPreselected([id])
+            setPurchaseKind('CAMPAIGN')
+          }}
+        />
+      ),
     },
   ]
 
@@ -802,33 +827,26 @@ export default function Subscription() {
             </div>
 
             <Card
+              className="subscription-cabinets-card"
               style={{ borderRadius: 16, borderColor: border }}
               styles={{
                 header: { display: 'none' },
                 body: { padding: '20px 24px 16px' },
               }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: 12,
-                  marginBottom: 16,
-                }}
-              >
-                <span style={{ fontWeight: 700, fontSize: 16, color: '#0F172A', flexShrink: 0 }}>
+              <div className="subscription-cabinets-toolbar">
+                <span className="subscription-cabinets-title">
                   Все кабинеты
                 </span>
                 <Input
                   allowClear
+                  className="subscription-cabinets-search"
                   prefix={<SearchOutlined style={{ color: '#94A3B8' }} />}
                   placeholder="Поиск по кабинетам, ID или названию"
                   value={cabinetSearch}
                   onChange={(e) => setCabinetSearch(e.target.value)}
-                  style={{ borderRadius: 8, flex: '1 1 200px', minWidth: 180, maxWidth: 340 }}
                 />
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginLeft: 'auto' }}>
+                <div className="subscription-cabinets-chips">
                   {cabinetFilterChips.map((chip) => {
                     const active = cabinetFilter === chip.key
                     const count = cabinetFilterCounts[chip.key]
@@ -856,18 +874,94 @@ export default function Subscription() {
                   })}
                 </div>
               </div>
-              <Table
-                size="middle"
-                rowKey="cabinetId"
-                dataSource={filteredCabinets}
-                columns={cabinetColumns}
-                pagination={false}
-                locale={{
-                  emptyText: cabinets.length === 0
-                    ? 'Создайте кабинет, чтобы подключить тариф'
-                    : 'Ничего не найдено',
-                }}
-              />
+
+              <div className="subscription-cabinets-desktop">
+                <Table
+                  size="middle"
+                  rowKey="cabinetId"
+                  dataSource={filteredCabinets}
+                  columns={cabinetColumns}
+                  pagination={false}
+                  locale={{
+                    emptyText: cabinets.length === 0
+                      ? 'Создайте кабинет, чтобы подключить тариф'
+                      : 'Ничего не найдено',
+                  }}
+                />
+              </div>
+
+              <div className="subscription-cabinets-mobile">
+                {filteredCabinets.length === 0 ? (
+                  <div style={{ color: '#94A3B8', padding: '8px 0 4px', fontSize: 13 }}>
+                    {cabinets.length === 0
+                      ? 'Создайте кабинет, чтобы подключить тариф'
+                      : 'Ничего не найдено'}
+                  </div>
+                ) : (
+                  filteredCabinets.map((row) => (
+                    <div key={row.cabinetId} className="subscription-cabinet-mobile-item">
+                      <div className="subscription-cabinet-mobile-head">
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minWidth: 0, flex: 1 }}>
+                          {row.marketplaceType ? (
+                            <span style={{ marginTop: 2, flexShrink: 0 }}>
+                              <MarketplaceTypeTag type={row.marketplaceType as MarketplaceType} size={20} />
+                            </span>
+                          ) : null}
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, color: '#0F172A', fontSize: 14, lineHeight: 1.3 }}>
+                              {row.name}
+                            </div>
+                            <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+                              ID {row.cabinetId}
+                            </div>
+                          </div>
+                        </div>
+                        <CabinetStatusTag status={row.status} />
+                      </div>
+
+                      <div className="subscription-cabinet-mobile-meta">
+                        <div>
+                          <div className="subscription-cabinet-mobile-label">Тариф</div>
+                          <div className="subscription-cabinet-mobile-value">{row.tariffLabel}</div>
+                        </div>
+                        <div>
+                          <div className="subscription-cabinet-mobile-label">До</div>
+                          <div className="subscription-cabinet-mobile-value">
+                            {row.expiresAt ? dayjs(row.expiresAt).format('DD.MM.YYYY') : '—'}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
+                          <FeatureIcon
+                            label="Управление РК"
+                            active={row.campaignManage}
+                            icon={<ThunderboltOutlined />}
+                          />
+                          <FeatureIcon
+                            label="A/B-тесты"
+                            active={row.abTests}
+                            icon={<ExperimentOutlined />}
+                            tooltip={abTestsFeatureTooltip(row, overview?.abTestQuota)}
+                          />
+                        </div>
+                      </div>
+
+                      <CabinetConnectButton
+                        row={row}
+                        block
+                        onConnect={handleConnectCabinet}
+                        onRenewMain={(id) => {
+                          setPreselected([id])
+                          setPurchaseKind('MAIN')
+                        }}
+                        onRenewCampaign={(id) => {
+                          setPreselected([id])
+                          setPurchaseKind('CAMPAIGN')
+                        }}
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
             </Card>
           </>
         )}
@@ -937,9 +1031,99 @@ export default function Subscription() {
         .subscription-payments-table .ant-table-container::after {
           display: none !important;
         }
+        .subscription-cabinets-toolbar {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        .subscription-cabinets-title {
+          font-weight: 700;
+          font-size: 16px;
+          color: #0F172A;
+          flex-shrink: 0;
+        }
+        .subscription-cabinets-search {
+          border-radius: 8px;
+          flex: 1 1 200px;
+          min-width: 180px;
+          max-width: 340px;
+        }
+        .subscription-cabinets-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-left: auto;
+        }
+        .subscription-cabinets-mobile {
+          display: none;
+        }
         @media (max-width: 960px) {
           .subscription-split { grid-template-columns: 1fr !important; }
           .subscription-service-cards { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 768px) {
+          .subscription-cabinets-card .ant-card-body {
+            padding: 16px !important;
+          }
+          .subscription-cabinets-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            margin-bottom: 12px;
+          }
+          .subscription-cabinets-search {
+            max-width: none;
+            min-width: 0;
+            width: 100%;
+            flex: none;
+          }
+          .subscription-cabinets-chips {
+            margin-left: 0;
+            gap: 6px;
+          }
+          .subscription-cabinets-desktop {
+            display: none;
+          }
+          .subscription-cabinets-mobile {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .subscription-cabinet-mobile-item {
+            border: 1px solid ${border};
+            border-radius: 12px;
+            padding: 12px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+          .subscription-cabinet-mobile-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+          }
+          .subscription-cabinet-mobile-meta {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 10px;
+            align-items: end;
+          }
+          .subscription-cabinet-mobile-label {
+            font-size: 11px;
+            color: #94A3B8;
+            margin-bottom: 2px;
+            line-height: 1.2;
+          }
+          .subscription-cabinet-mobile-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #0F172A;
+            line-height: 1.3;
+          }
         }
       `}</style>
     </div>

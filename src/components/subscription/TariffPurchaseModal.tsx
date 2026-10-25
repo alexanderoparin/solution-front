@@ -108,11 +108,12 @@ function CabinetPickRow({
   const highlight = checked || (hovered && !atLimit)
   return (
     <label
+      className="tariff-pick-row"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'grid',
-        gridTemplateColumns: '28px 1fr 72px',
+        gridTemplateColumns: '28px minmax(0, 1fr) 72px',
         gap: 10,
         alignItems: 'center',
         padding: '10px 12px',
@@ -130,11 +131,14 @@ function CabinetPickRow({
           <MarketplaceTypeTag type={marketplaceType} size={18} />
         </span>
         <span style={{ minWidth: 0 }}>
-          <span style={{ fontWeight: 500, color: '#0F172A', display: 'block' }}>{name}</span>
-          {covered && <span style={{ fontSize: 12, color: '#64748B' }}>{covered}</span>}
+          <span style={{ fontWeight: 500, color: '#0F172A', display: 'block', lineHeight: 1.3 }}>{name}</span>
+          <span className="tariff-pick-row-id-inline" style={{ display: 'none', fontSize: 12, color: '#94A3B8' }}>
+            ID {cabinetId}
+          </span>
+          {covered && <span style={{ fontSize: 12, color: '#64748B', display: 'block' }}>{covered}</span>}
         </span>
       </span>
-      <span style={{ textAlign: 'right', color: '#64748B', fontVariantNumeric: 'tabular-nums' }}>
+      <span className="tariff-pick-row-id" style={{ textAlign: 'right', color: '#64748B', fontVariantNumeric: 'tabular-nums' }}>
         {cabinetId}
       </span>
     </label>
@@ -383,15 +387,17 @@ export default function TariffPurchaseModal({
   return (
     <>
     <Modal
+      className="tariff-purchase-modal"
       open={open && !confirmOpen}
       onCancel={onClose}
       footer={null}
       width={720}
       destroyOnClose
+      centered
       title={
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
           {titleIcon}
-          <span>{titleText}</span>
+          <span style={{ lineHeight: 1.3 }}>{titleText}</span>
         </span>
       }
     >
@@ -400,17 +406,11 @@ export default function TariffPurchaseModal({
           <Spin />
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-          {/* 1. Тиры — 4 плитки в ряд */}
+        <div className="tariff-purchase-body" style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+          {/* 1. Тиры */}
           <div>
             <div style={sectionTitleStyle}>1. Выберите количество кабинетов</div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-                gap: 10,
-              }}
-            >
+            <div className="tariff-tier-grid">
               {TIERS.map((t) => {
                 const selected = tierKey === t.key
                 return (
@@ -421,7 +421,7 @@ export default function TariffPurchaseModal({
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         width: '100%',
-                        gap: 6,
+                        gap: 8,
                       }}
                     >
                       <span style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.25 }}>{t.label}</span>
@@ -437,31 +437,25 @@ export default function TariffPurchaseModal({
                     justifyContent: 'space-between',
                     alignItems: 'flex-start',
                     width: '100%',
-                    gap: 6,
+                    gap: 8,
                   }}
                 >
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.25 }}>Свыше 10</div>
                     <div style={{ fontWeight: 600, fontSize: 13, color: accent, marginTop: 2 }}>
                       По запросу
                     </div>
                   </div>
-                  <MailOutlined style={{ color: accent, fontSize: 16, marginTop: 1 }} />
+                  <MailOutlined style={{ color: accent, fontSize: 16, marginTop: 1, flexShrink: 0 }} />
                 </div>
               </SelectTile>
             </div>
           </div>
 
-          {/* 2. Срок — 2 плитки рядом */}
+          {/* 2. Срок */}
           <div>
             <div style={sectionTitleStyle}>2. Выберите срок</div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 10,
-              }}
-            >
+            <div className="tariff-period-grid">
               <SelectTile
                 selected={period === '14d'}
                 disabled={!day14Plan}
@@ -473,12 +467,13 @@ export default function TariffPurchaseModal({
                     justifyContent: 'space-between',
                     alignItems: 'flex-start',
                     width: '100%',
+                    gap: 8,
                   }}
                 >
                   <span style={{ fontWeight: 600, fontSize: 14 }}>14 дней</span>
                   <RadioDot selected={period === '14d'} />
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 20, color: '#0F172A' }}>
+                <div className="tariff-period-price">
                   {day14Plan ? formatRub(day14Plan.priceRub) : '—'}
                 </div>
               </SelectTile>
@@ -493,12 +488,13 @@ export default function TariffPurchaseModal({
                     justifyContent: 'space-between',
                     alignItems: 'flex-start',
                     width: '100%',
+                    gap: 8,
                   }}
                 >
                   <span style={{ fontWeight: 600, fontSize: 14 }}>1 месяц</span>
                   <RadioDot selected={period === 'month'} />
                 </div>
-                <div style={{ fontWeight: 700, fontSize: 20, color: '#0F172A' }}>
+                <div className="tariff-period-price">
                   {monthPlan ? formatRub(monthPlan.priceRub) : '—'}
                 </div>
               </SelectTile>
@@ -516,33 +512,8 @@ export default function TariffPurchaseModal({
               onChange={(e) => setSearch(e.target.value)}
               style={{ marginBottom: 10, borderRadius: 8 }}
             />
-            <div
-              style={{
-                maxHeight: 240,
-                overflowY: 'auto',
-                border: `1px solid ${border}`,
-                borderRadius: 12,
-              }}
-            >
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '28px 1fr 72px',
-                  gap: 10,
-                  alignItems: 'center',
-                  padding: '10px 12px',
-                  borderBottom: `1px solid ${border}`,
-                  background: '#F8FAFC',
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 1,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: '#64748B',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.3,
-                }}
-              >
+            <div className="tariff-cabinet-list">
+              <div className="tariff-cabinet-list-head">
                 <Checkbox
                   checked={allFilteredSelected}
                   indeterminate={!allFilteredSelected && someFilteredSelected}
@@ -550,7 +521,7 @@ export default function TariffPurchaseModal({
                   onChange={(e) => toggleAllFiltered(e.target.checked)}
                 />
                 <span>Кабинет</span>
-                <span style={{ textAlign: 'right' }}>ID</span>
+                <span className="tariff-cabinet-list-head-id" style={{ textAlign: 'right' }}>ID</span>
               </div>
 
               {filteredCabinets.length === 0 ? (
@@ -582,17 +553,7 @@ export default function TariffPurchaseModal({
             )}
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: 12,
-              flexWrap: 'wrap',
-              borderTop: `1px solid ${border}`,
-              paddingTop: 16,
-            }}
-          >
+          <div className="tariff-purchase-summary">
             <div style={{ color: '#64748B', fontSize: 14 }}>
               Выбрано: {selectedIds.length} {cabinetsWord(selectedIds.length)}
             </div>
@@ -601,12 +562,13 @@ export default function TariffPurchaseModal({
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <Button onClick={onClose} style={{ borderRadius: 8, height: 40, minWidth: 100 }}>
+          <div className="tariff-purchase-actions">
+            <Button onClick={onClose} className="tariff-purchase-cancel" style={{ borderRadius: 8, height: 40, minWidth: 100 }}>
               Отмена
             </Button>
             <Button
               type="primary"
+              className="tariff-purchase-pay"
               style={{
                 background: accent,
                 borderColor: accent,
@@ -623,6 +585,129 @@ export default function TariffPurchaseModal({
           </div>
         </div>
       )}
+      <style>{`
+        .tariff-tier-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .tariff-period-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        .tariff-period-price {
+          font-weight: 700;
+          font-size: 20px;
+          color: #0F172A;
+        }
+        .tariff-cabinet-list {
+          max-height: 240px;
+          overflow-y: auto;
+          border: 1px solid ${border};
+          border-radius: 12px;
+        }
+        .tariff-cabinet-list-head {
+          display: grid;
+          grid-template-columns: 28px minmax(0, 1fr) 72px;
+          gap: 10px;
+          align-items: center;
+          padding: 10px 12px;
+          border-bottom: 1px solid ${border};
+          background: #F8FAFC;
+          position: sticky;
+          top: 0;
+          z-index: 1;
+          font-size: 12px;
+          font-weight: 600;
+          color: #64748B;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+        .tariff-purchase-summary {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          border-top: 1px solid ${border};
+          padding-top: 16px;
+        }
+        .tariff-purchase-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+        @media (max-width: 640px) {
+          .tariff-purchase-modal.ant-modal {
+            max-width: calc(100vw - 16px) !important;
+            margin: 8px auto !important;
+            padding-bottom: 0;
+          }
+          .tariff-purchase-modal .ant-modal-content {
+            border-radius: 14px;
+          }
+          .tariff-purchase-modal .ant-modal-header {
+            padding: 14px 16px 8px;
+          }
+          .tariff-purchase-modal .ant-modal-body {
+            padding: 12px 16px 16px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+          }
+          .tariff-purchase-modal .ant-modal-title {
+            font-size: 15px;
+            padding-right: 24px;
+          }
+          .tariff-purchase-body {
+            gap: 16px !important;
+          }
+          .tariff-tier-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+          }
+          .tariff-period-grid {
+            gap: 8px;
+          }
+          .tariff-period-price {
+            font-size: 17px;
+          }
+          .tariff-cabinet-list {
+            max-height: 180px;
+          }
+          .tariff-cabinet-list-head {
+            grid-template-columns: 28px minmax(0, 1fr);
+          }
+          .tariff-cabinet-list-head-id {
+            display: none;
+          }
+          .tariff-pick-row {
+            grid-template-columns: 28px minmax(0, 1fr) !important;
+          }
+          .tariff-pick-row-id {
+            display: none;
+          }
+          .tariff-pick-row-id-inline {
+            display: block !important;
+            margin-top: 2px;
+          }
+          .tariff-purchase-summary {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
+            padding-top: 12px;
+          }
+          .tariff-purchase-actions {
+            flex-direction: column-reverse;
+            gap: 8px;
+          }
+          .tariff-purchase-cancel,
+          .tariff-purchase-pay {
+            width: 100%;
+            min-width: 0 !important;
+          }
+        }
+      `}</style>
     </Modal>
     <PurchaseConfirmModal
       open={confirmOpen && !!selectedPlan}

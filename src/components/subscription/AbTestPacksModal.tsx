@@ -131,21 +131,24 @@ export default function AbTestPacksModal({ open, onClose, onActivated }: AbTestP
   return (
     <>
       <Modal
+        className="ab-packs-modal"
         open={open && !confirmPlan}
         onCancel={onClose}
         footer={null}
         title="A/B-тесты"
         width={720}
         destroyOnClose
+        centered
       >
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: 48 }}><Spin /></div>
         ) : (
           <>
-            <p style={{ color: '#64748B', marginBottom: 20 }}>
+            <p className="ab-packs-desc" style={{ color: '#64748B', marginBottom: 20 }}>
               Пакеты без срока годности. Квота на ваш аккаунт — можно тратить на любые кабинеты.
             </p>
             <div
+              className="ab-packs-grid"
               style={{
                 display: 'grid',
                 gridTemplateColumns: `repeat(${Math.max(paidPlans.length, 1)}, minmax(0, 1fr))`,
@@ -156,7 +159,16 @@ export default function AbTestPacksModal({ open, onClose, onActivated }: AbTestP
               {paidPlans.map((plan) => (
                 <PackCard key={plan.id}>
                   <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{packTitle(plan)}</div>
-                  <div style={{ fontSize: 13, color: '#64748B', marginBottom: 12, flex: 1 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: '#64748B',
+                      marginBottom: 12,
+                      flex: 1,
+                      lineHeight: 1.45,
+                      overflowWrap: 'anywhere',
+                    }}
+                  >
                     {plan.description || FALLBACK_PACK_COPY[plan.code ?? ''] || ''}
                   </div>
                   <PackPriceBlock plan={plan} unitPrice={unitPrice} />
@@ -174,6 +186,34 @@ export default function AbTestPacksModal({ open, onClose, onActivated }: AbTestP
             </div>
           </>
         )}
+        <style>{`
+          @media (max-width: 640px) {
+            .ab-packs-modal.ant-modal {
+              max-width: calc(100vw - 16px) !important;
+              margin: 8px auto !important;
+            }
+            .ab-packs-modal .ant-modal-content {
+              border-radius: 14px;
+            }
+            .ab-packs-modal .ant-modal-header {
+              padding: 14px 16px 8px;
+            }
+            .ab-packs-modal .ant-modal-body {
+              padding: 12px 16px 16px;
+              max-height: calc(100vh - 100px);
+              overflow-y: auto;
+            }
+            .ab-packs-desc {
+              margin-bottom: 14px !important;
+              font-size: 13px;
+              line-height: 1.45;
+            }
+            .ab-packs-grid {
+              grid-template-columns: 1fr !important;
+              gap: 10px !important;
+            }
+          }
+        `}</style>
       </Modal>
 
       <PurchaseConfirmModal

@@ -224,6 +224,7 @@ export default function ProfilePage() {
 
           {!isAdmin && (
             <Card
+              className="profile-subscription-promo"
               style={{
                 marginBottom: 24,
                 borderRadius: 16,
@@ -231,35 +232,16 @@ export default function ProfilePage() {
               }}
               styles={{ body: { padding: '20px 24px' } }}
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 16,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-                  <div
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      background: '#F5F3FF',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
+              <div className="profile-subscription-promo-inner">
+                <div className="profile-subscription-promo-copy">
+                  <div className="profile-subscription-promo-icon">
                     <CrownOutlined style={{ color: '#7C3AED', fontSize: 20 }} />
                   </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: '#0F172A', marginBottom: 4 }}>
+                  <div className="profile-subscription-promo-text">
+                    <div className="profile-subscription-promo-title">
                       Подписка и тарифы
                     </div>
-                    <Text type="secondary" style={{ fontSize: 13, lineHeight: 1.45 }}>
+                    <Text type="secondary" className="profile-subscription-promo-desc">
                       Подключайте тарифы и дополнительные услуги, управляйте подпиской и смотрите историю платежей.
                     </Text>
                   </div>
@@ -267,6 +249,7 @@ export default function ProfilePage() {
                 <Button
                   type="primary"
                   size="large"
+                  className="profile-subscription-promo-btn"
                   onClick={() => navigate('/subscription')}
                   style={{
                     background: '#7C3AED',
@@ -274,13 +257,85 @@ export default function ProfilePage() {
                     height: 44,
                     borderRadius: 12,
                     fontWeight: 600,
-                    flexShrink: 0,
                   }}
                 >
                   Перейти к подписке
                   <ArrowRightOutlined />
                 </Button>
               </div>
+              <style>{`
+                .profile-subscription-promo-inner {
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  gap: 16px;
+                }
+                .profile-subscription-promo-copy {
+                  display: flex;
+                  align-items: center;
+                  gap: 14px;
+                  min-width: 0;
+                  flex: 1;
+                }
+                .profile-subscription-promo-icon {
+                  width: 44px;
+                  height: 44px;
+                  border-radius: 12px;
+                  background: #F5F3FF;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  flex-shrink: 0;
+                }
+                .profile-subscription-promo-text {
+                  min-width: 0;
+                }
+                .profile-subscription-promo-title {
+                  font-weight: 700;
+                  font-size: 16px;
+                  color: #0F172A;
+                  margin-bottom: 4px;
+                  line-height: 1.3;
+                }
+                .profile-subscription-promo-desc {
+                  font-size: 13px;
+                  line-height: 1.45;
+                  display: block;
+                }
+                .profile-subscription-promo-btn {
+                  flex-shrink: 0;
+                }
+                @media (max-width: 640px) {
+                  .profile-subscription-promo .ant-card-body {
+                    padding: 16px !important;
+                  }
+                  .profile-subscription-promo-inner {
+                    flex-direction: column;
+                    align-items: stretch;
+                    gap: 14px;
+                  }
+                  .profile-subscription-promo-copy {
+                    align-items: flex-start;
+                    gap: 12px;
+                  }
+                  .profile-subscription-promo-icon {
+                    width: 40px;
+                    height: 40px;
+                  }
+                  .profile-subscription-promo-title {
+                    font-size: 15px;
+                    margin-bottom: 2px;
+                  }
+                  .profile-subscription-promo-desc {
+                    font-size: 12px;
+                    line-height: 1.4;
+                  }
+                  .profile-subscription-promo-btn {
+                    width: 100%;
+                    height: 44px !important;
+                  }
+                }
+              `}</style>
             </Card>
           )}
 
