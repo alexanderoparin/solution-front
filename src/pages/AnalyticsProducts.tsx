@@ -44,9 +44,9 @@ const FILTER_LIST_PAGE_SIZE = 500
 const WB_CATALOG_URL = (nmId: number) => `https://www.wildberries.ru/catalog/${nmId}/detail.aspx`
 const OZON_CATALOG_URL = (productId: number) => `https://www.ozon.ru/product/${productId}/`
 
-/** Item-rating WB доступен только для персонального/сервисного токена, не для базового. */
-function cabinetSupportsItemRating(tokenType?: CabinetTokenType | null): boolean {
-  return (tokenType ?? 'BASIC') !== 'BASIC'
+/** Рейтинг витрины синкаем из публичного catalog API — колонка доступна для любого токена. */
+function cabinetSupportsItemRating(_tokenType?: CabinetTokenType | null): boolean {
+  return true
 }
 
 /** Период «последние 7 дней» для списка товаров */

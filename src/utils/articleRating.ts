@@ -1,4 +1,4 @@
-/** Рейтинг по отзывам WB (1–5, звёзды на странице артикула); 0 и null — «нет рейтинга». */
+/** Рейтинг по отзывам на витрине WB (1–5); 0 и null — «нет рейтинга». */
 export function hasMeaningfulArticleRating(rating: number | null | undefined): boolean {
   return rating != null && rating > 0
 }
