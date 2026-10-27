@@ -33,7 +33,7 @@ export interface ArticleSummary {
   /** Приоритетная карточка для первоочередной обработки событий по nmID */
   isPriority?: boolean | null
   vendorCode?: string | null // Артикул продавца
-  /** Рейтинг карточки WB (как на странице артикула), 1–5. */
+  /** Рейтинг по отзывам WB (звёзды на странице артикула), 1–5. */
   rating?: number | null
   /** Дата и время появления карточки на Wildberries. */
   wbCreatedAt?: string | null
