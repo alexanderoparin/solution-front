@@ -12,7 +12,7 @@ const hoverBg = '#F5F3FF'
 const FALLBACK_PACK_COPY: Record<string, string> = {
   ab_pack_1: 'Для одного А/Б теста',
   ab_pack_5: 'Для регулярного А/Б тестирования и поиска лучшего CTR',
-  ab_pack_10: 'Самый выгодный пакет для постоянной работы с АБ тестами и роста конверсии',
+  ab_pack_10: 'Самый выгодный пакет для постоянной работы с А/Б тестами и роста конверсии',
 }
 
 interface AbTestPacksModalProps {
@@ -145,7 +145,7 @@ export default function AbTestPacksModal({ open, onClose, onActivated }: AbTestP
         ) : (
           <>
             <p className="ab-packs-desc" style={{ color: '#64748B', marginBottom: 20 }}>
-              Пакеты без срока годности. Квота на ваш аккаунт — можно тратить на любые кабинеты.
+              Пакеты тестов без срока действия для всех кабинетов вашего профиля.
             </p>
             <div
               className="ab-packs-grid"
@@ -169,7 +169,7 @@ export default function AbTestPacksModal({ open, onClose, onActivated }: AbTestP
                       overflowWrap: 'anywhere',
                     }}
                   >
-                    {plan.description || FALLBACK_PACK_COPY[plan.code ?? ''] || ''}
+                    {FALLBACK_PACK_COPY[plan.code ?? ''] || plan.description || ''}
                   </div>
                   <PackPriceBlock plan={plan} unitPrice={unitPrice} />
                   <Button

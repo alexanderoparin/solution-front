@@ -130,7 +130,7 @@ export default function Requisites() {
           position: relative;
           z-index: 2;
           width: 100%;
-          max-width: 760px;
+          max-width: 780px;
           background: #FFFFFF;
           border: 1px solid #EEF0F4;
           border-radius: 22px;
@@ -181,6 +181,10 @@ export default function Requisites() {
           font-weight: 500;
           color: #111827;
           word-break: break-word;
+        }
+        .requisites-page .field-value-nowrap {
+          white-space: nowrap;
+          word-break: normal;
         }
         .requisites-page .copy-btn {
           width: 100%;
@@ -333,7 +337,13 @@ export default function Requisites() {
                 {bankFields.map((field) => (
                   <div key={field.label} className="row">
                     <p className="field-label">{field.label}</p>
-                    <p className="field-value">{field.value}</p>
+                    <p
+                      className={
+                        field.label === 'Банк' ? 'field-value' : 'field-value field-value-nowrap'
+                      }
+                    >
+                      {field.value}
+                    </p>
                   </div>
                 ))}
               </div>

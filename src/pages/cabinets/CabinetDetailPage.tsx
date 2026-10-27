@@ -467,6 +467,12 @@ export default function CabinetDetailPage() {
               )}
             </div>
 
+            <SubscriptionCard
+              layout="cabinet"
+              fixedCabinetId={cabinet.id}
+              cabinetName={cabinet.name}
+            />
+
             <div className="cabinet-info-grid">
               <InfoBlock
                 label="API-токен"
@@ -765,12 +771,6 @@ export default function CabinetDetailPage() {
                 </InfoBlock>
               )}
             </div>
-
-            <SubscriptionCard
-              layout="cabinet"
-              fixedCabinetId={cabinet.id}
-              cabinetName={cabinet.name}
-            />
 
             {cabinet.scopeStatuses && cabinet.scopeStatuses.length > 0 && (
               <Card

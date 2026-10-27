@@ -366,10 +366,19 @@ function ServiceOfferCard({
         background: hovered ? hoverBg : '#fff',
         boxShadow: hovered ? '0 4px 14px rgba(124, 58, 237, 0.12)' : 'none',
         transition: 'border-color 0.15s, background 0.15s, box-shadow 0.15s',
+        height: '100%',
       }}
-      styles={{ body: { padding: 20 } }}
+      styles={{
+        body: {
+          padding: 20,
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        },
+      }}
     >
-      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flex: 1 }}>
         <div
           style={{
             width: 44,
@@ -391,6 +400,23 @@ function ServiceOfferCard({
           <div style={{ fontSize: 13, color: '#64748B', lineHeight: 1.45 }}>{description}</div>
         </div>
       </div>
+      <Button
+        type="primary"
+        block
+        onClick={(e) => {
+          e.stopPropagation()
+          onClick()
+        }}
+        style={{
+          backgroundColor: accent,
+          borderColor: accent,
+          fontWeight: 600,
+          height: 40,
+          borderRadius: 10,
+        }}
+      >
+        Подключить
+      </Button>
     </Card>
   )
 }
@@ -586,7 +612,7 @@ export default function Subscription() {
       {
         key: 'CAMPAIGN' as const,
         title: 'Управление РК',
-        description: 'Автоматизация рекламы, ставки, автобюджет, расписание и аналитика кампаний.',
+        description: 'Автоматизация рекламы, автобюджет, расписание и аналитика кампаний.',
         icon: <ThunderboltOutlined style={{ fontSize: 20, color: accent }} />,
         iconBg: '#F5F3FF',
         onClick: () => {
@@ -597,7 +623,7 @@ export default function Subscription() {
       {
         key: 'AB' as const,
         title: 'A/B-тесты',
-        description: 'Пакеты без срока. Квота на аккаунт — для любых ваших кабинетов.',
+        description: 'Пакеты тестов без срока действия для всех кабинетов вашего профиля.',
         icon: <ExperimentOutlined style={{ fontSize: 20, color: '#16A34A' }} />,
         iconBg: '#F0FDF4',
         onClick: () => setAbOpen(true),
