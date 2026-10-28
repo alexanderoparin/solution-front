@@ -5,6 +5,7 @@ import ServiceLandingHeader from '../components/landingService/ServiceLandingHea
 import ServiceLandingSections from '../components/landingService/ServiceLandingSections'
 import ServiceLandingAmbient from '../components/landingService/ServiceLandingDecor'
 import ServiceLandingFooter from '../components/landingService/ServiceLandingFooter'
+import ServiceLandingBotWidget from '../components/landingService/ServiceLandingBotWidget'
 import { svc } from '../components/landingService/landingServiceShared'
 
 /**
@@ -64,6 +65,7 @@ export default function Landing() {
         <ServiceLandingFooter />
       </div>
       <LandingLeadRequestModal request={leadRequest} onClose={() => setLeadRequest(null)} />
+      <ServiceLandingBotWidget />
     </div>
   )
 }

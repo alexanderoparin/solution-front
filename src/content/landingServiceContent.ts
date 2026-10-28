@@ -60,6 +60,51 @@ export const serviceLandingAssets = {
   ] as const,
   team: '/landing-service/block-9-1.png?v=4',
   faq: '/landing-service/block-13-1.png',
+  /** Аватар плавающего виджета Telegram-бота */
+  botAvatar: '/landing-service/clicki-bot-avatar.jpg',
+} as const
+
+/** Плавающий виджет проверки рекламы WB через Telegram-бота. */
+export const serviceBotWidget = {
+  tipBefore: 'Проверь ',
+  tipAccent: 'рекламу',
+  tipAfter: 'на WB за несколько минут',
+  /** Шапка модалки — лавандовый пузырь рядом с аватаром. */
+  modalBadgeLines: [
+    'Полезный инструмент',
+    'для вашей рекламы',
+    'на Wildberries',
+  ] as const,
+  titleBefore: 'Сколько денег ',
+  titleAccent: 'съедает',
+  titleAfter: ' реклама?',
+  description:
+    'Найдите кластеры, которые расходуют бюджет без результата, и поймите, где стоит оптимизировать рекламу.',
+  legend: [
+    {
+      color: '#EF4444',
+      soft: '#FEE2E2',
+      line1: 'Кластеры, которые',
+      line2: 'сливают деньги',
+    },
+    {
+      color: '#F59E0B',
+      soft: '#FEF3C7',
+      line1: 'Кластеры, которые',
+      line2: 'стоит докрутить',
+    },
+    {
+      color: '#22C55E',
+      soft: '#DCFCE7',
+      line1: 'Кластеры, которые',
+      line2: 'работают как надо',
+    },
+  ] as const,
+  note: 'Бот покажет, сколько вы потратили на ключи без заказов.',
+  cta: 'Попробовать бота →',
+  botUrl: 'https://t.me/ClickiWBot',
+  /** Задержка появления подсказки, мс (5–7 с). */
+  tipDelayMs: 6000,
 } as const
 
 export const serviceHero = {
