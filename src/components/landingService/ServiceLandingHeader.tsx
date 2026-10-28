@@ -48,18 +48,42 @@ export default function ServiceLandingHeader() {
             gap: 24,
           }}
         >
-          <div className="svc-header-logo-wrap" style={{ display: 'flex', alignItems: 'center', gap: 36, minWidth: 0 }}>
-            <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
+          <div
+            className="svc-header-logo-wrap"
+            style={{ display: 'flex', alignItems: 'center', gap: 36, minWidth: 0 }}
+          >
+            <Link
+              to="/"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                textDecoration: 'none',
+                flexShrink: 0,
+                lineHeight: 0,
+              }}
+            >
               <SiteLogo variant="wordmarkDark" size={34} />
             </Link>
 
-            <nav className="svc-header-nav" style={{ alignItems: 'center', gap: 28 }}>
+            {/* Wordmark PNG выше оптического центра букв (квадрат над «i») — чуть опускаем меню */}
+            <nav
+              className="svc-header-nav"
+              style={{ display: 'flex', alignItems: 'center', gap: 28, transform: 'translateY(3px)' }}
+            >
               {serviceLandingNav.map((item) => (
                 <a
                   key={item.href}
                   href={item.href}
                   className="svc-header-link"
-                  style={{ color: svc.muted, textDecoration: 'none', fontSize: 15, fontWeight: 500 }}
+                  style={{
+                    color: svc.muted,
+                    textDecoration: 'none',
+                    fontSize: 15,
+                    fontWeight: 500,
+                    lineHeight: 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                  }}
                 >
                   {item.label}
                 </a>

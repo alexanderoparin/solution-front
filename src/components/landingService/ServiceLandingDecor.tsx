@@ -30,19 +30,19 @@ export default function ServiceLandingAmbient() {
       <Blob top="14%" left="-6%" size={360} color={purpleSoft} blur={100} opacity={0.48} />
       {/* Ниже hero — насыщеннее, чтобы белые скрины не сливались */}
       <Blob top="22%" right="8%" size={300} color={greenGlow} blur={90} opacity={0.95} />
-      <Blob top="28%" right="-2%" size={440} color={purple} blur={100} opacity={1} />
+      {/* Правые пятна в зоне «для кого» приглушены — иначе сливаются с рукописным callout */}
+      <Blob top="28%" right="-2%" size={440} color={purple} blur={100} opacity={0.55} />
       <Blob top="32%" left="18%" size={340} color={purple} blur={95} opacity={0.95} />
-      <Blob top="38%" right="12%" size={360} color={purpleSoft} blur={90} opacity={1} />
-      <Blob top="42%" right="-8%" size={380} color={purpleSoft} blur={100} opacity={1} />
+      <Blob top="38%" right="12%" size={360} color={purpleSoft} blur={90} opacity={0.45} />
+      <Blob top="42%" right="-8%" size={380} color={purpleSoft} blur={100} opacity={0.5} />
       <Blob top="52%" left="-4%" size={320} color={greenGlow} blur={90} opacity={0.85} />
       <Blob top="62%" right="22%" size={280} color={purple} blur={85} opacity={0.9} />
       <Blob top="72%" left="30%" size={360} color={purpleSoft} blur={100} opacity={0.95} />
       <Blob top="82%" right="-6%" size={340} color={greenGlow} blur={95} opacity={0.85} />
       <Blob top="90%" left="-8%" size={300} color={purple} blur={90} opacity={0.85} />
 
-      {/* Сетки точек (hero-точки — у скриншота отдельно) */}
+      {/* Сетки точек (hero-точки — у скриншота отдельно; у caps слева не ставим) */}
       <DotGrid top="28%" right="6%" cols={5} rows={5} gap={13} opacity={0.45} />
-      <DotGrid top="48%" left="5%" cols={4} rows={6} gap={15} opacity={0.4} />
       <DotGrid top="68%" right="12%" cols={5} rows={4} gap={14} opacity={0.45} />
       <DotGrid top="88%" left="40%" cols={4} rows={4} gap={12} opacity={0.38} />
 

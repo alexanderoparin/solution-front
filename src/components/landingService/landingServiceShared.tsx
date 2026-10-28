@@ -41,6 +41,7 @@ export function SvcTitle({
   after,
   highlightOnNewLine,
   afterOnNewLine,
+  afterAccent = true,
   size = 'md',
   lineHeight = 1.15,
 }: {
@@ -51,6 +52,11 @@ export function SvcTitle({
   highlightOnNewLine?: boolean
   /** Продолжение заголовка с новой строки (после «аналитика»). */
   afterOnNewLine?: boolean
+  /**
+   * Если after и highlight на одной новой строке: красить ли `after` акцентом.
+   * false — `after` тёмный, акцент только у `highlight` (блок «зачем отдельный сервис»).
+   */
+  afterAccent?: boolean
   size?: 'md' | 'lg'
   /** Межстрочный интервал заголовка. */
   lineHeight?: number
@@ -68,8 +74,17 @@ export function SvcTitle({
     >
       {before}
       {after && afterOnNewLine && highlight && !highlightOnNewLine ? (
-        <span style={{ display: 'block', color: svc.accent, whiteSpace: 'nowrap' }}>
-          {after} {highlight}
+        <span style={{ display: 'block', whiteSpace: 'nowrap' }}>
+          {afterAccent ? (
+            <span style={{ color: svc.accent }}>
+              {after} {highlight}
+            </span>
+          ) : (
+            <>
+              {after}{' '}
+              <span style={{ color: svc.accent }}>{highlight}</span>
+            </>
+          )}
         </span>
       ) : (
         <>
@@ -150,27 +165,42 @@ export function SvcPrimaryButton({
   )
 }
 
+export type SvcTone = 'purple' | 'green' | 'blue' | 'violet'
+
+export function toneSoftBg(tone: SvcTone): string {
+  if (tone === 'green') return svc.greenSoft
+  if (tone === 'blue') return svc.blueSoft
+  if (tone === 'violet') return '#EDE9FE'
+  return svc.accentSoft
+}
+
+export function toneColor(tone: SvcTone): string {
+  if (tone === 'green') return svc.green
+  if (tone === 'blue') return '#2563EB'
+  if (tone === 'violet') return '#7C3AED'
+  return svc.accent
+}
+
 export function ToneIconBox({
   tone,
   children,
 }: {
-  tone: 'purple' | 'green' | 'blue'
+  tone: SvcTone
   children: ReactNode
 }) {
-  const bg =
-    tone === 'green' ? svc.greenSoft : tone === 'blue' ? svc.blueSoft : svc.accentSoft
   return (
     <div
       style={{
         width: 40,
         height: 40,
         borderRadius: 12,
-        background: bg,
+        background: toneSoftBg(tone),
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
         fontSize: 18,
+        color: toneColor(tone),
       }}
     >
       {children}

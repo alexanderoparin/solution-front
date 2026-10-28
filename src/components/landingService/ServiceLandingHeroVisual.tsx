@@ -16,10 +16,12 @@ export default function ServiceLandingHeroVisual() {
         position: 'relative',
         width: '100%',
         maxWidth: 'none',
-        marginLeft: '4%',
+        marginLeft: '0%',
         marginRight: '-4%',
-        marginTop: 64,
-        padding: '12px 44px 40px 8px',
+        /* Чуть ниже исходных 64 — без перебора */
+        marginTop: 72,
+        /* Поля под 2 ряда точек у краёв */
+        padding: '40px 48px 48px 40px',
         overflow: 'visible',
         boxSizing: 'border-box',
       }}
@@ -30,7 +32,6 @@ export default function ServiceLandingHeroVisual() {
             margin-left: 0 !important;
             margin-right: 0 !important;
             margin-top: 12px !important;
-            /* Поля под точки и тень — всё внутри, без clip по краю экрана */
             padding: 28px 18px 36px !important;
             overflow: visible !important;
             width: 100% !important;
@@ -59,7 +60,6 @@ export default function ServiceLandingHeroVisual() {
             height: auto !important;
             display: block !important;
           }
-          /* Точки за скрином, выглядывают из углов */
           .svc-hero-visual .svc-hero-dots-tl {
             top: -18px !important;
             left: -14px !important;
@@ -68,8 +68,8 @@ export default function ServiceLandingHeroVisual() {
             grid-template-columns: repeat(6, 3.5px) !important;
           }
           .svc-hero-visual .svc-hero-dots-br {
-            bottom: -18px !important;
-            right: -14px !important;
+            bottom: -22px !important;
+            right: -22px !important;
             z-index: 0 !important;
             gap: 10px !important;
             grid-template-columns: repeat(6, 3.5px) !important;
@@ -103,15 +103,17 @@ export default function ServiceLandingHeroVisual() {
         className="svc-hero-shot"
         style={{
           position: 'relative',
-          width: '100%',
+          /* Чуть крупнее исходных 106% */
+          width: '108%',
           marginLeft: 0,
           marginRight: 0,
         }}
       >
+        {/* ~2 ряда/колонки снаружи края */}
         <DotGrid
           className="svc-hero-dots svc-hero-dots-tl"
-          top={-28}
-          left={-40}
+          top={-42}
+          left={-42}
           cols={8}
           rows={8}
           gap={18}
@@ -120,8 +122,8 @@ export default function ServiceLandingHeroVisual() {
         />
         <DotGrid
           className="svc-hero-dots svc-hero-dots-br"
-          bottom={-28}
-          right={-40}
+          bottom={-42}
+          right={-42}
           cols={8}
           rows={8}
           gap={18}
@@ -154,7 +156,8 @@ export default function ServiceLandingHeroVisual() {
               display: 'block',
               width: '100%',
               height: 'auto',
-              aspectRatio: '1532 / 760',
+              /* Высота как раньше (760), ширина +6% → тот же вертикальный размер, чуть шире */
+              aspectRatio: '1624 / 760',
               objectFit: 'fill',
               borderRadius: 22,
             }}

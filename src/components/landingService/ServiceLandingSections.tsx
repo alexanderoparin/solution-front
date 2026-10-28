@@ -1,23 +1,21 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Collapse } from 'antd'
 import { subscriptionApi } from '../../api/subscription'
-import { pricesFromMainPlans, type LandingMainTierId } from '../../utils/landingMainPlanPrices'
+import { formatLandingPrice, pricesFromProductPlans } from '../../utils/landingProductPrices'
 import {
   AimOutlined,
-  ApartmentOutlined,
+  ArrowRightOutlined,
   BarChartOutlined,
   CheckCircleFilled,
-  ClockCircleOutlined,
   CloseCircleFilled,
   EyeOutlined,
+  GiftOutlined,
   PercentageOutlined,
-  PictureOutlined,
   PieChartOutlined,
+  ReadOutlined,
   RiseOutlined,
-  SafetyCertificateOutlined,
-  SettingOutlined,
   ShoppingCartOutlined,
   TeamOutlined,
   UserOutlined,
@@ -28,6 +26,7 @@ import {
   serviceAbout,
   serviceAgencyHelp,
   serviceAnalyticsOverview,
+  serviceAudience,
   serviceBlog,
   serviceCampaignDepth,
   serviceCapabilities,
@@ -40,6 +39,8 @@ import {
   servicePricing,
   serviceProblem,
   serviceProducts,
+  servicePricingTrialBanner,
+  serviceTrialBanner,
   serviceWhySeparate,
 } from '../../content/landingServiceContent'
 import type { LandingLeadRequest } from '../../types/landingLead'
@@ -54,58 +55,74 @@ import {
   SvcPrimaryButton,
   SvcTitle,
   ToneIconBox,
+  toneColor,
+  toneSoftBg,
+  type SvcTone,
 } from './landingServiceShared'
 
 interface Props {
   onOpenLeadForm: (request: LandingLeadRequest) => void
 }
 
-function formatPrice(value: number): string {
-  return `${value.toLocaleString('ru-RU')} ₽`
-}
-
 export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
   const navigate = useNavigate()
-  const [period, setPeriod] = useState<'twoWeeks' | 'month'>('twoWeeks')
 
   const { data: mainPlans = [] } = useQuery({
-    queryKey: ['landingPublicMainPlans'],
-    queryFn: () => subscriptionApi.getPublicMainPlans(),
+    queryKey: ['landingPublicPlans', 'MAIN'],
+    queryFn: () => subscriptionApi.getPublicPlans('MAIN'),
+    staleTime: 60_000,
+  })
+  const { data: campaignPlans = [] } = useQuery({
+    queryKey: ['landingPublicPlans', 'CAMPAIGN'],
+    queryFn: () => subscriptionApi.getPublicPlans('CAMPAIGN'),
+    staleTime: 60_000,
+  })
+  const { data: abPlans = [] } = useQuery({
+    queryKey: ['landingPublicPlans', 'AB_PACK'],
+    queryFn: () => subscriptionApi.getPublicPlans('AB_PACK'),
     staleTime: 60_000,
   })
 
-  const tierPrices = useMemo(() => pricesFromMainPlans(mainPlans), [mainPlans])
+  const productPrices = useMemo(
+    () => pricesFromProductPlans({ main: mainPlans, campaign: campaignPlans, ab: abPlans }),
+    [mainPlans, campaignPlans, abPlans],
+  )
 
   const goRegister = () => navigate('/register')
-
-  const pricingPeriodLabel = period === 'twoWeeks' ? '/ 2 недели' : '/ 1 месяц'
 
   const faqItems = useMemo(
     () =>
       serviceFaq.items.map((item, index) => ({
         key: String(index),
         label: (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <span
               style={{
-                width: 28,
-                height: 28,
+                width: 34,
+                height: 34,
                 borderRadius: '50%',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: 700,
+                flexShrink: 0,
                 background: index % 2 === 0 ? svc.accentSoft : svc.greenSoft,
                 color: index % 2 === 0 ? svc.accent : svc.greenDark,
               }}
             >
               {String(index + 1).padStart(2, '0')}
             </span>
-            <span style={{ fontWeight: 600, color: svc.text }}>{item.q}</span>
+            <span style={{ fontWeight: 600, fontSize: 17, lineHeight: 1.35, color: svc.text }}>
+              {item.q}
+            </span>
           </div>
         ),
-        children: <p style={{ margin: 0, color: svc.muted, lineHeight: 1.6 }}>{item.a}</p>,
+        children: (
+          <p style={{ margin: '4px 0 8px', color: svc.muted, fontSize: 16, lineHeight: 1.65, maxWidth: 640 }}>
+            {item.a}
+          </p>
+        ),
       })),
     []
   )
@@ -113,13 +130,70 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
   return (
     <>
       <style>{`
-        .svc-hero-grid, .svc-two, .svc-compare, .svc-caps, .svc-products, .svc-steps, .svc-price, .svc-help, .svc-blog {
+        .svc-hero-grid, .svc-two, .svc-compare, .svc-caps, .svc-audience, .svc-products, .svc-steps, .svc-price, .svc-help, .svc-blog {
           display: grid; gap: 24px; align-items: center;
         }
-        .svc-hero-grid { grid-template-columns: 0.82fr 1.28fr; }
+        .svc-hero-grid { grid-template-columns: 0.85fr 1.25fr; }
         .svc-two { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); }
+        .svc-faq-grid { grid-template-columns: 1fr 1.15fr; gap: 28px; align-items: start; }
+        .svc-faq-collapse .ant-collapse-item { margin-bottom: 4px; }
+        .svc-faq-collapse .ant-collapse-header { padding-block: 16px !important; align-items: center !important; }
+        .svc-faq-collapse .ant-collapse-content-box { padding-block: 4px 14px !important; }
         .svc-analytics-grid { grid-template-columns: 1.15fr 1.05fr; gap: 24px; align-items: center; }
         .svc-compare { grid-template-columns: 1fr 1fr; align-items: stretch; }
+        .svc-audience {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          align-items: stretch;
+          gap: 16px;
+        }
+        .svc-audience-head {
+          position: relative;
+          margin-bottom: 28px;
+          padding-right: 340px;
+          box-sizing: border-box;
+        }
+        .svc-audience-title-line1 {
+          white-space: nowrap;
+        }
+        .svc-audience-callout {
+          position: absolute;
+          top: -4px;
+          right: 0;
+          display: flex;
+          align-items: flex-start;
+          gap: 0;
+          width: 300px;
+          pointer-events: none;
+        }
+        .svc-audience-callout-arrow {
+          flex-shrink: 0;
+          width: 58px;
+          height: 88px;
+          margin-top: 36px;
+          margin-right: 6px;
+          filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.95))
+            drop-shadow(0 0 2px rgba(255, 255, 255, 1));
+        }
+        .svc-audience-callout-text {
+          font-family: 'Caveat', cursive;
+          font-weight: 700;
+          font-size: 28px;
+          line-height: 1.05;
+          color: #6D28D9;
+          transform: rotate(-7deg);
+          transform-origin: left center;
+          white-space: pre-line;
+          letter-spacing: 0.01em;
+          padding-top: 4px;
+          /* Белый ореол вместо плашки — читается на фиолетовом пятне декора */
+          text-shadow:
+            0 0 8px #fff,
+            0 0 14px #fff,
+            0 1px 0 #fff,
+            1px 0 0 #fff,
+            -1px 0 0 #fff,
+            0 -1px 0 #fff;
+        }
         .svc-caps {
           grid-template-columns: repeat(6, minmax(0, 1fr));
           align-items: stretch;
@@ -130,7 +204,21 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
         .svc-price { grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; gap: 18px; }
         .svc-help { grid-template-columns: 1fr 1fr; align-items: stretch; gap: 24px; }
         .svc-blog { grid-template-columns: repeat(4, 1fr); align-items: stretch; }
-        .svc-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 28px; }
+        .svc-metrics {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 18px;
+          align-items: stretch;
+        }
+        .svc-metric-card {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          min-height: 56px;
+          box-sizing: border-box;
+        }
         .svc-analytics-badges { display: grid; grid-template-columns: 0.92fr 0.92fr 1.5fr; gap: 10px; margin-top: 28px; }
         .svc-analytics-visual { position: relative; }
         .svc-analytics-stack { position: relative; z-index: 1; display: grid; gap: 10px; }
@@ -138,12 +226,15 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
         .svc-campaign-callouts-stack { display: none; }
         .svc-pricing-toggle { width: 300px; max-width: 100%; margin-right: 110px; margin-top: 4px; }
         .svc-pricing-title { white-space: nowrap; }
-        .svc-final-cta-btn { margin-right: 48px; flex-shrink: 0; }
+        .svc-final-cta-btn { margin-right: 24px; flex-shrink: 0; }
         .svc-primary-btn:hover { background: ${svc.accentHover} !important; }
         .svc-primary-btn { max-width: 100%; }
         .svc-img { width: 100%; height: auto; display: block; border-radius: 16px; }
         @media (max-width: 1200px) {
           .svc-caps { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+          .svc-audience { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .svc-audience-head { padding-right: 0 !important; }
+          .svc-audience-callout { display: none !important; }
           .svc-pricing-toggle { margin-right: 24px !important; }
         }
         @media (max-width: 1100px) {
@@ -151,7 +242,27 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
           .svc-steps { grid-template-columns: repeat(2, 1fr) !important; }
         }
         @media (max-width: 900px) {
-          .svc-hero-grid, .svc-two, .svc-compare, .svc-help, .svc-analytics-grid { grid-template-columns: 1fr !important; }
+          .svc-why-lead-line { white-space: normal !important; }
+          .svc-trial-banner {
+            flex-wrap: wrap !important;
+            padding: 22px 18px !important;
+            gap: 16px !important;
+          }
+          .svc-trial-banner-cta {
+            width: 100%;
+          }
+          .svc-trial-banner-cta .svc-primary-btn { width: 100%; }
+          .svc-trial-banner-text {
+            flex: 1 1 100% !important;
+            align-items: flex-start !important;
+            text-align: left !important;
+            padding: 0 !important;
+          }
+          .svc-trial-banner-text > div:first-child,
+          .svc-trial-banner-text span { white-space: normal !important; }
+          .svc-hero-grid, .svc-two, .svc-compare, .svc-help, .svc-analytics-grid, .svc-faq-grid { grid-template-columns: 1fr !important; }
+          .svc-faq-aside { max-width: none !important; }
+          .svc-faq-art { max-width: 280px !important; margin-left: auto !important; margin-right: auto !important; }
           .svc-campaign-depth { grid-template-columns: 1fr !important; }
           .svc-campaign-depth > div:first-child { margin-top: 0 !important; max-width: none !important; }
           .svc-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
@@ -302,106 +413,18 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
             gap: 8px !important;
             margin-bottom: 10px !important;
           }
-          .svc-pricing-head-text { max-width: none !important; }
-          .svc-pricing-head-text > p { margin-top: 6px !important; font-size: 14px !important; line-height: 1.4 !important; }
-          .svc-pricing-toggle { margin-right: 0 !important; width: 100% !important; max-width: none !important; margin-top: 0 !important; }
-          .svc-pricing-hints { display: none !important; }
-          .svc-pricing-title { white-space: normal !important; }
-          .svc-pricing-title h2 { font-size: 24px !important; line-height: 1.2 !important; }
-          .svc-price {
-            gap: 8px !important;
+          .svc-pricing-head h2 { font-size: 24px !important; line-height: 1.2 !important; }
+          .svc-pricing-lead {
+            margin-top: 6px !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+            white-space: normal !important;
           }
-          .svc-price-card {
-            border-radius: 12px !important;
-            padding: 12px !important;
-            box-shadow: none !important;
-            gap: 10px !important;
-          }
-          .svc-price-card-main {
-            display: flex !important;
-            align-items: center !important;
-            gap: 10px !important;
-            width: 100%;
-            min-width: 0;
-          }
-          .svc-price-card-icon {
-            width: 32px !important;
-            height: 32px !important;
-            border-radius: 8px !important;
-            margin-bottom: 0 !important;
-            flex-shrink: 0 !important;
-          }
-          .svc-price-card-icon .anticon { font-size: 15px !important; }
-          .svc-price-card-info {
-            display: flex !important;
-            flex-direction: column !important;
-            flex: 1 !important;
-            min-width: 0 !important;
-            gap: 1px !important;
-          }
-          .svc-price-card-name { font-size: 16px !important; margin-bottom: 0 !important; line-height: 1.2 !important; }
-          .svc-price-card-cabinets { font-size: 12px !important; margin-bottom: 0 !important; line-height: 1.3 !important; }
-          .svc-price-card-amount {
-            margin-bottom: 0 !important;
-            min-height: 0 !important;
-            text-align: right !important;
-            flex-shrink: 0 !important;
-            max-width: 40%;
-          }
-          .svc-price-card-amount-value { font-size: 18px !important; line-height: 1.15 !important; }
-          .svc-price-card-amount-period { font-size: 11px !important; margin-top: 0 !important; }
-          .svc-price-card-btn {
-            height: 36px !important;
-            font-size: 13px !important;
-            border-radius: 10px !important;
-            margin-top: 0 !important;
-            width: 100% !important;
-            max-width: none !important;
-          }
-          /* Бейдж пересекается с ценой справа — на мобилке хватает фиолетовой рамки */
-          .svc-price-card-badge { display: none !important; }
-          .svc-price-included {
-            margin-top: 10px !important;
-            padding: 12px !important;
-            border-radius: 12px !important;
-            gap: 10px !important;
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          .svc-price-included-label {
-            font-size: 13px !important;
-            width: 100% !important;
-          }
-          .svc-price-included-divider { display: none !important; }
-          .svc-price-included-items {
-            gap: 8px !important;
-            flex-direction: column !important;
-            align-items: stretch !important;
-            width: 100% !important;
-          }
-          .svc-price-included-item {
-            gap: 8px !important;
-          }
-          .svc-price-included-item-icon {
-            width: 28px !important;
-            height: 28px !important;
-            border-radius: 8px !important;
-          }
-          .svc-price-included-item-icon .anticon { font-size: 13px !important; }
-          .svc-price-included-item-text { font-size: 12px !important; }
-          .svc-price-included-note {
-            padding: 8px 10px !important;
-            border-radius: 10px !important;
-            width: 100%;
-            font-size: 12px !important;
-            box-sizing: border-box;
-          }
+          .svc-price { gap: 10px !important; }
+          .svc-price-card { border-radius: 14px !important; padding: 16px 14px !important; }
           .svc-final-cta-btn { margin-right: 0 !important; width: 100%; }
           .svc-final-cta-btn .svc-primary-btn { width: 100%; }
           .svc-final-cta-card { padding: 24px 18px !important; }
-          .svc-hero-perks { gap: 14px !important; }
-          .svc-hero-perk { max-width: none !important; flex: 1 1 140px; }
-          .svc-hero-perk-text { white-space: normal !important; }
           .svc-help-card-title { white-space: normal !important; }
           .svc-help-card-desc { white-space: normal !important; }
           .svc-primary-btn { width: 100%; max-width: 420px; }
@@ -441,6 +464,43 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
             font-size: 13px !important;
             line-height: 1.4 !important;
           }
+          .svc-audience-head {
+            padding-right: 0 !important;
+            margin-bottom: 14px !important;
+          }
+          .svc-audience-callout {
+            display: none !important;
+          }
+          .svc-audience-title {
+            font-size: 24px !important;
+            line-height: 1.25 !important;
+          }
+          .svc-audience-title-line1 {
+            white-space: normal !important;
+          }
+          .svc-audience-lead {
+            margin-top: 6px !important;
+            font-size: 14px !important;
+            line-height: 1.4 !important;
+          }
+          .svc-audience {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+          .svc-audience-card {
+            padding: 14px !important;
+            border-radius: 14px !important;
+            min-height: 0 !important;
+          }
+          .svc-audience-art {
+            width: 64px !important;
+            height: 56px !important;
+          }
+          .svc-audience-card-title { font-size: 16px !important; }
+          .svc-audience-card-sub { font-size: 13px !important; margin-bottom: 8px !important; }
+          .svc-audience-problem { font-size: 12px !important; margin-bottom: 10px !important; }
+          .svc-audience-bullet { font-size: 12px !important; margin-bottom: 6px !important; }
+          .svc-audience-result { font-size: 12px !important; margin-top: 10px !important; }
           .svc-caps-head {
             max-width: none !important;
             margin-bottom: 12px !important;
@@ -512,8 +572,8 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                   display: 'inline-flex',
                   padding: '6px 12px',
                   borderRadius: landingRadii.pill,
-                  border: `1px solid ${svc.accent}`,
-                  color: svc.accent,
+                  background: svc.greenSoft,
+                  color: svc.text,
                   fontSize: 12,
                   fontWeight: 700,
                   letterSpacing: '0.04em',
@@ -523,48 +583,49 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               >
                 {serviceHero.badge}
               </div>
-              <h1 style={{ margin: '0 0 16px', fontSize: 'clamp(28px, 4vw, 48px)', lineHeight: 1.12, fontWeight: 700, color: svc.text }}>
-                {serviceHero.titleBefore}{' '}
-                <span style={{ color: svc.accent }}>{serviceHero.titleHighlight}</span>
+              <h1
+                style={{
+                  margin: '0 0 16px',
+                  fontSize: 'clamp(28px, 4vw, 48px)',
+                  lineHeight: 1.12,
+                  fontWeight: 700,
+                  color: svc.text,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                <span style={{ display: 'block', whiteSpace: 'nowrap' }}>{serviceHero.titleLine1}</span>
+                <span style={{ display: 'block' }}>
+                  {serviceHero.titleLine2Before}{' '}
+                  <span style={{ color: svc.accent }}>{serviceHero.titleLine2Highlight}</span>
+                </span>
+                <span style={{ display: 'block', color: svc.accent }}>{serviceHero.titleLine3}</span>
               </h1>
               <p style={{ margin: '0 0 24px', fontSize: 'clamp(16px, 2.5vw, 17px)', lineHeight: 1.55, color: svc.muted, maxWidth: 520 }}>
                 {serviceHero.subtitle}
               </p>
               <SvcPrimaryButton onClick={goRegister}>{serviceHero.cta}</SvcPrimaryButton>
-              <div className="svc-hero-perks" style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginTop: 28 }}>
-                {serviceHero.perks.map((p) => (
-                  <div
-                    key={p.title}
-                    className="svc-hero-perk"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      fontSize: 14,
-                      color: svc.text,
-                      fontWeight: 500,
-                      lineHeight: 1.25,
-                      maxWidth: 200,
-                    }}
-                  >
-                    <ToneIconBox tone={p.tone}>
-                      {p.icon === 'shield' ? (
-                        <SafetyCertificateOutlined />
-                      ) : p.icon === 'gear' ? (
-                        <SettingOutlined />
-                      ) : (
-                        <BarChartOutlined />
-                      )}
-                    </ToneIconBox>
-                    <span className="svc-hero-perk-text" style={{ whiteSpace: 'nowrap' }}>
-                      {p.lines.map((line) => (
-                        <span key={line} style={{ display: 'block' }}>
-                          {line}
-                        </span>
-                      ))}
+              <div
+                className="svc-hero-trial"
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  marginTop: 16,
+                  maxWidth: 420,
+                  color: svc.muted,
+                  fontSize: 14,
+                  lineHeight: 1.4,
+                  fontWeight: 500,
+                }}
+              >
+                <GiftOutlined style={{ fontSize: 18, marginTop: 1, flexShrink: 0, color: svc.accent }} />
+                <span>
+                  {serviceHero.trialNoteLines.map((line) => (
+                    <span key={line} style={{ display: 'block' }}>
+                      {line}
                     </span>
-                  </div>
-                ))}
+                  ))}
+                </span>
               </div>
             </div>
             <ServiceLandingHeroVisual />
@@ -704,6 +765,28 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               </div>
               <div className="svc-analytics-cta" style={{ marginTop: 28 }}>
                 <SvcPrimaryButton onClick={goRegister}>{serviceAnalyticsOverview.cta}</SvcPrimaryButton>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    marginTop: 16,
+                    maxWidth: 420,
+                    color: svc.muted,
+                    fontSize: 14,
+                    lineHeight: 1.4,
+                    fontWeight: 500,
+                  }}
+                >
+                  <GiftOutlined style={{ fontSize: 18, marginTop: 1, flexShrink: 0, color: svc.accent }} />
+                  <span>
+                    {serviceAnalyticsOverview.trialNoteLines.map((line) => (
+                      <span key={line} style={{ display: 'block' }}>
+                        {line}
+                      </span>
+                    ))}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="svc-analytics-visual">
@@ -798,11 +881,17 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       {/* Why separate */}
       <section style={svcSection()}>
         <div style={svcContainer()}>
-          <div style={{ maxWidth: 780, marginBottom: 24 }}>
-            <SvcTitle before={serviceWhySeparate.titleBefore} highlight={serviceWhySeparate.titleHighlight} />
-            <p style={{ margin: '12px 0 0', fontSize: 18, lineHeight: 1.55, color: svc.muted, maxWidth: 720 }}>
+          <div className="svc-why-head" style={{ maxWidth: 920, marginBottom: 24 }}>
+            <SvcTitle
+              before={serviceWhySeparate.titleBefore}
+              after={serviceWhySeparate.titleAfter}
+              highlight={serviceWhySeparate.titleHighlight}
+              afterOnNewLine={serviceWhySeparate.afterOnNewLine}
+              afterAccent={false}
+            />
+            <p className="svc-why-lead" style={{ margin: '12px 0 0', fontSize: 18, lineHeight: 1.55, color: svc.muted }}>
               {serviceWhySeparate.subtitleLines.map((line) => (
-                <span key={line} style={{ display: 'block' }}>
+                <span key={line} className="svc-why-lead-line" style={{ display: 'block', whiteSpace: 'nowrap' }}>
                   {line}
                 </span>
               ))}
@@ -911,29 +1000,21 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 size="lg"
                 lineHeight={1.05}
               />
-              <SvcLead>{serviceCampaignDepth.subtitle}</SvcLead>
-              <div style={{ marginTop: 22 }}>
-                <SvcPrimaryButton onClick={goRegister}>{serviceCampaignDepth.cta}</SvcPrimaryButton>
-              </div>
               <div className="svc-metrics">
                 {serviceCampaignDepth.metrics.map((m) => (
                   <div
                     key={m.label}
                     className="svc-metric-card"
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 10,
+                      gap: 8,
                       background: '#fff',
                       border: `1px solid ${svc.border}`,
                       borderRadius: 12,
-                      padding: '16px 12px',
-                      fontSize: 16,
+                      padding: '14px 10px',
+                      fontSize: 15,
                       fontWeight: 600,
                       color: svc.text,
                       boxShadow: '0 4px 12px rgba(15, 23, 42, 0.04)',
-                      textAlign: 'center',
                       minWidth: 0,
                     }}
                   >
@@ -941,9 +1022,13 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       className="svc-metric-icon"
                       style={{
                         color: m.tone === 'green' ? svc.green : svc.accent,
-                        fontSize: 24,
+                        fontSize: 22,
                         display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         flexShrink: 0,
+                        width: 24,
+                        height: 24,
                         lineHeight: 1,
                       }}
                     >
@@ -954,7 +1039,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       ) : m.icon === 'percent' ? (
                         <PercentageOutlined />
                       ) : m.icon === 'ruble' ? (
-                        <span style={{ fontWeight: 700, fontSize: 22, lineHeight: 1 }}>₽</span>
+                        <span style={{ fontWeight: 700, fontSize: 20, lineHeight: 1 }}>₽</span>
                       ) : m.icon === 'wallet' ? (
                         <WalletOutlined />
                       ) : m.icon === 'cart' ? (
@@ -965,11 +1050,50 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                         <PieChartOutlined />
                       )}
                     </span>
-                    <span style={{ whiteSpace: m.label.length > 10 ? 'normal' : 'nowrap', textAlign: 'center', lineHeight: 1.2 }}>
-                      {m.label}
+                    <span
+                      style={{
+                        textAlign: 'left',
+                        lineHeight: 1.2,
+                        minWidth: 0,
+                      }}
+                    >
+                      {m.label === 'Другие показатели' ? (
+                        <>
+                          Другие
+                          <br />
+                          показатели
+                        </>
+                      ) : (
+                        m.label
+                      )}
                     </span>
                   </div>
                 ))}
+              </div>
+              <div style={{ marginTop: 22 }}>
+                <SvcPrimaryButton onClick={goRegister}>{serviceCampaignDepth.cta}</SvcPrimaryButton>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    marginTop: 16,
+                    maxWidth: 420,
+                    color: svc.muted,
+                    fontSize: 14,
+                    lineHeight: 1.4,
+                    fontWeight: 500,
+                  }}
+                >
+                  <GiftOutlined style={{ fontSize: 18, marginTop: 1, flexShrink: 0, color: svc.accent }} />
+                  <span>
+                    {serviceCampaignDepth.trialNoteLines.map((line) => (
+                      <span key={line} style={{ display: 'block' }}>
+                        {line}
+                      </span>
+                    ))}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="svc-campaign-visual">
@@ -1279,6 +1403,217 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
         </div>
       </section>
 
+      {/* Audience — для кого сервис (макет audience-block-ref) */}
+      <section style={svcSection()}>
+        <div style={svcContainer()}>
+          <div className="svc-audience-head">
+            <div style={{ maxWidth: 780 }}>
+              <h2
+                className="svc-audience-title"
+                style={{
+                  margin: 0,
+                  fontSize: 'clamp(28px, 3.4vw, 42px)',
+                  lineHeight: 1.15,
+                  fontWeight: 700,
+                  letterSpacing: '-0.02em',
+                  color: svc.text,
+                }}
+              >
+                <span className="svc-audience-title-line1">
+                  <span style={{ color: svc.accent }}>{serviceAudience.titleBrand}</span>{' '}
+                  {serviceAudience.titleLine1}
+                </span>
+                <br />
+                {serviceAudience.titleLine2}
+              </h2>
+              <p
+                className="svc-audience-lead"
+                style={{
+                  margin: '12px 0 0',
+                  fontSize: 18,
+                  lineHeight: 1.55,
+                  color: svc.muted,
+                  maxWidth: 720,
+                }}
+              >
+                {serviceAudience.subtitleLine1}
+                <br />
+                {serviceAudience.subtitleLine2}
+              </p>
+            </div>
+            <div className="svc-audience-callout" aria-hidden>
+              {/* Слева у текста → дуга налево-вниз */}
+              <svg
+                className="svc-audience-callout-arrow"
+                viewBox="0 0 58 88"
+                fill="none"
+              >
+                <defs>
+                  <marker
+                    id="svc-audience-arrow-tip"
+                    markerWidth="8"
+                    markerHeight="8"
+                    refX="6"
+                    refY="4"
+                    orient="auto"
+                    markerUnits="strokeWidth"
+                  >
+                    <path d="M1 1 L7 4 L1 7" fill="none" stroke="#7C3AED" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                  </marker>
+                </defs>
+                {/* Короче; старт примерно со 2–3 строки → налево-вниз */}
+                <path
+                  d="M52 4
+                     C 36 16, 18 32, 10 50
+                     C 4 62, 4 74, 8 84"
+                  stroke="#7C3AED"
+                  strokeWidth="2.1"
+                  strokeLinecap="round"
+                  fill="none"
+                  markerEnd="url(#svc-audience-arrow-tip)"
+                />
+              </svg>
+              <div className="svc-audience-callout-text">
+                {serviceAudience.calloutLines.join('\n')}
+              </div>
+            </div>
+          </div>
+          <div className="svc-audience">
+            {serviceAudience.items.map((item) => {
+              const tone = item.tone as SvcTone
+              const accent = toneColor(tone)
+              const soft = toneSoftBg(tone)
+              const glyph =
+                tone === 'green' ? (
+                  <ShoppingCartOutlined />
+                ) : tone === 'blue' ? (
+                  <TeamOutlined />
+                ) : tone === 'violet' ? (
+                  <ReadOutlined />
+                ) : (
+                  <UserOutlined />
+                )
+              return (
+                <div
+                  key={item.title}
+                  className="svc-audience-card"
+                  style={{
+                    background: `linear-gradient(180deg, ${soft} 0%, #FFFFFF 42%)`,
+                    border: `1px solid ${svc.border}`,
+                    borderRadius: 20,
+                    padding: '18px 16px 16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 420,
+                    boxSizing: 'border-box',
+                    boxShadow: '0 10px 28px rgba(15, 23, 42, 0.04)',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      marginBottom: 14,
+                    }}
+                  >
+                    <ToneIconBox tone={tone}>{glyph}</ToneIconBox>
+                    <img
+                      className="svc-audience-art"
+                      src={item.art}
+                      alt=""
+                      style={{
+                        width: 96,
+                        height: 84,
+                        objectFit: 'contain',
+                        display: 'block',
+                        flexShrink: 0,
+                        /* Белый фон иконки растворяется на светлой карточке */
+                        mixBlendMode: 'multiply',
+                      }}
+                    />
+                  </div>
+                  <div
+                    className="svc-audience-card-title"
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 17,
+                      lineHeight: 1.25,
+                      color: svc.text,
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    {item.title}
+                  </div>
+                  <div
+                    className="svc-audience-card-sub"
+                    style={{
+                      marginTop: 4,
+                      marginBottom: 12,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: accent,
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    {item.subtitle}
+                  </div>
+                  <div
+                    className="svc-audience-problem"
+                    style={{
+                      fontSize: 13,
+                      lineHeight: 1.45,
+                      color: svc.muted,
+                      marginBottom: 14,
+                    }}
+                  >
+                    {item.problem}
+                  </div>
+                  <div style={{ display: 'grid', gap: 8, flex: 1 }}>
+                    {item.bullets.map((bullet) => (
+                      <div
+                        key={bullet}
+                        className="svc-audience-bullet"
+                        style={{
+                          display: 'flex',
+                          gap: 8,
+                          alignItems: 'flex-start',
+                          fontSize: 13,
+                          lineHeight: 1.4,
+                          color: svc.text,
+                        }}
+                      >
+                        <CheckCircleFilled
+                          style={{ color: accent, fontSize: 14, marginTop: 2, flexShrink: 0 }}
+                        />
+                        <span>{bullet}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div
+                    className="svc-audience-result"
+                    style={{
+                      marginTop: 16,
+                      display: 'flex',
+                      gap: 8,
+                      alignItems: 'flex-start',
+                      fontSize: 13,
+                      lineHeight: 1.4,
+                      fontWeight: 600,
+                      color: accent,
+                    }}
+                  >
+                    <ArrowRightOutlined style={{ fontSize: 13, marginTop: 3, flexShrink: 0 }} />
+                    <span>{item.result}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* Capabilities — макет: 6 карточек в ряд, иконки из макета 7.png */}
       <section id={SERVICE_LANDING_ANCHORS.features} style={svcSection()}>
         <div style={svcContainer()}>
@@ -1312,11 +1647,13 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                   src={item.icon}
                   alt=""
                   style={{
-                    width: 56,
-                    height: 56,
+                    width: 72,
+                    height: 72,
                     objectFit: 'contain',
                     display: 'block',
                     marginBottom: 14,
+                    /* Белый фон clay-иконки растворяется на светлой карточке */
+                    mixBlendMode: 'multiply',
                   }}
                 />
                 <div className="svc-cap-body">
@@ -1364,7 +1701,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 <div
                   style={{
                     display: 'flex',
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     gap: 14,
                     marginBottom: 16,
                   }}
@@ -1378,11 +1715,63 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       objectFit: 'contain',
                       flexShrink: 0,
                       display: 'block',
-                      borderRadius: 16,
+                      /* Белый фон clay-иконки растворяется на цветной карточке */
+                      mixBlendMode: 'multiply',
                     }}
                   />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 20, lineHeight: 1.25 }}>{p.title}</div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        flexWrap: 'nowrap',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 20,
+                          lineHeight: 1.25,
+                          minWidth: 0,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {p.title}
+                      </div>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          flexShrink: 0,
+                          padding: '4px 8px',
+                          borderRadius: landingRadii.pill,
+                          border: `1px solid ${p.badge.tone === 'green' ? svc.green : svc.accent}`,
+                          background: p.badge.tone === 'green' ? svc.greenSoft : svc.accentSoft,
+                          color: p.badge.tone === 'green' ? svc.greenDark : svc.accent,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: '0.03em',
+                          textTransform: 'uppercase',
+                          lineHeight: 1.2,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <span
+                          aria-hidden
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: p.badge.tone === 'green' ? svc.green : svc.accent,
+                            flexShrink: 0,
+                          }}
+                        />
+                        {p.badge.label}
+                      </span>
+                    </div>
                     <div style={{ color: svc.muted, fontSize: 13, marginTop: 6, lineHeight: 1.4 }}>
                       {p.subtitle}
                     </div>
@@ -1434,6 +1823,169 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
         </div>
       </section>
 
+      {/* Trial banner — после продуктов */}
+      <section style={{ ...svcSection({ paddingTop: 8, paddingBottom: 8 }) }}>
+        <div style={svcContainer()}>
+          <div
+            className="svc-trial-banner"
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 24,
+              /* Справа запас под декор — кнопка чуть левее края */
+              padding: '32px 72px 32px 40px',
+              background: '#FFFFFF',
+              border: `1px solid ${svc.border}`,
+              borderRadius: 24,
+              boxShadow: '0 12px 40px rgba(124, 58, 237, 0.08)',
+              overflow: 'hidden',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                top: -40,
+                right: -20,
+                width: 220,
+                height: 220,
+                borderRadius: '50%',
+                border: '28px solid rgba(124, 58, 237, 0.06)',
+                pointerEvents: 'none',
+              }}
+            />
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                bottom: -60,
+                right: 80,
+                width: 180,
+                height: 180,
+                borderRadius: '50%',
+                border: '24px solid rgba(124, 58, 237, 0.05)',
+                pointerEvents: 'none',
+              }}
+            />
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                top: 18,
+                right: 28,
+                color: svc.accent,
+                fontSize: 14,
+                opacity: 0.55,
+                pointerEvents: 'none',
+              }}
+            >
+              ✦
+            </div>
+
+            <div
+              className="svc-trial-banner-icon"
+              style={{
+                position: 'relative',
+                width: 72,
+                height: 72,
+                borderRadius: 18,
+                background: svc.accentSoft,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1,
+              }}
+            >
+              <GiftOutlined style={{ fontSize: 30, color: svc.accent }} />
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: 10,
+                  left: 8,
+                  width: 10,
+                  height: 2,
+                  borderRadius: 2,
+                  background: svc.green,
+                  transform: 'rotate(-35deg)',
+                  opacity: 0.95,
+                }}
+              />
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: 6,
+                  left: 14,
+                  width: 7,
+                  height: 2,
+                  borderRadius: 2,
+                  background: svc.green,
+                  transform: 'rotate(-10deg)',
+                  opacity: 0.85,
+                }}
+              />
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: 14,
+                  left: 4,
+                  width: 6,
+                  height: 2,
+                  borderRadius: 2,
+                  background: svc.green,
+                  transform: 'rotate(-55deg)',
+                  opacity: 0.8,
+                }}
+              />
+            </div>
+
+            <div
+              className="svc-trial-banner-text"
+              style={{
+                minWidth: 0,
+                flex: '1 1 auto',
+                zIndex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                padding: '0 16px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 'clamp(22px, 2.5vw, 30px)',
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.02em',
+                  color: svc.text,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {serviceTrialBanner.titleBefore}{' '}
+                <span style={{ color: svc.accent }}>{serviceTrialBanner.titleHighlight}</span>
+              </div>
+              <div style={{ marginTop: 8, color: svc.muted, fontSize: 15, lineHeight: 1.45 }}>
+                {serviceTrialBanner.lines.map((line) => (
+                  <span key={line} style={{ display: 'block', whiteSpace: 'nowrap' }}>
+                    {line}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* padding справа у баннера — кнопка чуть левее края */}
+            <div className="svc-trial-banner-cta" style={{ flexShrink: 0, zIndex: 1 }}>
+              <SvcPrimaryButton onClick={goRegister}>{serviceTrialBanner.cta}</SvcPrimaryButton>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* About */}
       <section id={SERVICE_LANDING_ANCHORS.about} className="svc-section-soft" style={svcSection()}>
         <div style={svcContainer()}>
@@ -1441,7 +1993,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
             className="svc-two svc-about-grid"
             style={{ gridTemplateColumns: '0.72fr 1.28fr', alignItems: 'center', gap: 8 }}
           >
-            <div className="svc-about-text" style={{ maxWidth: 400, marginLeft: 20 }}>
+            <div className="svc-about-text" style={{ maxWidth: 460, marginLeft: 20 }}>
               <SvcTitle
                 before={serviceAbout.titleBefore}
                 highlight={serviceAbout.titleHighlight}
@@ -1671,431 +2223,381 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* Pricing — продукт-карточки как на макете */}
       <section id={SERVICE_LANDING_ANCHORS.pricing} className="svc-section-soft" style={svcSection()}>
         <div style={svcContainer()}>
-          <div
-            className="svc-pricing-head"
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              gap: 24,
-              marginBottom: 22,
-            }}
-          >
-            <div className="svc-pricing-head-text" style={{ maxWidth: 720, minWidth: 0 }}>
-              <div className="svc-pricing-title">
-                <SvcTitle
-                  before={servicePricing.titleBefore}
-                  highlight={servicePricing.titleHighlight}
-                  size="lg"
-                  lineHeight={1.15}
-                />
-              </div>
-              <SvcLead large>{servicePricing.subtitle}</SvcLead>
-            </div>
-
-            {/* Переключатель справа, чуть левее от края */}
-            <div className="svc-pricing-toggle">
-              <div
-                className="svc-pricing-hints"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  columnGap: 12,
-                  marginBottom: 6,
-                  minHeight: 70,
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: svc.accent,
-                      lineHeight: 1.25,
-                      whiteSpace: 'pre-line',
-                    }}
-                  >
-                    {servicePricing.periodHintTwoWeeks}
-                  </div>
-                  {/* Сверху вниз и направо → в «2 недели»; кончик через marker */}
-                  <svg width="54" height="30" viewBox="0 0 54 30" aria-hidden style={{ display: 'block', marginTop: 2, marginLeft: 28 }}>
-                    <defs>
-                      <marker
-                        id="svc-arr-purple"
-                        markerWidth="7"
-                        markerHeight="7"
-                        refX="5"
-                        refY="3.5"
-                        orient="auto"
-                        markerUnits="strokeWidth"
-                      >
-                        <path
-                          d="M1 1 L5.5 3.5 L1 6"
-                          fill="none"
-                          stroke={svc.accent}
-                          strokeWidth="1.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </marker>
-                    </defs>
-                    <path
-                      d="M4 2 C 10 10, 24 18, 40 25"
-                      fill="none"
-                      stroke={svc.accent}
-                      strokeWidth="1.55"
-                      strokeLinecap="round"
-                      markerEnd="url(#svc-arr-purple)"
-                    />
-                  </svg>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, marginTop: 8, marginLeft: 18, transform: 'translateX(80px)' }}>
-                  {/* Стрелка слева, текст правее стрелочки */}
-                  <svg width="48" height="40" viewBox="0 0 48 40" aria-hidden style={{ display: 'block', flexShrink: 0, marginTop: 22 }}>
-                    <defs>
-                      <marker
-                        id="svc-arr-green"
-                        markerWidth="7"
-                        markerHeight="7"
-                        refX="5"
-                        refY="3.5"
-                        orient="auto"
-                        markerUnits="strokeWidth"
-                      >
-                        <path
-                          d="M1 1 L5.5 3.5 L1 6"
-                          fill="none"
-                          stroke="#3D9B1C"
-                          strokeWidth="1.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </marker>
-                    </defs>
-                    <path
-                      d="M40 2 C 30 10, 18 20, 8 34"
-                      fill="none"
-                      stroke="#3D9B1C"
-                      strokeWidth="1.55"
-                      strokeLinecap="round"
-                      markerEnd="url(#svc-arr-green)"
-                    />
-                  </svg>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: '#3D9B1C',
-                      lineHeight: 1.25,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <div>Выгоднее для</div>
-                    <div>постоянной</div>
-                    <div>работы</div>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  width: '100%',
-                  background: '#fff',
-                  borderRadius: landingRadii.pill,
-                  border: `1px solid ${svc.border}`,
-                  padding: 4,
-                  boxShadow: '0 8px 22px rgba(15, 23, 42, 0.06)',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setPeriod('twoWeeks')}
-                  style={{
-                    flex: 1,
-                    border: 'none',
-                    borderRadius: landingRadii.pill,
-                    height: 40,
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    fontSize: 14,
-                    background: period === 'twoWeeks' ? svc.accent : 'transparent',
-                    color: period === 'twoWeeks' ? '#fff' : svc.text,
-                  }}
-                >
-                  2 недели
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPeriod('month')}
-                  style={{
-                    flex: 1,
-                    border: 'none',
-                    borderRadius: landingRadii.pill,
-                    height: 40,
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    fontSize: 14,
-                    background: period === 'month' ? svc.accent : 'transparent',
-                    color: period === 'month' ? '#fff' : svc.text,
-                  }}
-                >
-                  1 месяц
-                </button>
-              </div>
-            </div>
+          <div className="svc-pricing-head" style={{ marginBottom: 28 }}>
+            <SvcTitle
+              before={servicePricing.titleBefore}
+              highlight={servicePricing.titleHighlight}
+              size="lg"
+              lineHeight={1.15}
+            />
+            <p
+              className="svc-pricing-lead"
+              style={{
+                margin: '16px 0 0',
+                fontSize: 20,
+                lineHeight: 1.55,
+                color: svc.muted,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {servicePricing.subtitle}
+            </p>
           </div>
 
           <div className="svc-price">
             {servicePricing.plans.map((plan) => {
-              const tierId = plan.id as LandingMainTierId | 'custom'
-              const fromApi = tierId !== 'custom' ? tierPrices[tierId] : null
-              const price = fromApi
-                ? (period === 'twoWeeks' ? fromApi.twoWeeks : fromApi.month)
-                : null
-              const iconTone = plan.icon === 'building' ? 'green' : 'purple'
-              const PlanIcon =
-                plan.icon === 'user'
-                  ? UserOutlined
-                  : plan.icon === 'chart'
-                    ? BarChartOutlined
-                    : plan.icon === 'team'
-                      ? TeamOutlined
-                      : ApartmentOutlined
+              const cardBg =
+                plan.tone === 'green'
+                  ? '#F0FDF4'
+                  : plan.tone === 'blue'
+                    ? '#EFF6FF'
+                    : plan.tone === 'amber'
+                      ? '#FFFBEB'
+                      : '#F5F3FF'
+              const checkColor =
+                plan.checkTone === 'green'
+                  ? '#16A34A'
+                  : plan.checkTone === 'amber'
+                    ? '#EA580C'
+                    : svc.accent
+              const priceLabel =
+                plan.priceMode === 'fixed'
+                  ? plan.priceFixed
+                  : plan.priceMode === 'campaignManageFrom'
+                    ? productPrices.campaignManageFrom != null
+                      ? formatLandingPrice(productPrices.campaignManageFrom)
+                      : '—'
+                    : plan.priceMode === 'abTestFrom'
+                      ? productPrices.abTestFrom != null
+                        ? formatLandingPrice(productPrices.abTestFrom)
+                        : '—'
+                      : productPrices.fullAccessFrom != null
+                        ? formatLandingPrice(productPrices.fullAccessFrom)
+                        : '—'
               return (
                 <div
                   key={plan.id}
                   className="svc-price-card"
                   style={{
-                    background: '#fff',
+                    background: cardBg,
                     borderRadius: 20,
-                    padding: '24px 22px 22px',
-                    border: plan.popular ? `2px solid ${svc.accent}` : `1px solid ${svc.border}`,
-                    position: 'relative',
+                    padding: '22px 20px 24px',
+                    border: `1px solid ${svc.border}`,
                     display: 'flex',
                     flexDirection: 'column',
-                    boxShadow: plan.popular
-                      ? '0 14px 36px rgba(124, 58, 237, 0.12)'
-                      : '0 8px 24px rgba(15, 23, 42, 0.04)',
                     boxSizing: 'border-box',
+                    minWidth: 0,
                   }}
                 >
-                  {plan.popular ? (
-                    <span
-                      className="svc-price-card-badge"
-                      style={{
-                        position: 'absolute',
-                        top: 14,
-                        right: 14,
-                        background: svc.accent,
-                        color: '#fff',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        borderRadius: 999,
-                        padding: '5px 12px',
-                      }}
-                    >
-                      ★ Популярный
-                    </span>
-                  ) : null}
-                  <div className="svc-price-card-main" style={{ display: 'contents' }}>
-                    <div
-                      className="svc-price-card-icon"
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 12,
-                        background: iconTone === 'green' ? svc.greenSoft : svc.accentSoft,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: 16,
-                      }}
-                    >
-                      <PlanIcon
-                        style={{
-                          color: iconTone === 'green' ? '#65A30D' : svc.accent,
-                          fontSize: 20,
-                        }}
-                      />
-                    </div>
-                    <div className="svc-price-card-info" style={{ display: 'contents' }}>
-                      <div className="svc-price-card-name" style={{ fontWeight: 700, fontSize: 22, color: svc.text, marginBottom: 4 }}>
-                        {plan.name}
-                      </div>
-                      <div className="svc-price-card-cabinets" style={{ color: svc.muted, fontSize: 14, marginBottom: 18 }}>{plan.cabinets}</div>
-                    </div>
-                    {plan.id === 'custom' ? (
-                      <div
-                        className="svc-price-card-amount svc-price-card-amount-value"
-                        style={{
-                          fontSize: 22,
-                          fontWeight: 700,
-                          color: svc.text,
-                          lineHeight: 1.25,
-                          marginBottom: 28,
-                          minHeight: 52,
-                        }}
-                      >
-                        Индивидуальные условия
-                      </div>
-                    ) : (
-                      <div className="svc-price-card-amount" style={{ marginBottom: 28, minHeight: 52 }}>
-                        <div className="svc-price-card-amount-value" style={{ fontSize: 32, fontWeight: 700, color: svc.text, letterSpacing: '-0.02em' }}>
-                          {price != null ? formatPrice(price) : '—'}
-                        </div>
-                        <div className="svc-price-card-amount-period" style={{ color: svc.muted, fontSize: 14, marginTop: 4 }}>{pricingPeriodLabel}</div>
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    className={plan.popular ? 'svc-primary-btn svc-price-card-btn' : 'svc-price-card-btn'}
-                    onClick={() => {
-                      if ('consultation' in plan && plan.consultation) {
-                        onOpenLeadForm({ type: 'consultation', source: 'landing-service-pricing' })
-                        return
-                      }
-                      if ('to' in plan && plan.to) navigate(plan.to)
-                    }}
+                  <div
+                    className="svc-price-card-head"
                     style={{
-                      marginTop: 'auto',
-                      height: 46,
-                      borderRadius: 12,
-                      border: plan.popular ? 'none' : `1px solid ${svc.border}`,
-                      background: plan.popular ? svc.accent : '#fff',
-                      color: plan.popular ? '#fff' : svc.text,
-                      fontWeight: 600,
-                      fontSize: 15,
-                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                      /* Фиксированная высота шапки — цены строго на одной линии */
+                      height: 88,
+                      flexShrink: 0,
+                      overflow: 'hidden',
                     }}
                   >
-                    {plan.cta}
-                  </button>
+                    <img
+                      src={plan.icon}
+                      alt=""
+                      style={{
+                        width: 52,
+                        height: 52,
+                        objectFit: 'contain',
+                        flexShrink: 0,
+                        display: 'block',
+                        mixBlendMode: 'multiply',
+                      }}
+                    />
+                    <div style={{ minWidth: 0, flex: 1, paddingTop: 2 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                          flexWrap: 'nowrap',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: 18,
+                            lineHeight: 1.25,
+                            color: svc.text,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {plan.name}
+                        </div>
+                        {'badge' in plan && plan.badge ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              flexShrink: 0,
+                              padding: '3px 8px',
+                              borderRadius: landingRadii.pill,
+                              border: `1px solid ${plan.badge.tone === 'green' ? svc.green : svc.accent}`,
+                              background: plan.badge.tone === 'green' ? svc.greenSoft : svc.accentSoft,
+                              color: plan.badge.tone === 'green' ? svc.greenDark : svc.accent,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              letterSpacing: '0.03em',
+                              textTransform: 'uppercase',
+                              lineHeight: 1.2,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <span
+                              aria-hidden
+                              style={{
+                                width: 5,
+                                height: 5,
+                                borderRadius: '50%',
+                                background: plan.badge.tone === 'green' ? svc.green : svc.accent,
+                              }}
+                            />
+                            {plan.badge.label}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div style={{ color: svc.muted, fontSize: 13, lineHeight: 1.4, marginTop: 6 }}>
+                        {plan.description}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className="svc-price-card-amount"
+                    style={{ flexShrink: 0, marginTop: 10, marginBottom: 12, minHeight: 58 }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+                      {'pricePrefix' in plan && plan.pricePrefix ? (
+                        <span style={{ fontSize: 16, fontWeight: 600, color: svc.muted }}>{plan.pricePrefix}</span>
+                      ) : null}
+                      <span
+                        style={{
+                          fontSize: 32,
+                          fontWeight: 700,
+                          color: svc.text,
+                          letterSpacing: '-0.02em',
+                          lineHeight: 1.1,
+                        }}
+                      >
+                        {priceLabel}
+                      </span>
+                    </div>
+                    {'period' in plan && plan.period ? (
+                      <div style={{ color: svc.muted, fontSize: 14, marginTop: 4 }}>{plan.period}</div>
+                    ) : (
+                      <div style={{ height: 22 }} aria-hidden />
+                    )}
+                  </div>
+
+                  <div
+                    className="svc-price-card-bullets"
+                    style={{
+                      flexShrink: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                      marginTop: 'auto',
+                    }}
+                  >
+                    {plan.bullets.map((b) => (
+                      <div
+                        key={b}
+                        className="svc-price-card-bullet"
+                        style={{
+                          display: 'flex',
+                          gap: 8,
+                          fontSize: 13,
+                          lineHeight: 1.4,
+                          color: svc.text,
+                          alignItems: 'flex-start',
+                        }}
+                      >
+                        <CheckCircleFilled style={{ color: checkColor, marginTop: 2, flexShrink: 0 }} />
+                        <span>{b}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )
             })}
           </div>
+        </div>
+      </section>
 
+      {/* Trial banner — после тарифов */}
+      <section style={{ ...svcSection({ paddingTop: 8, paddingBottom: 8 }) }}>
+        <div style={svcContainer()}>
           <div
-            className="svc-price-included"
+            className="svc-trial-banner"
             style={{
-              marginTop: 24,
-              background: '#F5F3FF',
-              borderRadius: 18,
-              padding: '16px 18px',
+              position: 'relative',
               display: 'flex',
-              flexWrap: 'wrap',
-              gap: 16,
               alignItems: 'center',
+              gap: 24,
+              padding: '32px 72px 32px 40px',
+              background: '#FFFFFF',
+              border: `1px solid ${svc.border}`,
+              borderRadius: 24,
+              boxShadow: '0 12px 40px rgba(124, 58, 237, 0.08)',
+              overflow: 'hidden',
+              boxSizing: 'border-box',
             }}
           >
-            <div className="svc-price-included-label" style={{ fontSize: 14, lineHeight: 1.3, color: svc.accent, flexShrink: 0 }}>
-              <div>Во все тарифы</div>
-              <div style={{ fontWeight: 700 }}>включены все возможности:</div>
-            </div>
             <div
-              className="svc-price-included-divider"
               aria-hidden
               style={{
-                width: 1,
-                alignSelf: 'stretch',
-                minHeight: 44,
-                background: 'rgba(124, 58, 237, 0.18)',
-                flexShrink: 0,
+                position: 'absolute',
+                top: -40,
+                right: -20,
+                width: 220,
+                height: 220,
+                borderRadius: '50%',
+                border: '28px solid rgba(124, 58, 237, 0.06)',
+                pointerEvents: 'none',
               }}
             />
             <div
-              className="svc-price-included-items"
+              aria-hidden
               style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 20,
-                alignItems: 'center',
-                flex: 1,
-                minWidth: 0,
+                position: 'absolute',
+                bottom: -60,
+                right: 80,
+                width: 180,
+                height: 180,
+                borderRadius: '50%',
+                border: '24px solid rgba(124, 58, 237, 0.05)',
+                pointerEvents: 'none',
+              }}
+            />
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                top: 18,
+                right: 28,
+                color: svc.green,
+                fontSize: 14,
+                opacity: 0.7,
+                pointerEvents: 'none',
               }}
             >
-              {servicePricing.includedItems.map((item) => {
-                const ItemIcon =
-                  item.icon === 'chart'
-                    ? BarChartOutlined
-                    : item.icon === 'photo'
-                      ? PictureOutlined
-                      : ClockCircleOutlined
-                return (
-                  <div
-                    key={item.lines.join(' ')}
-                    className="svc-price-included-item"
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}
-                  >
-                    <span
-                      className="svc-price-included-item-icon"
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: 10,
-                        background: '#EDE9FE',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <ItemIcon style={{ color: svc.accent, fontSize: 16 }} />
-                    </span>
-                    <div className="svc-price-included-item-text" style={{ fontSize: 13, lineHeight: 1.3, color: svc.text, fontWeight: 600 }}>
-                      {item.lines.map((line) => (
-                        <div key={line}>{line}</div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
+              ✦
             </div>
+
             <div
-              className="svc-price-included-note"
+              className="svc-trial-banner-icon"
               style={{
-                background: svc.greenSoft,
-                color: svc.greenDark,
-                borderRadius: 14,
-                padding: '10px 14px',
-                fontSize: 13,
-                fontWeight: 700,
-                lineHeight: 1.3,
+                position: 'relative',
+                width: 72,
+                height: 72,
+                borderRadius: 18,
+                background: svc.accentSoft,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
+                justifyContent: 'center',
+                zIndex: 1,
                 flexShrink: 0,
               }}
             >
+              <GiftOutlined style={{ fontSize: 30, color: svc.accent }} />
               <span
+                aria-hidden
                 style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
-                  background: '#22C55E',
-                  color: '#fff',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                  flexShrink: 0,
+                  position: 'absolute',
+                  top: 10,
+                  right: 8,
+                  width: 10,
+                  height: 2,
+                  borderRadius: 2,
+                  background: svc.green,
+                  transform: 'rotate(35deg)',
+                  opacity: 0.95,
+                }}
+              />
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: 6,
+                  right: 14,
+                  width: 7,
+                  height: 2,
+                  borderRadius: 2,
+                  background: svc.green,
+                  transform: 'rotate(10deg)',
+                  opacity: 0.85,
+                }}
+              />
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  top: 14,
+                  right: 4,
+                  width: 6,
+                  height: 2,
+                  borderRadius: 2,
+                  background: svc.green,
+                  transform: 'rotate(55deg)',
+                  opacity: 0.8,
+                }}
+              />
+            </div>
+
+            <div
+              className="svc-trial-banner-text"
+              style={{
+                minWidth: 0,
+                flex: '1 1 auto',
+                zIndex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                padding: '0 16px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 'clamp(22px, 2.5vw, 30px)',
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.02em',
+                  color: svc.text,
                 }}
               >
-                ✓
-              </span>
-              <div>
-                {servicePricing.onlyCabinetsLines.map((line) => (
-                  <div key={line}>{line}</div>
+                <span style={{ display: 'block', whiteSpace: 'nowrap' }}>
+                  {servicePricingTrialBanner.titleBefore}
+                </span>
+                <span style={{ display: 'block', color: svc.accent, whiteSpace: 'nowrap' }}>
+                  {servicePricingTrialBanner.titleHighlight}
+                </span>
+              </div>
+              <div style={{ marginTop: 8, color: svc.muted, fontSize: 15, lineHeight: 1.45 }}>
+                {servicePricingTrialBanner.lines.map((line) => (
+                  <span key={line} style={{ display: 'block', whiteSpace: 'nowrap' }}>
+                    {line}
+                  </span>
                 ))}
               </div>
+            </div>
+
+            <div className="svc-trial-banner-cta" style={{ flexShrink: 0, zIndex: 1 }}>
+              <SvcPrimaryButton onClick={goRegister}>{servicePricingTrialBanner.cta}</SvcPrimaryButton>
             </div>
           </div>
         </div>
@@ -2208,13 +2710,42 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
       {/* FAQ */}
       <section id={SERVICE_LANDING_ANCHORS.faq} className="svc-section-soft" style={svcSection()}>
         <div style={svcContainer()}>
-          <div className="svc-two" style={{ alignItems: 'start' }}>
-            <div>
+          <div
+            className="svc-two svc-faq-grid"
+            style={{ alignItems: 'start', gridTemplateColumns: '1fr 1.15fr', gap: 28 }}
+          >
+            <div className="svc-faq-aside" style={{ maxWidth: 540 }}>
               <SvcTitle before={serviceFaq.titleBefore} highlight={serviceFaq.titleHighlight} />
-              <SvcLead>{serviceFaq.subtitle}</SvcLead>
-              <img className="svc-img" src={serviceLandingAssets.faq} alt="" style={{ marginTop: 24, maxWidth: 420 }} />
+              <p
+                style={{
+                  margin: '12px 0 0',
+                  fontSize: 16,
+                  lineHeight: 1.55,
+                  color: svc.muted,
+                  maxWidth: 520,
+                }}
+              >
+                {serviceFaq.subtitle}
+              </p>
+              <img
+                className="svc-img svc-faq-art"
+                src={serviceLandingAssets.faq}
+                alt=""
+                style={{
+                  marginTop: 22,
+                  maxWidth: 380,
+                  width: '100%',
+                  display: 'block',
+                  marginLeft: 28,
+                }}
+              />
             </div>
-            <Collapse items={faqItems} bordered={false} style={{ background: 'transparent' }} />
+            <Collapse
+              className="svc-faq-collapse"
+              items={faqItems}
+              bordered={false}
+              style={{ background: 'transparent', fontSize: 17 }}
+            />
           </div>
         </div>
       </section>
@@ -2305,20 +2836,46 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
               boxShadow: '0 16px 40px rgba(15, 23, 42, 0.06)',
               display: 'flex',
               flexWrap: 'wrap',
-              gap: 24,
+              gap: 28,
               alignItems: 'center',
               justifyContent: 'space-between',
             }}
           >
-            <div style={{ maxWidth: 620, flex: '1 1 280px', minWidth: 0 }}>
+            <div style={{ flex: '1 1 420px', minWidth: 0, maxWidth: 560 }}>
               <h2 style={{ margin: 0, fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 700, lineHeight: 1.2 }}>
-                {serviceFinalCta.titleBefore}{' '}
-                <span style={{ color: svc.accent }}>{serviceFinalCta.titleHighlight}</span>
+                <span style={{ display: 'block' }}>{serviceFinalCta.titleBefore}</span>
+                <span style={{ display: 'block', color: svc.accent }}>{serviceFinalCta.titleHighlight}</span>
               </h2>
-              <p style={{ margin: '12px 0 0', color: svc.muted, lineHeight: 1.55, fontSize: 16 }}>{serviceFinalCta.subtitle}</p>
+              <p style={{ margin: '12px 0 0', color: svc.muted, lineHeight: 1.55, fontSize: 16, maxWidth: 520 }}>
+                {serviceFinalCta.subtitle}
+              </p>
             </div>
-            <div className="svc-final-cta-btn">
+            <div
+              className="svc-final-cta-btn"
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
+            >
               <SvcPrimaryButton onClick={goRegister}>{serviceFinalCta.cta}</SvcPrimaryButton>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  marginTop: 14,
+                  color: svc.muted,
+                  fontSize: 14,
+                  lineHeight: 1.4,
+                  fontWeight: 500,
+                }}
+              >
+                <GiftOutlined style={{ fontSize: 18, marginTop: 1, flexShrink: 0, color: svc.accent }} />
+                <span>
+                  {serviceFinalCta.trialNoteLines.map((line) => (
+                    <span key={line} style={{ display: 'block', whiteSpace: 'nowrap' }}>
+                      {line}
+                    </span>
+                  ))}
+                </span>
+              </div>
             </div>
           </div>
         </div>
