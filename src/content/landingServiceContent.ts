@@ -291,7 +291,7 @@ export const serviceLessManual = {
 
 /** Блок «для кого» — между «Меньше ручной работы» и «Что можно делать». */
 export const serviceAudience = {
-  titleBrand: 'Click-i —',
+  titleBrand: 'Clicki —',
   titleLine1: 'результаты, которые видно.',
   titleLine2: 'Работа, которую можно доказать.',
   subtitleLine1: 'Сервис помогает тем, кто работает с рекламой на Wildberries —',
@@ -305,8 +305,10 @@ export const serviceAudience = {
   items: [
     {
       tone: 'purple' as const,
-      title: 'Менеджеры Wildberries',
-      subtitle: 'Докажите клиенту свою ценность',
+      titleLine1: 'Менеджеры',
+      titleLine2: 'Wildberries',
+      subtitleLine1: 'Докажите клиенту',
+      subtitleLine2: 'свою ценность',
       problem:
         'Клиент не видит результат вашей работы — и начинает задумываться о смене менеджера?',
       bullets: [
@@ -319,8 +321,10 @@ export const serviceAudience = {
     },
     {
       tone: 'green' as const,
-      title: 'Селлеры на Wildberries',
-      subtitle: 'Держите бизнес под контролем',
+      titleLine1: 'Селлеры на',
+      titleLine2: 'Wildberries',
+      subtitleLine1: 'Держите бизнес',
+      subtitleLine2: 'под контролем',
       problem: 'Что изменилось в рекламе сегодня и насколько эффективно работает ваш менеджер?',
       bullets: [
         'Отслеживайте ежедневную динамику рекламных показателей.',
@@ -332,8 +336,10 @@ export const serviceAudience = {
     },
     {
       tone: 'blue' as const,
-      title: 'Агентства и команды',
-      subtitle: 'Контролируйте команду и повышайте продления',
+      titleLine1: 'Агентства',
+      titleLine2: 'и команды',
+      subtitleLine1: 'Контролируйте команду',
+      subtitleLine2: 'и повышайте продления',
       problem: 'Как контролировать работу менеджеров и доказывать ценность услуг каждому клиенту?',
       bullets: [
         'Подключите менеджеров к единой системе.',
@@ -345,8 +351,10 @@ export const serviceAudience = {
     },
     {
       tone: 'violet' as const,
-      title: 'Школы и наставники',
-      subtitle: 'Учите работать с данными, а не наугад',
+      titleLine1: 'Школы',
+      titleLine2: 'и наставники',
+      subtitleLine1: 'Учите работать с данными,',
+      subtitleLine2: 'а не наугад',
       problem:
         'Как научить менеджеров и селлеров принимать решения и проверять гипотезы на цифрах?',
       bullets: [
@@ -427,8 +435,8 @@ export const serviceProducts = [
     bullets: [
       'Тесты до 20 вариантов фото одновременно',
       'Ротация по показам или по времени',
-      'Автоматическая установка лидера в карточку',
-      'Удобная статистика по каждому варианту',
+      'Автоматическая установка лидера',
+      'Статистика по каждому варианту',
       'Простая настройка за несколько кликов',
     ],
   },
@@ -445,7 +453,7 @@ export const serviceProducts = [
       'Распределение бюджета по слотам',
       'Автопополнение бюджета',
       'Управление всеми кампаниями в одном месте',
-      'Экономия времени и контроль расходов',
+      'Экономия расходов',
     ],
   },
 ] as const
@@ -548,7 +556,7 @@ export const servicePricing = {
     {
       id: 'analytics' as const,
       name: 'Аналитика',
-      description: 'Единая аналитика по всем кампаниям и кабинетам.',
+      descriptionLines: ['Единая аналитика', 'по всем кампаниям', 'и кабинетам.'] as const,
       badge: { label: 'Бесплатно', tone: 'green' as const },
       tone: 'blue' as const,
       icon: serviceLandingAssets.productIcons[0],
@@ -567,7 +575,10 @@ export const servicePricing = {
     {
       id: 'manage' as const,
       name: 'Управление РК',
-      description: 'Автозапуск, остановка и распределение бюджета по расписанию.',
+      descriptionLines: [
+        'Автозапуск, остановка и распределение',
+        'бюджета по расписанию.',
+      ] as const,
       tone: 'green' as const,
       icon: serviceLandingAssets.productIcons[2],
       /** Минимальный CAMPAIGN-пакет за 14 дней. */
@@ -580,13 +591,17 @@ export const servicePricing = {
         'Распределение бюджета по слотам',
         'Автопополнение бюджета',
         'Управление всеми кампаниями в одном месте',
-        'Экономия времени и контроль расходов',
+        'Экономия расходов',
       ],
     },
     {
       id: 'ab' as const,
       name: 'А/В-тесты',
-      description: 'Тестируйте до 20 вариантов фото и выбирайте самые эффективные.',
+      descriptionLines: [
+        'Тестируйте до 20 вариантов',
+        'фото и выбирайте',
+        'самые эффективные.',
+      ] as const,
       tone: 'purple' as const,
       icon: serviceLandingAssets.productIcons[1],
       /** Цена AB_PACK на 1 тест. */
@@ -597,15 +612,15 @@ export const servicePricing = {
       bullets: [
         'Тесты до 20 вариантов фото одновременно',
         'Ротация по показам или по времени',
-        'Автоматическая установка лидера в карточку',
-        'Удобная статистика по каждому варианту',
+        'Автоматическая установка лидера',
+        'Статистика по каждому варианту',
         'Простая настройка за несколько кликов',
       ],
     },
     {
       id: 'full' as const,
       name: 'Полный доступ',
-      description: 'Все возможности Clicki в одном тарифе.',
+      descriptionLines: ['Все возможности', 'сервиса Clicki', 'в одном тарифе.'] as const,
       tone: 'amber' as const,
       icon: '/landing-service/products/prod-icon-4.png?v=1',
       /** Минимальный MAIN-пакет за 14 дней. */

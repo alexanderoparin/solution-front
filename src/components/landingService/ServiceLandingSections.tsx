@@ -495,10 +495,13 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
           .svc-audience-art {
             width: 64px !important;
             height: 56px !important;
+            top: 8px !important;
+            right: 8px !important;
           }
           .svc-audience-card-title { font-size: 16px !important; }
-          .svc-audience-card-sub { font-size: 13px !important; margin-bottom: 8px !important; }
-          .svc-audience-problem { font-size: 12px !important; margin-bottom: 10px !important; }
+          .svc-audience-card-sub { font-size: 13px !important; margin-bottom: 8px !important; padding-right: 60px !important; min-height: 0 !important; }
+          .svc-audience-problem { font-size: 12px !important; margin-bottom: 10px !important; min-height: 0 !important; }
+          .svc-audience-card .svc-audience-head-row { padding-right: 60px !important; }
           .svc-audience-bullet { font-size: 12px !important; margin-bottom: 6px !important; }
           .svc-audience-result { font-size: 12px !important; margin-top: 10px !important; }
           .svc-caps-head {
@@ -618,7 +621,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                   fontWeight: 500,
                 }}
               >
-                <GiftOutlined style={{ fontSize: 18, marginTop: 1, flexShrink: 0, color: svc.accent }} />
+                <GiftOutlined style={{ fontSize: 38, lineHeight: 1, flexShrink: 0, color: svc.accent }} />
                 <span>
                   {serviceHero.trialNoteLines.map((line) => (
                     <span key={line} style={{ display: 'block' }}>
@@ -778,7 +781,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                     fontWeight: 500,
                   }}
                 >
-                  <GiftOutlined style={{ fontSize: 18, marginTop: 1, flexShrink: 0, color: svc.accent }} />
+                  <GiftOutlined style={{ fontSize: 38, lineHeight: 1, flexShrink: 0, color: svc.accent }} />
                   <span>
                     {serviceAnalyticsOverview.trialNoteLines.map((line) => (
                       <span key={line} style={{ display: 'block' }}>
@@ -1085,7 +1088,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                     fontWeight: 500,
                   }}
                 >
-                  <GiftOutlined style={{ fontSize: 18, marginTop: 1, flexShrink: 0, color: svc.accent }} />
+                  <GiftOutlined style={{ fontSize: 38, lineHeight: 1, flexShrink: 0, color: svc.accent }} />
                   <span>
                     {serviceCampaignDepth.trialNoteLines.map((line) => (
                       <span key={line} style={{ display: 'block' }}>
@@ -1495,9 +1498,10 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                 )
               return (
                 <div
-                  key={item.title}
+                  key={`${item.titleLine1} ${item.titleLine2}`}
                   className="svc-audience-card"
                   style={{
+                    position: 'relative',
                     background: `linear-gradient(180deg, ${soft} 0%, #FFFFFF 42%)`,
                     border: `1px solid ${svc.border}`,
                     borderRadius: 20,
@@ -1509,55 +1513,64 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                     boxShadow: '0 10px 28px rgba(15, 23, 42, 0.04)',
                   }}
                 >
+                  <img
+                    className="svc-audience-art"
+                    src={item.art}
+                    alt=""
+                    style={{
+                      position: 'absolute',
+                      top: 10,
+                      right: 10,
+                      width: 96,
+                      height: 84,
+                      objectFit: 'contain',
+                      display: 'block',
+                      pointerEvents: 'none',
+                      /* Белый фон иконки растворяется на светлой карточке */
+                      mixBlendMode: 'multiply',
+                    }}
+                  />
                   <div
+                    className="svc-audience-head-row"
                     style={{
                       display: 'flex',
                       alignItems: 'flex-start',
-                      justifyContent: 'space-between',
-                      gap: 8,
-                      marginBottom: 14,
+                      gap: 10,
+                      paddingRight: 88,
+                      marginBottom: 6,
                     }}
                   >
                     <ToneIconBox tone={tone}>{glyph}</ToneIconBox>
-                    <img
-                      className="svc-audience-art"
-                      src={item.art}
-                      alt=""
+                    <div
+                      className="svc-audience-card-title"
                       style={{
-                        width: 96,
-                        height: 84,
-                        objectFit: 'contain',
-                        display: 'block',
-                        flexShrink: 0,
-                        /* Белый фон иконки растворяется на светлой карточке */
-                        mixBlendMode: 'multiply',
+                        fontWeight: 700,
+                        fontSize: 17,
+                        lineHeight: 1.2,
+                        color: svc.text,
+                        letterSpacing: '-0.01em',
+                        paddingTop: 2,
                       }}
-                    />
-                  </div>
-                  <div
-                    className="svc-audience-card-title"
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 17,
-                      lineHeight: 1.25,
-                      color: svc.text,
-                      letterSpacing: '-0.01em',
-                    }}
-                  >
-                    {item.title}
+                    >
+                      <span style={{ display: 'block' }}>{item.titleLine1}</span>
+                      <span style={{ display: 'block' }}>{item.titleLine2}</span>
+                    </div>
                   </div>
                   <div
                     className="svc-audience-card-sub"
                     style={{
-                      marginTop: 4,
+                      marginTop: 0,
                       marginBottom: 12,
                       fontSize: 14,
                       fontWeight: 600,
                       color: accent,
-                      lineHeight: 1.35,
+                      lineHeight: 1.3,
+                      paddingRight: 88,
+                      minHeight: 'calc(1.3em * 2)',
                     }}
                   >
-                    {item.subtitle}
+                    <span style={{ display: 'block' }}>{item.subtitleLine1}</span>
+                    <span style={{ display: 'block' }}>{item.subtitleLine2}</span>
                   </div>
                   <div
                     className="svc-audience-problem"
@@ -1566,6 +1579,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       lineHeight: 1.45,
                       color: svc.muted,
                       marginBottom: 14,
+                      minHeight: 'calc(1.45em * 3)',
                     }}
                   >
                     {item.problem}
@@ -1577,15 +1591,15 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                         className="svc-audience-bullet"
                         style={{
                           display: 'flex',
-                          gap: 8,
-                          alignItems: 'flex-start',
+                          gap: 10,
+                          alignItems: 'center',
                           fontSize: 13,
                           lineHeight: 1.4,
                           color: svc.text,
                         }}
                       >
                         <CheckCircleFilled
-                          style={{ color: accent, fontSize: 14, marginTop: 2, flexShrink: 0 }}
+                          style={{ color: accent, fontSize: 22, lineHeight: 1, flexShrink: 0 }}
                         />
                         <span>{bullet}</span>
                       </div>
@@ -2298,10 +2312,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                       display: 'flex',
                       alignItems: 'flex-start',
                       gap: 12,
-                      /* Фиксированная высота шапки — цены строго на одной линии */
-                      height: 88,
                       flexShrink: 0,
-                      overflow: 'hidden',
                     }}
                   >
                     <img
@@ -2342,16 +2353,16 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: 5,
+                              gap: 4,
                               flexShrink: 0,
-                              padding: '3px 8px',
+                              padding: '2px 6px',
                               borderRadius: landingRadii.pill,
                               border: `1px solid ${plan.badge.tone === 'green' ? svc.green : svc.accent}`,
                               background: plan.badge.tone === 'green' ? svc.greenSoft : svc.accentSoft,
                               color: plan.badge.tone === 'green' ? svc.greenDark : svc.accent,
-                              fontSize: 10,
+                              fontSize: 9,
                               fontWeight: 700,
-                              letterSpacing: '0.03em',
+                              letterSpacing: '0.02em',
                               textTransform: 'uppercase',
                               lineHeight: 1.2,
                               whiteSpace: 'nowrap',
@@ -2360,8 +2371,8 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                             <span
                               aria-hidden
                               style={{
-                                width: 5,
-                                height: 5,
+                                width: 4,
+                                height: 4,
                                 borderRadius: '50%',
                                 background: plan.badge.tone === 'green' ? svc.green : svc.accent,
                               }}
@@ -2370,15 +2381,28 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                           </span>
                         ) : null}
                       </div>
-                      <div style={{ color: svc.muted, fontSize: 13, lineHeight: 1.4, marginTop: 6 }}>
-                        {plan.description}
+                      <div
+                        style={{
+                          color: svc.muted,
+                          fontSize: 13,
+                          lineHeight: 1.35,
+                          marginTop: 6,
+                          /* 3 строки у всех — цены на одной линии без пустот */
+                          minHeight: 'calc(1.35em * 3)',
+                        }}
+                      >
+                        {plan.descriptionLines.map((line) => (
+                          <span key={line} style={{ display: 'block' }}>
+                            {line}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </div>
 
                   <div
                     className="svc-price-card-amount"
-                    style={{ flexShrink: 0, marginTop: 10, marginBottom: 12, minHeight: 58 }}
+                    style={{ flexShrink: 0, marginTop: 14, marginBottom: 12, minHeight: 58 }}
                   >
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
                       {'pricePrefix' in plan && plan.pricePrefix ? (
@@ -2867,7 +2891,7 @@ export default function ServiceLandingSections({ onOpenLeadForm }: Props) {
                   fontWeight: 500,
                 }}
               >
-                <GiftOutlined style={{ fontSize: 18, marginTop: 1, flexShrink: 0, color: svc.accent }} />
+                <GiftOutlined style={{ fontSize: 38, lineHeight: 1, flexShrink: 0, color: svc.accent }} />
                 <span>
                   {serviceFinalCta.trialNoteLines.map((line) => (
                     <span key={line} style={{ display: 'block', whiteSpace: 'nowrap' }}>
