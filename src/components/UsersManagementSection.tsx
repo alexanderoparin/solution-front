@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import {
   Table,
   Button,
@@ -196,6 +196,8 @@ export default function UsersManagementSection({
   const [sortDir, setSortDir] = useState<SortDirection>(SORT_DIRECTIONS.DESC)
   const [cabinetSortBy, setCabinetSortBy] = useState<CabinetSortField>(CABINET_SORT_FIELDS.CABINET_ID)
   const [cabinetSortDir, setCabinetSortDir] = useState<SortDirection>(SORT_DIRECTIONS.DESC)
+  const [validatingAllKeys, setValidatingAllKeys] = useState(false)
+  const validateAllKeysAbortRef = useRef(false)
   const [createForm] = Form.useForm()
   const [editForm] = Form.useForm()
   const queryClient = useQueryClient()
@@ -282,6 +284,104 @@ export default function UsersManagementSection({
       })
     },
   })
+
+  /**
+   * Последовательно проверяет API-ключи всех кабинетов с учётом текущих фильтров списка.
+   */
+  const validateAllCabinetKeys = useCallback(async () => {
+    if (validatingAllKeys) return
+    setValidatingAllKeys(true)
+    validateAllKeysAbortRef.current = false
+    const progressKey = 'validate-all-cabinet-keys'
+    let ok = 0
+    let fail = 0
+    let skipped = 0
+    try {
+      message.loading({ content: 'Загрузка списка кабинетов…', key: progressKey, duration: 0 })
+      const fetchPageSize = 100
+      let pageIdx = 0
+      let totalPages = 1
+      const rows: ManagedCabinetRowDto[] = []
+      while (pageIdx < totalPages) {
+        if (validateAllKeysAbortRef.current) break
+        const batch = await userApi.getManagedCabinets({
+          page: pageIdx,
+          size: fetchPageSize,
+          search: searchEmail.trim() || undefined,
+          onlyActive: onlyActiveCabinets,
+          marketplaceType: cabinetMarketplaceFilter,
+          sortBy: cabinetSortBy,
+          sortDir: cabinetSortDir,
+        })
+        rows.push(...batch.content)
+        totalPages = Math.max(batch.totalPages, 1)
+        pageIdx += 1
+      }
+
+      const toValidate = rows.filter((row) => Boolean(row.cabinet.apiKey?.apiKey?.trim()))
+      skipped = rows.length - toValidate.length
+      if (toValidate.length === 0) {
+        message.warning({
+          content:
+            skipped > 0
+              ? `Нет кабинетов с ключом для проверки (пропущено без ключа: ${skipped})`
+              : 'Нет кабинетов для проверки',
+          key: progressKey,
+          duration: 4,
+        })
+        return
+      }
+
+      for (let i = 0; i < toValidate.length; i += 1) {
+        if (validateAllKeysAbortRef.current) break
+        const row = toValidate[i]
+        const label = row.cabinet.name || `#${row.cabinet.id}`
+        message.loading({
+          content: `Проверка ключей ${i + 1}/${toValidate.length}: ${label}`,
+          key: progressKey,
+          duration: 0,
+        })
+        try {
+          await userApi.validateSellerCabinetKey(row.cabinet.id)
+          ok += 1
+        } catch {
+          fail += 1
+        }
+      }
+
+      void queryClient.invalidateQueries({ queryKey: ['managedCabinets'] })
+      const parts = [`готово: ${ok} ок`]
+      if (fail > 0) parts.push(`${fail} с ошибкой`)
+      if (skipped > 0) parts.push(`${skipped} без ключа`)
+      message[fail > 0 ? 'warning' : 'success']({
+        content: `Проверка ключей ${parts.join(', ')}`,
+        key: progressKey,
+        duration: 5,
+      })
+    } catch (error: unknown) {
+      message.error({
+        content: getRequestFailureDescription(error) || 'Не удалось проверить ключи',
+        key: progressKey,
+        duration: 6,
+      })
+    } finally {
+      setValidatingAllKeys(false)
+    }
+  }, [
+    validatingAllKeys,
+    searchEmail,
+    onlyActiveCabinets,
+    cabinetMarketplaceFilter,
+    cabinetSortBy,
+    cabinetSortDir,
+    queryClient,
+  ])
+
+  useEffect(() => {
+    return () => {
+      validateAllKeysAbortRef.current = true
+    }
+  }, [])
 
   const cabinetTableColumns: ColumnsType<ManagedCabinetRowDto> = useMemo(
     () => [
@@ -393,7 +493,24 @@ export default function UsersManagementSection({
         render: (_: unknown, row: ManagedCabinetRowDto) => <CabinetTableStocksUpdateColumn row={row} />,
       },
       {
-        title: 'Ключ',
+        title: (
+          <Space size={6}>
+            <span>Ключ</span>
+            <Tooltip title="Последовательно проверить ключи всех кабинетов (с учётом фильтров)">
+              <Button
+                type="default"
+                size="small"
+                icon={<CheckCircleOutlined />}
+                loading={validatingAllKeys}
+                disabled={validatingAllKeys}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  void validateAllCabinetKeys()
+                }}
+              />
+            </Tooltip>
+          </Space>
+        ),
         key: 'cabinetKey',
         width: 264,
         align: 'left',
@@ -407,7 +524,7 @@ export default function UsersManagementSection({
         render: (_: unknown, row: ManagedCabinetRowDto) => <CabinetTableScopesColumn row={row} />,
       },
     ],
-    [cabinetSortBy, cabinetSortDir, role, toggleAgencyManagedMutation],
+    [cabinetSortBy, cabinetSortDir, role, toggleAgencyManagedMutation, validatingAllKeys, validateAllCabinetKeys],
   )
 
   const cabinetTableComponents = useMemo(
