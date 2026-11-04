@@ -21,16 +21,42 @@ import {
 } from 'antd'
 import type { Dayjs } from 'dayjs'
 import type { ColumnsType } from 'antd/es/table'
-import { GiftOutlined, PlusOutlined } from '@ant-design/icons'
+import { EditOutlined, GiftOutlined, PlusOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import Header from '../components/Header'
 import Breadcrumbs from '../components/Breadcrumbs'
 import { useAuthStore } from '../store/authStore'
 import { adminApi } from '../api/admin'
-import type { CreatePromoCodeRequest, PromoCodeAdminDto, PromoCodeRedemptionAdminDto } from '../types/api'
+import type {
+  CreatePromoCodeRequest,
+  PromoCodeAdminDto,
+  PromoCodeRedemptionAdminDto,
+  UpdatePromoCodeRequest,
+} from '../types/api'
 
 const { Title, Text } = Typography
+
+/** Окно редактирования промокода после создания (минуты). */
+const PROMO_EDIT_WINDOW_MINUTES = 30
+
+type PromoFormValues = {
+  code: string
+  description?: string
+  durationDays: number
+  active?: boolean
+  validFrom?: Dayjs | null
+  validTo?: Dayjs | null
+}
+
+function isPromoEditable(promo: PromoCodeAdminDto, nowMs: number): boolean {
+  if (typeof promo.editable === 'boolean') {
+    if (!promo.editable) return false
+  }
+  if (!promo.createdAt) return false
+  const deadline = dayjs(promo.createdAt).add(PROMO_EDIT_WINDOW_MINUTES, 'minute')
+  return dayjs(nowMs).isBefore(deadline)
+}
 
 function useIsNarrow(maxWidthPx = 900): boolean {
   const [narrow, setNarrow] = useState(() =>
@@ -59,14 +85,15 @@ export default function AdminPromoRedemptions() {
   const [pageSize, setPageSize] = useState(20)
   const [codeFilter, setCodeFilter] = useState<string | undefined>(undefined)
   const [createOpen, setCreateOpen] = useState(false)
-  const [createForm] = Form.useForm<{
-    code: string
-    description?: string
-    durationDays: number
-    active?: boolean
-    validFrom?: Dayjs | null
-    validTo?: Dayjs | null
-  }>()
+  const [editingPromo, setEditingPromo] = useState<PromoCodeAdminDto | null>(null)
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  const [createForm] = Form.useForm<PromoFormValues>()
+  const [editForm] = Form.useForm<PromoFormValues>()
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   if (role !== 'ADMIN') {
     navigate('/profile', { replace: true })
@@ -125,8 +152,42 @@ export default function AdminPromoRedemptions() {
     },
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ promoId, data }: { promoId: number; data: UpdatePromoCodeRequest }) =>
+      adminApi.updatePromoCode(promoId, data),
+    onSuccess: (updated) => {
+      message.success(`Промокод ${updated.code} обновлён`)
+      setEditingPromo(null)
+      editForm.resetFields()
+      void queryClient.invalidateQueries({ queryKey: ['adminPromoCodes'] })
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.error
+        ?? (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data?.message
+        ?? 'Не удалось обновить промокод'
+      message.error(msg)
+    },
+  })
+
   const rows = redemptionsPage?.content ?? []
   const total = redemptionsPage?.totalElements ?? 0
+
+  const openEdit = (promo: PromoCodeAdminDto) => {
+    if (!isPromoEditable(promo, nowMs)) {
+      message.warning(`Редактирование доступно только ${PROMO_EDIT_WINDOW_MINUTES} минут после создания`)
+      return
+    }
+    setEditingPromo(promo)
+    editForm.setFieldsValue({
+      code: promo.code,
+      description: promo.description ?? undefined,
+      durationDays: promo.durationDays,
+      active: promo.active,
+      validFrom: promo.validFrom ? dayjs(promo.validFrom) : null,
+      validTo: promo.validTo ? dayjs(promo.validTo) : null,
+    })
+  }
 
   const renderActiveToggle = (promo: PromoCodeAdminDto) => (
     <Button
@@ -146,6 +207,20 @@ export default function AdminPromoRedemptions() {
       {promo.active ? 'Активен' : 'Выключен'}
     </Button>
   )
+
+  const renderEditButton = (promo: PromoCodeAdminDto) => {
+    if (!isPromoEditable(promo, nowMs)) return null
+    return (
+      <Button
+        size="small"
+        icon={<EditOutlined />}
+        onClick={() => openEdit(promo)}
+        title={`Редактировать (ещё ${PROMO_EDIT_WINDOW_MINUTES} мин после создания)`}
+      >
+        Изменить
+      </Button>
+    )
+  }
 
   const codeColumns: ColumnsType<PromoCodeAdminDto> = [
     {
@@ -201,8 +276,15 @@ export default function AdminPromoRedemptions() {
       key: 'active',
       width: 120,
       align: 'left',
-      fixed: 'right',
       render: (_active: boolean, record) => renderActiveToggle(record),
+    },
+    {
+      title: '',
+      key: 'actions',
+      width: 110,
+      align: 'left',
+      fixed: 'right',
+      render: (_value, record) => renderEditButton(record),
     },
   ]
 
@@ -256,23 +338,88 @@ export default function AdminPromoRedemptions() {
     setCreateOpen(true)
   }
 
+  const toPromoPayload = (values: PromoFormValues): CreatePromoCodeRequest => ({
+    code: values.code.trim(),
+    description: values.description?.trim() || undefined,
+    durationDays: values.durationDays,
+    active: values.active ?? true,
+    validFrom: values.validFrom ? values.validFrom.format('YYYY-MM-DDTHH:mm:ss') : null,
+    validTo: values.validTo ? values.validTo.format('YYYY-MM-DDTHH:mm:ss') : null,
+  })
+
   const handleCreateSubmit = () => {
     createForm.validateFields().then((values) => {
       if (values.validFrom && values.validTo && values.validTo.isBefore(values.validFrom)) {
         message.error('Окончание действия не может быть раньше начала')
         return
       }
-      const payload: CreatePromoCodeRequest = {
-        code: values.code.trim(),
-        description: values.description?.trim() || undefined,
-        durationDays: values.durationDays,
-        active: values.active ?? true,
-        validFrom: values.validFrom ? values.validFrom.format('YYYY-MM-DDTHH:mm:ss') : null,
-        validTo: values.validTo ? values.validTo.format('YYYY-MM-DDTHH:mm:ss') : null,
-      }
-      createMutation.mutate(payload)
+      createMutation.mutate(toPromoPayload(values))
     })
   }
+
+  const handleEditSubmit = () => {
+    if (!editingPromo) return
+    editForm.validateFields().then((values) => {
+      if (values.validFrom && values.validTo && values.validTo.isBefore(values.validFrom)) {
+        message.error('Окончание действия не может быть раньше начала')
+        return
+      }
+      const payload = toPromoPayload(values)
+      updateMutation.mutate({
+        promoId: editingPromo.id,
+        data: {
+          code: payload.code,
+          description: payload.description,
+          durationDays: payload.durationDays,
+          active: payload.active ?? true,
+          validFrom: payload.validFrom,
+          validTo: payload.validTo,
+        },
+      })
+    })
+  }
+
+  const renderPromoFormFields = () => (
+    <>
+      <Form.Item
+        name="code"
+        label="Код"
+        rules={[
+          { required: true, message: 'Укажите код' },
+          { max: 64, message: 'Не длиннее 64 символов' },
+        ]}
+      >
+        <Input placeholder="FOCUS14" style={{ textTransform: 'uppercase' }} />
+      </Form.Item>
+      <Form.Item name="description" label="Описание">
+        <Input.TextArea rows={2} placeholder="Для фокус-группы, 14 дней полного доступа" />
+      </Form.Item>
+      <Form.Item
+        name="durationDays"
+        label="Срок доступа, дней"
+        rules={[{ required: true, message: 'Укажите срок' }]}
+      >
+        <InputNumber min={1} style={{ width: '100%' }} />
+      </Form.Item>
+      <Form.Item
+        name="validFrom"
+        label="Начало действия"
+        tooltip="Пусто — без ограничения. До этой даты код ещё нельзя активировать."
+      >
+        <DatePicker showTime style={{ width: '100%' }} format="DD.MM.YYYY HH:mm" />
+      </Form.Item>
+      <Form.Item
+        name="validTo"
+        label="Окончание действия"
+        tooltip="Пусто — без ограничения. После этой даты код уже нельзя активировать."
+      >
+        <DatePicker showTime style={{ width: '100%' }} format="DD.MM.YYYY HH:mm" />
+      </Form.Item>
+      <Form.Item name="active" label="Активен" valuePropName="checked">
+        <Switch />
+      </Form.Item>
+    </>
+  )
 
   return (
     <>
@@ -397,7 +544,10 @@ export default function AdminPromoRedemptions() {
                               <div key={promo.id} className="admin-promo-item">
                                 <div className="admin-promo-item-top">
                                   <span className="admin-promo-item-code">{promo.code}</span>
-                                  {renderActiveToggle(promo)}
+                                  <Space size={8} wrap>
+                                    {renderEditButton(promo)}
+                                    {renderActiveToggle(promo)}
+                                  </Space>
                                 </div>
                                 {promo.description ? (
                                   <div className="admin-promo-item-email">{promo.description}</div>
@@ -546,43 +696,28 @@ export default function AdminPromoRedemptions() {
             active: true,
           }}
         >
-          <Form.Item
-            name="code"
-            label="Код"
-            rules={[
-              { required: true, message: 'Укажите код' },
-              { max: 64, message: 'Не длиннее 64 символов' },
-            ]}
-          >
-            <Input placeholder="FOCUS14" style={{ textTransform: 'uppercase' }} />
-          </Form.Item>
-          <Form.Item name="description" label="Описание">
-            <Input.TextArea rows={2} placeholder="Для фокус-группы, 14 дней полного доступа" />
-          </Form.Item>
-          <Form.Item
-            name="durationDays"
-            label="Срок доступа, дней"
-            rules={[{ required: true, message: 'Укажите срок' }]}
-          >
-            <InputNumber min={1} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item
-            name="validFrom"
-            label="Начало действия"
-            tooltip="Пусто — без ограничения. До этой даты код ещё нельзя активировать."
-          >
-            <DatePicker showTime style={{ width: '100%' }} format="DD.MM.YYYY HH:mm" />
-          </Form.Item>
-          <Form.Item
-            name="validTo"
-            label="Окончание действия"
-            tooltip="Пусто — без ограничения. После этой даты код уже нельзя активировать."
-          >
-            <DatePicker showTime style={{ width: '100%' }} format="DD.MM.YYYY HH:mm" />
-          </Form.Item>
-          <Form.Item name="active" label="Активен" valuePropName="checked">
-            <Switch />
-          </Form.Item>
+          {renderPromoFormFields()}
+        </Form>
+      </Modal>
+
+      <Modal
+        title={editingPromo ? `Изменить промокод ${editingPromo.code}` : 'Изменить промокод'}
+        open={editingPromo != null}
+        onCancel={() => {
+          setEditingPromo(null)
+          editForm.resetFields()
+        }}
+        onOk={handleEditSubmit}
+        confirmLoading={updateMutation.isPending}
+        okText="Сохранить"
+        cancelText="Отмена"
+        destroyOnClose
+      >
+        <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
+          Редактирование доступно {PROMO_EDIT_WINDOW_MINUTES} минут после создания.
+        </Text>
+        <Form form={editForm} layout="vertical">
+          {renderPromoFormFields()}
         </Form>
       </Modal>
     </>

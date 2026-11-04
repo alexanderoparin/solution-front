@@ -848,6 +848,8 @@ export interface PromoCodeAdminDto {
   validFrom?: string | null
   validTo?: string | null
   createdAt?: string | null
+  /** Редактирование доступно в течение 30 минут после создания. */
+  editable?: boolean
 }
 
 /** Запрос на создание промокода. */
@@ -856,6 +858,16 @@ export interface CreatePromoCodeRequest {
   description?: string
   durationDays: number
   active?: boolean
+  validFrom?: string | null
+  validTo?: string | null
+}
+
+/** Запрос на редактирование промокода. */
+export interface UpdatePromoCodeRequest {
+  code: string
+  description?: string
+  durationDays: number
+  active: boolean
   validFrom?: string | null
   validTo?: string | null
 }

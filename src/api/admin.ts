@@ -29,6 +29,7 @@ import type {
   CabinetBillingOverviewDto,
   CreatePromoCodeRequest,
   PromoCodeAdminDto,
+  UpdatePromoCodeRequest,
   PromoCodeRedemptionAdminDto,
 } from '../types/api'
 
@@ -244,6 +245,11 @@ export const adminApi = {
 
   createPromoCode: async (data: CreatePromoCodeRequest): Promise<PromoCodeAdminDto> => {
     const response = await apiClient.post<PromoCodeAdminDto>('/admin/promo-codes', data)
+    return response.data
+  },
+
+  updatePromoCode: async (promoId: number, data: UpdatePromoCodeRequest): Promise<PromoCodeAdminDto> => {
+    const response = await apiClient.put<PromoCodeAdminDto>(`/admin/promo-codes/${promoId}`, data)
     return response.data
   },
 
