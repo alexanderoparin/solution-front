@@ -227,16 +227,21 @@ export default function AdminPromoRedemptions() {
       title: 'Код',
       dataIndex: 'code',
       key: 'code',
-      width: 140,
+      width: 220,
       align: 'left',
-      render: (value: string) => <Text strong>{value}</Text>,
+      render: (value: string) => (
+        <Text strong style={{ whiteSpace: 'nowrap' }}>
+          {value}
+        </Text>
+      ),
     },
     {
       title: 'Описание',
       dataIndex: 'description',
       key: 'description',
       align: 'left',
-      ellipsis: true,
+      width: 360,
+      ellipsis: { showTitle: true },
       render: (value: string | null | undefined) => value || '—',
     },
     {
@@ -308,8 +313,9 @@ export default function AdminPromoRedemptions() {
       title: 'Промокод',
       dataIndex: 'promoCode',
       key: 'promoCode',
-      width: 120,
+      width: 200,
       align: 'left',
+      render: (value: string) => <span style={{ whiteSpace: 'nowrap' }}>{value}</span>,
     },
     {
       title: isNarrow ? 'Использован' : 'Дата использования',
@@ -505,7 +511,7 @@ export default function AdminPromoRedemptions() {
         className="admin-promo-page"
         style={{
           padding: 24,
-          maxWidth: 1200,
+          maxWidth: 1480,
           margin: '0 auto',
           minWidth: 0,
           width: '100%',
@@ -576,7 +582,7 @@ export default function AdminPromoRedemptions() {
                           dataSource={promoCodes}
                           pagination={false}
                           size="small"
-                          scroll={{ x: 900 }}
+                          scroll={{ x: 1200 }}
                         />
                       </div>
                     )}
