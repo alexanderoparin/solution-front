@@ -602,15 +602,6 @@ export default function AdminPlansAndSubscriptions() {
       align: 'left' as const,
       render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm') : '—'),
     },
-    {
-      title: 'External ID',
-      dataIndex: 'externalId',
-      key: 'externalId',
-      ellipsis: true,
-      width: 160,
-      align: 'left' as const,
-      render: (v: string | null) => v ?? '—',
-    },
   ]
 
   return (
@@ -886,10 +877,6 @@ export default function AdminPlansAndSubscriptions() {
                                   <dt style={{ color: '#94A3B8', margin: 0 }}>Оплачено</dt>
                                   <dd style={{ margin: 0 }}>
                                     {row.paidAt ? dayjs(row.paidAt).format('DD.MM.YYYY HH:mm') : '—'}
-                                  </dd>
-                                  <dt style={{ color: '#94A3B8', margin: 0 }}>External ID</dt>
-                                  <dd style={{ margin: 0, overflowWrap: 'anywhere' }}>
-                                    {row.externalId ?? '—'}
                                   </dd>
                                 </dl>
                               </div>

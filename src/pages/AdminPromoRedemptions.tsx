@@ -240,7 +240,6 @@ export default function AdminPromoRedemptions() {
       dataIndex: 'description',
       key: 'description',
       align: 'left',
-      width: 360,
       ellipsis: { showTitle: true },
       render: (value: string | null | undefined) => value || '—',
     },
@@ -288,7 +287,6 @@ export default function AdminPromoRedemptions() {
       key: 'actions',
       width: 110,
       align: 'left',
-      fixed: 'right',
       render: (_value, record) => renderEditButton(record),
     },
   ]
@@ -582,7 +580,7 @@ export default function AdminPromoRedemptions() {
                           dataSource={promoCodes}
                           pagination={false}
                           size="small"
-                          scroll={{ x: 1200 }}
+                          tableLayout="fixed"
                         />
                       </div>
                     )}
