@@ -269,11 +269,6 @@ export function CabinetTableKeyColumn({ row }: { row: ManagedCabinetRowDto }) {
             </Tooltip>
           )}
         </div>
-        {cab.apiKey?.validationError && (
-          <Text type="danger" style={{ fontSize: 11, lineHeight: 1.35 }}>
-            {cab.apiKey.validationError}
-          </Text>
-        )}
       </div>
 
       {isOzon && perfExpanded && (
