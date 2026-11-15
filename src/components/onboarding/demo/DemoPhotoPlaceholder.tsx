@@ -1,9 +1,41 @@
 import { colors, borderRadius } from '../../../styles/analytics'
 
 /**
- * Учебная заглушка фото: рамка с «пейзажем», чтобы ячейка не выглядела пустым серым прямоугольником.
+ * Фото учебного артикула или заглушка-«пейзаж», если src нет.
  */
-export function DemoPhotoPlaceholder({ width, height }: { width: number; height: number }) {
+export function DemoPhotoPlaceholder({
+  width,
+  height,
+  src,
+}: {
+  width: number
+  height: number
+  src?: string | null
+}) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt=""
+        width={width}
+        height={height}
+        style={{
+          width,
+          height,
+          maxWidth: width,
+          maxHeight: height,
+          objectFit: 'cover',
+          border: `1px solid ${colors.border}`,
+          borderRadius: borderRadius.sm,
+          boxSizing: 'border-box',
+          flexShrink: 0,
+          display: 'block',
+          backgroundColor: colors.bgGrayLight,
+        }}
+      />
+    )
+  }
+
   const iconSize = Math.round(Math.min(width, height) * 0.55)
   return (
     <div

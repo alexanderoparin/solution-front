@@ -192,6 +192,8 @@ export interface DemoArticle {
   sizes: string
   orders: readonly number[]
   inAdvertising: boolean
+  /** Локальное фото для демо (`public/onboarding/demo/{nmId}.jpg`). */
+  photoUrl: string
 }
 
 export const DEMO_ARTICLES: readonly DemoArticle[] = [
@@ -209,6 +211,7 @@ export const DEMO_ARTICLES: readonly DemoArticle[] = [
     sizes: 'S, M, L, XL',
     orders: [4, 6, 3, 8, 5, 7, 9],
     inAdvertising: true,
+    photoUrl: '/onboarding/demo/482910375.jpg',
   },
   {
     nmId: '591028446',
@@ -218,12 +221,13 @@ export const DEMO_ARTICLES: readonly DemoArticle[] = [
     brand: 'CottonSleep',
     createdAt: '2024-02-03T11:40:00',
     rating: 4.9,
-    priority: true,
+    priority: false,
     fbo: 86,
     fbs: 9,
     sizes: 'M, L, XL',
     orders: [2, 3, 1, 4, 2, 5, 3],
     inAdvertising: true,
+    photoUrl: '/onboarding/demo/591028446.jpg',
   },
   {
     nmId: '603184759',
@@ -239,6 +243,7 @@ export const DEMO_ARTICLES: readonly DemoArticle[] = [
     sizes: 'S, M, L, XL, XXL',
     orders: [11, 8, 14, 9, 12, 10, 16],
     inAdvertising: false,
+    photoUrl: '/onboarding/demo/603184759.jpg',
   },
   {
     nmId: '718293560',
@@ -254,6 +259,7 @@ export const DEMO_ARTICLES: readonly DemoArticle[] = [
     sizes: '40, 42, 44',
     orders: [1, 0, 2, 1, 3, 2, 2],
     inAdvertising: false,
+    photoUrl: '/onboarding/demo/718293560.jpg',
   },
   {
     nmId: '829405671',
@@ -269,6 +275,7 @@ export const DEMO_ARTICLES: readonly DemoArticle[] = [
     sizes: '-',
     orders: [7, 9, 6, 10, 8, 12, 11],
     inAdvertising: true,
+    photoUrl: '/onboarding/demo/829405671.jpg',
   },
 ]
 
