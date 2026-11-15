@@ -293,7 +293,7 @@ export default function DemoAnalyticsProducts() {
                           onChange={(e) => toggleFilterNmId(article.nmId, e.target.checked)}
                           style={{ marginRight: 12 }}
                         />
-                        <DemoPhotoPlaceholder width={40} height={40} />
+                        <DemoPhotoPlaceholder width={40} height={40} src={article.photoUrl} />
                         <div style={{ flex: 1, minWidth: 0, marginLeft: 12 }}>
                           <div style={{ fontWeight: 600, color: colors.textPrimary }}>{article.nmId}</div>
                           <div style={{ fontSize: 12, color: colors.textSecondary }}>{article.title}</div>
@@ -515,7 +515,11 @@ export default function DemoAnalyticsProducts() {
                           overflow: 'hidden',
                         }}
                       >
-                        <DemoPhotoPlaceholder width={PRODUCT_PHOTO_WIDTH} height={PRODUCT_PHOTO_HEIGHT} />
+                        <DemoPhotoPlaceholder
+                          width={PRODUCT_PHOTO_WIDTH}
+                          height={PRODUCT_PHOTO_HEIGHT}
+                          src={article.photoUrl}
+                        />
                       </div>
                     </td>
                     <td

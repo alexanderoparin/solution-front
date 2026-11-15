@@ -423,7 +423,11 @@ export default function DemoAnalyticsArticle() {
       <div data-tour-id={ONBOARDING_TARGETS.ARTICLE_HEADER} style={cardStyle({ padding: spacing.sm, marginBottom: spacing.xl })}>
         <div style={{ display: 'flex', gap: spacing.lg, alignItems: 'stretch' }}>
           <div style={{ flexShrink: 0, width: ARTICLE_HEADER_PHOTO_WIDTH, minHeight: ARTICLE_HEADER_PHOTO_HEIGHT, borderRadius: borderRadius.sm, overflow: 'hidden', border: `1px solid ${colors.borderLight}` }}>
-            <DemoPhotoPlaceholder width={ARTICLE_HEADER_PHOTO_WIDTH} height={ARTICLE_HEADER_PHOTO_HEIGHT} />
+            <DemoPhotoPlaceholder
+              width={ARTICLE_HEADER_PHOTO_WIDTH}
+              height={ARTICLE_HEADER_PHOTO_HEIGHT}
+              src={article.photoUrl}
+            />
           </div>
           <div style={{ flex: '0 1 auto', minWidth: 0 }}>
             <div style={{ ...typography.body, ...FONT_PAGE, fontWeight: 700, color: colors.textPrimary, marginBottom: 4 }}>{article.title}</div>
@@ -512,7 +516,11 @@ export default function DemoAnalyticsArticle() {
                           border: '1px solid transparent',
                         }}
                       >
-                        <DemoPhotoPlaceholder width={BUNDLE_THUMB_WIDTH_PX} height={bundleRowHeight - 4} />
+                        <DemoPhotoPlaceholder
+                          width={BUNDLE_THUMB_WIDTH_PX}
+                          height={bundleRowHeight - 4}
+                          src={item.photoUrl}
+                        />
                         <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
                           <div style={{ fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</div>
                           <div style={{ fontSize: 10, color: colors.textSecondary, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { colors, spacing, typography } from '../../../styles/analytics'
+import { DEMO_ARTICLES } from '../../../onboarding/demoConstants'
 import { DemoPhotoPlaceholder } from './DemoPhotoPlaceholder'
 import { onboardingDemoArticlePath } from '../../../onboarding/demoPaths'
 
@@ -13,6 +14,7 @@ interface DemoArticleChipProps {
  * Карточка артикула в учебной витрине со ссылкой на учебную карточку товара.
  */
 export default function DemoArticleChip({ nmId, title, photoSize = 56 }: DemoArticleChipProps) {
+  const photoUrl = DEMO_ARTICLES.find((article) => article.nmId === nmId)?.photoUrl
   return (
     <Link
       to={onboardingDemoArticlePath(nmId)}
@@ -25,7 +27,7 @@ export default function DemoArticleChip({ nmId, title, photoSize = 56 }: DemoArt
         color: 'inherit',
       }}
     >
-      <DemoPhotoPlaceholder width={photoSize} height={photoSize} />
+      <DemoPhotoPlaceholder width={photoSize} height={photoSize} src={photoUrl} />
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: photoSize, maxWidth: 160 }}>
         <div style={{ ...typography.body, fontSize: 12, color: colors.textPrimary, lineHeight: 1.3 }}>{title}</div>
         <div style={{ ...typography.bodySmall, marginTop: 2, color: colors.textSecondary }}>{nmId}</div>

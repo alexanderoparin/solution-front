@@ -664,7 +664,7 @@ export default function DemoAdvertisingCampaignDetail() {
                       >
                         <td style={{ padding: '6px 12px', border: `1px solid ${colors.border}`, borderRight: 'none', backgroundColor: isHovered ? colors.bgGrayLight : colors.bgWhite }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                            <DemoPhotoPlaceholder width={32} height={32} />
+                            <DemoPhotoPlaceholder width={32} height={32} src={article.photoUrl} />
                             <span style={{ fontSize: 11 }}>{article.nmId}</span>
                           </span>
                         </td>
