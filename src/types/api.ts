@@ -270,6 +270,8 @@ export interface WorkContextCabinetDto {
   lastDataUpdateAt: string | null
   lastDataUpdateRequestedAt: string | null
   tokenType?: CabinetTokenType | null
+  /** Валидность API-ключа кабинета. */
+  apiKeyValid?: boolean | null
 }
 
 export interface PlanDto {

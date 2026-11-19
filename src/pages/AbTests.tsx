@@ -101,6 +101,15 @@ function formatAbTestUserFacingError(
       tone: 'error',
     }
   }
+  if (
+    status === 'DISABLED'
+    && (lastWbError.toLowerCase().includes('невалид') || lastWbError.toLowerCase().includes('api-ключ'))
+  ) {
+    return {
+      text: 'API-ключ кабинета был невалиден — старт не запустился. Обновите ключ и нажмите «Перезапустить».',
+      tone: 'error',
+    }
+  }
   if (status === 'ENABLED') {
     return { text: 'Временная ошибка Wildberries, повторим автоматически', tone: 'muted' }
   }
@@ -796,6 +805,7 @@ function AbTestCard({
   sellerId,
   cabinetId,
   tourAnchors,
+  apiKeyInvalid = false,
 }: {
   item: AbTest
   onToggle: (enabled: boolean) => void
@@ -805,6 +815,7 @@ function AbTestCard({
   sellerId?: number
   cabinetId?: number | null
   tourAnchors?: boolean
+  apiKeyInvalid?: boolean
 }) {
   const dateFmt = 'DD.MM.YY HH:mm'
   const advertLabel =
@@ -967,22 +978,39 @@ function AbTestCard({
           {statusBadge.text}
         </span>
         {item.canRestart ? (
-          <Button
-            size="small"
-            type="primary"
-            loading={restarting}
-            onClick={onRestart}
-            style={{ background: accent, borderColor: accent, borderRadius: 8, fontWeight: 600 }}
+          <Tooltip
+            title={
+              apiKeyInvalid
+                ? 'API-ключ кабинета невалиден. Обновите ключ в настройках кабинета.'
+                : undefined
+            }
           >
-            Перезапустить
-          </Button>
+            <Button
+              size="small"
+              type="primary"
+              loading={restarting}
+              onClick={onRestart}
+              disabled={apiKeyInvalid}
+              style={{ background: accent, borderColor: accent, borderRadius: 8, fontWeight: 600 }}
+            >
+              Перезапустить
+            </Button>
+          </Tooltip>
         ) : (
-          <Switch
-            checked={item.status === 'ENABLED' || item.status === 'PENDING_START'}
-            loading={toggling}
-            onChange={onToggle}
-            disabled={item.status === 'DISABLED' || item.status === 'PENDING_START'}
-          />
+          <Tooltip
+            title={
+              item.status === 'PENDING_START'
+                ? 'Отменить запуск теста'
+                : undefined
+            }
+          >
+            <Switch
+              checked={item.status === 'ENABLED' || item.status === 'PENDING_START'}
+              loading={toggling}
+              onChange={onToggle}
+              disabled={item.status === 'DISABLED'}
+            />
+          </Tooltip>
         )}
       </div>
       </div>
@@ -1017,6 +1045,16 @@ export default function AbTests() {
     }
     return myCabinets.find((c) => c.id === selectedCabinetId)?.marketplaceType === 'OZON'
   }, [isAdmin, selectedCabinetId, workContext.workContextOptions, myCabinets])
+
+  const apiKeyValid = useMemo(() => {
+    if (selectedCabinetId == null) return null
+    if (isAdmin) {
+      return workContext.workContextOptions.find((o) => o.cabinetId === selectedCabinetId)?.apiKeyValid ?? null
+    }
+    return myCabinets.find((c) => c.id === selectedCabinetId)?.apiKey?.isValid ?? null
+  }, [isAdmin, selectedCabinetId, workContext.workContextOptions, myCabinets])
+
+  const apiKeyInvalid = apiKeyValid === false
 
   const selectedTokenType: CabinetTokenType | null | undefined = useMemo(() => {
     if (selectedCabinetId == null) return null
@@ -1160,16 +1198,24 @@ export default function AbTests() {
         <Breadcrumbs />
         <div className="ab-tests-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0', gap: 16, flexWrap: 'wrap' }}>
           <div className="ab-tests-toolbar-left" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              data-tour-id={ONBOARDING_TARGETS.AB_TEST_CREATE}
-              style={{ background: accent, borderColor: accent }}
-              onClick={openCreate}
-              disabled={selectedCabinetId == null || isOzonCabinet}
+            <Tooltip
+              title={
+                apiKeyInvalid
+                  ? 'API-ключ кабинета невалиден. Обновите ключ в настройках кабинета.'
+                  : undefined
+              }
             >
-              Создать новый тест
-            </Button>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                data-tour-id={ONBOARDING_TARGETS.AB_TEST_CREATE}
+                style={{ background: accent, borderColor: accent }}
+                onClick={openCreate}
+                disabled={selectedCabinetId == null || isOzonCabinet || apiKeyInvalid}
+              >
+                Создать новый тест
+              </Button>
+            </Tooltip>
             {!isOzonCabinet && quotaLabel ? (
               <Typography.Text type="secondary" style={{ fontSize: 14 }}>
                 {quotaLabel}
@@ -1222,6 +1268,7 @@ export default function AbTests() {
                 sellerId={selectedSellerId}
                 cabinetId={selectedCabinetId}
                 tourAnchors={index === 0}
+                apiKeyInvalid={apiKeyInvalid}
                 toggling={statusMutation.isPending && statusMutation.variables?.id === item.id && !statusMutation.variables?.enabled}
                 restarting={statusMutation.isPending && statusMutation.variables?.id === item.id && !!statusMutation.variables?.enabled}
                 onToggle={(enabled) => {
@@ -1229,7 +1276,13 @@ export default function AbTests() {
                     statusMutation.mutate({ id: item.id, enabled: false })
                   }
                 }}
-                onRestart={() => statusMutation.mutate({ id: item.id, enabled: true })}
+                onRestart={() => {
+                  if (apiKeyInvalid) {
+                    message.warning('API-ключ кабинета невалиден. Обновите ключ в настройках кабинета.')
+                    return
+                  }
+                  statusMutation.mutate({ id: item.id, enabled: true })
+                }}
               />
             ))}
           </div>
