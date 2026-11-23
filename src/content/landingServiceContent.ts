@@ -18,6 +18,10 @@ export const serviceLandingNav = [
 
 export const serviceLandingAssets = {
   hero: '/landing-service/block-1-1.png?v=2',
+  /** Вводное видео в hero (вместо статичного скрина). */
+  heroVideo: '/landing-service/hero-intro-v3.mp4',
+  /** Заставка (poster) перед стартом ролика. */
+  heroPoster: '/landing-service/hero-poster.png?v=2',
   /** Порядок как на макете: карточка → воронка/таблица → сравнение периодов */
   analyticsStack1: '/landing-service/block-3-3.png?v=3',
   analyticsStack2: '/landing-service/block-3-1.png?v=3',

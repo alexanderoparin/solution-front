@@ -1,14 +1,36 @@
-import type { ReactElement } from 'react'
+import { useCallback, useRef, useState, type ReactElement } from 'react'
 import { landingColors } from '../../styles/landing'
 import { serviceLandingAssets } from '../../content/landingServiceContent'
 
 const lime = landingColors.brandGreen
 
 /**
- * Hero-скриншот как в макете: скруглённая рамка с мягким фиолетовым свечением
- * и сетки лаймовых точек за углами скрина.
+ * Hero-видео в скруглённой рамке с мягким фиолетовым свечением
+ * и сетки лаймовых точек за углами. Старт — по кнопке Play поверх постера.
  */
 export default function ServiceLandingHeroVisual() {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [started, setStarted] = useState(false)
+  const [playing, setPlaying] = useState(false)
+
+  const handlePlayClick = useCallback(() => {
+    const video = videoRef.current
+    if (!video) {
+      return
+    }
+    setStarted(true)
+    const playPromise = video.play()
+    if (playPromise != null) {
+      playPromise
+        .then(() => setPlaying(true))
+        .catch(() => {
+          setPlaying(false)
+        })
+    } else {
+      setPlaying(true)
+    }
+  }, [])
+
   return (
     <div
       className="svc-hero-visual"
@@ -18,9 +40,7 @@ export default function ServiceLandingHeroVisual() {
         maxWidth: 'none',
         marginLeft: '0%',
         marginRight: '-4%',
-        /* Чуть ниже исходных 64 — без перебора */
         marginTop: 72,
-        /* Поля под 2 ряда точек у краёв */
         padding: '40px 48px 48px 40px',
         overflow: 'visible',
         boxSizing: 'border-box',
@@ -51,7 +71,7 @@ export default function ServiceLandingHeroVisual() {
               0 0 0 4px rgba(196, 181, 253, 0.45),
               0 12px 28px rgba(124, 58, 237, 0.14) !important;
           }
-          .svc-hero-visual .svc-hero-frame img {
+          .svc-hero-visual .svc-hero-media {
             border-radius: 10px !important;
             aspect-ratio: auto !important;
             object-fit: contain !important;
@@ -59,6 +79,14 @@ export default function ServiceLandingHeroVisual() {
             max-width: 100% !important;
             height: auto !important;
             display: block !important;
+          }
+          .svc-hero-visual .svc-hero-play {
+            width: clamp(72px, 16vw, 96px) !important;
+            height: clamp(72px, 16vw, 96px) !important;
+          }
+          .svc-hero-visual .svc-hero-play svg {
+            width: 30px !important;
+            height: 30px !important;
           }
           .svc-hero-visual .svc-hero-dots-tl {
             top: -18px !important;
@@ -103,13 +131,11 @@ export default function ServiceLandingHeroVisual() {
         className="svc-hero-shot"
         style={{
           position: 'relative',
-          /* Чуть крупнее исходных 106% */
           width: '108%',
           marginLeft: 0,
           marginRight: 0,
         }}
       >
-        {/* ~2 ряда/колонки снаружи края */}
         <DotGrid
           className="svc-hero-dots svc-hero-dots-tl"
           top={-42}
@@ -149,19 +175,74 @@ export default function ServiceLandingHeroVisual() {
             `,
           }}
         >
-          <img
-            src={serviceLandingAssets.hero}
-            alt="Интерфейс Clicki"
-            style={{
-              display: 'block',
-              width: '100%',
-              height: 'auto',
-              /* Высота как раньше (760), ширина +6% → тот же вертикальный размер, чуть шире */
-              aspectRatio: '1624 / 760',
-              objectFit: 'fill',
-              borderRadius: 22,
-            }}
-          />
+          <div style={{ position: 'relative', borderRadius: 22, overflow: 'hidden', background: '#0F172A' }}>
+            <video
+              ref={videoRef}
+              className="svc-hero-media"
+              src={serviceLandingAssets.heroVideo}
+              poster={serviceLandingAssets.heroPoster}
+              playsInline
+              preload="metadata"
+              controls={started}
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+              onEnded={() => setPlaying(false)}
+              style={{
+                display: 'block',
+                width: '100%',
+                height: 'auto',
+                aspectRatio: '1774 / 887',
+                objectFit: 'cover',
+                borderRadius: 22,
+                background: '#0F172A',
+              }}
+            />
+
+            {!playing ? (
+              <button
+                type="button"
+                onClick={handlePlayClick}
+                aria-label="Смотреть видео"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  zIndex: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: 0,
+                  padding: 0,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: started
+                    ? 'rgba(15, 23, 42, 0.28)'
+                    : 'linear-gradient(180deg, rgba(15,23,42,0.12) 0%, rgba(15,23,42,0.28) 100%)',
+                }}
+              >
+                <span
+                  className="svc-hero-play"
+                  style={{
+                    width: 'clamp(88px, 10.5%, 130px)',
+                    height: 'clamp(88px, 10.5%, 130px)',
+                    aspectRatio: '1',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 55%, #6D28D9 100%)',
+                    boxShadow:
+                      '0 12px 32px rgba(124, 58, 237, 0.45), 0 0 0 10px rgba(255, 255, 255, 0.22)',
+                    transition: 'transform 0.18s ease',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <svg width={40} height={40} viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path d="M9 7.5v9l8-4.5-8-4.5z" fill="#fff" />
+                  </svg>
+                </span>
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
@@ -205,7 +286,7 @@ function DotGrid({
             opacity,
             display: 'block',
           }}
-        />
+        />,
       )
     }
   }
