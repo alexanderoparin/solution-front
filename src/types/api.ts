@@ -215,6 +215,8 @@ export type MarketplaceType = 'WB' | 'OZON'
 export interface CabinetDto {
   id: number
   name: string
+  /** Валюта профиля продавца (ISO 4217), например RUB, BYN. */
+  currency?: string | null
   /** Маркетплейс кабинета (WB | OZON). */
   marketplaceType?: MarketplaceType
   createdAt: string
@@ -266,6 +268,8 @@ export interface WorkContextCabinetDto {
   sellerId: number
   cabinetName: string
   sellerEmail: string
+  /** Валюта профиля продавца (ISO 4217). */
+  currency?: string | null
   marketplaceType?: MarketplaceType
   lastDataUpdateAt: string | null
   lastDataUpdateRequestedAt: string | null

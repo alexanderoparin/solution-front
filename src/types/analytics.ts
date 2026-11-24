@@ -185,7 +185,7 @@ export interface CampaignPageResponse {
   types: string[]
 }
 
-/** Срез рекламы кампании по дню и appType из WB fullstats (сайт / Android / iOS). */
+/** Legacy-срез по appType (fullstats v3). Актуальная статистика РК — v4 slices (placement / conversionType). */
 export interface CampaignAdvertisingPlatformSlice {
   appType: number
   wbLabelRu: string

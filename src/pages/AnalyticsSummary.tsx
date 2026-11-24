@@ -33,6 +33,8 @@ import Breadcrumbs from '../components/Breadcrumbs'
 import { useWorkContextForAdmin, WORK_CONTEXT_CABINETS_QUERY_KEY } from '../hooks/useWorkContextForAdmin'
 import { useStoredCabinet } from '../hooks/useStoredCabinet'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
+import { useCabinetCurrency } from '../hooks/useCabinetCurrency'
+import { currencyLabel } from '../utils/money'
 
 dayjs.locale('ru')
 
@@ -247,6 +249,15 @@ export default function AnalyticsSummary() {
   const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
+  const cabinetCurrency = useCabinetCurrency(selectedCabinetId)
+  const moneySuffix = currencyLabel(cabinetCurrency)
+  const metricNamesRu = useMemo(() => {
+    const out: Record<string, string> = {}
+    for (const [key, name] of Object.entries(METRIC_NAMES_RU)) {
+      out[key] = name.replace(/руб/g, moneySuffix)
+    }
+    return out
+  }, [moneySuffix])
 
   const setSelectedCabinetId = useCallback(
     (id: number | null) => {
@@ -1343,7 +1354,7 @@ export default function AnalyticsSummary() {
             </thead>
             <tbody>
               {metricKeys.map((metricKey, metricIndex) => {
-                const metricNameRu = METRIC_NAMES_RU[metricKey]
+                const metricNameRu = metricNamesRu[metricKey]
                 const category = FUNNEL_METRICS.includes(metricKey) ? 'funnel' : 'advertising'
                 const metrics = summary.aggregatedMetrics
                 const getMetricValue = (periodId: number) => {

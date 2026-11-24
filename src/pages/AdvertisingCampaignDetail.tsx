@@ -39,6 +39,8 @@ import CampaignDetailViewSwitch, { type CampaignDetailViewMode } from '../compon
 import CampaignNormQueryClustersTable from '../components/CampaignNormQueryClustersTable'
 import FboFbsStocksSwitch, { type StocksFulfillment, stockRowKey } from '../components/FboFbsStocksSwitch'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
+import { useCabinetCurrency } from '../hooks/useCabinetCurrency'
+import { currencyLabel, formatMoney } from '../utils/money'
 
 dayjs.locale('ru')
 
@@ -280,6 +282,8 @@ export default function AdvertisingCampaignDetail() {
 
   const cabinetIdForRequest = requestCabinetId ?? undefined
   const sellerIdForRequest = isAdmin ? requestSellerId ?? undefined : userId ?? undefined
+  const cabinetCurrency = useCabinetCurrency(cabinetIdForRequest ?? null)
+  const moneySuffix = currencyLabel(cabinetCurrency)
   const {
     data: campaign,
     isLoading,
@@ -535,8 +539,8 @@ export default function AdvertisingCampaignDetail() {
     return value.toLocaleString('ru-RU')
   }
   const formatPercent = (value: number): string => `${value.toFixed(2).replace('.', ',')}%`
-  const formatCurrency = (value: number): string =>
-    `${value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`
+  const formatCurrency = (value: number): string => formatMoney(value, cabinetCurrency)
+  const moneyMetricName = (name: string): string => name.replace(/руб/g, moneySuffix)
   const formatDecimal = (value: number | null | undefined, digits = 2): string => {
     if (value == null) return '-'
     return value.toLocaleString('ru-RU', { minimumFractionDigits: digits, maximumFractionDigits: digits })
@@ -634,7 +638,16 @@ export default function AdvertisingCampaignDetail() {
         message.warning('Нет данных для выгрузки')
         return
       }
-      const headers = ['Кластер', 'Средняя позиция', 'Клики', 'Корзины', 'Заказы, шт', 'Затраты, ₽', 'CPO, ₽', 'CPC, ₽']
+      const headers = [
+        'Кластер',
+        'Средняя позиция',
+        'Клики',
+        'Корзины',
+        'Заказы, шт',
+        `Затраты, ${moneySuffix}`,
+        `CPO, ${moneySuffix}`,
+        `CPC, ${moneySuffix}`,
+      ]
       const sheetRows: (string | number)[][] = [headers]
       if (totals) {
         sheetRows.push([
@@ -1450,8 +1463,8 @@ export default function AdvertisingCampaignDetail() {
                   <h2 style={{ ...typography.h2, margin: 0, fontSize: 16, color: colors.textPrimary }}>Реклама по площадкам WB</h2>
                   <Tooltip
                     title={
-                      'Источник: GET /adv/v3/fullstats, поле appType. В openapi WB указаны значения «сайт», «Android», «iOS». ' +
-                      'Совпадение с вкладкой личного кабинета «По зонам показов» (Поиск / Каталог / рекомендательные полки) не гарантировано — при необходимости сверяйте числа вручную.'
+                      'Раньше источник — appType из fullstats v3 (сайт / Android / iOS). Сейчас статистика РК идёт из GET /api/advert/v4/fullstats (placement / conversionType). ' +
+                      'Этот блок площадок может быть пустым, пока не будет отдельной выгрузки под новый формат.'
                     }
                   >
                     <span
@@ -1654,7 +1667,7 @@ export default function AdvertisingCampaignDetail() {
                                   cursor: 'cell',
                                 }}
                               >
-                                {m.name}
+                                {moneyMetricName(m.name)}
                               </th>
                             )
                           })}
@@ -1898,10 +1911,10 @@ export default function AdvertisingCampaignDetail() {
                       <tr style={{ backgroundColor: colors.bgGrayLight }}>
                         <th style={{ padding: '6px 12px', textAlign: 'left', border: `1px solid ${colors.border}`, borderRight: 'none', backgroundColor: colors.bgGrayLight, width: 120, boxSizing: 'border-box' }}>Товар</th>
                         {FUNNELS.general.metrics.map((m, i) => (
-                          <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{m.name}</th>
+                          <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.funnelBg, borderRight: i === FUNNELS.general.metrics.length - 1 ? `2px solid ${colors.border}` : undefined }}>{moneyMetricName(m.name)}</th>
                         ))}
                         {FUNNELS.advertising.metrics.map((m) => (
-                          <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.advertisingBg }}>{m.name}</th>
+                          <th key={m.key} style={{ padding: '4px 6px', textAlign: 'center', border: `1px solid ${colors.border}`, fontSize: 10, whiteSpace: 'pre-line', lineHeight: 1.2, backgroundColor: colors.advertisingBg }}>{moneyMetricName(m.name)}</th>
                         ))}
                       </tr>
                     </thead>

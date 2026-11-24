@@ -251,7 +251,7 @@ export const analyticsApi = {
 
   /**
    * Детали комбо-кампании: название, статус, список артикулов.
-   * При передаче advertisingStatsFrom/To (yyyy-MM-dd) дополнительно приходит разбивка рекламы по appType (WB fullstats).
+   * При передаче advertisingStatsFrom/To (yyyy-MM-dd) раньше приходила разбивка по appType (v3); актуальна статистика из v4 slices.
    */
   getCampaignDetail: async (
     campaignId: number,

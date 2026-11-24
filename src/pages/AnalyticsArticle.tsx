@@ -35,6 +35,8 @@ import { linkifyNoteText } from '../utils/linkifyNoteText'
 import { NoteImagePreviewModal } from '../components/NoteImagePreviewModal'
 import FboFbsStocksSwitch, { type StocksFulfillment, stockRowKey } from '../components/FboFbsStocksSwitch'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
+import { useCabinetCurrency } from '../hooks/useCabinetCurrency'
+import { currencyLabel, formatMoney } from '../utils/money'
 
 type NoteFileEntry = { uid: string; file: File }
 
@@ -249,6 +251,10 @@ export default function AnalyticsArticle() {
     return requestCabinetId ?? undefined
   }, [requestCabinetId])
 
+  const cabinetCurrency = useCabinetCurrency(requestCabinetId ?? null)
+  const moneySuffix = currencyLabel(cabinetCurrency)
+  const moneyMetricName = (name: string): string => name.replace(/руб/g, moneySuffix)
+
   // Общий диапазон дат для графика и воронок (по умолчанию последние 2 недели)
   const yesterday = dayjs().subtract(1, 'day')
   const defaultDateFrom = yesterday.subtract(13, 'day')
@@ -445,9 +451,7 @@ export default function AnalyticsArticle() {
     return `${value.toFixed(2).replace('.', ',')}%`
   }
 
-  const formatCurrency = (value: number): string => {
-    return `${value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`
-  }
+  const formatCurrency = (value: number): string => formatMoney(value, cabinetCurrency)
 
   // Функции для работы с заметками
   const persistArticleGoal = async () => {
@@ -1853,7 +1857,7 @@ export default function AnalyticsArticle() {
                       zIndex: 2,
                       cursor: 'cell',
                     }}>
-                      {metric.name}
+                      {moneyMetricName(metric.name)}
                     </th>
                   )
                 })}
@@ -1887,7 +1891,7 @@ export default function AnalyticsArticle() {
                       zIndex: 2,
                       cursor: 'cell',
                     }}>
-                      {metric.name}
+                      {moneyMetricName(metric.name)}
                     </th>
                   )
                 })}
@@ -1921,7 +1925,7 @@ export default function AnalyticsArticle() {
                       zIndex: 2,
                       cursor: 'cell',
                     }}>
-                      {metric.name}
+                      {moneyMetricName(metric.name)}
                     </th>
                   )
                 })}
