@@ -23,6 +23,8 @@ import CampaignStatusFilterCheckboxes, {
 } from '../components/CampaignStatusFilterCheckboxes'
 import { useWorkContextForAdmin } from '../hooks/useWorkContextForAdmin'
 import { useStoredCabinet } from '../hooks/useStoredCabinet'
+import { useCabinetCurrency } from '../hooks/useCabinetCurrency'
+import { currencyLabel, formatMoney } from '../utils/money'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
 
 dayjs.locale('ru')
@@ -118,6 +120,8 @@ export default function AdvertisingCampaigns() {
   const { cabinetId: sellerCabinetId, setCabinetId: setSellerCabinetId } = useStoredCabinet(myCabinets)
 
   const selectedCabinetId = isAdmin ? workContext.selectedCabinetId : sellerCabinetId
+  const cabinetCurrency = useCabinetCurrency(selectedCabinetId)
+  const moneySuffix = currencyLabel(cabinetCurrency)
 
   const selectedCabinetMarketplace = useMemo(() => {
     const cab = cabinets.find((c) => c.id === selectedCabinetId)
@@ -245,7 +249,7 @@ export default function AdvertisingCampaigns() {
   const formatPct = (v: number | null | undefined) =>
     v == null ? '-' : `${Number(v).toFixed(2)}%`
   const formatCur = (v: number | null | undefined) =>
-    v == null ? '-' : v.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    v == null ? '-' : formatMoney(v, cabinetCurrency)
   const statusLabel = (c: Campaign) =>
     c.statusName ?? (c.status === 9 ? 'активна' : c.status === 7 ? 'завершена' : 'приостановлена')
   const statusBg = (c: Campaign) => {
@@ -484,8 +488,8 @@ export default function AdvertisingCampaigns() {
                     <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.status}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('status')}>Статус <SortIcon field="status" /></th>
                     <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.views}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('views')}>Просмотры <SortIcon field="views" /></th>
                     <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.clicks}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('clicks')}>Клики <SortIcon field="clicks" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.costs}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('costs')}>Затраты <SortIcon field="costs" /></th>
-                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.cpc}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('cpc')}>CPC <SortIcon field="cpc" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.costs}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('costs')}>Затраты, {moneySuffix} <SortIcon field="costs" /></th>
+                    <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.cpc}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('cpc')}>CPC, {moneySuffix} <SortIcon field="cpc" /></th>
                     <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.ctr}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('ctr')}>CTR <SortIcon field="ctr" /></th>
                     <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.cart}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('cart')}>Положили в корзину <SortIcon field="cart" /></th>
                     <th style={{ ...thStyle, textAlign: 'center', width: `${COL_WIDTHS_PCT.orders}%`, ...typography.body, ...FONT_PAGE_SMALL, fontWeight: 600, color: colors.textPrimary }} onClick={() => handleSort('orders')}>Заказали товаров <SortIcon field="orders" /></th>
