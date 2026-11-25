@@ -13,6 +13,7 @@ import {
 import dayjs from 'dayjs'
 import type { CampaignBudgetChartData } from '../../types/analytics'
 import { colors } from '../../styles/analytics'
+import { currencySymbol } from '../../utils/money'
 
 /** Лаймовый — линия бюджета и маркер запуска РК. */
 const BUDGET_LINE = '#B4D705'
@@ -47,6 +48,8 @@ function useIsNarrow(maxWidthPx = 900): boolean {
 interface CampaignBudgetChartProps {
   data: CampaignBudgetChartData | undefined
   loading?: boolean
+  /** ISO 4217 валюты кабинета для подписей оси и тултипа. */
+  currency?: string | null
 }
 
 interface ChartRow {
@@ -63,16 +66,16 @@ interface TopUpMarker {
   budgetAfter: number
 }
 
-function formatRub(value: number): string {
-  return `${Math.round(value).toLocaleString('ru-RU')} ₽`
-}
-
-function formatRubAxis(value: number, compact: boolean): string {
+function formatMoneyAxis(value: number, compact: boolean, currency?: string | null): string {
   const rounded = Math.round(value)
   if (compact) {
     return `${rounded.toLocaleString('ru-RU')}`
   }
-  return `${rounded.toLocaleString('ru-RU')} ₽`
+  return `${rounded.toLocaleString('ru-RU')} ${currencySymbol(currency)}`
+}
+
+function formatMoneyValue(value: number, currency?: string | null): string {
+  return `${Math.round(value).toLocaleString('ru-RU')} ${currencySymbol(currency)}`
 }
 
 function computeYMax(budgets: number[], topUpBands: TopUpMarker[]): number {
@@ -162,7 +165,7 @@ function buildTopUpMarkers(data: CampaignBudgetChartData, rows: ChartRow[]): Top
     .sort((a, b) => a.ts - b.ts)
 }
 
-export default function CampaignBudgetChart({ data, loading }: CampaignBudgetChartProps) {
+export default function CampaignBudgetChart({ data, loading, currency }: CampaignBudgetChartProps) {
   const compact = useIsNarrow(900)
   const { rows, topUps, xDomain, yMax, startMarkers, stopMarkers } = useMemo(() => {
     if (!data) {
@@ -270,7 +273,7 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
             interval="preserveStartEnd"
           />
           <YAxis
-            tickFormatter={(value: number) => formatRubAxis(value, compact)}
+            tickFormatter={(value: number) => formatMoneyAxis(value, compact, currency)}
             allowDecimals={false}
             tick={{ fontSize: compact ? 10 : 11, fill: colors.textSecondary }}
             width={compact ? 40 : 72}
@@ -279,7 +282,7 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
           <Tooltip
             labelFormatter={(ts) => dayjs(ts as number).format('DD.MM.YYYY HH:mm')}
             formatter={(value: number, name: string) => {
-              if (name === 'budgetRub') return [formatRub(value), 'Бюджет']
+              if (name === 'budgetRub') return [formatMoneyValue(value, currency), 'Бюджет']
               return [value, name]
             }}
             content={({ active, payload, label }) => {
@@ -302,12 +305,15 @@ export default function CampaignBudgetChart({ data, loading }: CampaignBudgetCha
                     {dayjs(ts).format('DD.MM.YYYY HH:mm')}
                   </div>
                   {budgetVal != null && (
-                    <div style={{ color: BUDGET_LINE, fontWeight: 600 }}>Бюджет: {formatRub(budgetVal)}</div>
+                    <div style={{ color: BUDGET_LINE, fontWeight: 600 }}>
+                      Бюджет: {formatMoneyValue(budgetVal, currency)}
+                    </div>
                   )}
                   {nearTopUp && (
                     <div style={{ color: TOP_UP_COLOR, fontWeight: 600, marginTop: 4 }}>
-                      Пополнено: +{formatRub(nearTopUp.amount)} ({formatRub(nearTopUp.budgetBefore)} →{' '}
-                      {formatRub(nearTopUp.budgetAfter)})
+                      Пополнено: +{formatMoneyValue(nearTopUp.amount, currency)} (
+                      {formatMoneyValue(nearTopUp.budgetBefore, currency)} →{' '}
+                      {formatMoneyValue(nearTopUp.budgetAfter, currency)})
                     </div>
                   )}
                 </div>

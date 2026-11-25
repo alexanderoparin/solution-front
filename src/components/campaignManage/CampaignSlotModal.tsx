@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Modal, InputNumber, Select, Checkbox } from 'antd'
 import type { CampaignSlotRepeatMode } from '../../types/analytics'
 import { DAY_LABELS, listEndTimeOptions, listStartTimeOptions } from '../../utils/campaignSlotTime'
+import { currencySymbol } from '../../utils/money'
 
 export interface SlotModalDraft {
   dayOfWeek: number
@@ -16,6 +17,8 @@ interface CampaignSlotModalProps {
   open: boolean
   title: string
   initial: SlotModalDraft
+  /** ISO 4217 валюты кабинета для подписи бюджета. */
+  currency?: string | null
   onCancel: () => void
   onSave: (draft: SlotModalDraft) => void
   saving?: boolean
@@ -31,6 +34,7 @@ export default function CampaignSlotModal({
   open,
   title,
   initial,
+  currency,
   onCancel,
   onSave,
   saving,
@@ -38,6 +42,7 @@ export default function CampaignSlotModal({
   const [draft, setDraft] = useState<SlotModalDraft>(initial)
   const startTimeOptions = listStartTimeOptions()
   const allEndTimeOptions = listEndTimeOptions()
+  const moneySymbol = currencySymbol(currency)
 
   useEffect(() => {
     if (open) setDraft(initial)
@@ -93,7 +98,7 @@ export default function CampaignSlotModal({
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 12, color: '#64748B', marginBottom: 4 }}>Бюджет слота, ₽</div>
+          <div style={{ fontSize: 12, color: '#64748B', marginBottom: 4 }}>Бюджет слота, {moneySymbol}</div>
           <InputNumber
             style={{ width: '100%' }}
             min={1}

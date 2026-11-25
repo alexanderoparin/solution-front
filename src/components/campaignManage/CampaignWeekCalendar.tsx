@@ -11,6 +11,7 @@ import {
 } from '../../utils/campaignSlotTime'
 import { findOverlappingSlot } from '../../utils/campaignSlotOverlap'
 import { colors, borderRadius, spacing } from '../../styles/analytics'
+import { currencySymbol } from '../../utils/money'
 
 const HOURS = 24
 
@@ -65,6 +66,8 @@ export interface SlotCreateRange {
 interface CampaignWeekCalendarProps {
   slots: CampaignScheduleSlot[]
   disabled?: boolean
+  /** ISO 4217 валюты кабинета для подписи бюджета слота. */
+  currency?: string | null
   /** data-tour-id для обучалки (сетка создания слотов) */
   tourTargetId?: string
   onCreateRange: (range: SlotCreateRange) => void
@@ -86,6 +89,7 @@ interface DragState {
 export default function CampaignWeekCalendar({
   slots,
   disabled,
+  currency,
   tourTargetId,
   onCreateRange,
   onUpdateSlot,
@@ -93,6 +97,7 @@ export default function CampaignWeekCalendar({
   onDeleteSlot,
 }: CampaignWeekCalendarProps) {
   const compact = useIsNarrow(900)
+  const moneySymbol = currencySymbol(currency)
   const hourHeight = compact ? 16 : 24
   const timeColumnWidth = compact ? 26 : 36
   const dayMinWidth = compact ? 40 : 56
@@ -368,7 +373,7 @@ export default function CampaignWeekCalendar({
                               ? `${slot.startTime.slice(0, 5)}–${slot.endTime.slice(0, 5)}`
                               : `${slot.startTime}–${slot.endTime}`}
                             <br />
-                            {compact ? slot.budgetRub : `${slot.budgetRub} ₽`}
+                            {compact ? slot.budgetRub : `${slot.budgetRub} ${moneySymbol}`}
                           </div>
                           <div
                             style={{ height: 6, cursor: 'ns-resize', margin: '0 -4px -2px', position: 'absolute', bottom: 0, left: 0, right: 0 }}

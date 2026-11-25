@@ -28,11 +28,11 @@ import {
 } from '../utils/budgetChartPeriod'
 import dayjs, { type Dayjs } from 'dayjs'
 import { ONBOARDING_TARGETS } from '../onboarding/targets'
+import { useCabinetCurrency } from '../hooks/useCabinetCurrency'
+import { currencySymbol, minTopUpAmount, topUpAmountStep } from '../utils/money'
 
 const COMBO_PHOTO_SIZE = 80
 const CHANGE_LOG_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
-/** Минимальная сумма пополнения бюджета РК на Wildberries, ₽. */
-const MIN_AUTO_TOP_UP_AMOUNT_RUB = 1000
 
 const manageActionButtonStyle = {
   height: 36,
@@ -114,12 +114,15 @@ function ChangeLogDateTimeCell({ value, compact }: { value: string | undefined; 
 }
 
 /** Подпись источника пополнения (без промо — оно в чекбоксе). */
-function formatBalanceSourceLabel(s: {
-  label: string
-  availableRub?: number | null
-}): string {
+function formatBalanceSourceLabel(
+  s: {
+    label: string
+    availableRub?: number | null
+  },
+  currency: string,
+): string {
   const amount = s.availableRub != null ? s.availableRub : 0
-  return `${s.label} (${amount} ₽)`
+  return `${s.label} (${amount} ${currencySymbol(currency)})`
 }
 
 /** Промо доступно для источника счёт/баланс. */
@@ -133,14 +136,17 @@ function sourceAllowsPromo(s: {
   return (s.cashbackRub ?? 0) > 0 && (s.cashbackPercent ?? 0) > 0
 }
 
-/** Текст чекбокса промо: «Использовать промо-бонусы 163000 ₽ до 50%». */
-function formatUsePromoCheckboxLabel(s: {
-  cashbackRub?: number | null
-  cashbackPercent?: number | null
-}): string {
-  const rub = s.cashbackRub ?? 0
+/** Текст чекбокса промо: «Использовать промо-бонусы 163000 ¥ до 50%». */
+function formatUsePromoCheckboxLabel(
+  s: {
+    cashbackRub?: number | null
+    cashbackPercent?: number | null
+  },
+  currency: string,
+): string {
+  const amount = s.cashbackRub ?? 0
   const pct = s.cashbackPercent ?? 0
-  return `Использовать промо-бонусы ${rub} ₽ до ${pct}%`
+  return `Использовать промо-бонусы ${amount} ${currencySymbol(currency)} до ${pct}%`
 }
 
 const cardStyle = {
@@ -316,6 +322,11 @@ export default function AdvertisingCampaignManage() {
     enabled: requestCabinetId != null,
   })
 
+  const cabinetCurrency = useCabinetCurrency(requestCabinetId ?? null)
+  const moneySymbol = currencySymbol(cabinetCurrency)
+  const topUpMin = minTopUpAmount(cabinetCurrency)
+  const topUpStep = topUpAmountStep(cabinetCurrency)
+
   const [autoEnabled, setAutoEnabled] = useState(false)
   const [topUpAmount, setTopUpAmount] = useState<number | null>(null)
   const [sourceType, setSourceType] = useState<number | null>(1)
@@ -325,7 +336,7 @@ export default function AdvertisingCampaignManage() {
   const [maxTopUps, setMaxTopUps] = useState<number | null>(null)
   const [autoLocked, setAutoLocked] = useState(true)
   const [manualTopUpOpen, setManualTopUpOpen] = useState(false)
-  const [manualTopUpAmount, setManualTopUpAmount] = useState<number | null>(MIN_AUTO_TOP_UP_AMOUNT_RUB)
+  const [manualTopUpAmount, setManualTopUpAmount] = useState<number | null>(1000)
   const [manualSourceType, setManualSourceType] = useState<number | null>(1)
   const [manualUsePromoCashback, setManualUsePromoCashback] = useState(true)
 
@@ -421,11 +432,11 @@ export default function AdvertisingCampaignManage() {
   })
 
   const openManualTopUp = useCallback(() => {
-    setManualTopUpAmount(topUpAmount ?? MIN_AUTO_TOP_UP_AMOUNT_RUB)
+    setManualTopUpAmount(topUpAmount ?? topUpMin)
     setManualSourceType(sourceType ?? balanceSources?.sources?.[0]?.type ?? 1)
     setManualUsePromoCashback(usePromoCashback)
     setManualTopUpOpen(true)
-  }, [topUpAmount, sourceType, usePromoCashback, balanceSources?.sources])
+  }, [topUpAmount, topUpMin, sourceType, usePromoCashback, balanceSources?.sources])
 
   const createSlotsMutation = useMutation({
     mutationFn: (body: CampaignScheduleSlotRequest) =>
@@ -731,11 +742,11 @@ export default function AdvertisingCampaignManage() {
                   </Checkbox>
                   <div className="campaign-manage-auto-fields" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginTop: 12 }}>
                     <div>
-                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Сумма пополнения, ₽</div>
+                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Сумма пополнения, {moneySymbol}</div>
                       <InputNumber
                         style={{ width: '100%' }}
-                        min={MIN_AUTO_TOP_UP_AMOUNT_RUB}
-                        step={100}
+                        min={topUpMin}
+                        step={topUpStep}
                         disabled={autoBudgetFieldsDisabled}
                         value={topUpAmount}
                         onChange={setTopUpAmount}
@@ -755,7 +766,7 @@ export default function AdvertisingCampaignManage() {
                         }}
                         options={(balanceSources?.sources ?? []).map((s) => ({
                           value: s.type,
-                          label: formatBalanceSourceLabel(s),
+                          label: formatBalanceSourceLabel(s, cabinetCurrency),
                         }))}
                       />
                     </div>
@@ -772,12 +783,12 @@ export default function AdvertisingCampaignManage() {
                           .filter((s) => s.type !== sourceType)
                           .map((s) => ({
                             value: s.type,
-                            label: formatBalanceSourceLabel(s),
+                            label: formatBalanceSourceLabel(s, cabinetCurrency),
                           }))}
                       />
                     </div>
                     <div>
-                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Пополнить если ниже, ₽</div>
+                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Пополнить если ниже, {moneySymbol}</div>
                       <InputNumber style={{ width: '100%' }} min={0} disabled={autoBudgetFieldsDisabled} value={thresholdRub} onChange={setThresholdRub} />
                     </div>
                     <div>
@@ -793,6 +804,7 @@ export default function AdvertisingCampaignManage() {
                         >
                           {formatUsePromoCheckboxLabel(
                             (balanceSources?.sources ?? []).find((s) => s.type === sourceType)!,
+                            cabinetCurrency,
                           )}
                         </Checkbox>
                       </div>
@@ -937,6 +949,7 @@ export default function AdvertisingCampaignManage() {
                 tourTargetId={ONBOARDING_TARGETS.CAMPAIGN_MANAGE_SCHEDULE_GRID}
                 slots={manage.slots}
                 disabled={controlBlocked || subscriptionBlocked}
+                currency={cabinetCurrency}
                 onCreateRange={openCreateFromRange}
                 onUpdateSlot={(slotId, body) => updateSlotMutation.mutate({ slotId, body })}
                 onEditSlot={openEditSlot}
@@ -965,7 +978,7 @@ export default function AdvertisingCampaignManage() {
                   disabled={budgetChartLoading}
                 />
               </div>
-              <CampaignBudgetChart data={budgetChart} loading={budgetChartLoading} />
+              <CampaignBudgetChart data={budgetChart} loading={budgetChartLoading} currency={cabinetCurrency} />
             </div>
 
             <div className="campaign-manage-history" style={cardStyle}>
@@ -1000,6 +1013,7 @@ export default function AdvertisingCampaignManage() {
         open={slotModalOpen}
         title={slotModalTitle}
         initial={slotDraft}
+        currency={cabinetCurrency}
         onCancel={() => setSlotModalOpen(false)}
         onSave={saveSlotDraft}
         saving={createSlotsMutation.isPending || updateSlotMutation.isPending}
@@ -1016,11 +1030,11 @@ export default function AdvertisingCampaignManage() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <div style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 6 }}>Сумма пополнения, ₽</div>
+            <div style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 6 }}>Сумма пополнения, {moneySymbol}</div>
             <InputNumber
               style={{ width: '100%' }}
-              min={MIN_AUTO_TOP_UP_AMOUNT_RUB}
-              step={100}
+              min={topUpMin}
+              step={topUpStep}
               value={manualTopUpAmount}
               onChange={setManualTopUpAmount}
             />
@@ -1033,7 +1047,7 @@ export default function AdvertisingCampaignManage() {
               onChange={setManualSourceType}
               options={(balanceSources?.sources ?? []).map((s) => ({
                 value: s.type,
-                label: formatBalanceSourceLabel(s),
+                label: formatBalanceSourceLabel(s, cabinetCurrency),
               }))}
             />
           </div>
@@ -1044,6 +1058,7 @@ export default function AdvertisingCampaignManage() {
             >
               {formatUsePromoCheckboxLabel(
                 (balanceSources?.sources ?? []).find((s) => s.type === manualSourceType)!,
+                cabinetCurrency,
               )}
             </Checkbox>
           )}
@@ -1053,7 +1068,7 @@ export default function AdvertisingCampaignManage() {
             loading={manualTopUpMutation.isPending}
             disabled={
               manualTopUpAmount == null
-              || manualTopUpAmount < MIN_AUTO_TOP_UP_AMOUNT_RUB
+              || manualTopUpAmount < topUpMin
               || manualSourceType == null
             }
             onClick={() => {

@@ -32,6 +32,28 @@ export function currencyLabel(currency?: string | null): string {
 }
 
 /**
+ * Символ валюты для подписей полей («₽», «¥» и т.п.).
+ */
+export function currencySymbol(currency?: string | null): string {
+  const code = normalizeCurrencyCode(currency)
+  return CURRENCY_SUFFIX[code] ?? code
+}
+
+/**
+ * Минимальная сумма пополнения бюджета РК на Wildberries в валюте кабинета.
+ */
+export function minTopUpAmount(currency?: string | null): number {
+  return normalizeCurrencyCode(currency) === 'CNY' ? 10 : 1000
+}
+
+/**
+ * Шаг суммы пополнения в форме биддера.
+ */
+export function topUpAmountStep(currency?: string | null): number {
+  return normalizeCurrencyCode(currency) === 'CNY' ? 1 : 100
+}
+
+/**
  * Форматирует денежную сумму с символом валюты кабинета.
  */
 export function formatMoney(
