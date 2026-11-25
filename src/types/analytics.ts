@@ -77,6 +77,63 @@ export interface SummaryResponse {
   totalArticles?: number | null
 }
 
+/** Метрики дневной динамики дашборда. */
+export type DashboardDailyMetric =
+  | 'orders'
+  | 'ordersAmount'
+  | 'transitions'
+  | 'cart'
+  | 'costs'
+  | 'clicks'
+  | 'views'
+
+export interface DashboardDailyPoint {
+  date: string
+  value: number
+}
+
+export interface DashboardDailyResponse {
+  metric: string
+  points: DashboardDailyPoint[]
+}
+
+export type DashboardFulfillment = 'ALL' | 'FBO' | 'FBS'
+
+export interface DashboardStockSize {
+  size: string
+  fbo: number
+  fbs: number
+  total: number
+}
+
+export interface DashboardStocksResponse {
+  total: number
+  fbo: number
+  fbs: number
+  fboSharePercent: number
+  fbsSharePercent: number
+  bySize: DashboardStockSize[]
+  updatedAt: string | null
+  articles: ArticleSummary[]
+}
+
+export interface DashboardRankingItem {
+  rank: number
+  nmId: number
+  photoTm: string | null
+  title: string | null
+  vendorCode: string | null
+  orders: number
+  ordersAmount: number
+  changePercent: number | null
+}
+
+export interface DashboardRankingsResponse {
+  topByOrders: DashboardRankingItem[]
+  topGrowth: DashboardRankingItem[]
+  topDecline: DashboardRankingItem[]
+}
+
 export interface PeriodMetricValue {
   periodId: number
   value: number | null

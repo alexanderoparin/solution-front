@@ -57,6 +57,9 @@ function isNavPathActive(pathname: string, to: string): boolean {
   if (to === '/analytics') {
     return pathname === '/analytics'
   }
+  if (to === '/analytics/dashboards') {
+    return pathname === '/analytics/dashboards'
+  }
   if (to === '/analytics/products') {
     return pathname === '/analytics/products' || pathname.startsWith('/analytics/article/')
   }
@@ -180,6 +183,9 @@ export default function Header({
     if (location.pathname === '/analytics') {
       return ['summary']
     }
+    if (location.pathname === '/analytics/dashboards') {
+      return ['dashboards']
+    }
     if (location.pathname.startsWith('/analytics/hypotheses')) {
       return ['hypotheses']
     }
@@ -195,6 +201,7 @@ export default function Header({
 
   const isAnalyticsActive =
     location.pathname === '/analytics' ||
+    location.pathname === '/analytics/dashboards' ||
     location.pathname === '/analytics/products' ||
     location.pathname.startsWith('/analytics/article/') ||
     location.pathname.startsWith('/analytics/hypotheses')
@@ -369,6 +376,7 @@ export default function Header({
             items: [
               { key: 'products', label: <NavMenuLink to="/analytics/products">Товары</NavMenuLink> },
               { key: 'summary', label: <NavMenuLink to="/analytics">Сводная</NavMenuLink> },
+              { key: 'dashboards', label: <NavMenuLink to="/analytics/dashboards">Дашборды</NavMenuLink> },
               { key: 'hypotheses', label: <NavMenuLink to="/analytics/hypotheses">Гипотезы</NavMenuLink> },
             ],
           }}

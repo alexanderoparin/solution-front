@@ -15,6 +15,11 @@ import type {
   CampaignNote,
   CampaignPageResponse,
   NormQueryClustersResponse,
+  DashboardDailyResponse,
+  DashboardDailyMetric,
+  DashboardStocksResponse,
+  DashboardFulfillment,
+  DashboardRankingsResponse,
 } from '../types/analytics'
 
 export interface CampaignControlEnqueueResponse {
@@ -106,6 +111,47 @@ export const analyticsApi = {
    */
   getSummary: async (request: SummaryRequest): Promise<SummaryResponse> => {
     const response = await apiClient.post<SummaryResponse>('/analytics/summary', request)
+    return response.data
+  },
+
+  /**
+   * Дневная динамика метрики для дашборда WB.
+   */
+  getDashboardDaily: async (
+    request: SummaryRequest & { metric: DashboardDailyMetric; periods: Period[] }
+  ): Promise<DashboardDailyResponse> => {
+    const response = await apiClient.post<DashboardDailyResponse>('/analytics/dashboard/daily', request)
+    return response.data
+  },
+
+  /**
+   * Срез остатков FBO/FBS для дашборда WB.
+   */
+  getDashboardStocks: async (request: {
+    sellerId?: number
+    cabinetId?: number
+    nmId?: number
+    fulfillment?: DashboardFulfillment
+    excludedNmIds?: number[]
+    includedNmIds?: number[]
+    filterToNone?: boolean
+    search?: string
+    onlyWithPhoto?: boolean
+    onlyPriority?: boolean
+    onlyInAdvertising?: boolean
+  }): Promise<DashboardStocksResponse> => {
+    const response = await apiClient.post<DashboardStocksResponse>('/analytics/dashboard/stocks', request)
+    return response.data
+  },
+
+  /**
+   * Товарные рейтинги (топ-5) для дашборда WB.
+   */
+  getDashboardRankings: async (request: SummaryRequest): Promise<DashboardRankingsResponse> => {
+    const response = await apiClient.post<DashboardRankingsResponse>(
+      '/analytics/dashboard/rankings',
+      request
+    )
     return response.data
   },
 

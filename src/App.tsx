@@ -7,6 +7,7 @@ import ConfirmEmail from './pages/ConfirmEmail'
 import Landing from './pages/Landing'
 import LandingAgency from './pages/LandingAgency'
 import AnalyticsSummary from './pages/AnalyticsSummary'
+import AnalyticsDashboards from './pages/AnalyticsDashboards'
 import AnalyticsArticle from './pages/AnalyticsArticle'
 import AnalyticsProducts from './pages/AnalyticsProducts'
 import AdvertisingCampaigns from './pages/AdvertisingCampaigns'
@@ -80,6 +81,10 @@ function AppRoutes() {
         <Route
           path="/analytics"
           element={token ? <AccessGuard><CabinetSectionGuard section="SUMMARY"><AnalyticsSummary /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/analytics/dashboards"
+          element={token ? <AccessGuard><CabinetSectionGuard section="SUMMARY"><AnalyticsDashboards /></CabinetSectionGuard></AccessGuard> : <Navigate to="/login" replace />}
         />
         <Route
           path="/analytics/products"

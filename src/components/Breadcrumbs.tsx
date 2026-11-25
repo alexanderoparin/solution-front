@@ -10,9 +10,9 @@ interface BreadcrumbItem {
 
 /**
  * Хлебные крошки под хеддером. Иерархия без корня.
- * Маршруты: /analytics → Аналитика → Сводная; /analytics/products → Аналитика → Товары;
- * /analytics/article/:nmId → Аналитика → Товары → {nmId}; /advertising/campaigns → Реклама → Рекламные кампании;
- * /profile → Профиль.
+ * Маршруты: /analytics → Аналитика → Сводная; /analytics/dashboards → Аналитика → Дашборды;
+ * /analytics/products → Аналитика → Товары; /analytics/article/:nmId → Аналитика → Товары → {nmId};
+ * /advertising/campaigns → Реклама → Рекламные кампании; /profile → Профиль.
  */
 export default function Breadcrumbs() {
   const location = useLocation()
@@ -33,6 +33,8 @@ export default function Breadcrumbs() {
     items.push({ label: 'Профиль' })
   } else if (pathname === '/analytics') {
     items.push({ label: 'Аналитика', path: '/analytics' }, { label: 'Сводная' })
+  } else if (pathname === '/analytics/dashboards') {
+    items.push({ label: 'Аналитика', path: '/analytics' }, { label: 'Дашборды' })
   } else if (pathname === '/analytics/products') {
     items.push({ label: 'Аналитика', path: '/analytics' }, { label: 'Товары' })
   } else if (pathname === '/analytics/hypotheses') {
