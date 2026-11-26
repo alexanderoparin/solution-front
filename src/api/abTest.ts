@@ -53,7 +53,7 @@ export const abTestApi = {
     const response = await apiClient.post<AbTest>(
       `/advertising/ab-tests${buildParams(sellerId, cabinetId)}`,
       form,
-      { timeout: 45_000 },
+      { timeout: 120_000 },
     )
     return response.data
   },
