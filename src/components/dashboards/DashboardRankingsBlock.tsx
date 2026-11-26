@@ -318,7 +318,6 @@ function RankingCard({
                 <RankingTableRow
                   key={`${title}-${item.nmId}`}
                   item={item}
-                  moneySuffix={moneySuffix}
                   variant={variant}
                 />
               ))}
@@ -332,11 +331,9 @@ function RankingCard({
 
 function RankingTableRow({
   item,
-  moneySuffix,
   variant,
 }: {
   item: DashboardRankingItem
-  moneySuffix: string
   variant: RankingVariant
 }) {
   const changeColor =
