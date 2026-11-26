@@ -74,6 +74,16 @@ export default function DashboardPeriodCards({
         <PlusOutlined />
         Добавить период
       </button>
+      <div
+        style={{
+          flexBasis: '100%',
+          fontSize: 12,
+          color: colors.textMuted,
+          marginTop: 2,
+        }}
+      >
+        Даты начала и окончания периода включены в расчёт
+      </div>
     </div>
   )
 }

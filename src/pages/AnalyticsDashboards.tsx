@@ -661,6 +661,7 @@ export default function AnalyticsDashboards() {
                 data={rankingsQuery.data}
                 loading={rankingsQuery.isLoading || articleCatalogLoading}
                 error={rankingsQuery.isError ? 'Не удалось загрузить рейтинги' : null}
+                articles={filteredArticles}
                 moneySuffix={moneySuffix}
               />
             </section>

@@ -171,8 +171,10 @@ function KpiCard({
 
   const sparkData = periods.map((p, index) => ({
     i: index,
+    periodId: p.id,
     v: Number(aggregatedMetrics[p.id]?.[def.field] ?? 0),
-    color: periodColor(index),
+    /** Цвет как на карточке периода (по id), не по индексу сортировки. */
+    color: periodColor(Math.max(0, p.id - 1)),
   }))
 
   const tone = KPI_ICON_TONES[def.iconTone]
@@ -243,14 +245,14 @@ function KpiCard({
                 <AreaChart data={sparkData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id={`kpi-spark-${def.key}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={periodColor(periods.length - 1)} stopOpacity={0.28} />
-                      <stop offset="100%" stopColor={periodColor(periods.length - 1)} stopOpacity={0} />
+                      <stop offset="0%" stopColor={tone.fg} stopOpacity={0.3} />
+                      <stop offset="100%" stopColor={tone.fg} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <Area
                     type="monotone"
                     dataKey="v"
-                    stroke={periodColor(periods.length - 1)}
+                    stroke={tone.fg}
                     fill={`url(#kpi-spark-${def.key})`}
                     strokeWidth={2}
                     dot={(props: { cx?: number; cy?: number; index?: number }) => {
@@ -263,7 +265,7 @@ function KpiCard({
                           cx={cx}
                           cy={cy}
                           r={2.5}
-                          fill={periodColor(index)}
+                          fill={tone.fg}
                           stroke="#fff"
                           strokeWidth={1}
                         />
@@ -315,7 +317,7 @@ function KpiCard({
               color: p.color,
               lineHeight: 1.2,
             }}
-            title={`Период ${periods[p.i]?.id}`}
+            title={`Период ${p.periodId}`}
           >
             {formatKpiSparkValue(p.v, def)}
           </div>

@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Select, Spin, Segmented } from 'antd'
+import { AppstoreOutlined } from '@ant-design/icons'
 import {
   Bar,
   BarChart,
@@ -15,6 +16,15 @@ import dayjs from 'dayjs'
 import type { ArticleSummary, DashboardFulfillment, DashboardStocksResponse } from '../../types/analytics'
 import { colors, borderRadius, shadows, spacing, typography } from '../../styles/analytics'
 
+type ArticleSelectOption = {
+  value: string
+  label: string
+  title?: string
+  vendorCode?: string | null
+  photoUrl?: string | null
+  isAll?: boolean
+}
+
 interface DashboardStocksBlockProps {
   data: DashboardStocksResponse | undefined
   loading: boolean
@@ -25,7 +35,7 @@ interface DashboardStocksBlockProps {
   onFulfillmentChange: (value: DashboardFulfillment) => void
 }
 
-const FBO_COLOR = '#3B82F6'
+const FBO_COLOR = '#8B5CF6'
 const FBS_COLOR = '#10B981'
 
 /**
@@ -65,16 +75,30 @@ export default function DashboardStocksBlock({
     [sizeBars]
   )
 
-  const articleOptions = useMemo(() => {
+  const articleOptions = useMemo((): ArticleSelectOption[] => {
     const articles: ArticleSummary[] = data?.articles ?? []
     return [
-      { value: 'all', label: 'Все артикулы' },
+      {
+        value: 'all',
+        label: 'Все артикулы',
+        title: 'Все артикулы',
+        isAll: true,
+      },
       ...articles.map((a) => ({
         value: String(a.nmId),
-        label: a.vendorCode ? `${a.vendorCode} · ${a.nmId}` : String(a.nmId),
+        label: [a.title, a.vendorCode, String(a.nmId)].filter(Boolean).join(' '),
+        title: a.title || 'Без названия',
+        vendorCode: a.vendorCode,
+        photoUrl: a.photoTm ?? a.photoC246x328 ?? null,
+        isAll: false,
       })),
     ]
   }, [data?.articles])
+
+  const selectedArticle = useMemo(() => {
+    if (nmId == null) return null
+    return (data?.articles ?? []).find((a) => a.nmId === nmId) ?? null
+  }, [data?.articles, nmId])
 
   return (
     <div
@@ -102,9 +126,142 @@ export default function DashboardStocksBlock({
             value={nmId == null ? 'all' : String(nmId)}
             onChange={(v) => onNmIdChange(v === 'all' ? null : Number(v))}
             options={articleOptions}
-            style={{ minWidth: 200 }}
+            style={{ minWidth: 280 }}
             showSearch
             optionFilterProp="label"
+            listHeight={360}
+            virtual={false}
+            popupMatchSelectWidth={360}
+            optionRender={(option) => {
+              const dataOpt = option.data as ArticleSelectOption
+              if (dataOpt.isAll) {
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', padding: '4px 0' }}>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 4,
+                        marginRight: 12,
+                        backgroundColor: colors.primaryLight,
+                        color: colors.primary,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        fontSize: 18,
+                      }}
+                    >
+                      <AppstoreOutlined />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, color: colors.textSecondary }}>Все</div>
+                      <div
+                        style={{
+                          fontSize: 14,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        Все артикулы
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', padding: '4px 0' }}>
+                  {dataOpt.photoUrl ? (
+                    <img
+                      src={dataOpt.photoUrl}
+                      alt=""
+                      style={{
+                        width: 40,
+                        height: 40,
+                        objectFit: 'cover',
+                        borderRadius: 4,
+                        marginRight: 12,
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 4,
+                        marginRight: 12,
+                        flexShrink: 0,
+                        backgroundColor: colors.bgGray,
+                      }}
+                    />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, color: colors.textSecondary }}>{option.value}</div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                      title={dataOpt.title}
+                    >
+                      {dataOpt.title || '—'}
+                    </div>
+                  </div>
+                </div>
+              )
+            }}
+            labelRender={(props) => {
+              if (props.value === 'all' || props.value == null) {
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    <AppstoreOutlined style={{ color: colors.primary, flexShrink: 0 }} />
+                    <span>Все артикулы</span>
+                  </div>
+                )
+              }
+              const photoUrl = selectedArticle?.photoTm ?? selectedArticle?.photoC246x328 ?? null
+              const title = selectedArticle?.title || String(props.value)
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt=""
+                      style={{
+                        width: 22,
+                        height: 22,
+                        objectFit: 'cover',
+                        borderRadius: 4,
+                        flexShrink: 0,
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 4,
+                        flexShrink: 0,
+                        backgroundColor: colors.bgGray,
+                      }}
+                    />
+                  )}
+                  <span
+                    style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {props.value} · {title}
+                  </span>
+                </div>
+              )
+            }}
           />
           <Segmented
             value={fulfillment}
@@ -131,33 +288,18 @@ export default function DashboardStocksBlock({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'minmax(200px, 260px) 1fr',
+              gridTemplateColumns: 'minmax(180px, 220px) minmax(0, 1.8fr) minmax(180px, 0.55fr)',
               gap: spacing.lg,
-              alignItems: 'center',
+              alignItems: 'stretch',
             }}
           >
-            <div style={{ height: 200, position: 'relative' }}>
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie
-                    data={donutData.length > 0 ? donutData : [{ name: 'empty', value: 1, color: colors.border }]}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={55}
-                    outerRadius={80}
-                    paddingAngle={2}
-                  >
-                    {(donutData.length > 0 ? donutData : [{ color: colors.border }]).map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v: number | string) => Number(v).toLocaleString('ru-RU')} />
-                </PieChart>
-              </ResponsiveContainer>
+            <div style={{ height: 220, position: 'relative', alignSelf: 'center' }}>
+              {/* Подпись «всего» под графиком — иначе перекрывает tooltip */}
               <div
                 style={{
                   position: 'absolute',
                   inset: 0,
+                  zIndex: 1,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -168,10 +310,45 @@ export default function DashboardStocksBlock({
                 <div style={{ fontSize: 20, fontWeight: 700 }}>{data.total.toLocaleString('ru-RU')}</div>
                 <div style={{ fontSize: 11, color: colors.textMuted }}>всего</div>
               </div>
+              <div style={{ position: 'relative', zIndex: 2, height: '100%' }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={donutData.length > 0 ? donutData : [{ name: 'empty', value: 1, color: colors.border }]}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={2}
+                    >
+                      {(donutData.length > 0 ? donutData : [{ color: colors.border }]).map((entry, i) => (
+                        <Cell key={i} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    {/* Справа сверху: у крупного FBO якорь иначе в центре и перекрывает «всего» */}
+                    <Tooltip
+                      position={{ x: 148, y: 8 }}
+                      allowEscapeViewBox={{ x: true, y: true }}
+                      wrapperStyle={{ zIndex: 20, outline: 'none', pointerEvents: 'none' }}
+                      contentStyle={{
+                        backgroundColor: colors.bgWhite,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: 8,
+                        boxShadow: shadows.sm,
+                        padding: '8px 10px',
+                      }}
+                      formatter={(v: number | string, name: string) => [
+                        Number(v).toLocaleString('ru-RU'),
+                        name,
+                      ]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
-            <div>
-              <div style={{ display: 'flex', gap: spacing.lg, marginBottom: spacing.md, flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', gap: spacing.lg, marginBottom: spacing.sm, flexWrap: 'wrap' }}>
                 <div>
                   <div style={{ fontSize: 12, color: colors.textMuted }}>FBO</div>
                   <div style={{ fontWeight: 700, color: FBO_COLOR }}>
@@ -192,8 +369,8 @@ export default function DashboardStocksBlock({
                 </div>
               </div>
 
-              {sizeBars.length > 0 && (
-                <div style={{ width: '100%', height: 180 }}>
+              {sizeBars.length > 0 ? (
+                <div style={{ width: '100%', flex: 1, minHeight: 180 }}>
                   <ResponsiveContainer>
                     <BarChart data={sizeBars} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                       <XAxis dataKey="size" tick={{ fontSize: 11 }} />
@@ -208,39 +385,56 @@ export default function DashboardStocksBlock({
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              )}
+              ) : null}
             </div>
-          </div>
 
-          <div style={{ marginTop: spacing.lg }}>
-            <div style={{ ...typography.bodySmall, marginBottom: spacing.sm, fontWeight: 600 }}>
-              По размерам
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {(data.bySize ?? []).map((row) => (
-                <div key={row.size} style={{ display: 'grid', gridTemplateColumns: '64px 1fr 48px', gap: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, color: colors.textSecondary }}>{row.size}</span>
+            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ ...typography.bodySmall, marginBottom: spacing.sm, fontWeight: 600 }}>
+                По размерам
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  flex: 1,
+                  maxHeight: 220,
+                  overflowY: 'auto',
+                }}
+              >
+                {(data.bySize ?? []).map((row) => (
                   <div
+                    key={row.size}
                     style={{
-                      height: 10,
-                      borderRadius: 6,
-                      backgroundColor: colors.bgGrayLight,
-                      overflow: 'hidden',
+                      display: 'grid',
+                      gridTemplateColumns: '56px 1fr 48px',
+                      gap: 8,
+                      alignItems: 'center',
                     }}
                   >
+                    <span style={{ fontSize: 13, color: colors.textSecondary }}>{row.size}</span>
                     <div
                       style={{
-                        width: `${Math.round((row.total / maxSizeTotal) * 100)}%`,
-                        height: '100%',
-                        background: `linear-gradient(90deg, ${FBO_COLOR} 0%, ${FBS_COLOR} 100%)`,
+                        height: 10,
+                        borderRadius: 6,
+                        backgroundColor: colors.bgGrayLight,
+                        overflow: 'hidden',
                       }}
-                    />
+                    >
+                      <div
+                        style={{
+                          width: `${Math.round((row.total / maxSizeTotal) * 100)}%`,
+                          height: '100%',
+                          background: `linear-gradient(90deg, ${FBO_COLOR} 0%, ${FBS_COLOR} 100%)`,
+                        }}
+                      />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 600, textAlign: 'right' }}>
+                      {row.total.toLocaleString('ru-RU')}
+                    </span>
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, textAlign: 'right' }}>
-                    {row.total.toLocaleString('ru-RU')}
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
